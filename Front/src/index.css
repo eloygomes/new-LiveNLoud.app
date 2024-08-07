@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.fake {
+  background-color: #4158d0;
+  background-image: linear-gradient(
+    43deg,
+    #4158d0 0%,
+    #c850c0 46%,
+    #ffcc70 100%
+  );
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.blinking-icon {
+  animation: blink 0.5s infinite alternate; /* Adjust animation duration as needed */
+}
+
+.button-neuphormism-a {
+  border-radius: 5px;
+  background: #e0e0e0;
+  box-shadow: 5px 5px 10px #bebebe, -3px -3px 10px #ffffff;
+  cursor: pointer;
+  color: gray;
+}
+
+.neuphormism-a {
+  border-radius: 5px;
+  background: #e0e0e0;
+  box-shadow: 5px 5px 10px #bebebe, -3px -3px 10px #ffffff;
+  cursor: pointer;
+  color: gray;
+}
+
+.neuphormism-a:hover {
+  border-radius: 5px;
+  background: #e0e0e0;
+  box-shadow: inset 5px 5px 10px #bebebe, inset -3px -3px 10px #ffffff;
+}
+
+.neuphormism-b {
+  border-radius: 5px;
+  background: linear-gradient(145deg, #cacaca, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+}
+
+.neuphormism-c {
+  border-radius: 5px;
+  background: linear-gradient(145deg, #f0f0f0, #cacaca);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+  color: gray;
+}
+
+.neuphormism-c:hover {
+  border-radius: 5px;
+  background: linear-gradient(145deg, #cacaca, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+}
+
+.neuphormism-d {
+  border-radius: 5px;
+  background: #e0e0e0;
+  box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
+}
+
+
