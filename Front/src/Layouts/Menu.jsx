@@ -12,7 +12,7 @@ export default function RootLayouts() {
   return (
     <>
       <header>
-        <nav className="neuphormism-b fixed w-full">
+        <nav className="neuphormism-b fixed w-full z-50">
           {/* <nav className="rounded-[12px] bg-[#e0e0e0] shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff]"> */}
           <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
             <div className="relative flex h-16 items-center justify-between">

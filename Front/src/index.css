@@ -54,6 +54,20 @@ body {
   cursor: pointer;
 }
 
+.neuphormism-b-se {
+  border-radius: 5px;
+  background: linear-gradient(145deg, #efefef, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
+.neuphormism-b-se:hover {
+  border-radius: 5px;
+  background: linear-gradient(145deg, #efefef, rgba(173, 170, 170, 0.539));
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
 .neuphormism-c {
   border-radius: 5px;
   background: linear-gradient(145deg, #f0f0f0, #cacaca);
@@ -101,4 +115,11 @@ body {
   background: green;
   box-shadow:  20px 20px 60px #bebebe,
                -20px -20px 60px #ffffff;
+}
+
+.nav-neumorfismo {
+  border-radius: 12px;
+  background: linear-gradient(315deg, #cacaca, #f0f0f0);
+  box-shadow:  -20px -20px 60px #bebebe,
+               20px 20px 60px #ffffff;
 }
