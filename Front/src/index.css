@@ -70,3 +70,8 @@
 }
 
 
+/* Adicione isso no seu arquivo CSS */
+.disabled-link {
+  pointer-events: none;
+  color: grey;
+}

@@ -10,13 +10,22 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Menu from "./Layouts/Menu";
-import Dashboard from "./Pages/Dashboard";
+import Dashboard from "./Pages/Dashboard/Dashboard";
+import NewSong from "./Pages/NewSong/NewSong";
+import Metronome from "./Pages/Metronome/Metronome";
+import EditSong from "./Pages/EditSong/EditSong";
+import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
+import Tuner from "./Pages/Tuner/Tuner";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<Menu />}>
+      <Route path="/chordlibrary" element={<ChordLibrary />} />
       <Route path="/" element={<Dashboard />} />
-      {/* <Route path="about" element={<About />} /> */}
+      <Route path="/editsong" element={<EditSong />} />
+      <Route path="/metronome" element={<Metronome />} />
+      <Route path="/newsong" element={<NewSong />} />
+      <Route path="/tuner" element={<Tuner />} />
     </Route>
   )
 );
