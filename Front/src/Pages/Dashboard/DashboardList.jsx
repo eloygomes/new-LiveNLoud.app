@@ -101,7 +101,7 @@ export default function DashboardList() {
   }, []);
 
   return (
-    <Box className="h-screen w-full sm:w-11/12 md:w-10/12 lg:w-9/12 xl:w-8/12 mx-auto cursor-pointer">
+    <Box className="h-screen w-11/12 2xl:w-9/12 mx-auto cursor-pointer">
       <DataGrid
         rows={FAKEDATA}
         columns={columns}

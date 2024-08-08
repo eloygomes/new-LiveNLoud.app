@@ -12,8 +12,8 @@ export default function RootLayouts() {
   return (
     <>
       <header>
-        {/* <nav className="bg-gray-800"> */}
-        <nav className="rounded-[12px] bg-[#e0e0e0] shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff]">
+        <nav className="neuphormism-b fixed w-full">
+          {/* <nav className="rounded-[12px] bg-[#e0e0e0] shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff]"> */}
           <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
             <div className="relative flex h-16 items-center justify-between">
               <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
