@@ -1,7 +1,7 @@
 import { useState } from "react";
 import NewSongInputLinkBox from "./NewSongInputLinkBox";
 
-function NewSongColumnB() {
+function EditSongColumnB() {
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
   const [progGuitar01, setProgGuitar01] = useState(0);
@@ -29,7 +29,7 @@ function NewSongColumnB() {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
       <div className="flex flex-col w-full">
-        <h1 className="text-xl font-bold">Input Links</h1>
+        <h1 className="text-2xl font-bold">Input Links</h1>
         <NewSongInputLinkBox
           instrumentName="GUITAR 01"
           instument={guitar01}
@@ -77,4 +77,4 @@ function NewSongColumnB() {
   );
 }
 
-export default NewSongColumnB;
+export default EditSongColumnB;

@@ -22,7 +22,7 @@ const router = createBrowserRouter(
     <Route element={<Menu />}>
       <Route path="/chordlibrary" element={<ChordLibrary />} />
       <Route path="/" element={<Dashboard />} />
-      <Route path="/editsong" element={<EditSong />} />
+      <Route path="/editsong/:idsong" element={<EditSong />} />
       <Route path="/metronome" element={<Metronome />} />
       <Route path="/newsong" element={<NewSong />} />
       <Route path="/tuner" element={<Tuner />} />
