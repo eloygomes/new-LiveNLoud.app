@@ -15,25 +15,23 @@ function DashList2Items() {
   return (
     <div className="flex flex-col">
       {FAKEDATA.map((data, index) => (
-        <Link key={index} to={`/editsong/${data.id}`}>
-          <div
-            key={index}
-            className="flex flex-row justify-around p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200"
-          >
+        <div key={index} className="relative group">
+          <Link to={`/editsong/${data.id}`} className="absolute inset-0 z-10" />
+          <div className="flex flex-row justify-around p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
             <div className="w-[10%] text-center px-5">{data.id}</div>
             <div className="w-full px-5">{data.Song}</div>
             <div className="w-full pr-5">{data.Artist}</div>
-            <div className="w-full flex items-center justify-center ">
+            <div className="w-full flex items-center justify-center">
               <div className="w-10/12 bg-gray-200 rounded-full input-neumorfismo">
                 <div
-                  className="bg-gray-700  rounded text-center py-1 text-[8pt] leading-none text-white "
+                  className="bg-gray-700 rounded text-center py-1 text-[8pt] leading-none text-white"
                   style={{ width: `${data.progressBar}%` }}
                 >
                   {data.progressBar}%
                 </div>
               </div>
             </div>
-            <ul className="w-full text-center px-5 flex flex-row justify-between space-x-2">
+            <ul className="w-full text-center px-5 flex flex-row justify-between space-x-2 z-20">
               {instrumentLabels.map((instrument) => (
                 <li key={instrument.key} className="list-none">
                   <a
@@ -47,6 +45,7 @@ function DashList2Items() {
                         ? "text-gray-700 hover:text-gray-900 hover:font-bold"
                         : "text-gray-400 hover:text-gray-900 hover:font-bold"
                     }`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {instrument.label}
                   </a>
@@ -54,7 +53,7 @@ function DashList2Items() {
               ))}
             </ul>
           </div>
-        </Link>
+        </div>
       ))}
       <div className="border-b border-gray-300"></div>
     </div>
