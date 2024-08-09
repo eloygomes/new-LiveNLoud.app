@@ -16,6 +16,7 @@ import Metronome from "./Pages/Metronome/Metronome";
 import EditSong from "./Pages/EditSong/EditSong";
 import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
 import Tuner from "./Pages/Tuner/Tuner";
+import Presentation from "./Pages/Presentation/Presentation";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -25,6 +26,7 @@ const router = createBrowserRouter(
       <Route path="/editsong/:idsong" element={<EditSong />} />
       <Route path="/metronome" element={<Metronome />} />
       <Route path="/newsong" element={<NewSong />} />
+      <Route path="/presentation/:idsong" element={<Presentation />} />
       <Route path="/tuner" element={<Tuner />} />
     </Route>
   )
