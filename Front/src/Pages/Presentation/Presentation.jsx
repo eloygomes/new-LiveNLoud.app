@@ -1,4 +1,19 @@
+import { useState } from "react";
 import FAKEDATA from "../../../FAKEDATA";
+
+import FloatingBtns from "./FloatingBtns";
+import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
+
+// Gear Icon
+import { FaGear } from "react-icons/fa6";
+import ToolBox from "./ToolBox";
+
+const toolBoxBtnStatusChange = (status, setStatus) => {
+  if (status === true) setStatus(false);
+  if (status === false) setStatus(true);
+
+  console.log(status);
+};
 
 // Função para processar a cifra da música
 const processSongCifra = (songCifra) => {
@@ -37,6 +52,7 @@ const processSongCifra = (songCifra) => {
 };
 
 function Presentation() {
+  const [toolBoxBtnStatus, setToolBoxBtnStatus] = useState(false);
   const songCifraData = FAKEDATA[0].guitar01.songCifra;
 
   // Processar o songCifraData usando o algoritmo fornecido
@@ -44,11 +60,23 @@ function Presentation() {
 
   return (
     <div className="flex justify-center h-screen pt-20">
+      <ToolBox toolBoxBtnStatus={toolBoxBtnStatus} />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
-          <div className="flex flex-col my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">{FAKEDATA[0].Song}</h1>
-            <h1 className="text-4xl font-bold">{FAKEDATA[0].Artist}</h1>
+          <div className="flex flex-row justify-between my-5 neuphormism-b p-5">
+            <div className="flex flex-col">
+              <h1 className="text-4xl font-bold">{FAKEDATA[0].Song}</h1>
+              <h1 className="text-4xl font-bold">{FAKEDATA[0].Artist}</h1>
+            </div>
+            <div
+              className="flex neuphormism-b-btn p-6"
+              onClick={() =>
+                toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
+              }
+            >
+              <FaGear className="w-8 h-8" />
+              {/* ABRE TE SESSAMOOOOOO */}
+            </div>
           </div>
           <div className="flex flex-col neuphormism-b p-5">
             {htmlBlocks.map((item, index) => (
