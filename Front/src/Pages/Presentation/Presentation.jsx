@@ -16,32 +16,95 @@ const toolBoxBtnStatusChange = (status, setStatus) => {
 };
 
 // Função para processar a cifra da música
+// const processSongCifra = (songCifra) => {
+//   const splitSections = (cifra) => {
+//     const sectionPattern = /\[(.*?)\]/g;
+//     return cifra.split(sectionPattern).filter(Boolean);
+//   };
+
+//   const formatSection = (section) => {
+//     if (section.includes("Intro")) {
+//       return `<pre class="intro">${section}</pre>`;
+//     } else if (
+//       section.includes("Parte") ||
+//       section.includes("Primeira Parte")
+//     ) {
+//       return `<pre class="verse">${section}</pre>`;
+//     } else if (section.includes("Refrão")) {
+//       return `<pre class="chorus">${section}</pre>`;
+//     } else if (section.includes("Solo")) {
+//       return `<pre class="solo">${section}</pre>`;
+//     } else if (section.includes("Ponte")) {
+//       return `<pre class="bridge">${section}</pre>`;
+//     } else {
+//       return `<pre class="other">${section}</pre>`;
+//     }
+//   };
+
+//   const formatCifra = (sections) => sections.map(formatSection);
+
+//   const sections = splitSections(songCifra);
+//   const formattedSections = formatCifra(sections);
+
+//   return {
+//     htmlBlocks: formattedSections,
+//   };
+// };
+
 const processSongCifra = (songCifra) => {
   const splitSections = (cifra) => {
+    // Separar as seções pelo marcador e o conteúdo subsequente
     const sectionPattern = /\[(.*?)\]/g;
-    return cifra.split(sectionPattern).filter(Boolean);
+    let sections = [];
+    let match;
+    let lastIndex = 0;
+
+    while ((match = sectionPattern.exec(cifra)) !== null) {
+      if (lastIndex !== match.index) {
+        sections.push({
+          label:
+            sections.length > 0 ? sections[sections.length - 1].label : null,
+          content: cifra.slice(lastIndex, match.index).trim(),
+        });
+      }
+      sections.push({
+        label: match[1],
+        content: "",
+      });
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < cifra.length) {
+      sections.push({
+        label: sections.length > 0 ? sections[sections.length - 1].label : null,
+        content: cifra.slice(lastIndex).trim(),
+      });
+    }
+
+    return sections.filter((section) => section.content);
   };
 
-  const formatSection = (section) => {
-    if (section.includes("Intro")) {
-      return `<pre class="intro">${section}</pre>`;
-    } else if (
-      section.includes("Parte") ||
-      section.includes("Primeira Parte")
-    ) {
-      return `<pre class="verse">${section}</pre>`;
-    } else if (section.includes("Refrão")) {
-      return `<pre class="chorus">${section}</pre>`;
-    } else if (section.includes("Solo")) {
-      return `<pre class="solo">${section}</pre>`;
-    } else if (section.includes("Ponte")) {
-      return `<pre class="bridge">${section}</pre>`;
+  const formatSection = (section, index) => {
+    const label = section.label ? section.label.toLowerCase() : "";
+    const id = `section-${label.replace(/\s+/g, "-").toLowerCase()}-${index}`;
+
+    if (label.includes("intro")) {
+      return `<pre id="${id}" class="intro">${section.content}</pre>`;
+    } else if (label.includes("parte") || label.includes("primeira parte")) {
+      return `<pre id="${id}" class="verse">${section.content}</pre>`;
+    } else if (label.includes("refrão")) {
+      return `<pre id="${id}" class="chorus">${section.content}</pre>`;
+    } else if (label.includes("solo")) {
+      return `<pre id="${id}" class="solo">${section.content}</pre>`;
+    } else if (label.includes("ponte")) {
+      return `<pre id="${id}" class="bridge">${section.content}</pre>`;
     } else {
-      return `<pre class="other">${section}</pre>`;
+      return `<pre id="${id}" class="other">${section.content}</pre>`;
     }
   };
 
-  const formatCifra = (sections) => sections.map(formatSection);
+  const formatCifra = (sections) =>
+    sections.map((section, index) => formatSection(section, index));
 
   const sections = splitSections(songCifra);
   const formattedSections = formatCifra(sections);
@@ -60,7 +123,11 @@ function Presentation() {
 
   return (
     <div className="flex justify-center h-screen pt-20">
-      <ToolBox toolBoxBtnStatus={toolBoxBtnStatus} />
+      <ToolBox
+        toolBoxBtnStatus={toolBoxBtnStatus}
+        setToolBoxBtnStatus={setToolBoxBtnStatus}
+        toolBoxBtnStatusChange={toolBoxBtnStatusChange}
+      />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
           <div className="flex flex-row justify-between my-5 neuphormism-b p-5">
@@ -75,7 +142,6 @@ function Presentation() {
               }
             >
               <FaGear className="w-8 h-8" />
-              {/* ABRE TE SESSAMOOOOOO */}
             </div>
           </div>
           <div className="flex flex-col neuphormism-b p-5">
