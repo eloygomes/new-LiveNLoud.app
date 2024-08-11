@@ -10,7 +10,7 @@ function ToolBox({
   return (
     <>
       <div className={`${toolBoxBtnStatus ? "flex" : "hidden"}`}>
-        <div className=" w-40 h-[90vh] flex flex-col justify-between neuphormism-b-se fixed right-16 bottom-3 p-4">
+        <div className=" w-40 h-[90vh] flex flex-col justify-between neuphormism-b fixed right-16 bottom-3 p-4">
           <div>
             <div className="border-b-2 border-gray-300 w-full flex flex-row justify-between  py-2">
               <div className="flex flex-row text-sm font-bold">
