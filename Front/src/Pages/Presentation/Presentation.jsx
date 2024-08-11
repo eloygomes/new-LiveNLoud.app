@@ -1,9 +1,6 @@
 import { useState } from "react";
 import FAKEDATA from "../../../FAKEDATA";
 
-import FloatingBtns from "./FloatingBtns";
-import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
-
 // Gear Icon
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
@@ -14,42 +11,6 @@ const toolBoxBtnStatusChange = (status, setStatus) => {
 
   console.log(status);
 };
-
-// Função para processar a cifra da música
-// const processSongCifra = (songCifra) => {
-//   const splitSections = (cifra) => {
-//     const sectionPattern = /\[(.*?)\]/g;
-//     return cifra.split(sectionPattern).filter(Boolean);
-//   };
-
-//   const formatSection = (section) => {
-//     if (section.includes("Intro")) {
-//       return `<pre class="intro">${section}</pre>`;
-//     } else if (
-//       section.includes("Parte") ||
-//       section.includes("Primeira Parte")
-//     ) {
-//       return `<pre class="verse">${section}</pre>`;
-//     } else if (section.includes("Refrão")) {
-//       return `<pre class="chorus">${section}</pre>`;
-//     } else if (section.includes("Solo")) {
-//       return `<pre class="solo">${section}</pre>`;
-//     } else if (section.includes("Ponte")) {
-//       return `<pre class="bridge">${section}</pre>`;
-//     } else {
-//       return `<pre class="other">${section}</pre>`;
-//     }
-//   };
-
-//   const formatCifra = (sections) => sections.map(formatSection);
-
-//   const sections = splitSections(songCifra);
-//   const formattedSections = formatCifra(sections);
-
-//   return {
-//     htmlBlocks: formattedSections,
-//   };
-// };
 
 const processSongCifra = (songCifra) => {
   const splitSections = (cifra) => {
@@ -93,6 +54,7 @@ const processSongCifra = (songCifra) => {
     } else if (label.includes("parte") || label.includes("primeira parte")) {
       return `<pre id="${id}" class="verse">${section.content}</pre>`;
     } else if (label.includes("refrão")) {
+      ``;
       return `<pre id="${id}" class="chorus">${section.content}</pre>`;
     } else if (label.includes("solo")) {
       return `<pre id="${id}" class="solo">${section.content}</pre>`;
