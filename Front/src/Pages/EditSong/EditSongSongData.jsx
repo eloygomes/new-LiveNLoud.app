@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-function NewSongSongData({
+function EditSongSongData({
   songName,
   artistName,
   capoData,
@@ -49,4 +49,4 @@ function NewSongSongData({
   );
 }
 
-export default NewSongSongData;
+export default EditSongSongData;

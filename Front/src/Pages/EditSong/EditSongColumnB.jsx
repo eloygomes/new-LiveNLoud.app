@@ -1,5 +1,5 @@
 import { useState } from "react";
-import NewSongInputLinkBox from "./NewSongInputLinkBox";
+import EditSongInputLinkBox from "./EditSongInputLinkBox";
 
 function EditSongColumnB() {
   // Guitar 01
@@ -29,43 +29,43 @@ function EditSongColumnB() {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
       <div className="flex flex-col w-full">
-        <h1 className="text-2xl font-bold">Input Links</h1>
-        <NewSongInputLinkBox
+        <h1 className="text-xl font-bold">Input Links</h1>
+        <EditSongInputLinkBox
           instrumentName="GUITAR 01"
           instument={guitar01}
           setInstrument={setGuitar01}
           progress={progGuitar01}
           setProgress={setProgGuitar01}
         />
-        <NewSongInputLinkBox
+        <EditSongInputLinkBox
           instrumentName="GUITAR 02"
           instument={guitar02}
           setInstrument={setGuitar02}
           progress={progGuitar02}
           setProgress={setProgGuitar02}
         />
-        <NewSongInputLinkBox
+        <EditSongInputLinkBox
           instrumentName="BASS"
           instument={bass}
           setInstrument={setBass}
           progress={progBass}
           setProgress={setProgBass}
         />
-        <NewSongInputLinkBox
+        <EditSongInputLinkBox
           instrumentName="KEYS"
           instument={key}
           setInstrument={setKey}
           progress={progKey}
           setProgress={setProgKey}
         />
-        <NewSongInputLinkBox
+        <EditSongInputLinkBox
           instrumentName="DRUMS"
           instument={drums}
           setInstrument={setDrums}
           progress={progDrums}
           setProgress={setProgDrums}
         />
-        <NewSongInputLinkBox
+        <EditSongInputLinkBox
           instrumentName="VOICE"
           instument={voice}
           setInstrument={setVoice}
