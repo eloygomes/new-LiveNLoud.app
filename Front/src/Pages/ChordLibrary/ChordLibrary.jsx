@@ -40,7 +40,7 @@ function ChordLibrary() {
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">CHORD LIBRARY</h1>
+            <h1 className="text-4xl font-bold">Chord Library</h1>
             <h4 className="ml-auto mt-auto text-sm">
               Find the correct chord for you here!
             </h4>
@@ -56,13 +56,15 @@ function ChordLibrary() {
                   />
                   <ChordInput values={musicNotes} inputLabel="Bass" />
                 </div>
-                <button className="w-[10%] neuphormism-b-se p-5 " type="button">
+                <button className="w-[10%] neuphormism-b-se p-3 " type="button">
                   Search
                 </button>
               </div>
 
-              <div className="p-10  w-[90%]  mx-auto py-96 rounded-md mb-2 neuphormism-b ">
-                CHORD
+              <div className="p-10  w-[90%]  mx-auto py-72 rounded-md mb-2 neuphormism-b ">
+                <div className="flex items-center justify-center ">
+                  <h1 className="text-[150px]">F#/D</h1>
+                </div>
               </div>
             </div>
           </div>

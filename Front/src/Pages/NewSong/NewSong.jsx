@@ -7,7 +7,7 @@ function NewSong() {
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">ADD NEW SONG</h1>
+            <h1 className="text-4xl font-bold">Add new song</h1>
             <h4 className="ml-auto mt-auto text-sm">Register new song here</h4>
           </div>
           <div className="flex flex-row">
