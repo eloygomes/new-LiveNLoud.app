@@ -1,18 +1,18 @@
 /* eslint-disable react/prop-types */
 // eslint-disable-next-line react/prop-types
-function EditSongEmbed({ ytEmbedSongList }) {
+function NewSongEmbed({ ytEmbedSongList }) {
   return (
     <>
       <div className="flex flex-col neuphormism-b p-5 my-5 mr-5">
-        <h1 className="text-2xl pb-2 font-bold">Embed</h1>
+        <h1 className="text-xl pb-2 font-bold">Embed</h1>
         <input
           type="text"
           name="ytlink"
           placeholder="Insert your link here"
-          className="w-full p-1 border border-gray-300 rounded-lg text-sm"
+          className="w-full p-1 border border-gray-300 rounded-md text-sm"
           //   value={embedLink}
         />
-        <div className="flex flex-row neuphormism-b p-5 my-5 m-0 justify-between">
+        <div className="flex flex-row neuphormism-b-se p-5 my-2 m-0 justify-between">
           <ul className="flex flex-col">
             {ytEmbedSongList.map((ytLink, index) => {
               return (
@@ -25,7 +25,7 @@ function EditSongEmbed({ ytEmbedSongList }) {
           <ul className="flex flex-col">
             {ytEmbedSongList.map((ytLink, index) => {
               return (
-                <li key={index} className="text-[6pt] py-2">
+                <li key={index} className="text-[6pt] py-2 hover:font-black">
                   <a href="#">PLAY</a>
                 </li>
               );
@@ -37,4 +37,4 @@ function EditSongEmbed({ ytEmbedSongList }) {
   );
 }
 
-export default EditSongEmbed;
+export default NewSongEmbed;
