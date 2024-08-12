@@ -15,7 +15,7 @@ function DashList2Items() {
   return (
     <div className="flex flex-col">
       {FAKEDATA.map((data, index) => (
-        <div key={index} className="relative group">
+        <div key={index} className="relative group hover:bg-gray-300">
           <Link to={`/editsong/${data.id}`} className="absolute inset-0 z-10" />
           <div className="flex flex-row justify-around p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
             <div className="w-[10%] text-center px-5">{data.id}</div>

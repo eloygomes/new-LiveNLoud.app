@@ -7,7 +7,7 @@ function EditSong() {
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">EDIT SONG</h1>
+            <h1 className="text-4xl font-bold">Edit song</h1>
             <h4 className="ml-auto mt-auto text-sm">Edit your song here</h4>
           </div>
           <div className="flex flex-row">
