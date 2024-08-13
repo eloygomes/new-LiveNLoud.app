@@ -35,7 +35,8 @@ export default function FloatingBtnsAutoScroll() {
 
   return (
     <Box
-      className="fixed  right-32 bottom-3 p-4"
+      // className="fixed  right-32 bottom-3 p-4"
+      className="relative  right-[12.5rem] top-16 "
       sx={{ "& > :not(style)": { m: 1 } }}
     >
       <div className="flex flex-col">

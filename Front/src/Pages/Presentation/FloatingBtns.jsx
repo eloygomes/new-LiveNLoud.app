@@ -20,7 +20,8 @@ export default function FloatingBtns() {
 
   return (
     <Box
-      className="fixed bottom-0 right-14 p-4"
+      // className="fixed bottom-0 right-14 p-4"
+      className="relative bottom-0 right-14 p-4 pt-11"
       sx={{ "& > :not(style)": { m: 1 } }}
     >
       <div className="flex flex-col">
