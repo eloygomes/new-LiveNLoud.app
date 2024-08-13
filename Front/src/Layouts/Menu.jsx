@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { useState } from "react";
 // IMG
 import logoProv from "../assets/logo-provisorio.svg";
 import userIcon from "../assets/user-logo.svg";
@@ -9,6 +10,8 @@ import NavMenuItems from "./NavMenuItems";
 import UserDropdownMenuItems from "./UserDropdownMenuItems";
 
 export default function RootLayouts() {
+  const [userDropdownMenuStatus, setUserDropdownMenuStatus] = useState(false);
+
   return (
     <>
       <header>
@@ -78,6 +81,9 @@ export default function RootLayouts() {
                       id="user-menu-button"
                       aria-expanded="false"
                       aria-haspopup="true"
+                      onClick={() =>
+                        setUserDropdownMenuStatus(!userDropdownMenuStatus)
+                      }
                     >
                       <span className="absolute -inset-1.5"></span>
                       <span className="sr-only">Open user menu</span>
@@ -88,7 +94,10 @@ export default function RootLayouts() {
                       />
                     </button>
                   </div>
-                  <UserDropdownMenu />
+                  <UserDropdownMenu
+                    userDropdownMenuStatus={userDropdownMenuStatus}
+                    setUserDropdownMenuStatus={setUserDropdownMenuStatus}
+                  />
                 </div>
               </div>
             </div>
