@@ -3,9 +3,10 @@ export default function UserProfileAvatar({ src, size, alt = "User Avatar" }) {
   return (
     <div className="flex items-center space-x-2 my-5">
       <img
-        className={`w-${size} h-${size} object-cover neuphormism-b-avatar`}
+        className={`object-cover neuphormism-b-avatar rounded-full`}
         alt={alt}
         src={src}
+        style={{ width: `${size}px`, height: `${size}px` }} // Garantir que a largura e a altura sejam iguais
       />
     </div>
   );

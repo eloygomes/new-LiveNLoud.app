@@ -2,17 +2,21 @@ import { Outlet } from "react-router-dom";
 import { useState } from "react";
 // IMG
 import logoProv from "../assets/logo-provisorio.svg";
-import userIcon from "../assets/user-logo.svg";
+// import userIcon from "../assets/user-logo.svg";
 import userPerfil from "../assets/userPerfil.jpg";
 // CSS
 import "../index.css";
 import UserDropdownMenu from "./UserDropdownMenu";
 import NavMenuItems from "./NavMenuItems";
 import UserDropdownMenuItems from "./UserDropdownMenuItems";
+1;
 import UserProfileAvatar from "./UserProfileAvatar";
+import { useNavigate } from "react-router-dom";
 
 export default function RootLayouts() {
   const [userDropdownMenuStatus, setUserDropdownMenuStatus] = useState(false);
+
+  const navigate = useNavigate(); // Initialize navigate here
 
   return (
     <>
@@ -64,12 +68,18 @@ export default function RootLayouts() {
                 </button>
               </div>
               <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="flex flex-shrink-0 items-center">
+                <div className="flex flex-row flex-shrink-0 items-center">
                   <img
                     className="h-8 w-auto"
                     src={logoProv}
                     alt="Your Company"
                   />
+                  <h1
+                    className="ml-2 font-bold mr-5"
+                    onClick={() => navigate("/")}
+                  >
+                    Live N Loud
+                  </h1>
                 </div>
                 <NavMenuItems />
               </div>
@@ -95,6 +105,7 @@ export default function RootLayouts() {
                   </div>
                   <UserDropdownMenu
                     userDropdownMenuStatus={userDropdownMenuStatus}
+                    setUserDropdownMenuStatus={setUserDropdownMenuStatus}
                   />
                 </div>
               </div>

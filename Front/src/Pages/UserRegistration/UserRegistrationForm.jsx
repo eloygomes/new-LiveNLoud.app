@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Box,
@@ -9,7 +10,30 @@ import {
   Typography,
 } from "@mui/material";
 
+// Função de registro
+import { signUp } from "../../authFunctions";
+
 function UserRegistrationForm() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Função para lidar com a submissão do formulário
+  const handleSubmit = (event) => {
+    event.preventDefault(); // Previne o comportamento padrão do formulário
+
+    // Aqui você pode incluir uma validação para confirmar se as senhas correspondem
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    // Chama a função signUp passando o email e password
+    signUp(email, password);
+  };
+
   return (
     <Container maxWidth="sm">
       <Box
@@ -23,7 +47,7 @@ function UserRegistrationForm() {
         <Typography component="h1" variant="h5">
           Sign Up
         </Typography>
-        <Box component="form" noValidate sx={{ mt: 3 }}>
+        <Box component="form" noValidate sx={{ mt: 3 }} onSubmit={handleSubmit}>
           <TextField
             margin="normal"
             required
@@ -33,6 +57,8 @@ function UserRegistrationForm() {
             name="fullName"
             autoComplete="name"
             autoFocus
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
           />
           <TextField
             margin="normal"
@@ -42,6 +68,8 @@ function UserRegistrationForm() {
             label="Email Address"
             name="email"
             autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
             margin="normal"
@@ -51,6 +79,8 @@ function UserRegistrationForm() {
             label="Username"
             name="username"
             autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
           <TextField
             margin="normal"
@@ -61,6 +91,8 @@ function UserRegistrationForm() {
             type="password"
             id="password"
             autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
           <TextField
             margin="normal"
@@ -71,6 +103,8 @@ function UserRegistrationForm() {
             type="password"
             id="confirmPassword"
             autoComplete="current-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
           />
           <FormControlLabel
             control={<Checkbox value="terms" color="primary" />}
