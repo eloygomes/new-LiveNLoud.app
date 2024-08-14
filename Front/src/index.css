@@ -61,14 +61,27 @@ body {
   cursor: pointer;
 }
 
-.neuphormism-b-btn:hover {
+.neuphormism-b-btn:active {
   border-radius: 5px;
   background: #e0e0e0;
   box-shadow: inset 20px 20px 60px #bebebe,
               inset -20px -20px 60px #ffffff;
 }
 
+.neuphormism-b-btn-red {
+  /* background-color: red; */
+  border-radius: 5px;
+  background: linear-gradient(145deg, #f7b6b6, #db4e4e);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
 
+.neuphormism-b-btn-red:active {
+  border-radius: 5px;
+  background: #e0e0e0;
+  box-shadow: inset 20px 20px 60px #bebebe,
+              inset -20px -20px 60px #ffffff;
+}
 
 .neuphormism-b-se {
   border-radius: 5px;
