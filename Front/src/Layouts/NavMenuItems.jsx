@@ -36,6 +36,13 @@ function NavMenuItems() {
         >
           Metronome
         </NavLink>
+
+        <NavLink
+          to="/userregistration"
+          className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
+        >
+          USER REGISTRATION
+        </NavLink>
       </div>
     </div>
   );

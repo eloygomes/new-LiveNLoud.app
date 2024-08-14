@@ -139,3 +139,10 @@ body {
   box-shadow:  -20px -20px 60px #bebebe,
                20px 20px 60px #ffffff;
 }
+
+.neuphormism-b-avatar {
+  border-radius: 9999px;
+  background: linear-gradient(145deg, #efefef, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}

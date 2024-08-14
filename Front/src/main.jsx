@@ -17,18 +17,27 @@ import EditSong from "./Pages/EditSong/EditSong";
 import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
 import Tuner from "./Pages/Tuner/Tuner";
 import Presentation from "./Pages/Presentation/Presentation";
+import Login from "./Pages/Login/Login";
+
+import UserRegistration from "./Pages/UserRegistration/UserRegistration";
+import UserProfile from "./Pages/UserProfile/UserProfile";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route element={<Menu />}>
-      <Route path="/chordlibrary" element={<ChordLibrary />} />
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/editsong/:idsong" element={<EditSong />} />
-      <Route path="/metronome" element={<Metronome />} />
-      <Route path="/newsong" element={<NewSong />} />
-      <Route path="/presentation/:idsong" element={<Presentation />} />
-      <Route path="/tuner" element={<Tuner />} />
-    </Route>
+    <>
+      <Route path="/login" element={<Login />} />
+      <Route path="/userregistration" element={<UserRegistration />} />
+      <Route element={<Menu />}>
+        <Route path="/chordlibrary" element={<ChordLibrary />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/editsong/:idsong" element={<EditSong />} />
+        <Route path="/metronome" element={<Metronome />} />
+        <Route path="/newsong" element={<NewSong />} />
+        <Route path="/presentation/:idsong" element={<Presentation />} />
+        <Route path="/tuner" element={<Tuner />} />
+        <Route path="/userprofile/:userid" element={<UserProfile />} />
+      </Route>
+    </>
   )
 );
 

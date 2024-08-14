@@ -3,11 +3,13 @@ import { useState } from "react";
 // IMG
 import logoProv from "../assets/logo-provisorio.svg";
 import userIcon from "../assets/user-logo.svg";
+import userPerfil from "../assets/userPerfil.jpg";
 // CSS
 import "../index.css";
 import UserDropdownMenu from "./UserDropdownMenu";
 import NavMenuItems from "./NavMenuItems";
 import UserDropdownMenuItems from "./UserDropdownMenuItems";
+import UserProfileAvatar from "./UserProfileAvatar";
 
 export default function RootLayouts() {
   const [userDropdownMenuStatus, setUserDropdownMenuStatus] = useState(false);
@@ -77,7 +79,7 @@ export default function RootLayouts() {
                   <div>
                     <button
                       type="button"
-                      className="relative flex rounded-full  text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
+                      className="relative flex rounded-full  text-sm "
                       id="user-menu-button"
                       aria-expanded="false"
                       aria-haspopup="true"
@@ -87,11 +89,8 @@ export default function RootLayouts() {
                     >
                       <span className="absolute -inset-1.5"></span>
                       <span className="sr-only">Open user menu</span>
-                      <img
-                        className="h-8 w-8 rounded-full"
-                        src={userIcon}
-                        alt=""
-                      />
+                      {/* SE O USUARIO NAO TIVER FOTO O SRC SERÁ: userIcon */}
+                      <UserProfileAvatar src={userPerfil} size={8} />
                     </button>
                   </div>
                   <UserDropdownMenu
