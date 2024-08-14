@@ -1,7 +1,5 @@
-function UserDropdownMenu({
-  userDropdownMenuStatus,
-  setUserDropdownMenuStatus,
-}) {
+/* eslint-disable react/prop-types */
+function UserDropdownMenu({ userDropdownMenuStatus }) {
   return (
     // This hidden class is hidding the dropdown menu
     <div

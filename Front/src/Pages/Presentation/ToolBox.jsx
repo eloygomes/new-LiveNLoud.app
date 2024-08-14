@@ -15,7 +15,7 @@ function ToolBox({
           <div className=" w-40  flex flex-col justify-between neuphormism-b fixed right-16 bottom-3 p-2">
             <div>
               <div className="border-b-2 border-gray-300 w-full flex flex-row justify-between  py-2">
-                <div className="flex flex-row text-sm font-bold">ToolBox</div>
+                <h1 className="flex flex-row text-sm font-bold">ToolBox</h1>
                 <div
                   className="flex flex-row text-2xl font-semibold hover:font-black"
                   onClick={() =>
@@ -30,6 +30,9 @@ function ToolBox({
               </div>
               <TollBoxAcoord />
             </div>
+            <h1 className="flex flex-row text-[6pt] font-bold items-center justify-center mx-auto w-full bg-gray-500 text-white">
+              Click and hold to drag
+            </h1>
           </div>
         </div>
       </DraggableComponent>

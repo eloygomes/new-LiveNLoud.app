@@ -96,7 +96,6 @@ export default function RootLayouts() {
                   </div>
                   <UserDropdownMenu
                     userDropdownMenuStatus={userDropdownMenuStatus}
-                    setUserDropdownMenuStatus={setUserDropdownMenuStatus}
                   />
                 </div>
               </div>
