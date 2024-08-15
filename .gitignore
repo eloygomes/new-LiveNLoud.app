@@ -1,0 +1,4 @@
+
+*.pyc
+/Server/Python/scrapper/env
+/Server/Python/scrapper/ex
