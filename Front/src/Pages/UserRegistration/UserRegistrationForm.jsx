@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -9,9 +10,47 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import axios from "axios";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 
-// Função de registro
-import { signUp } from "../../authFunctions";
+// Função para registrar o usuário na API customizada
+const registerUserInApi = async (email, password, username, fullName) => {
+  try {
+    const response = await axios.post(
+      "https://www.api.live.eloygomes.com.br/api/newsong",
+      {
+        databaseComing: "liveNloud_",
+        collectionComing: "data",
+        userdata: {
+          email: email,
+          username: username,
+          fullName: fullName,
+          // password: password,
+        },
+      }
+    );
+    // console.log("User registered in API:", response.data);
+  } catch (error) {
+    console.error("Error registering user in API:", error);
+    throw new Error("API registration failed");
+  }
+};
+
+// Função para registrar o usuário no Firebase
+const registerUserInFirebase = async (email, password) => {
+  const auth = getAuth();
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    // console.log("User registered in Firebase:", userCredential.user);
+  } catch (error) {
+    console.error("Error registering user in Firebase:", error);
+    throw error;
+  }
+};
 
 function UserRegistrationForm() {
   const [fullName, setFullName] = useState("");
@@ -20,18 +59,33 @@ function UserRegistrationForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Função para lidar com a submissão do formulário
-  const handleSubmit = (event) => {
-    event.preventDefault(); // Previne o comportamento padrão do formulário
+  const navigate = useNavigate();
 
-    // Aqui você pode incluir uma validação para confirmar se as senhas correspondem
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
     }
 
-    // Chama a função signUp passando o email e password
-    signUp(email, password);
+    try {
+      // Primeiro, registra na API customizada
+      await registerUserInApi(email, password, username, fullName);
+
+      // Depois, registra no Firebase
+      await registerUserInFirebase(email, password);
+
+      alert("Sign up successful!");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error during sign up:", error);
+      if (error.code === "auth/email-already-in-use") {
+        alert("This email is already in use.");
+      } else {
+        alert("An error occurred during sign up. Please try again.");
+      }
+    }
   };
 
   return (

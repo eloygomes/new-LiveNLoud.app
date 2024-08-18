@@ -1,14 +1,16 @@
+from flask import Flask, request, jsonify
+from pymongo import MongoClient
 import requests
 from bs4 import BeautifulSoup
-import json
-from pymongo import MongoClient
+
+app = Flask(__name__)
 
 
 def get_cifra(artist, song):
     try:
         url = f'https://www.cifraclub.com.br/{artist}/{song}/'
         response = requests.get(url)
-        response.raise_for_status()  # Levanta um erro se o status HTTP for 4xx/5xx
+        response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
 
         songData = []
@@ -17,7 +19,6 @@ def get_cifra(artist, song):
         for elem in songElements:
             songTitle = elem.find('h1', class_='t1').text.strip()
             artistName = elem.find('h2', class_='t3').text.strip()
-
             songCifra = elem.find('div', class_='cifra_cnt').text.strip()
 
             songData.append({
@@ -28,43 +29,101 @@ def get_cifra(artist, song):
 
         return songData
     except Exception as e:
-        print("error", e)
         return None
 
 
-def store_in_mongo(song_data):
+@app.route('/scrape', methods=['POST'])
+def scrape_and_store():
+    data = request.json
+    artist = data.get('artist')
+    song = data.get('song')
+    instrument = data.get('instrument')
+    userEmail = data.get('email')
+
+    songData = get_cifra(artist, song)
+    if songData:
+        store_in_mongo(songData, instrument, userEmail)
+        return jsonify({"message": "Data stored successfully"}), 201
+    else:
+        return jsonify({"message": "Failed to scrape data"}), 500
+
+
+def store_in_mongo(song_data, instrument, userEmail):
     client = MongoClient("mongodb://root:example@db:27017/admin")
-    db = client["mydatabase"]
-    collection = db["songs"]
+    db = client["liveNloud_"]
+    collection = db["data"]
 
     if song_data:
-        result = collection.insert_many(song_data)
-        print(f"Documentos inseridos com IDs: {result.inserted_ids}")
+        formatted_data = []
+        for i, song in enumerate(song_data):
+            formatted_data.append({
+                "databaseComing": "liveNloud_",
+                "collectionComing": "data",
+                "userdata": {
+                    "id": i + 1,
+                    "song": song['song_title'],
+                    "artist": song['artist_name'],
+                    "progressBar": 85,
+                    "instruments": {
+                        "guitar01": instrument == 'guitar01',
+                        "guitar02": instrument == 'guitar02',
+                        "bass": instrument == 'bass',
+                        "keys": instrument == 'keys',
+                        "drums": instrument == 'drums',
+                        "voice": instrument == 'voice'
+                    },
+                    "guitar01": {
+                        "active": instrument == 'guitar01',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'guitar01' else "",
+                    },
+                    "guitar02": {
+                        "active": instrument == 'guitar02',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'guitar02' else "",
+                    },
+                    "bass": {
+                        "active": instrument == 'bass',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'bass' else "",
+                    },
+                    "keys": {
+                        "active": instrument == 'keys',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'keys' else "",
+                    },
+                    "drums": {
+                        "active": instrument == 'drums',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'drums' else "",
+                    },
+                    "voice": {
+                        "active": instrument == 'voice',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'voice' else "",
+                    },
+                    "embedVideos": [],
+                    "addedIn": "2024-08-16",
+                    "updateIn": "2024-08-16",
+                    "email": userEmail,
+                },
+            })
 
-        for song in collection.find({"artist_name": song_data[0]['artist_name']}):
-            print("Documento recuperado:")
-            print(song)
-    else:
-        print("Nenhum dado foi armazenado no MongoDB.")
-
-
-def main():
-    # songData = get_cifra('the-smiths', 'this-charming-man')
-    songData = get_cifra('angra', 'rebirth')
-
-    if songData:
-        for song in songData:
-            # print(f"Cifra {song['song_title']}")
-            # print(f"Artist: {song['artist_name']}")
-            # print(f"Cifra: {song['song_cifra'][:100]}...")
-
-            print('Song added to MongoDB')
-
-        # Armazenando os dados no MongoDB
-        store_in_mongo(songData)
-    else:
-        print("Erro ao fazer o scraping da cifra.")
+        collection.insert_many(formatted_data)
+        print("Data stored in MongoDB.")
 
 
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=8000)

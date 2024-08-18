@@ -1,8 +1,8 @@
 const express = require("express");
 const { MongoClient } = require("mongodb");
-
 const app = express();
 const port = 3000;
+const cors = require("cors");
 
 const uri = "mongodb://root:example@db:27017/admin";
 const client = new MongoClient(uri);
@@ -20,92 +20,168 @@ connectToDatabase();
 
 app.use(express.json());
 
-// // Rota para listar todos os itens (usando o método GET corretamente)
-// app.get('/api/items', (req, res) => {
-//   res.json({ message: 'Listagem de itens' });
-// });
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 // Rota para criar um novo item (usando o método POST corretamente)
-app.post("/api/movie", async (req, res) => {
+app.post("/api/signup", async (req, res) => {
   try {
-    const database = client.db("sample_mflix");
-    const movies = database.collection("movies");
-
-    // Dados do filme recebidos no corpo da requisição
-    const newMovie = req.body;
-
-    // Insere o novo filme na coleção 'movies'
-    const result = await movies.insertOne(newMovie);
-
-    // Retorna o resultado da inserção
-    res.status(201).json({
-      message: "Filme criado com sucesso!",
-      movieId: result.insertedId,
-      movie: newMovie,
-    });
-  } catch (error) {
-    console.error("Erro ao criar o filme:", error);
-    res.status(500).json({ message: "Erro ao criar o filme." });
-  }
-});
-
-app.post("/api/insert", async (req, res) => {
-  // TESTE funcionouuuuuuu
-  // com esse input:
-  // {
-  //   "databaseComing": "broxada_sinistra",
-  //   "moviesComing": "movies",
-  //   "newMovie": {
-  //     "title": "loucura",
-  //     "year": 2077,
-  //     "director": "Luciano hulk robotinic"
-  //   }
-  // }
-  try {
-    // Dados do filme recebidos no corpo da requisição
-    const { newMovie } = req.body;
-    const { databaseComing, moviesComing } = req.body;
+    const { userdata, databaseComing, collectionComing } = req.body;
 
     const database = client.db(databaseComing);
-    const movies = database.collection(moviesComing);
+    const collection = database.collection(collectionComing);
 
-    // Insere o novo filme na coleção 'movies'
-    const result = await movies.insertOne(newMovie);
+    console.log("Verificando se o email já existe...");
+    const query = { email: userdata.email };
+    const existingUser = await collection.findOne(query);
 
-    // Retorna o resultado da inserção
-    res.status(201).json({
-      message: "Filme criado com sucesso!",
-      movieId: result.insertedId,
-      movie: newMovie,
+    if (existingUser) {
+      // Se o email já existir, retorna que o usuário já está cadastrado
+      return res.status(200).json({
+        message: "Usuário já cadastrado!",
+      });
+    }
+
+    console.log("Email não existe, criando novo usuário...");
+
+    // Cria um novo documento com o email e o array userdata
+    const result = await collection.insertOne({
+      email: userdata.email,
+      userdata: [userdata],
+    });
+
+    console.log("Usuário criado com sucesso:", result);
+    return res.status(201).json({
+      message: "Usuário criado com sucesso!",
+      userId: result.insertedId,
+      user: userdata,
     });
   } catch (error) {
-    console.error("Erro ao criar o filme:", error);
-    res.status(500).json({ message: "Erro ao criar o filme." });
+    console.error("Erro ao criar usuário:", error);
+    res
+      .status(500)
+      .json({ message: "Erro ao criar usuário", error: error.message });
   }
 });
 
-// // Rota para atualizar um item existente (usando o método PUT corretamente)
-// app.put('/api/items/:id', (req, res) => {
-//   const { id } = req.params;
-//   const updatedItem = req.body;
-//   res.json({ message: `Item com ID ${id} atualizado com sucesso!`, item: updatedItem });
-// });
+app.post("/api/newsong", async (req, res) => {
+  try {
+    console.log("Dados recebidos:", req.body);
 
-// // Rota para deletar um item (usando o método DELETE corretamente)
-// app.delete('/api/items/:id', (req, res) => {
-//   const { id } = req.params;
-//   res.json({ message: `Item com ID ${id} deletado com sucesso!` });
-// });
+    const { userdata } = req.body;
+    const { databaseComing, collectionComing } = req.body; // Corrigido de moviesComing para collectionComing
+
+    console.log("Banco de dados:", databaseComing);
+    console.log("Coleção:", collectionComing);
+
+    // Verifica se os nomes estão presentes e válidos
+    if (!databaseComing || !collectionComing) {
+      return res
+        .status(400)
+        .json({ message: "Nome do banco de dados ou coleção não fornecido." });
+    }
+
+    const database = client.db(databaseComing.trim());
+    const collection = database.collection(collectionComing.trim());
+
+    console.log("Verificando se o email já existe...");
+    const query = { email: userdata.email };
+    const existingUser = await collection.findOne(query);
+
+    let newId = 1;
+
+    if (existingUser) {
+      if (existingUser.userdata && Array.isArray(existingUser.userdata)) {
+        const isDuplicate = existingUser.userdata.some((existingData) => {
+          const { id, ...existingFields } = existingData;
+          const { id: newId, ...newFields } = userdata;
+          return JSON.stringify(existingFields) === JSON.stringify(newFields);
+        });
+
+        if (isDuplicate) {
+          console.log(
+            "Nenhuma alteração, todos os campos (exceto id) já existem."
+          );
+          return res.status(200).json({
+            message:
+              "Nenhuma alteração, todos os campos (exceto id) já existem.",
+          });
+        }
+
+        const maxId = Math.max(
+          ...existingUser.userdata.map((u) => u.id).filter((id) => !isNaN(id)),
+          0
+        );
+        newId = maxId + 1;
+
+        userdata.id = newId;
+
+        const updateResult = await collection.updateOne(
+          { email: userdata.email },
+          { $push: { userdata: userdata } }
+        );
+
+        console.log("Usuário atualizado com sucesso:", updateResult);
+        return res.status(200).json({
+          message: "Dados atualizados com sucesso!",
+          updatedUser: updateResult,
+        });
+      } else {
+        console.log(
+          "Documento contém apenas o campo email, inicializando o campo userdata..."
+        );
+
+        userdata.id = newId;
+
+        const updateResult = await collection.updateOne(
+          { email: userdata.email },
+          { $set: { userdata: [userdata] } }
+        );
+
+        console.log(
+          "Campo userdata inicializado e atualizado com sucesso:",
+          updateResult
+        );
+        return res.status(200).json({
+          message: "Dados atualizados com sucesso!",
+          updatedUser: updateResult,
+        });
+      }
+    } else {
+      console.log("Email não existe, criando novo usuário...");
+
+      userdata.id = newId;
+
+      const result = await collection.insertOne({
+        email: userdata.email,
+        userdata: [userdata],
+      });
+
+      console.log("Usuário criado com sucesso:", result);
+      return res.status(201).json({
+        message: "Usuário criado com sucesso!",
+        userId: result.insertedId,
+        user: userdata,
+      });
+    }
+  } catch (error) {
+    console.error("Erro ao criar ou atualizar o usuário:", error);
+    res.status(500).json({ message: "Erro ao criar ou atualizar o usuário." });
+  }
+});
 
 // Rota para buscar um filme específico no banco de dados
-app.get("/api/movie", async (req, res) => {
+app.get("/api/data/:dataid", async (req, res) => {
   try {
-    const database = client.db("sample_mflix");
-    const movies = database.collection("movies");
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
 
     // Query for a movie that has the title 'Back to the Future'
     const query = { title: "Back to the Future" };
-    const movie = await movies.findOne(query);
+    const movie = await collection.findOne(query);
 
     if (movie) {
       res.json(movie);
@@ -119,13 +195,13 @@ app.get("/api/movie", async (req, res) => {
 });
 
 // Nova Rota para buscar todos os filmes no banco de dados
-app.get("/api/movies", async (req, res) => {
+app.get("/api/alldata/", async (req, res) => {
   try {
-    const database = client.db("sample_mflix");
-    const movies = database.collection("movies");
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
 
     // Busca todos os filmes na coleção 'movies'
-    const allMovies = await movies.find({}).toArray();
+    const allMovies = await collection.find({}).toArray();
 
     res.json(allMovies);
   } catch (error) {
