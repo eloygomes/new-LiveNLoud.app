@@ -36,21 +36,17 @@ function NewSongInputLinkBox({
       return;
     }
 
-    console.log(`instrumentName: ${instrumentName}`);
-    console.log(`URL: ${instrument}`);
-    console.log(`progress: ${progress}`);
+    const userEmail = localStorage.getItem("userEmail");
 
     // Extraindo artista e música da URL
     try {
       const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
-      console.log(`Artist: ${artistFromUrl}`);
-      console.log(`Song: ${songFromUrl}`);
 
       // ENVIANDO OS DADOS REGISTRANDO A MÚSICA
       await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
         artist: artistFromUrl,
         song: songFromUrl,
-        email: "pink@example.com",
+        email: userEmail,
         instrument: `${instrumentName}`, // Formato correto: guitar01
       });
       // Sucesso ao registrar na API

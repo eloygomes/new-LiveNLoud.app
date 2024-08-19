@@ -14,6 +14,7 @@ function Login() {
     event.preventDefault(); // Evita o recarregamento da página
     try {
       await login(userEmail, userPassword); // Aguarda a conclusão do login
+      localStorage.setItem("userEmail", userEmail);
       navigate("/"); // Navigate to the homepage after login
     } catch (error) {
       console.error("Login failed:", error);
