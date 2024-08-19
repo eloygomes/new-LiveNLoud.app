@@ -8,70 +8,70 @@ function NewSongColumnB({
   setGuitar02,
   bass,
   setBass,
-  key,
+  keyboard,
   setKey,
   drums,
   setDrums,
   voice,
   setVoice,
-  progGuitar01,
-  setProgGuitar01,
-  progGuitar02,
-  setProgGuitar02,
-  progBass,
-  setProgBass,
-  progKey,
-  setProgKey,
-  progDrums,
-  setProgDrums,
-  progVoice,
-  setProgVoice,
+  progBarG01, // Corrigindo nomes das propriedades
+  setProgBarG01,
+  progBarG02,
+  setProgBarG02,
+  progBarBass,
+  setProgBarBass,
+  progBarKey,
+  setProgBarKey,
+  progBarDrums,
+  setProgBarDrums,
+  progBarVoice,
+  setProgBarVoice,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
       <div className="flex flex-col w-full">
         <h1 className="text-xl font-bold">Input Links</h1>
         <NewSongInputLinkBox
-          instrumentName="GUITAR 01"
-          instument={guitar01}
+          instrumentName="guitar01"
+          instrument={guitar01} // Corrigido aqui
           setInstrument={setGuitar01}
-          progress={progGuitar01}
-          setProgress={setProgGuitar01}
+          progress={progBarG01} // Corrigido aqui
+          setProgress={setProgBarG01}
         />
         <NewSongInputLinkBox
-          instrumentName="GUITAR 02"
-          instument={guitar02}
+          instrumentName="guitar02"
+          instrument={guitar02} // Corrigido aqui
           setInstrument={setGuitar02}
-          progress={progGuitar02}
-          setProgress={setProgGuitar02}
+          progress={progBarG02} // Corrigido aqui
+          setProgress={setProgBarG02}
         />
         <NewSongInputLinkBox
-          instrumentName="BASS"
-          instument={bass}
+          instrumentName="bass"
+          instrument={bass} // Corrigido aqui
           setInstrument={setBass}
-          progress={progBass}
-          setProgress={setProgBass}
+          progress={progBarBass} // Corrigido aqui
+          setProgress={setProgBarBass}
         />
         <NewSongInputLinkBox
-          instrumentName="KEYS"
-          instument={key}
+          instrumentName="keys"
+          instrument={keyboard} // Corrigido aqui
           setInstrument={setKey}
-          progress={progKey}
-          setProgress={setProgKey}
+          progress={progBarKey} // Corrigido aqui
+          setProgress={setProgBarKey}
         />
         <NewSongInputLinkBox
-          instrumentName="DRUMS"
-          instument={drums}
+          instrumentName="drums"
+          instrument={drums} // Corrigido aqui
           setInstrument={setDrums}
-          progress={progDrums}
-          setProgress={setProgDrums}
+          progress={progBarDrums} // Corrigido aqui
+          setProgress={setProgBarDrums}
         />
         <NewSongInputLinkBox
-          instrumentName="VOICE"
-          instument={voice}
+          instrumentName="voice"
+          instrument={voice} // Corrigido aqui
           setInstrument={setVoice}
-          progress={progVoice}
-          setProgress={setProgVoice}
+          progress={progBarVoice} // Corrigido aqui
+          setProgress={setProgBarVoice}
         />
       </div>
     </div>

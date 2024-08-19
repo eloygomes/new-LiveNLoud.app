@@ -4,6 +4,7 @@ import NewSongEmbed from "./NewSongEmbed";
 import GeralProgressBar from "./GeralProgressBar";
 import FAKEDATA from "../../../FAKEDATA";
 import NewSongSongData from "./NewSongSongData";
+import axios from "axios";
 
 function NewSongColumnA() {
   const [songName, setSongName] = useState("Can’t Help Falling in Love");
@@ -18,6 +19,89 @@ function NewSongColumnA() {
   ]);
 
   console.log(FAKEDATA[0].FirstPlay);
+
+  const createNewSong = async ({ instrumentName, instument, progress }) => {
+    console.log(`instrumentName: ${instrumentName}`);
+    console.log(`instrumentName: ${instument}`);
+    console.log(`progress: ${progress}`);
+
+    //  SCRAPPER
+
+    // ENVIANDO OS DADOS REGISTRANDO A MUSIC
+    try {
+      const response = await axios.post(
+        "https://www.api.live.eloygomes.com.br/api/newsong",
+        {
+          databaseComing: "liveNloud_",
+          collectionComing: "data",
+          userdata: {
+            id: 1,
+            song: "",
+            artist: "",
+            progressBar: 85,
+            instruments: {
+              guitar01: `${instrumentName === "GUITAR 01" ? true : false}`,
+              guitar02: `${instrumentName === "GUITAR 02" ? true : false}`,
+              bass: `${instrumentName === "BASS" ? true : false}`,
+              keys: `${instrumentName === "KEYS" ? true : false}`,
+              drums: `${instrumentName === "DRUMS" ? true : false}`,
+              voice: `${instrumentName === "VOICE" ? true : false}`,
+            },
+            guitar01: {
+              active: `${instrumentName === "GUITAR 01" ? true : false}`,
+              capo: "",
+              tuning: "",
+              lastPlay: "2024-08-01",
+              songCifra: "",
+            },
+            guitar02: {
+              active: `${instrumentName === "GUITAR 02" ? true : false}`,
+              capo: "",
+              tuning: "",
+              lastPlay: "2024-08-01",
+              songCifra: "",
+            },
+            bass: {
+              active: `${instrumentName === "BASS" ? true : false}`,
+              capo: "",
+              tuning: "",
+              lastPlay: "2024-08-01",
+              songCifra: "",
+            },
+            keys: {
+              active: `${instrumentName === "KEYS" ? true : false}`,
+              capo: "",
+              tuning: "",
+              lastPlay: "2024-08-01",
+              songCifra: "",
+            },
+            drums: {
+              active: `${instrumentName === "DRUMS" ? true : false}`,
+              capo: "",
+              tuning: "",
+              lastPlay: "2024-08-01",
+              songCifra: "",
+            },
+            voice: {
+              active: `${instrumentName === "VOICE" ? true : false}`,
+              capo: "",
+              tuning: "",
+              lastPlay: "2024-08-01",
+              songCifra: "",
+            },
+            embedVideos: [],
+            addedIn: "2024-08-16",
+            updateIn: "2024-08-16",
+            email: "cachorroni@email.com",
+          },
+        }
+      );
+      // console.log("User registered in API:", response.data);
+    } catch (error) {
+      console.error("Error registering user in API:", error);
+      throw new Error("API registration failed");
+    }
+  };
 
   return (
     <>
@@ -35,7 +119,10 @@ function NewSongColumnA() {
       <NewSongEmbed ytEmbedSongList={embedLink} />
 
       <div className="flex flex-row neuphormism-b-se p-5 my-5 mr-5 justify-start">
-        <button className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <button
+          className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onClick={() => createNewSong()}
+        >
           Save
         </button>
         <button className="bg-red-500 hover:bg-blue-700 text-white font-bold ml-5 py-2 px-4 rounded">
