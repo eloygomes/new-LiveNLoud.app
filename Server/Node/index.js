@@ -7,7 +7,7 @@ const cors = require("cors");
 
 const uri = "mongodb://root:example@db:27017/admin";
 const client = new MongoClient(uri);
-const pythonApiUrl = process.env.PYTHON_API_URL;
+const pythonApiUrl = "http://python_scraper:8000";
 
 async function connectToDatabase() {
   try {
@@ -29,11 +29,13 @@ app.use(
 );
 
 // Nova Rota para chamar o serviço Python e realizar o scrape
+
 app.post("/api/scrape", async (req, res) => {
   try {
     const { artist, song, instrument, email } = req.body;
 
-    const response = await axios.post(`${pythonApiUrl}/scrape`, {
+    // URL correta para chamar o serviço Flask rodando no container Python
+    const response = await axios.post("http://python:8000/scrape", {
       artist,
       song,
       instrument,
@@ -43,9 +45,25 @@ app.post("/api/scrape", async (req, res) => {
     res.status(response.status).json(response.data);
   } catch (error) {
     console.error("Erro ao chamar a API Python:", error.message);
-    res
-      .status(500)
-      .json({ message: "Erro ao chamar a API Python", error: error.message });
+
+    // Adicionar mais detalhes sobre o erro
+    if (error.response) {
+      console.error("Resposta da API Python:", error.response.data);
+      res.status(error.response.status).json({
+        message: "Erro ao chamar a API Python",
+        error: error.response.data,
+      });
+    } else if (error.request) {
+      console.error("Nenhuma resposta recebida da API Python");
+      res
+        .status(500)
+        .json({ message: "Nenhuma resposta recebida da API Python" });
+    } else {
+      console.error("Erro na configuração da requisição para a API Python");
+      res.status(500).json({
+        message: "Erro na configuração da requisição para a API Python",
+      });
+    }
   }
 });
 
@@ -217,7 +235,7 @@ app.get("/api/data/:dataid", async (req, res) => {
   }
 });
 
-// Nova Rota para buscar todos os filmes no banco de dados
+// Nova Rota para buscar todos os dados no banco de dados
 app.get("/api/alldata/", async (req, res) => {
   try {
     const database = client.db("liveNloud_");

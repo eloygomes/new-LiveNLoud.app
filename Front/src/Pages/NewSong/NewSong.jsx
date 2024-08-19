@@ -51,7 +51,7 @@ function NewSong() {
                 setGuitar02={setGuitar02}
                 bass={bass}
                 setBass={setBass}
-                key={key}
+                keyboard={key}
                 setKey={setKey}
                 drums={drums}
                 setDrums={setDrums}

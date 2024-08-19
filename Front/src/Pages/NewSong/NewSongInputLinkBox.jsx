@@ -3,91 +3,60 @@ import axios from "axios";
 /* eslint-disable react/prop-types */
 function NewSongInputLinkBox({
   instrumentName,
-  instument,
+  instrument,
   setInstrument,
   progress,
   setProgress,
 }) {
+  function extractArtistAndSong(url) {
+    if (!url) {
+      throw new Error("URL is undefined or empty");
+    }
+
+    const parts = url.split("/").filter(Boolean); // Filtra partes vazias
+    const artist = parts[parts.length - 2]; // Penúltima parte
+    const song = parts[parts.length - 1]; // Última parte
+
+    if (!artist || !song) {
+      throw new Error("Could not extract artist and song from the URL");
+    }
+
+    // const artistFromUrl = artist.replace(/-/g, " ");
+    const artistFromUrl = artist;
+    // const songFromUrl = song.replace(/-/g, " ");
+    const songFromUrl = song;
+
+    return { artistFromUrl, songFromUrl };
+  }
+
   const handledata = async () => {
+    if (!instrument) {
+      console.error("Instrument URL is empty");
+      alert("Please insert a valid URL before proceeding.");
+      return;
+    }
+
     console.log(`instrumentName: ${instrumentName}`);
-    console.log(`instrumentName: ${instument}`);
+    console.log(`URL: ${instrument}`);
     console.log(`progress: ${progress}`);
 
-    //  SCRAPPER
-
-    // ENVIANDO OS DADOS REGISTRANDO A MUSIC
+    // Extraindo artista e música da URL
     try {
-      const response = await axios.post(
-        "https://www.api.live.eloygomes.com.br/api/newsong",
-        {
-          databaseComing: "liveNloud_",
-          collectionComing: "data",
-          userdata: {
-            id: 1,
-            song: "",
-            artist: "",
-            progressBar: 85,
-            instruments: {
-              guitar01: `${instrumentName === "GUITAR 01" ? true : false}`,
-              guitar02: `${instrumentName === "GUITAR 02" ? true : false}`,
-              bass: `${instrumentName === "BASS" ? true : false}`,
-              keys: `${instrumentName === "KEYS" ? true : false}`,
-              drums: `${instrumentName === "DRUMS" ? true : false}`,
-              voice: `${instrumentName === "VOICE" ? true : false}`,
-            },
-            guitar01: {
-              active: `${instrumentName === "GUITAR 01" ? true : false}`,
-              capo: "",
-              tuning: "",
-              lastPlay: "2024-08-01",
-              songCifra: "",
-            },
-            guitar02: {
-              active: `${instrumentName === "GUITAR 02" ? true : false}`,
-              capo: "",
-              tuning: "",
-              lastPlay: "2024-08-01",
-              songCifra: "",
-            },
-            bass: {
-              active: `${instrumentName === "BASS" ? true : false}`,
-              capo: "",
-              tuning: "",
-              lastPlay: "2024-08-01",
-              songCifra: "",
-            },
-            keys: {
-              active: `${instrumentName === "KEYS" ? true : false}`,
-              capo: "",
-              tuning: "",
-              lastPlay: "2024-08-01",
-              songCifra: "",
-            },
-            drums: {
-              active: `${instrumentName === "DRUMS" ? true : false}`,
-              capo: "",
-              tuning: "",
-              lastPlay: "2024-08-01",
-              songCifra: "",
-            },
-            voice: {
-              active: `${instrumentName === "VOICE" ? true : false}`,
-              capo: "",
-              tuning: "",
-              lastPlay: "2024-08-01",
-              songCifra: "",
-            },
-            embedVideos: [],
-            addedIn: "2024-08-16",
-            updateIn: "2024-08-16",
-            email: "cachorroni@email.com",
-          },
-        }
-      );
-      // console.log("User registered in API:", response.data);
+      const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
+      console.log(`Artist: ${artistFromUrl}`);
+      console.log(`Song: ${songFromUrl}`);
+
+      // ENVIANDO OS DADOS REGISTRANDO A MÚSICA
+      await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
+        artist: artistFromUrl,
+        song: songFromUrl,
+        email: "pink@example.com",
+        instrument: `${instrumentName}`, // Formato correto: guitar01
+      });
+      // Sucesso ao registrar na API
     } catch (error) {
       console.error("Error registering user in API:", error);
-      throw new Error("API registration failed");
+      alert("Failed to register the song. Please check the URL and try again.");
     }
   };
 
@@ -106,13 +75,13 @@ function NewSongInputLinkBox({
           name="guitar01link"
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
-          value={instument}
+          value={instrument}
           onChange={(e) => setInstrument(e.target.value)}
         />
         <button
-          className="px-1 ml-1 bg-blue-500 text-white rounded-sm "
+          className="px-1 ml-1 bg-blue-500 text-white rounded-sm"
           onClick={() => {
-            handledata();
+            handledata().catch((error) => console.error(error)); // Adicionando tratamento de erro
           }}
         >
           +
