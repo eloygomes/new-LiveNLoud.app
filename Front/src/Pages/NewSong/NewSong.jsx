@@ -1,9 +1,13 @@
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
+import axios from "axios";
 import NewSongColumnA from "./NewSongColumnA";
 import NewSongColumnB from "./NewSongColumnB";
 
 function NewSong() {
+  // Column A
+  const [artistExtractedFromUrl, setArtistExtractedFromUrl] = useState();
+  const [songExtractedFromUrl, setSongExtractedFromUrl] = useState();
+
   // Column B
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
@@ -29,7 +33,31 @@ function NewSong() {
   const [voice, setVoice] = useState("");
   const [progBarVoice, setProgBarVoice] = useState(0);
 
+  // Getting Data
+  const [dataFromUrl, setDataFromUrl] = useState("");
+
   // console.log(guitar01, guitar02, bass, key, drums, voice);
+
+  const userEmail = localStorage.getItem("userEmail");
+
+  const gettingSongData = async () => {
+    try {
+      const response = await axios.get(
+        `https://www.api.live.eloygomes.com.br/api/data/${userEmail}`
+      );
+      console.log(response.data);
+      // const dataFromUrlNAKED = JSON.stringify(response.data);
+      const dataFromUrlNAKED = response.data;
+      setDataFromUrl(dataFromUrlNAKED);
+    } catch (error) {
+      console.error("Error fetching song data:", error);
+    }
+  };
+
+  useEffect(() => {
+    gettingSongData();
+    console.log(dataFromUrl);
+  }, []);
 
   return (
     <div className=" flex justify-center h-screen pt-20">
@@ -41,7 +69,17 @@ function NewSong() {
           </div>
           <div className="flex flex-row">
             <div className="left-column w-1/2">
-              <NewSongColumnA />
+              <NewSongColumnA
+                dataFromUrl={dataFromUrl}
+                artistExtractedFromUrl={artistExtractedFromUrl}
+                songExtractedFromUrl={songExtractedFromUrl}
+                guitar01={guitar01}
+                guitar02={guitar02}
+                bass={bass}
+                keyboard={key}
+                drums={drums}
+                voice={voice}
+              />
             </div>
             <div className="right-column w-1/2">
               <NewSongColumnB
@@ -69,6 +107,8 @@ function NewSong() {
                 setProgBarDrums={setProgBarDrums}
                 progBarVoice={progBarVoice}
                 setProgBarVoice={setProgBarVoice}
+                setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+                setSongExtractedFromUrl={setSongExtractedFromUrl}
               />
             </div>
           </div>

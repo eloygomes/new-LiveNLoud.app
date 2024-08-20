@@ -26,6 +26,8 @@ function NewSongColumnB({
   setProgBarDrums,
   progBarVoice,
   setProgBarVoice,
+  setArtistExtractedFromUrl,
+  setSongExtractedFromUrl,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -37,6 +39,8 @@ function NewSongColumnB({
           setInstrument={setGuitar01}
           progress={progBarG01} // Corrigido aqui
           setProgress={setProgBarG01}
+          setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+          setSongExtractedFromUrl={setSongExtractedFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="guitar02"
@@ -44,6 +48,8 @@ function NewSongColumnB({
           setInstrument={setGuitar02}
           progress={progBarG02} // Corrigido aqui
           setProgress={setProgBarG02}
+          setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+          setSongExtractedFromUrl={setSongExtractedFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="bass"
@@ -51,6 +57,8 @@ function NewSongColumnB({
           setInstrument={setBass}
           progress={progBarBass} // Corrigido aqui
           setProgress={setProgBarBass}
+          setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+          setSongExtractedFromUrl={setSongExtractedFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="keys"
@@ -58,6 +66,8 @@ function NewSongColumnB({
           setInstrument={setKey}
           progress={progBarKey} // Corrigido aqui
           setProgress={setProgBarKey}
+          setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+          setSongExtractedFromUrl={setSongExtractedFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="drums"
@@ -65,6 +75,8 @@ function NewSongColumnB({
           setInstrument={setDrums}
           progress={progBarDrums} // Corrigido aqui
           setProgress={setProgBarDrums}
+          setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+          setSongExtractedFromUrl={setSongExtractedFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="voice"
@@ -72,6 +84,8 @@ function NewSongColumnB({
           setInstrument={setVoice}
           progress={progBarVoice} // Corrigido aqui
           setProgress={setProgBarVoice}
+          setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+          setSongExtractedFromUrl={setSongExtractedFromUrl}
         />
       </div>
     </div>

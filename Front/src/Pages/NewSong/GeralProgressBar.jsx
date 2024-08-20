@@ -4,7 +4,9 @@ function GeralProgressBar({ geralPercentage }) {
     <div className="flex flex-col neuphormism-b-se p-5 my-5 mr-5">
       <div className="flex flex-row justify-between">
         <h1 className="text-xl font-bold">Progress Bar</h1>
-        <h1 className="text-2xl font-bold">{geralPercentage}%</h1>
+        <h1 className="text-2xl font-bold">
+          {geralPercentage ? geralPercentage : null}%
+        </h1>
       </div>
       <div className="relative pt-1 mt-6 w-full">
         <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200">
