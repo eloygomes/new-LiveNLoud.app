@@ -7,6 +7,8 @@ function NewSongInputLinkBox({
   setInstrument,
   progress,
   setProgress,
+  setArtistExtractedFromUrl,
+  setSongExtractedFromUrl,
 }) {
   function extractArtistAndSong(url) {
     if (!url) {
@@ -41,6 +43,9 @@ function NewSongInputLinkBox({
     // Extraindo artista e música da URL
     try {
       const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
+
+      setArtistExtractedFromUrl(artistFromUrl);
+      setSongExtractedFromUrl(songFromUrl);
 
       // ENVIANDO OS DADOS REGISTRANDO A MÚSICA
       await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
