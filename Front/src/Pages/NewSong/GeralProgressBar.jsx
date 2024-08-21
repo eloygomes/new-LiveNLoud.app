@@ -1,7 +1,7 @@
 // eslint-disable-next-line react/prop-types
 function GeralProgressBar({ geralPercentage }) {
   return (
-    <div className="flex flex-col neuphormism-b-se p-5 my-5 mr-5">
+    <div className="flex flex-col neuphormism-b-btn-flat p-5 my-5 mr-5">
       <div className="flex flex-row justify-between">
         <h1 className="text-xl font-bold">Progress Bar</h1>
         <h1 className="text-2xl font-bold">

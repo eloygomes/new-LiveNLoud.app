@@ -28,8 +28,6 @@ function NewSongColumnA({
   const [instrumentName, setinstrumentName] = useState("");
   const [instument, setinstument] = useState();
 
-  // Definindo variáveis para instrumento
-
   useEffect(() => {
     if (guitar01) {
       setinstrumentName("guitar01");
@@ -51,28 +49,80 @@ function NewSongColumnA({
       setinstument(voice);
     }
 
-    console.log(`instrumentName: ${instrumentName}`);
+    console.log(`dataFromUrl:`, dataFromUrl); // Confere o tipo de dataFromUrl
 
-    if (
-      dataFromUrl &&
-      dataFromUrl.userdata &&
-      dataFromUrl.userdata.length > 0
-    ) {
-      const userData = dataFromUrl.userdata[0];
-      setSongName(userData.song || "Unknown Song");
-      setArtistName(userData.artist || "Unknown Artist");
-      setCapoData(userData.guitar01?.capo || "No Capo");
-      setTomData(userData.guitar01?.tom || "No Tom");
-      setTunerData(userData.guitar01?.tuning || "Standard Tuning");
-      setGeralPercentage(userData.progressBar || 0);
-      setEmbedLink(
-        userData.embedVideos.length > 0
-          ? userData.embedVideos
-          : ["No videos available"]
-      );
+    // Função para capitalizar palavras e remover hífens
+    const capitalizeAndFormat = (str) => {
+      return str
+        ? str
+            .split("-") // Separa as palavras pelos hífens
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitaliza a primeira letra de cada palavra
+            .join(" ") // Junta as palavras com espaço
+        : ""; // Retorna uma string vazia se `str` for undefined ou null
+    };
+
+    const formattedArtist = artistExtractedFromUrl
+      ? capitalizeAndFormat(artistExtractedFromUrl)
+      : "";
+    const formattedSong = songExtractedFromUrl
+      ? capitalizeAndFormat(songExtractedFromUrl)
+      : "";
+
+    console.log(`Artista formatado: ${formattedArtist}`);
+    console.log(`Música formatada: ${formattedSong}`);
+
+    if (typeof dataFromUrl === "string" && dataFromUrl.length > 0) {
+      try {
+        const parsedData = JSON.parse(dataFromUrl); // Converte a string em objeto
+        if (parsedData && Array.isArray(parsedData.userdata)) {
+          const dataFromURLuserdata = parsedData.userdata;
+
+          console.log(dataFromURLuserdata);
+
+          // somente me adora da pitty esta correta, agora precisa apronfundar as regras para as outras cifras, nao esquecer dos acentos
+
+          console.log(typeof dataFromURLuserdata); // object
+
+          const filteredData = dataFromURLuserdata.find((item) => {
+            console.log(item); // Exibe o item atual
+            // Adicione a lógica de filtragem aqui se necessário
+            return (
+              item.artist === formattedArtist && item.song === formattedSong
+            );
+          });
+
+          console.log(filteredData); // Exibe o resultado filtrado
+
+          console.log(`filteredData: ${filteredData}`);
+
+          if (filteredData) {
+            console.log("Música encontrada:", filteredData);
+            setSongName(filteredData.song || "Unknown Song");
+            setArtistName(filteredData.artist || "Unknown Artist");
+            setCapoData(filteredData.guitar01?.capo || "No Capo");
+            setTomData(filteredData.guitar01?.tom || "No Tom");
+            setTunerData(filteredData.guitar01?.tuning || "Standard Tuning");
+            setGeralPercentage(filteredData.progressBar || 0);
+            setEmbedLink(
+              filteredData.embedVideos.length > 0
+                ? filteredData.embedVideos
+                : ["No videos available"]
+            );
+          } else {
+            console.log("Música e artista não encontrados");
+          }
+        } else {
+          console.error("JSON inválido ou userdata não é um array.");
+        }
+      } catch (error) {
+        console.error("Erro ao analisar dataFromUrl:", error);
+      }
+    } else {
+      console.log("dataFromUrl não contém userdata válida.");
     }
-  }, [dataFromUrl]);
+  }, [dataFromUrl, songExtractedFromUrl, artistExtractedFromUrl]);
 
+  // eslint-disable-next-line no-unused-vars
   const createNewSong = async ({ instrumentName, instument, progress }) => {
     const userEmail = localStorage.getItem("userEmail");
 
@@ -95,7 +145,7 @@ function NewSongColumnA({
       );
 
       // Verifica se o userdata existe e é um array
-      let userdata = userRecord?.userdata;
+      let userdata = userRecord?.userdata || [];
 
       if (Array.isArray(userdata)) {
         let existingRecord = userdata.find(
@@ -191,9 +241,9 @@ function NewSongColumnA({
 
       <NewSongEmbed ytEmbedSongList={embedLink} />
 
-      <div className="flex flex-row neuphormism-b-se p-5 my-5 mr-5 justify-start">
+      <div className="flex flex-row neuphormism-b-btn-flat p-5 my-5 mr-5 justify-start">
         <button
-          className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green"
           onClick={() =>
             createNewSong({
               instrumentName,
@@ -204,7 +254,7 @@ function NewSongColumnA({
         >
           Save
         </button>
-        <button className="bg-red-500 hover:bg-blue-700 text-white font-bold ml-5 py-2 px-4 rounded">
+        <button className="bg-red-500 hover:bg-red-700 active:bg-red-900 text-white font-bold py-2 px-4 ml-4 neuphormism-b-btn-red-discard">
           Discard
         </button>
       </div>

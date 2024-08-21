@@ -43,7 +43,7 @@ function NewSongInputLinkBox({
     // Extraindo artista e música da URL
     try {
       const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
-
+      // console.log(`Artista: ${artistFromUrl}, Música: ${songFromUrl}`);
       setArtistExtractedFromUrl(artistFromUrl);
       setSongExtractedFromUrl(songFromUrl);
 
@@ -52,7 +52,8 @@ function NewSongInputLinkBox({
         artist: artistFromUrl,
         song: songFromUrl,
         email: userEmail,
-        instrument: `${instrumentName}`, // Formato correto: guitar01
+        instrument: `${instrumentName}`,
+        instrument_progressbar: `${progress}`, // Formato correto: guitar01
       });
       // Sucesso ao registrar na API
     } catch (error) {
@@ -61,8 +62,10 @@ function NewSongInputLinkBox({
     }
   };
 
+  // console.log(`progress: ${progress}`);
+
   return (
-    <div className="flex flex-col mt-3 w-full neuphormism-b-se px-5 py-3">
+    <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
       <div className="flex flex-row justify-between">
         <span className="text-sm pb-2 font-bold">{instrumentName}</span>
         <div className="flex flex-row">

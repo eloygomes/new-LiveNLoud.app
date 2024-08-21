@@ -12,7 +12,7 @@ function NewSongEmbed({ ytEmbedSongList }) {
           className="w-full p-1 border border-gray-300 rounded-md text-sm"
           //   value={embedLink}
         />
-        <div className="flex flex-row neuphormism-b-se p-5 my-2 m-0 justify-between">
+        <div className="flex flex-row neuphormism-b-btn px-5 py-2 my-2 m-0 justify-between">
           <ul className="flex flex-col">
             {ytEmbedSongList.map((ytLink, index) => {
               return (
