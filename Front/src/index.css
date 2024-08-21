@@ -54,6 +54,41 @@ body {
   cursor: pointer;
 }
 
+.neuphormism-b-btn-flat {
+  border-radius: 5px;
+  background: linear-gradient(145deg, #efefef, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
+.neuphormism-b-btn-green {
+  border-radius: 5px;
+  /* background: linear-gradient(145deg, #efefef, #f0f0f0); */
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
+.neuphormism-b-btn-green:active {
+  box-shadow: inset 20px 20px 60px #14532d,
+              inset -20px -20px 60px #3cff8a;  
+  cursor: pointer;
+}
+
+.neuphormism-b-btn-red-discard {
+  border-radius: 5px;
+  /* background: linear-gradient(145deg, #efefef, #f0f0f0); */
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
+.neuphormism-b-btn-red-discard:active {
+  box-shadow: inset 20px 20px 60px #7f1d1d,
+              inset -20px -20px 60px #fd3a3a;  
+  cursor: pointer;
+}
+
+
+
 .neuphormism-b-btn {
   border-radius: 5px;
   background: linear-gradient(145deg, #efefef, #f0f0f0);

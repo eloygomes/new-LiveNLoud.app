@@ -32,7 +32,8 @@ app.use(
 
 app.post("/api/scrape", async (req, res) => {
   try {
-    const { artist, song, instrument, email } = req.body;
+    const { artist, song, instrument, email, instrument_progressbar } =
+      req.body;
 
     // URL correta para chamar o serviço Flask rodando no container Python
     const response = await axios.post("http://python:8000/scrape", {
@@ -40,6 +41,7 @@ app.post("/api/scrape", async (req, res) => {
       song,
       instrument,
       email,
+      instrument_progressbar,
     });
 
     res.status(response.status).json(response.data);
@@ -220,18 +222,21 @@ app.get("/api/data/:dataid", async (req, res) => {
     const database = client.db("liveNloud_");
     const collection = database.collection("data");
 
-    // Query for a movie that has the title 'Back to the Future'
-    const query = { title: "Back to the Future" };
-    const movie = await collection.findOne(query);
+    // Recupera o parâmetro 'dataid' da URL
+    const dataId = req.params.dataid;
 
-    if (movie) {
-      res.json(movie);
+    // Busca o usuário na coleção 'data' utilizando o 'dataId'
+    const query = { email: dataId };
+    const colect = await collection.findOne(query);
+
+    // Verifica se encontrou o documento
+    if (colect) {
+      res.json(colect);
     } else {
-      res.status(404).json({ message: "Filme não encontrado." });
+      res.status(404).json({ message: "Usuário não encontrado." });
     }
   } catch (error) {
-    console.error("Erro ao buscar o filme:", error);
-    res.status(500).json({ message: "Erro ao buscar o filme." });
+    res.status(500).json({ message: "Erro ao buscar o usuário." });
   }
 });
 

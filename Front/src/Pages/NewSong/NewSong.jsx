@@ -45,9 +45,10 @@ function NewSong() {
       const response = await axios.get(
         `https://www.api.live.eloygomes.com.br/api/data/${userEmail}`
       );
-      console.log(response.data);
-      // const dataFromUrlNAKED = JSON.stringify(response.data);
-      const dataFromUrlNAKED = response.data;
+      // console.log(response.data);
+      const dataFromUrlNAKED = JSON.stringify(response.data);
+      // const dataFromUrlNAKED = response.data;
+      // console.log(dataFromUrlNAKED[0]);
       setDataFromUrl(dataFromUrlNAKED);
     } catch (error) {
       console.error("Error fetching song data:", error);
@@ -55,9 +56,12 @@ function NewSong() {
   };
 
   useEffect(() => {
-    gettingSongData();
-    console.log(dataFromUrl);
-  }, []);
+    if (guitar01 || guitar02 || bass || key || drums || voice)
+      gettingSongData();
+  }, [guitar01, guitar02, bass, key, drums, voice]);
+
+  // console.log(artistExtractedFromUrl);
+  // console.log(songExtractedFromUrl);
 
   return (
     <div className=" flex justify-center h-screen pt-20">

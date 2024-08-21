@@ -55,175 +55,204 @@ def scrape_and_store():
     song = data.get('song')
     instrument = data.get('instrument')
     userEmail = data.get('email')
+    instrument_progressbar = data.get('instrument_progressbar')
 
     if not artist or not song or not instrument or not userEmail:
         return jsonify({"message": "Missing required fields"}), 400
 
     songData = get_cifra(artist, song)
     if songData:
-        store_in_mongo(songData, instrument, userEmail)
+        store_in_mongo(songData, instrument, userEmail, instrument_progressbar)
         return jsonify({"message": "Data stored successfully"}), 201
     else:
         return jsonify({"message": "Failed to scrape data"}), 500
 
 
-def store_in_mongo(song_data, instrument, userEmail):
+def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar):
     try:
+        # Conecta ao MongoDB usando a URI fornecida
         client = MongoClient("mongodb://root:example@db:27017/admin")
         db = client["liveNloud_"]
         collection = db["data"]
 
+        # Verifica se já existe um documento com o email fornecido
         existing_user = collection.find_one({"email": userEmail})
         if existing_user:
             print("Email found, checking existing userdata.")
             userdata = existing_user.get("userdata", [])
 
-            for idx, entry in enumerate(userdata):
-                if entry["artist"] == song_data[0]["artist_name"] and entry["song"] == song_data[0]["song_title"] and entry["instruments"].get(instrument):
-                    print("Matching entry found, updating existing entry.")
-                    userdata[idx] = {
-                        "id": entry["id"],
-                        "song": song_data[0]['song_title'],
-                        "artist": song_data[0]['artist_name'],
-                        "progressBar": 85,
-                        "instruments": {
-                            "guitar01": instrument == 'guitar01',
-                            "guitar02": instrument == 'guitar02',
-                            "bass": instrument == 'bass',
-                            "keys": instrument == 'keys',
-                            "drums": instrument == 'drums',
-                            "voice": instrument == 'voice'
-                        },
-                        "guitar01": {
-                            "active": instrument == 'guitar01',
-                            "capo": "",
-                            "tuning": "",
-                            "lastPlay": "2024-08-01",
-                            "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar01' else "",
-                        },
-                        "guitar02": {
-                            "active": instrument == 'guitar02',
-                            "capo": "",
-                            "tuning": "",
-                            "lastPlay": "2024-08-01",
-                            "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar02' else "",
-                        },
-                        "bass": {
-                            "active": instrument == 'bass',
-                            "capo": "",
-                            "tuning": "",
-                            "lastPlay": "2024-08-01",
-                            "songCifra": song_data[0]['song_cifra'] if instrument == 'bass' else "",
-                        },
-                        "keys": {
-                            "active": instrument == 'keys',
-                            "capo": "",
-                            "tuning": "",
-                            "lastPlay": "2024-08-01",
-                            "songCifra": song_data[0]['song_cifra'] if instrument == 'keys' else "",
-                        },
-                        "drums": {
-                            "active": instrument == 'drums',
-                            "capo": "",
-                            "tuning": "",
-                            "lastPlay": "2024-08-01",
-                            "songCifra": song_data[0]['song_cifra'] if instrument == 'drums' else "",
-                        },
-                        "voice": {
-                            "active": instrument == 'voice',
-                            "capo": "",
-                            "tuning": "",
-                            "lastPlay": "2024-08-01",
-                            "songCifra": song_data[0]['song_cifra'] if instrument == 'voice' else "",
-                        },
-                        "embedVideos": [],
-                        "addedIn": "2024-08-16",
-                        "updateIn": "2024-08-16",
-                        "email": userEmail,
-                    }
-                    collection.update_one({"email": userEmail}, {
-                                          "$set": {"userdata": userdata}})
-                    print("Data updated successfully in MongoDB.")
-                    return
+            # Verifica se já existe uma entrada para a música e o artista especificados
+            song_entry = next((entry for entry in userdata if entry["artist"] == song_data[0]
+                              ["artist_name"] and entry["song"] == song_data[0]["song_title"]), None)
 
-            print("No matching entry found, adding new entry.")
-            new_id = max([entry["id"] for entry in userdata], default=0) + 1
+            if song_entry:
+                print("Matching entry found, updating existing entry.")
+                # Se a entrada da música for encontrada, atualiza o instrumento específico
+                song_entry["instruments"][instrument] = True
+                song_entry[instrument] = {
+                    "active": True,
+                    "capo": "",  # Placeholder, pode ser ajustado conforme necessário
+                    "tuning": "",  # Placeholder, pode ser ajustado conforme necessário
+                    "lastPlay": "2024-08-01",  # Data de última reprodução, pode ser ajustada
+                    "songCifra": song_data[0]['song_cifra'] if instrument in ['guitar01', 'guitar02', 'bass', 'keys', 'drums', 'voice'] else "",
+                    "progress": instrument_progressbar  # Adiciona o progresso do instrumento
+                }
 
+                # Atualiza o documento no MongoDB com as novas informações
+                collection.update_one({"email": userEmail}, {
+                                      "$set": {"userdata": userdata}})
+                print("Data updated successfully in MongoDB.")
+            else:
+                print("No matching entry found, adding new entry.")
+                # Se a entrada da música não for encontrada, cria uma nova entrada
+                new_id = max([entry["id"]
+                             for entry in userdata], default=0) + 1
+
+                new_entry = {
+                    "id": new_id,  # Gera um novo ID para a entrada
+                    "song": song_data[0]['song_title'],  # Título da música
+                    "artist": song_data[0]['artist_name'],  # Nome do artista
+                    "progressBar": '',  # Placeholder para uma barra de progresso
+                    "instruments": {  # Mapeia os instrumentos e define quais estão ativos
+                        "guitar01": instrument == 'guitar01',
+                        "guitar02": instrument == 'guitar02',
+                        "bass": instrument == 'bass',
+                        "keys": instrument == 'keys',
+                        "drums": instrument == 'drums',
+                        "voice": instrument == 'voice'
+                    },
+                    # Dados específicos para cada instrumento, ajustados conforme necessário
+                    "guitar01": {
+                        "active": instrument == 'guitar01',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar01' else "",
+                        "progress": instrument_progressbar if instrument == 'guitar01' else 0,
+                    },
+                    "guitar02": {
+                        "active": instrument == 'guitar02',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar02' else "",
+                        "progress": instrument_progressbar if instrument == 'guitar02' else 0,
+                    },
+                    "bass": {
+                        "active": instrument == 'bass',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'bass' else "",
+                        "progress": instrument_progressbar if instrument == 'bass' else 0,
+                    },
+                    "keys": {
+                        "active": instrument == 'keys',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'keys' else "",
+                        "progress": instrument_progressbar if instrument == 'keys' else 0,
+                    },
+                    "drums": {
+                        "active": instrument == 'drums',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'drums' else "",
+                        "progress": instrument_progressbar if instrument == 'drums' else 0,
+                    },
+                    "voice": {
+                        "active": instrument == 'voice',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'voice' else "",
+                        "progress": instrument_progressbar if instrument == 'voice' else 0,
+                    },
+                    "embedVideos": [],  # Placeholder para vídeos embutidos
+                    "addedIn": "2024-08-16",  # Data de adição
+                    "updateIn": "2024-08-16",  # Data de última atualização
+                    "email": userEmail,  # Email do usuário
+                }
+
+                # Adiciona a nova entrada ao array userdata
+                userdata.append(new_entry)
+                # Atualiza o documento do usuário no MongoDB com a nova entrada de música
+                collection.update_one({"email": userEmail}, {
+                                      "$set": {"userdata": userdata}})
         else:
             print("Email not found, creating new userdata.")
-            userdata = []
+            # Se o email não for encontrado, cria um novo documento para o usuário
             new_id = 1
+            userdata = []
+            for song in song_data:
+                userdata.append({
+                    "id": new_id,
+                    "song": song['song_title'],
+                    "artist": song['artist_name'],
+                    "progressBar": 85,
+                    "instruments": {
+                        "guitar01": instrument == 'guitar01',
+                        "guitar02": instrument == 'guitar02',
+                        "bass": instrument == 'bass',
+                        "keys": instrument == 'keys',
+                        "drums": instrument == 'drums',
+                        "voice": instrument == 'voice'
+                    },
+                    "guitar01": {
+                        "active": instrument == 'guitar01',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'guitar01' else "",
+                    },
+                    "guitar02": {
+                        "active": instrument == 'guitar02',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'guitar02' else "",
+                    },
+                    "bass": {
+                        "active": instrument == 'bass',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'bass' else "",
+                    },
+                    "keys": {
+                        "active": instrument == 'keys',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'keys' else "",
+                    },
+                    "drums": {
+                        "active": instrument == 'drums',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'drums' else "",
+                    },
+                    "voice": {
+                        "active": instrument == 'voice',
+                        "capo": "",
+                        "tuning": "",
+                        "lastPlay": "2024-08-01",
+                        "songCifra": song['song_cifra'] if instrument == 'voice' else "",
+                    },
+                    "embedVideos": [],
+                    "addedIn": "2024-08-16",
+                    "updateIn": "2024-08-16",
+                    "email": userEmail,
+                })
 
-        for song in song_data:
-            userdata.append({
-                "id": new_id,
-                "song": song['song_title'],
-                "artist": song['artist_name'],
-                "progressBar": 85,
-                "instruments": {
-                    "guitar01": instrument == 'guitar01',
-                    "guitar02": instrument == 'guitar02',
-                    "bass": instrument == 'bass',
-                    "keys": instrument == 'keys',
-                    "drums": instrument == 'drums',
-                    "voice": instrument == 'voice'
-                },
-                "guitar01": {
-                    "active": instrument == 'guitar01',
-                    "capo": "",
-                    "tuning": "",
-                    "lastPlay": "2024-08-01",
-                    "songCifra": song['song_cifra'] if instrument == 'guitar01' else "",
-                },
-                "guitar02": {
-                    "active": instrument == 'guitar02',
-                    "capo": "",
-                    "tuning": "",
-                    "lastPlay": "2024-08-01",
-                    "songCifra": song['song_cifra'] if instrument == 'guitar02' else "",
-                },
-                "bass": {
-                    "active": instrument == 'bass',
-                    "capo": "",
-                    "tuning": "",
-                    "lastPlay": "2024-08-01",
-                    "songCifra": song['song_cifra'] if instrument == 'bass' else "",
-                },
-                "keys": {
-                    "active": instrument == 'keys',
-                    "capo": "",
-                    "tuning": "",
-                    "lastPlay": "2024-08-01",
-                    "songCifra": song['song_cifra'] if instrument == 'keys' else "",
-                },
-                "drums": {
-                    "active": instrument == 'drums',
-                    "capo": "",
-                    "tuning": "",
-                    "lastPlay": "2024-08-01",
-                    "songCifra": song['song_cifra'] if instrument == 'drums' else "",
-                },
-                "voice": {
-                    "active": instrument == 'voice',
-                    "capo": "",
-                    "tuning": "",
-                    "lastPlay": "2024-08-01",
-                    "songCifra": song['song_cifra'] if instrument == 'voice' else "",
-                },
-                "embedVideos": [],
-                "addedIn": "2024-08-16",
-                "updateIn": "2024-08-16",
-                "email": userEmail,
-            })
-
-        if existing_user:
-            collection.update_one({"email": userEmail}, {
-                                  "$set": {"userdata": userdata}})
-        else:
+            # Insere o novo documento de usuário no MongoDB
             collection.insert_one({"email": userEmail, "userdata": userdata})
-
         print("Data stored in MongoDB.")
     except Exception as e:
+        # Captura qualquer erro durante o processo e exibe uma mensagem de erro
         print(f"An error occurred while storing data in MongoDB: {e}")
 
 
