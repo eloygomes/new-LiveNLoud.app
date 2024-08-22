@@ -87,6 +87,7 @@ function NewSongColumnA({
             console.log(item); // Exibe o item atual
             // Adicione a lógica de filtragem aqui se necessário
             return (
+              // LINK ADICIONADO AOS DADOS, FAZER FILTRO PELO LINK
               item.artist === formattedArtist && item.song === formattedSong
             );
           });

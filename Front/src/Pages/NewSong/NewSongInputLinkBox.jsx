@@ -54,6 +54,7 @@ function NewSongInputLinkBox({
         email: userEmail,
         instrument: `${instrumentName}`,
         instrument_progressbar: `${progress}`, // Formato correto: guitar01
+        link: instrument, //link
       });
       // Sucesso ao registrar na API
     } catch (error) {
