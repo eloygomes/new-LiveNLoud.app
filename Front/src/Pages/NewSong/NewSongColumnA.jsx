@@ -55,10 +55,10 @@ function NewSongColumnA({
     const capitalizeAndFormat = (str) => {
       return str
         ? str
-            .split("-") // Separa as palavras pelos hífens
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitaliza a primeira letra de cada palavra
-            .join(" ") // Junta as palavras com espaço
-        : ""; // Retorna uma string vazia se `str` for undefined ou null
+            .split("-")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ")
+        : "Unknown"; // Adicione um valor padrão para casos indefinidos ou nulos
     };
 
     const formattedArtist = artistExtractedFromUrl
