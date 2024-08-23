@@ -29,6 +29,7 @@ function NewSongColumnA({
   const [instument, setinstument] = useState();
 
   useEffect(() => {
+    // Verifica se algum instrumento foi passado e define o instument
     if (guitar01) {
       setinstrumentName("guitar01");
       setinstument(guitar01);
@@ -47,9 +48,19 @@ function NewSongColumnA({
     } else if (voice) {
       setinstrumentName("voice");
       setinstument(voice);
+    } else {
+      // console.error("Nenhum instrumento válido foi fornecido.");
+      return; // Sai cedo do efeito se `instument` estiver indefinido
     }
 
-    console.log(`dataFromUrl:`, dataFromUrl); // Confere o tipo de dataFromUrl
+    // Verifica se `instument` foi corretamente definido
+    if (!instument) {
+      console.error("Instument ainda é indefinido após a configuração.");
+      return;
+    }
+
+    // console.log("Tipo de instument:", typeof instument); // Verifica o tipo de 'instument'
+    // console.log("Conteúdo de instument:", instument); // Verifica o conteúdo de 'instument'
 
     // Função para capitalizar palavras e remover hífens
     const capitalizeAndFormat = (str) => {
@@ -58,9 +69,10 @@ function NewSongColumnA({
             .split("-")
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ")
-        : "Unknown"; // Adicione um valor padrão para casos indefinidos ou nulos
+        : "Unknown"; // Adiciona um valor padrão para casos indefinidos ou nulos
     };
 
+    // Formata o artista e a música extraídos da URL
     const formattedArtist = artistExtractedFromUrl
       ? capitalizeAndFormat(artistExtractedFromUrl)
       : "";
@@ -68,35 +80,64 @@ function NewSongColumnA({
       ? capitalizeAndFormat(songExtractedFromUrl)
       : "";
 
-    console.log(`Artista formatado: ${formattedArtist}`);
-    console.log(`Música formatada: ${formattedSong}`);
-
     if (typeof dataFromUrl === "string" && dataFromUrl.length > 0) {
       try {
-        const parsedData = JSON.parse(dataFromUrl); // Converte a string em objeto
+        // Converte a string JSON em objeto
+        const parsedData = JSON.parse(dataFromUrl);
         if (parsedData && Array.isArray(parsedData.userdata)) {
           const dataFromURLuserdata = parsedData.userdata;
 
-          console.log(dataFromURLuserdata);
-
-          // somente me adora da pitty esta correta, agora precisa apronfundar as regras para as outras cifras, nao esquecer dos acentos
-
-          console.log(typeof dataFromURLuserdata); // object
-
+          // Encontra o item no userdata que corresponde ao link do instrumento atual
           const filteredData = dataFromURLuserdata.find((item) => {
-            console.log(item); // Exibe o item atual
-            // Adicione a lógica de filtragem aqui se necessário
-            return (
-              // LINK ADICIONADO AOS DADOS, FAZER FILTRO PELO LINK
-              item.artist === formattedArtist && item.song === formattedSong
-            );
+            // Lista de possíveis instrumentos
+            const instruments = [
+              "guitar01",
+              "guitar02",
+              "bass",
+              "keys",
+              "drums",
+              "voice",
+            ];
+
+            // Itera sobre os instrumentos e compara os links
+            return instruments.some((instrument) => {
+              const instrumentData = item[instrument];
+
+              // Verifica se `link` é uma função e tenta acessar corretamente
+              const userLink =
+                typeof instument?.link === "function"
+                  ? instument.link()
+                  : instument?.link;
+
+              // Cria um elemento temporário para extrair o conteúdo da tag <a>
+              const tempDiv = document.createElement("div");
+              tempDiv.innerHTML = userLink;
+              const userLinkContent =
+                tempDiv.querySelector("a")?.textContent || "Link inválido";
+
+              const dbLink =
+                typeof instrumentData?.link === "function"
+                  ? instrumentData.link()
+                  : instrumentData?.link;
+
+              // console.log(`Comparando: ${dbLink} com ${userLinkContent}`);
+              // console.log(` ====> LINK QUE VEM DO USER ${userLinkContent}`);
+              // console.log(` ====> LINK QUE VEM DO DB ${dbLink}`);
+
+              // Certifica-se de que ambos são strings antes de comparar
+              return (
+                typeof dbLink === "string" &&
+                typeof userLinkContent === "string" &&
+                dbLink === userLinkContent
+              );
+            });
           });
 
-          console.log(filteredData); // Exibe o resultado filtrado
-
-          console.log(`filteredData: ${filteredData}`);
+          // Exibe os dados filtrados
+          // console.log(`filteredData:`, filteredData);
 
           if (filteredData) {
+            // Se a música for encontrada, atualiza os estados com os dados dela
             console.log("Música encontrada:", filteredData);
             setSongName(filteredData.song || "Unknown Song");
             setArtistName(filteredData.artist || "Unknown Artist");
@@ -121,7 +162,130 @@ function NewSongColumnA({
     } else {
       console.log("dataFromUrl não contém userdata válida.");
     }
-  }, [dataFromUrl, songExtractedFromUrl, artistExtractedFromUrl]);
+  }, [dataFromUrl, songExtractedFromUrl, artistExtractedFromUrl, instument]);
+
+  // useEffect(() => {
+  //   if (guitar01) {
+  //     setinstrumentName("guitar01");
+  //     setinstument(guitar01);
+  //   } else if (guitar02) {
+  //     setinstrumentName("guitar02");
+  //     setinstument(guitar02);
+  //   } else if (bass) {
+  //     setinstrumentName("bass");
+  //     setinstument(bass);
+  //   } else if (keyboard) {
+  //     setinstrumentName("keys");
+  //     setinstument(keyboard);
+  //   } else if (drums) {
+  //     setinstrumentName("drums");
+  //     setinstument(drums);
+  //   } else if (voice) {
+  //     setinstrumentName("voice");
+  //     setinstument(voice);
+  //   }
+
+  //   // Confere o tipo de dataFromUrl
+  //   // console.log(`dataFromUrl:`, dataFromUrl);
+
+  //   // Função para capitalizar palavras e remover hífens
+  //   const capitalizeAndFormat = (str) => {
+  //     return str
+  //       ? str
+  //           .split("-")
+  //           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+  //           .join(" ")
+  //       : "Unknown"; // Adicione um valor padrão para casos indefinidos ou nulos
+  //   };
+
+  //   const formattedArtist = artistExtractedFromUrl
+  //     ? capitalizeAndFormat(artistExtractedFromUrl)
+  //     : "";
+  //   const formattedSong = songExtractedFromUrl
+  //     ? capitalizeAndFormat(songExtractedFromUrl)
+  //     : "";
+
+  //   // console.log(`Artista formatado: ${formattedArtist}`);
+  //   // console.log(`Música formatada: ${formattedSong}`);
+
+  //   if (typeof dataFromUrl === "string" && dataFromUrl.length > 0) {
+  //     try {
+  //       const parsedData = JSON.parse(dataFromUrl); // Converte a string em objeto
+  //       if (parsedData && Array.isArray(parsedData.userdata)) {
+  //         const dataFromURLuserdata = parsedData.userdata;
+
+  //         // console.log(dataFromURLuserdata);
+
+  //         // somente me adora da pitty esta correta, agora precisa apronfundar as regras para as outras cifras, nao esquecer dos acentos
+
+  //         // object
+  //         // console.log(typeof dataFromURLuserdata);
+
+  //         // const filteredData = dataFromURLuserdata.find((item) => {
+  //         //   console.log(item); // Exibe o item atual
+  //         //   // Adicione a lógica de filtragem aqui se necessário
+  //         //   return (
+  //         //     // LINK ADICIONADO AOS DADOS, FAZER FILTRO PELO LINK
+  //         //     item.artist === formattedArtist && item.song === formattedSong
+  //         //   );
+  //         // });
+
+  //         const filteredData = dataFromURLuserdata.find((item) => {
+  //           console.log(item); // Exibe o item atual
+  //           const instruments = [
+  //             "guitar01",
+  //             "guitar02",
+  //             "bass",
+  //             "keys",
+  //             "drums",
+  //             "voice",
+  //           ];
+
+  //           // Itera sobre todos os instrumentos e verifica se algum deles contém o link correspondente
+  //           const foundInstrument = instruments.find((instrument) => {
+  //             const instrumentData = item[instrument];
+  //             console.log(
+  //               `Comparando: ${instrumentData?.link} com ${instument?.link}`
+  //             );
+  //             return instrumentData && instrumentData.link === instument?.link;
+  //           });
+
+  //           return foundInstrument !== undefined;
+  //         });
+
+  //         console.log(`filteredData: ${filteredData}`);
+
+  //         // Exibe o resultado filtrado
+  //         // console.log(filteredData);
+
+  //         // console.log(`filteredData: ${filteredData}`);
+
+  //         if (filteredData) {
+  //           console.log("Música encontrada:", filteredData);
+  //           setSongName(filteredData.song || "Unknown Song");
+  //           setArtistName(filteredData.artist || "Unknown Artist");
+  //           setCapoData(filteredData.guitar01?.capo || "No Capo");
+  //           setTomData(filteredData.guitar01?.tom || "No Tom");
+  //           setTunerData(filteredData.guitar01?.tuning || "Standard Tuning");
+  //           setGeralPercentage(filteredData.progressBar || 0);
+  //           setEmbedLink(
+  //             filteredData.embedVideos.length > 0
+  //               ? filteredData.embedVideos
+  //               : ["No videos available"]
+  //           );
+  //         } else {
+  //           console.log("Música e artista não encontrados");
+  //         }
+  //       } else {
+  //         console.error("JSON inválido ou userdata não é um array.");
+  //       }
+  //     } catch (error) {
+  //       console.error("Erro ao analisar dataFromUrl:", error);
+  //     }
+  //   } else {
+  //     console.log("dataFromUrl não contém userdata válida.");
+  //   }
+  // }, [dataFromUrl, songExtractedFromUrl, artistExtractedFromUrl]);
 
   // eslint-disable-next-line no-unused-vars
   const createNewSong = async ({ instrumentName, instument, progress }) => {
