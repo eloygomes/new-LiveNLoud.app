@@ -1,6 +1,7 @@
+/* eslint-disable react/prop-types */
+
 import axios from "axios";
 
-/* eslint-disable react/prop-types */
 function NewSongInputLinkBox({
   instrumentName,
   instrument,
@@ -9,6 +10,7 @@ function NewSongInputLinkBox({
   setProgress,
   setArtistExtractedFromUrl,
   setSongExtractedFromUrl,
+  gettingSongData, // Recebe a função do pai para atualizar os dados
 }) {
   function extractArtistAndSong(url) {
     if (!url) {
@@ -23,9 +25,7 @@ function NewSongInputLinkBox({
       throw new Error("Could not extract artist and song from the URL");
     }
 
-    // const artistFromUrl = artist.replace(/-/g, " ");
     const artistFromUrl = artist;
-    // const songFromUrl = song.replace(/-/g, " ");
     const songFromUrl = song;
 
     return { artistFromUrl, songFromUrl };
@@ -40,30 +40,28 @@ function NewSongInputLinkBox({
 
     const userEmail = localStorage.getItem("userEmail");
 
-    // Extraindo artista e música da URL
     try {
       const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
-      // console.log(`Artista: ${artistFromUrl}, Música: ${songFromUrl}`);
       setArtistExtractedFromUrl(artistFromUrl);
       setSongExtractedFromUrl(songFromUrl);
 
-      // ENVIANDO OS DADOS REGISTRANDO A MÚSICA
+      // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
       await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
         artist: artistFromUrl,
         song: songFromUrl,
         email: userEmail,
         instrument: `${instrumentName}`,
-        instrument_progressbar: `${progress}`, // Formato correto: guitar01
-        link: instrument, //link
+        instrument_progressbar: `${progress}`,
+        link: instrument,
       });
-      // Sucesso ao registrar na API
+
+      // Após o POST, realiza o GET para atualizar os dados
+      await gettingSongData();
     } catch (error) {
       console.error("Error registering user in API:", error);
       alert("Failed to register the song. Please check the URL and try again.");
     }
   };
-
-  // console.log(`progress: ${progress}`);
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
@@ -77,16 +75,21 @@ function NewSongInputLinkBox({
       <div className="flex flex-row h-6">
         <input
           type="text"
-          name="guitar01link"
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
           value={instrument}
           onChange={(e) => setInstrument(e.target.value)}
+          onBlur={() => {
+            handledata().catch((error) => console.error(error));
+          }}
         />
         <button
           className="px-1 ml-1 bg-blue-500 text-white rounded-sm"
           onClick={() => {
-            handledata().catch((error) => console.error(error)); // Adicionando tratamento de erro
+            console.log("clicado");
+            console.log(`instrumentName: ${instrumentName}`);
+            console.log(`instrument:${instrument}`);
+            console.log(progress);
           }}
         >
           +

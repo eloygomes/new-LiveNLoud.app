@@ -28,6 +28,7 @@ function NewSongColumnB({
   setProgBarVoice,
   setArtistExtractedFromUrl,
   setSongExtractedFromUrl,
+  gettingSongData,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -41,6 +42,7 @@ function NewSongColumnB({
           setProgress={setProgBarG01}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
+          gettingSongData={gettingSongData}
         />
         <NewSongInputLinkBox
           instrumentName="guitar02"
@@ -50,6 +52,7 @@ function NewSongColumnB({
           setProgress={setProgBarG02}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
+          gettingSongData={gettingSongData}
         />
         <NewSongInputLinkBox
           instrumentName="bass"
@@ -59,6 +62,7 @@ function NewSongColumnB({
           setProgress={setProgBarBass}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
+          gettingSongData={gettingSongData}
         />
         <NewSongInputLinkBox
           instrumentName="keys"
@@ -68,6 +72,7 @@ function NewSongColumnB({
           setProgress={setProgBarKey}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
+          gettingSongData={gettingSongData}
         />
         <NewSongInputLinkBox
           instrumentName="drums"
@@ -77,6 +82,7 @@ function NewSongColumnB({
           setProgress={setProgBarDrums}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
+          gettingSongData={gettingSongData}
         />
         <NewSongInputLinkBox
           instrumentName="voice"
@@ -86,6 +92,7 @@ function NewSongColumnB({
           setProgress={setProgBarVoice}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
+          gettingSongData={gettingSongData}
         />
       </div>
     </div>
