@@ -5,7 +5,7 @@ function GeralProgressBar({ geralPercentage }) {
       <div className="flex flex-row justify-between">
         <h1 className="text-xl font-bold">Progress Bar</h1>
         <h1 className="text-2xl font-bold">
-          {geralPercentage ? geralPercentage : null}%
+          {geralPercentage ? geralPercentage : null} %
         </h1>
       </div>
       <div className="relative pt-1 mt-6 w-full">
