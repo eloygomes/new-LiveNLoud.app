@@ -15,6 +15,12 @@ function NewSongColumnA({
   keyboard,
   drums,
   voice,
+  progBarG01,
+  progBarG02,
+  progBarBass,
+  progBarKey,
+  progBarDrums,
+  progBarVoice,
 }) {
   const [songName, setSongName] = useState("Loading song...");
   const [artistName, setArtistName] = useState("Loading artist...");
@@ -65,6 +71,8 @@ function NewSongColumnA({
         const parsedData = JSON.parse(dataFromUrl);
         if (parsedData && Array.isArray(parsedData.userdata)) {
           const dataFromURLuserdata = parsedData.userdata;
+
+          console.log("dataFromURLuserdata:", dataFromURLuserdata);
 
           const filteredData = dataFromURLuserdata.find((item) => {
             const instruments = [
@@ -126,6 +134,33 @@ function NewSongColumnA({
     } else {
       console.log("dataFromUrl não contém userdata válida.");
     }
+    console.log(progBarG01);
+    console.log(progBarG02);
+    console.log(progBarBass);
+    console.log(progBarKey);
+    console.log(progBarDrums);
+    console.log(progBarVoice);
+
+    if (
+      progBarG01 |
+      progBarG02 |
+      progBarBass |
+      progBarKey |
+      progBarDrums |
+      progBarVoice
+    ) {
+      setGeralPercentage(
+        parseInt(
+          (parseInt(progBarG01, 10) +
+            parseInt(progBarG02, 10) +
+            parseInt(progBarBass, 10) +
+            parseInt(progBarKey, 10) +
+            parseInt(progBarDrums, 10) +
+            parseInt(progBarVoice, 10)) /
+            6
+        )
+      );
+    }
   }, [
     dataFromUrl,
     songExtractedFromUrl,
@@ -137,6 +172,12 @@ function NewSongColumnA({
     keyboard,
     drums,
     voice,
+    progBarG01,
+    progBarG02,
+    progBarBass,
+    progBarKey,
+    progBarDrums,
+    progBarVoice,
   ]);
 
   // Função createNewSong
@@ -234,6 +275,10 @@ function NewSongColumnA({
       throw new Error("API registration failed");
     }
   };
+
+  // console.log(dataFromUrl);
+
+  console.log(geralPercentage);
 
   return (
     <>
