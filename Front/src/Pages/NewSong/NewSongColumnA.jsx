@@ -28,13 +28,18 @@ function NewSongColumnA({
   const [tomData, setTomData] = useState("Loading tom...");
   const [tunerData, setTunerData] = useState("Loading tuner...");
   const [geralPercentage, setGeralPercentage] = useState(0);
-  const [embedLink, setEmbedLink] = useState(["Loading..."]);
+  const [embedLink, setEmbedLink] = useState([
+    "https://www.youtube.com/watch?v=EaPYSQvMQno",
+    "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+    "https://www.youtube.com/watch?v=ms1N6Sr660U",
+  ]);
 
   const [instrumentName, setInstrumentName] = useState("");
   const [instrument, setInstrument] = useState();
 
   useEffect(() => {
     console.log("AAAAAAAAA");
+    console.log(embedLink);
 
     // Verifica se algum instrumento foi passado e define o instrument
     if (guitar01) {
@@ -56,7 +61,7 @@ function NewSongColumnA({
       setInstrumentName("voice");
       setInstrument(voice);
     } else {
-      console.error("Nenhum instrumento válido foi fornecido.");
+      // console.error("Nenhum instrumento válido foi fornecido.");
       return; // Sai cedo do efeito se `instrument` estiver indefinido
     }
 
@@ -115,7 +120,7 @@ function NewSongColumnA({
             setArtistName(filteredData.artist || "Unknown Artist");
             setCapoData(filteredData.guitar01?.capo || "No Capo");
             setTomData(filteredData.guitar01?.tom || "No Tom");
-            setTunerData(filteredData.guitar01?.tuning || "Standard Tuning");
+            setTunerData(filteredData.guitar01?.tuning || "Standard ");
             setGeralPercentage(filteredData.progressBar || 0);
             setEmbedLink(
               filteredData.embedVideos.length > 0
@@ -178,6 +183,7 @@ function NewSongColumnA({
     progBarKey,
     progBarDrums,
     progBarVoice,
+    embedLink,
   ]);
 
   // Função createNewSong
@@ -292,7 +298,7 @@ function NewSongColumnA({
         lastTime={"2024-08-16"}
       />
       <GeralProgressBar geralPercentage={geralPercentage} />
-      <NewSongEmbed ytEmbedSongList={embedLink} />
+      <NewSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
       <div className="flex flex-row neuphormism-b-btn-flat p-5 my-5 mr-5 justify-start">
         <button
           className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green"
