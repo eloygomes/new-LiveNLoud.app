@@ -32,18 +32,32 @@ function NewSongInputLinkBox({
   }
 
   const handledata = async () => {
-    if (!instrument) {
-      console.error("Instrument URL is empty");
+    if (!instrument || typeof instrument !== "string" || !instrument.trim()) {
+      console.error("Instrument URL is invalid");
       alert("Please insert a valid URL before proceeding.");
       return;
     }
 
     const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) {
+      console.error("User email is not available");
+      alert("User email is required to register the song.");
+      return;
+    }
 
     try {
       const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
       setArtistExtractedFromUrl(artistFromUrl);
       setSongExtractedFromUrl(songFromUrl);
+
+      console.log("Sending data:", {
+        artist: artistFromUrl,
+        song: songFromUrl,
+        email: userEmail,
+        instrument: `${instrumentName}`,
+        instrument_progressbar: `${progress}`,
+        link: instrument,
+      });
 
       // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
       await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
@@ -58,7 +72,10 @@ function NewSongInputLinkBox({
       // Após o POST, realiza o GET para atualizar os dados
       await gettingSongData();
     } catch (error) {
-      console.error("Error registering user in API:", error);
+      console.error(
+        "Error registering user in API:",
+        error.response ? error.response.data : error.message
+      );
       alert("Failed to register the song. Please check the URL and try again.");
     }
   };
