@@ -10,7 +10,7 @@ const NewSongEmbed = ({ ytEmbedSongList, setEmbedLink }) => {
   const [selectedVideo, setSelectedVideo] = useState(null); // Estado para o vídeo selecionado
 
   useEffect(() => {
-    console.log(videoLinks);
+    // console.log(videoLinks);
     // Função para carregar os títulos dos vídeos existentes em ytEmbedSongList
     const loadExistingVideos = async () => {
       const titles = await Promise.all(
@@ -101,15 +101,6 @@ const NewSongEmbed = ({ ytEmbedSongList, setEmbedLink }) => {
           value={inputValue}
           onChange={handleInputChange}
         />
-        {/* <button
-          type="button"
-          disabled={!btnStatus}
-          className={`neuphormism-b-btn-green px-1 ml-1 ${
-            btnStatus ? "bg-green-500" : "bg-gray-400"
-          }`}
-        >
-          {">"}
-        </button> */}
       </div>
       {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
       <div className="flex flex-col px-1 py-2 my-2 m-0">

@@ -122,14 +122,16 @@ function NewSongInputLinkBox({
             onChange={(e) => setProgress(e.target.value)}
             className="w-1/2"
           />
-          <span className="ml-2 text-sm">{progress}%</span>
         </div>
-        <div className="relative pt-1 mt-6 w-1/2">
-          <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200">
+        <div className="relative flex flex-row pt-1  w-1/2">
+          <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200 w-2/3 mt-6">
             <div
               style={{ width: `${progress}%` }}
               className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
             ></div>
+          </div>
+          <div className="w-1/3 pl-4 py-3 ml-5 text-right">
+            <span className=" text-sm ml-auto">{progress}%</span>
           </div>
         </div>
       </div>
