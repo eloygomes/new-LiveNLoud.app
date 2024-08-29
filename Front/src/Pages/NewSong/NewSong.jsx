@@ -47,6 +47,7 @@ function NewSong() {
       setDataFromUrl(dataFromUrlNAKED);
     } catch (error) {
       console.error("Error fetching song data:", error);
+      console.log("aqui tbm");
     }
   };
 
