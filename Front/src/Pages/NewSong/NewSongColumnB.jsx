@@ -29,6 +29,9 @@ function NewSongColumnB({
   setArtistExtractedFromUrl,
   setSongExtractedFromUrl,
   gettingSongData,
+  setShowSnackBar,
+  setSnackbarMessage,
+  dataFromUrl,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -43,6 +46,9 @@ function NewSongColumnB({
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
           gettingSongData={gettingSongData}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
+          dataFromUrl={dataFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="guitar02"
@@ -53,6 +59,9 @@ function NewSongColumnB({
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
           gettingSongData={gettingSongData}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
+          dataFromUrl={dataFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="bass"
@@ -63,6 +72,9 @@ function NewSongColumnB({
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
           gettingSongData={gettingSongData}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
+          dataFromUrl={dataFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="keys"
@@ -73,6 +85,9 @@ function NewSongColumnB({
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
           gettingSongData={gettingSongData}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
+          dataFromUrl={dataFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="drums"
@@ -83,6 +98,9 @@ function NewSongColumnB({
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
           gettingSongData={gettingSongData}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
+          dataFromUrl={dataFromUrl}
         />
         <NewSongInputLinkBox
           instrumentName="voice"
@@ -93,6 +111,9 @@ function NewSongColumnB({
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
           setSongExtractedFromUrl={setSongExtractedFromUrl}
           gettingSongData={gettingSongData}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
+          dataFromUrl={dataFromUrl}
         />
       </div>
     </div>

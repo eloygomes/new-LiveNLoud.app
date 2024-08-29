@@ -10,7 +10,10 @@ function NewSongInputLinkBox({
   setProgress,
   setArtistExtractedFromUrl,
   setSongExtractedFromUrl,
-  gettingSongData, // Recebe a função do pai para atualizar os dados
+  gettingSongData,
+  setShowSnackBar,
+  setSnackbarMessage,
+  dataFromUrl,
 }) {
   function extractArtistAndSong(url) {
     if (!url) {
@@ -22,6 +25,11 @@ function NewSongInputLinkBox({
     const song = parts[parts.length - 1]; // Última parte
 
     if (!artist || !song) {
+      setShowSnackBar(true);
+      setSnackbarMessage({
+        title: "Error",
+        message: "Could not extract artist and song from the URL",
+      });
       throw new Error("Could not extract artist and song from the URL");
     }
 
@@ -33,15 +41,25 @@ function NewSongInputLinkBox({
 
   const handledata = async () => {
     if (!instrument || typeof instrument !== "string" || !instrument.trim()) {
-      console.error("Instrument URL is invalid");
-      alert("Please insert a valid URL before proceeding.");
+      // console.error("Instrument URL is invalid");
+      // console.log("Please insert a valid URL before proceeding.");
+      setShowSnackBar(true);
+      setSnackbarMessage({
+        title: "Error",
+        message: "Please insert a valid URL before proceeding.",
+      });
       return;
     }
 
     const userEmail = localStorage.getItem("userEmail");
     if (!userEmail) {
-      console.error("User email is not available");
-      alert("User email is required to register the song.");
+      // console.error("User email is not available");
+      // console.log("User email is required to register the song.");
+      setShowSnackBar(true);
+      setSnackbarMessage({
+        title: "Error",
+        message: "User email is required to register the song.",
+      });
       return;
     }
 
@@ -76,17 +94,25 @@ function NewSongInputLinkBox({
         "Error registering user in API:",
         error.response ? error.response.data : error.message
       );
-      alert("Failed to register the song. Please check the URL and try again.");
+      // alert("Failed to register the song. Please check the URL and try again.");
     }
   };
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
       <div className="flex flex-row justify-between">
-        <span className="text-sm pb-2 font-bold">{instrumentName}</span>
+        <span className="text-sm pb-2 font-bold">
+          {instrumentName.charAt(0).toUpperCase() + instrumentName.slice(1)}
+        </span>
         <div className="flex flex-row">
-          <span className="text-sm pb-2">STATUS:</span>
-          <span className="text-sm pb-2">OFFLINE</span>
+          {/* <span className="text-sm pb-2">STATUS:</span> */}
+          <span
+            className={`${
+              instrument ? "text-green-500" : "text-red-500"
+            } text-sm rounded-sm`}
+          >
+            {instrument ? "Online" : "Offline"}
+          </span>
         </div>
       </div>
       <div className="flex flex-row h-6">
