@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import NewSongColumnA from "./NewSongColumnA";
 import NewSongColumnB from "./NewSongColumnB";
+import SnackBar from "../../Tools/SnackBar";
 
 function NewSong() {
   // Column A
@@ -36,7 +37,15 @@ function NewSong() {
   // Getting Data
   const [dataFromUrl, setDataFromUrl] = useState("");
 
+  // LocalStorage user email
   const userEmail = localStorage.getItem("userEmail");
+
+  // SnackBar
+  const [showSnackBar, setShowSnackBar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState({
+    title: "",
+    message: "",
+  });
 
   const gettingSongData = async () => {
     try {
@@ -58,6 +67,9 @@ function NewSong() {
 
   return (
     <div className=" flex justify-center h-screen pt-20">
+      <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
+        <SnackBar snackbarMessage={snackbarMessage} />
+      </div>
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
@@ -112,7 +124,10 @@ function NewSong() {
                 setProgBarVoice={setProgBarVoice}
                 setArtistExtractedFromUrl={setArtistExtractedFromUrl}
                 setSongExtractedFromUrl={setSongExtractedFromUrl}
-                gettingSongData={gettingSongData} // Passa a função para o componente filho
+                gettingSongData={gettingSongData}
+                setShowSnackBar={setShowSnackBar}
+                setSnackbarMessage={setSnackbarMessage}
+                dataFromUrl={dataFromUrl}
               />
             </div>
           </div>
