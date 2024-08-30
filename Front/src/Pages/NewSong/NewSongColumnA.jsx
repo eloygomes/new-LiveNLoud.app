@@ -4,6 +4,7 @@ import NewSongEmbed from "./NewSongEmbed";
 import GeralProgressBar from "./GeralProgressBar";
 import NewSongSongData from "./NewSongSongData";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function NewSongColumnA({
   dataFromUrl,
@@ -36,9 +37,12 @@ function NewSongColumnA({
   const [instrumentName, setInstrumentName] = useState("");
   const [instrument, setInstrument] = useState();
 
-  useEffect(() => {
-    let isMounted = true; // Flag para evitar execução após o componente ser desmontado
+  const navigate = useNavigate(); // Initialize useNavigate
 
+  useEffect(() => {
+    let isMounted = true; // Flag to avoid executing after the component is unmounted
+
+    // Set instrument based on the available data
     if (guitar01) {
       setInstrumentName("guitar01");
       setInstrument(guitar01);
@@ -61,10 +65,10 @@ function NewSongColumnA({
       return;
     }
 
-    if (!instrument) {
-      console.error("Instrument ainda é indefinido após a configuração.");
-      return;
-    }
+    // if (!instrument) {
+    //   console.error("Instrument is still undefined after setup.");
+    //   return;
+    // }
 
     if (typeof dataFromUrl === "string" && dataFromUrl.length > 0) {
       try {
@@ -92,7 +96,7 @@ function NewSongColumnA({
               const tempDiv = document.createElement("div");
               tempDiv.innerHTML = userLink;
               const userLinkContent =
-                tempDiv.querySelector("a")?.textContent || "Link inválido";
+                tempDiv.querySelector("a")?.textContent || "Invalid link";
 
               const dbLink =
                 typeof instrumentData?.link === "function"
@@ -112,32 +116,32 @@ function NewSongColumnA({
             setArtistName(filteredData.artist || "Unknown Artist");
             setCapoData(filteredData.guitar01?.capo || "No Capo");
             setTomData(filteredData.guitar01?.tom || "No Tom");
-            setTunerData(filteredData.guitar01?.tuning || "Standard ");
+            setTunerData(filteredData.guitar01?.tuning || "Standard");
             setGeralPercentage(filteredData.progressBar || 0);
 
-            // Só atualiza o embedLink se o valor for diferente do atual
+            // Update embedLink if it's different from the current value
             if (filteredData.embedVideos.length > 0) {
               setEmbedLink(filteredData.embedVideos);
             }
           } else {
-            console.log("Música e artista não encontrados");
+            console.log("Song and artist not found.");
           }
         } else {
-          console.error("JSON inválido ou userdata não é um array.");
+          console.error("Invalid JSON or userdata is not an array.");
         }
       } catch (error) {
-        console.error("Erro ao analisar dataFromUrl:", error);
+        console.error("Error parsing dataFromUrl:", error);
       }
     } else {
-      console.log("dataFromUrl não contém userdata válida.");
+      console.log("dataFromUrl does not contain valid userdata.");
     }
 
     if (
-      progBarG01 |
-      progBarG02 |
-      progBarBass |
-      progBarKey |
-      progBarDrums |
+      progBarG01 ||
+      progBarG02 ||
+      progBarBass ||
+      progBarKey ||
+      progBarDrums ||
       progBarVoice
     ) {
       setGeralPercentage(
@@ -154,7 +158,7 @@ function NewSongColumnA({
     }
 
     return () => {
-      isMounted = false; // Define como falso ao desmontar para evitar setState
+      isMounted = false; // Set to false when unmounting to avoid setState
     };
   }, [
     dataFromUrl,
@@ -175,48 +179,110 @@ function NewSongColumnA({
     progBarVoice,
   ]);
 
+  // const createNewSong = async ({ instrumentName, progress }) => {
+  //   const userEmail = localStorage.getItem("userEmail");
+
+  //   console.log("songName", songName);
+  //   console.log("artistName", artistName);
+  //   console.log("instrumentName", instrumentName);
+  //   console.log("progress", progress);
+  //   console.log("userEmail", userEmail);
+  //   console.log("geralPercentage", geralPercentage);
+
+  //   if (!songName === "Loading..." || artistName === "Loading...") {
+  //     try {
+  //       const userdata = {
+  //         // song: songExtractedFromUrl,
+  //         song: songName,
+  //         artist: artistName,
+  //         progressBar: geralPercentage ? geralPercentage : 0,
+  //         instruments: {
+  //           guitar01: instrumentName === "guitar01",
+  //           guitar02: instrumentName === "guitar02",
+  //           bass: instrumentName === "bass",
+  //           keys: instrumentName === "keys",
+  //           drums: instrumentName === "drums",
+  //           voice: instrumentName === "voice",
+  //         },
+  //         [instrumentName]: {
+  //           active: true,
+  //           capo: capoData,
+  //           tuning: tunerData,
+  //           lastPlay: new Date().toISOString().split("T")[0],
+  //           // songCifra: "",
+  //           // progress: progress,
+  //         },
+  //         embedVideos: embedLink,
+  //         updateIn: new Date().toISOString().split("T")[0],
+  //         email: userEmail,
+  //       };
+  //       console.log("userdata", userdata);
+  //       const response = await axios.post(
+  //         `https://www.api.live.eloygomes.com.br/api/newsong`,
+  //         {
+  //           databaseComing: "liveNloud_",
+  //           collectionComing: "data",
+  //           userdata: userdata,
+  //         }
+  //       );
+  //       console.log("Data saved successfully:", response.data);
+  //     } catch (error) {
+  //       console.error("Error saving data:", error);
+  //     }
+  //     navigate("/");
+  //   }
+  // };
+
   const createNewSong = async ({ instrumentName, progress }) => {
     const userEmail = localStorage.getItem("userEmail");
 
-    try {
-      const userdata = {
-        // song: songExtractedFromUrl,
-        song: songName,
-        artist: artistName,
-        progressBar: progress ? progress : 0,
-        instruments: {
-          guitar01: instrumentName === "guitar01",
-          guitar02: instrumentName === "guitar02",
-          bass: instrumentName === "bass",
-          keys: instrumentName === "keys",
-          drums: instrumentName === "drums",
-          voice: instrumentName === "voice",
-        },
-        [instrumentName]: {
-          active: true,
-          capo: capoData,
-          tuning: tunerData,
-          lastPlay: new Date().toISOString().split("T")[0],
-          // songCifra: "",
-          progress: progress,
-        },
-        embedVideos: embedLink,
-        updateIn: new Date().toISOString().split("T")[0],
-        email: userEmail,
-      };
+    console.log("songName", songName);
+    console.log("artistName", artistName);
+    console.log("instrumentName", instrumentName);
+    console.log("progress", progress);
+    console.log("geralPercentage", geralPercentage);
 
-      const response = await axios.post(
-        `https://www.api.live.eloygomes.com.br/api/newsong`,
-        {
-          databaseComing: "liveNloud_",
-          collectionComing: "data",
-          userdata: userdata,
-        }
-      );
+    if (songName !== "Loading..." && artistName !== "Loading...") {
+      try {
+        const userdata = {
+          song: songName,
+          artist: artistName,
+          progressBar: geralPercentage ? geralPercentage : 0, // Certifique-se de que progressBar está definido
+          instruments: {
+            guitar01: instrumentName === "guitar01",
+            guitar02: instrumentName === "guitar02",
+            bass: instrumentName === "bass",
+            keys: instrumentName === "keys",
+            drums: instrumentName === "drums",
+            voice: instrumentName === "voice",
+          },
+          [instrumentName]: {
+            active: true,
+            capo: capoData,
+            tuning: tunerData,
+            lastPlay: new Date().toISOString().split("T")[0],
+          },
+          embedVideos: embedLink,
+          updateIn: new Date().toISOString().split("T")[0],
+          email: userEmail,
+        };
 
-      console.log("Dados salvos com sucesso:", response.data);
-    } catch (error) {
-      console.error("Erro ao salvar os dados:", error);
+        console.log("userdata", userdata); // Verifique os dados antes de enviar
+
+        const response = await axios.post(
+          `https://www.api.live.eloygomes.com.br/api/newsong`, // Certifique-se de que a URL está correta
+          {
+            databaseComing: "liveNloud_",
+            collectionComing: "data",
+            userdata: userdata,
+          }
+        );
+
+        console.log("Data saved successfully:", response.data);
+      } catch (error) {
+        console.error("Error saving data:", error);
+      }
+      navigate("/");
     }
   };
 
@@ -246,7 +312,10 @@ function NewSongColumnA({
         >
           Save
         </button>
-        <button className="bg-red-500 hover:bg-red-700 active:bg-red-900 text-white font-bold py-2 px-4 ml-4 neuphormism-b-btn-red-discard">
+        <button
+          className="bg-red-500 hover:bg-red-700 active:bg-red-900 text-white font-bold py-2 px-4 ml-4 neuphormism-b-btn-red-discard"
+          onClick={() => navigate("/")}
+        >
           Discard
         </button>
       </div>
