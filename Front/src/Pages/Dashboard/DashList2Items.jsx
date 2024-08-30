@@ -1,8 +1,10 @@
-import FAKEDATA from "../../../FAKEDATA";
+import { useEffect, useState } from "react";
+import { requestData } from "../../Tools/Controllers";
 import { Link } from "react-router-dom";
 
-/* eslint-disable react/prop-types */
 function DashList2Items() {
+  const [data, setData] = useState([]);
+
   const instrumentLabels = [
     { key: "guitar01", label: "G1" },
     { key: "guitar02", label: "G2" },
@@ -12,22 +14,52 @@ function DashList2Items() {
     { key: "voice", label: "V" },
   ];
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await requestData();
+        const parsedResult = JSON.parse(result);
+
+        // Ensure parsedResult and userdata are defined and have the expected structure
+        if (parsedResult.userdata) {
+          setData(parsedResult.userdata);
+        } else {
+          console.error("Unexpected data structure:", parsedResult);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <div className="flex flex-col">
-      {FAKEDATA.map((data, index) => (
+      {data.map((item, index) => (
         <div key={index} className="relative group hover:bg-gray-300">
-          <Link to={`/editsong/${data.id}`} className="absolute inset-0 z-10" />
+          <Link to={`/editsong/${item.id}`} className="absolute inset-0 z-10" />
           <div className="flex flex-row justify-around p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
-            <div className="w-[10%] text-center px-5">{data.id}</div>
-            <div className="w-full px-5">{data.Song}</div>
-            <div className="w-full pr-5">{data.Artist}</div>
+            <div className="w-[10%] text-center px-5">{item.id}</div>
+            <div
+              className="w-full px-5 overflow-hidden text-ellipsis whitespace-nowrap"
+              title={item.song}
+            >
+              {item.song}
+            </div>
+            <div
+              className="w-full pr-5 px-5 overflow-hidden text-ellipsis whitespace-nowrap"
+              title={item.artist}
+            >
+              {item.artist}
+            </div>
             <div className="w-full flex items-center justify-center">
               <div className="w-10/12 bg-gray-200 rounded-full input-neumorfismo">
                 <div
                   className="bg-gray-700 rounded text-center py-1 text-[8pt] leading-none text-white"
-                  style={{ width: `${data.progressBar}%` }}
+                  style={{ width: `${item.progressBar || 0}%` }}
                 >
-                  {data.progressBar}%
+                  {item.progressBar || 0}%
                 </div>
               </div>
             </div>
@@ -35,15 +67,20 @@ function DashList2Items() {
               {instrumentLabels.map((instrument) => (
                 <li key={instrument.key} className="list-none">
                   <a
+                    // href={
+                    //   item.instruments[instrument.key] && item[instrument.key]
+                    //     ? item[instrument.key].link
+                    //     : "#"
+                    // }
                     href={
-                      data.Instruments[instrument.key] && data[instrument.key]
-                        ? data[instrument.key].url
-                        : ""
+                      item.instruments[instrument.key] && item[instrument.key]
+                        ? `/presentation/${item.id}`
+                        : "#"
                     }
                     className={`${
-                      data.Instruments[instrument.key]
+                      item.instruments[instrument.key]
                         ? "text-gray-700 hover:text-gray-900 hover:font-bold"
-                        : "text-gray-400 hover:text-gray-900 hover:font-bold"
+                        : "text-gray-400"
                     }`}
                     onClick={(e) => e.stopPropagation()}
                   >
