@@ -20,9 +20,9 @@ function DashList2Items() {
         const result = await requestData();
         const parsedResult = JSON.parse(result);
 
-        // Ensure parsedResult and userdata are defined and have the expected structure
-        if (parsedResult.userdata) {
-          setData(parsedResult.userdata);
+        // Verificar se o resultado é um array e definir o estado diretamente
+        if (Array.isArray(parsedResult)) {
+          setData(parsedResult);
         } else {
           console.error("Unexpected data structure:", parsedResult);
         }
@@ -38,7 +38,17 @@ function DashList2Items() {
     <div className="flex flex-col">
       {data.map((item, index) => (
         <div key={index} className="relative group hover:bg-gray-300">
-          <Link to={`/editsong/${item.id}`} className="absolute inset-0 z-10" />
+          <Link
+            to={`/editsong/${item.artist.replace(
+              /\s+/g,
+              "-"
+            )}/${item.song.replace(/\s+/g, "-")}`}
+            className="absolute inset-0 z-10"
+            onClick={() => {
+              localStorage.setItem("song", item.song);
+              localStorage.setItem("artist", item.artist);
+            }}
+          />
           <div className="flex flex-row justify-around p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
             <div className="w-[10%] text-center px-5">{item.id}</div>
             <div
@@ -67,11 +77,6 @@ function DashList2Items() {
               {instrumentLabels.map((instrument) => (
                 <li key={instrument.key} className="list-none">
                   <a
-                    // href={
-                    //   item.instruments[instrument.key] && item[instrument.key]
-                    //     ? item[instrument.key].link
-                    //     : "#"
-                    // }
                     href={
                       item.instruments[instrument.key] && item[instrument.key]
                         ? `/presentation/${item.id}`

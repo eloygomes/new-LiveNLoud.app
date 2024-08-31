@@ -127,7 +127,6 @@ function NewSong() {
                 gettingSongData={gettingSongData}
                 setShowSnackBar={setShowSnackBar}
                 setSnackbarMessage={setSnackbarMessage}
-                dataFromUrl={dataFromUrl}
               />
             </div>
           </div>
