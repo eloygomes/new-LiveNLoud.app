@@ -59,7 +59,7 @@ const router = createBrowserRouter(
         />
         <Route path="/" element={<ProtectedRoute element={Dashboard} />} />
         <Route
-          path="/editsong/:idsong"
+          path="/editsong/:artist/:song"
           element={<ProtectedRoute element={EditSong} />}
         />
         <Route

@@ -32,7 +32,7 @@ app.use(
 
 app.post("/api/scrape", async (req, res) => {
   try {
-    const { artist, song, instrument, email, instrument_progressbar } =
+    const { artist, song, instrument, email, instrument_progressbar, link } =
       req.body;
 
     // URL correta para chamar o serviço Flask rodando no container Python
@@ -42,6 +42,7 @@ app.post("/api/scrape", async (req, res) => {
       instrument,
       email,
       instrument_progressbar,
+      link,
     });
 
     res.status(response.status).json(response.data);
@@ -134,50 +135,66 @@ app.post("/api/newsong", async (req, res) => {
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
 
-    let newId = 1;
-
     if (existingUser) {
       if (existingUser.userdata && Array.isArray(existingUser.userdata)) {
-        const isDuplicate = existingUser.userdata.some((existingData) => {
-          const { id, ...existingFields } = existingData;
-          const { id: newId, ...newFields } = userdata;
-          return JSON.stringify(existingFields) === JSON.stringify(newFields);
-        });
+        // Verificar se já existe um registro com o mesmo artista e música
+        let songIndex = existingUser.userdata.findIndex(
+          (song) =>
+            song.artist === userdata.artist && song.song === userdata.song
+        );
 
-        if (isDuplicate) {
-          console.log(
-            "Nenhuma alteração, todos os campos (exceto id) já existem."
+        if (songIndex !== -1) {
+          // Atualizar apenas os campos necessários do registro existente
+          const updatedSongData = {
+            ...existingUser.userdata[songIndex], // Mantenha os dados existentes
+            progressBar:
+              userdata.progressBar ||
+              existingUser.userdata[songIndex].progressBar,
+            embedVideos: Array.from(
+              new Set([
+                ...existingUser.userdata[songIndex].embedVideos,
+                ...userdata.embedVideos,
+              ])
+            ),
+            [userdata.instrumentName]: {
+              ...existingUser.userdata[songIndex][userdata.instrumentName],
+              ...userdata[userdata.instrumentName],
+            },
+            updateIn: new Date().toISOString().split("T")[0], // Atualiza a data de atualização
+          };
+
+          existingUser.userdata[songIndex] = updatedSongData;
+
+          const updateResult = await collection.updateOne(
+            { email: userdata.email },
+            { $set: { userdata: existingUser.userdata } }
           );
+
+          console.log("Usuário atualizado com sucesso:", updateResult);
           return res.status(200).json({
-            message:
-              "Nenhuma alteração, todos os campos (exceto id) já existem.",
+            message: "Dados atualizados com sucesso!",
+            updatedUser: updateResult,
+          });
+        } else {
+          // Se não encontrar o registro correspondente, adicionar como novo
+          userdata.id = existingUser.userdata.length + 1;
+          const updateResult = await collection.updateOne(
+            { email: userdata.email },
+            { $push: { userdata: userdata } }
+          );
+
+          console.log("Novo registro adicionado com sucesso:", updateResult);
+          return res.status(200).json({
+            message: "Novo registro adicionado com sucesso!",
+            updatedUser: updateResult,
           });
         }
-
-        const maxId = Math.max(
-          ...existingUser.userdata.map((u) => u.id).filter((id) => !isNaN(id)),
-          0
-        );
-        newId = maxId + 1;
-
-        userdata.id = newId;
-
-        const updateResult = await collection.updateOne(
-          { email: userdata.email },
-          { $push: { userdata: userdata } }
-        );
-
-        console.log("Usuário atualizado com sucesso:", updateResult);
-        return res.status(200).json({
-          message: "Dados atualizados com sucesso!",
-          updatedUser: updateResult,
-        });
       } else {
         console.log(
           "Documento contém apenas o campo email, inicializando o campo userdata..."
         );
 
-        userdata.id = newId;
+        userdata.id = 1;
 
         const updateResult = await collection.updateOne(
           { email: userdata.email },
@@ -196,7 +213,7 @@ app.post("/api/newsong", async (req, res) => {
     } else {
       console.log("Email não existe, criando novo usuário...");
 
-      userdata.id = newId;
+      userdata.id = 1;
 
       const result = await collection.insertOne({
         email: userdata.email,
@@ -216,27 +233,19 @@ app.post("/api/newsong", async (req, res) => {
   }
 });
 
-// Rota para buscar um filme específico no banco de dados
-app.get("/api/data/:dataid", async (req, res) => {
+// Rota para buscar uma musica específica no banco de dados
+app.get("/api/alldata/:dataid", async (req, res) => {
   try {
     const database = client.db("liveNloud_");
     const collection = database.collection("data");
 
-    // Recupera o parâmetro 'dataid' da URL
-    const dataId = req.params.dataid;
+    // Busca todos os filmes na coleção 'movies'
+    const songData = await collection.find({}).toArray();
 
-    // Busca o usuário na coleção 'data' utilizando o 'dataId'
-    const query = { email: dataId };
-    const colect = await collection.findOne(query);
-
-    // Verifica se encontrou o documento
-    if (colect) {
-      res.json(colect);
-    } else {
-      res.status(404).json({ message: "Usuário não encontrado." });
-    }
+    res.json(allMovies);
   } catch (error) {
-    res.status(500).json({ message: "Erro ao buscar o usuário." });
+    console.error("Erro ao buscar os filmes:", error);
+    res.status(500).json({ message: "Erro ao buscar os filmes." });
   }
 });
 
