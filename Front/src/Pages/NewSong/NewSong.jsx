@@ -50,7 +50,7 @@ function NewSong() {
   const gettingSongData = async () => {
     try {
       const response = await axios.get(
-        `https://www.api.live.eloygomes.com.br/api/data/${userEmail}`
+        `https://www.api.live.eloygomes.com.br/api/alldata/${userEmail}`
       );
       const dataFromUrlNAKED = JSON.stringify(response.data);
       setDataFromUrl(dataFromUrlNAKED);
@@ -65,10 +65,12 @@ function NewSong() {
       gettingSongData();
   }, [guitar01, guitar02, bass, key, drums, voice]);
 
+  // console.log(dataFromUrl);
+
   return (
     <div className=" flex justify-center h-screen pt-20">
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
-        <SnackBar snackbarMessage={snackbarMessage} />
+        {/* <SnackBar snackbarMessage={snackbarMessage} /> */}
       </div>
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">

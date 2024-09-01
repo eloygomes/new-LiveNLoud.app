@@ -3,16 +3,13 @@ import { useEffect, useState } from "react";
 /* eslint-disable react/prop-types */
 function EditSongInputLinkBox({
   instrumentName,
-  instrument,
+  link,
   setInstrument,
   progress,
   setProgress,
   dataFromAPI,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
-
-  console.log(instrumentName);
-  console.log(dataFromAPIParsed);
 
   useEffect(() => {
     try {
@@ -32,7 +29,7 @@ function EditSongInputLinkBox({
   }, [dataFromAPI]);
 
   useEffect(() => {
-    if (dataFromAPIParsed && dataFromAPIParsed[instrumentName]) {
+    if (dataFromAPIParsed) {
       const instrumentData = dataFromAPIParsed[instrumentName];
       if (instrumentData && instrumentData.link) {
         setInstrument(instrumentData.link);
@@ -41,8 +38,7 @@ function EditSongInputLinkBox({
     }
   }, [dataFromAPIParsed, instrumentName, setInstrument, setProgress]);
 
-  console.log(dataFromAPIParsed); // work after a time
-  // console.log(dataFromAPIParsed.artist); // not work
+  console.log(link);
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
@@ -50,13 +46,14 @@ function EditSongInputLinkBox({
         <span className="text-sm pb-2 font-bold">
           {instrumentName.charAt(0).toUpperCase() + instrumentName.slice(1)}
         </span>
+        <h6>{}</h6>
         <div className="flex flex-row">
           <span
             className={`${
-              instrument ? "text-green-500" : "text-red-500"
+              link ? "text-green-500" : "text-red-500"
             } text-sm rounded-sm`}
           >
-            {instrument ? "Online" : "Offline"}
+            {link ? "Online" : "Offline"}
           </span>
         </div>
       </div>
@@ -66,7 +63,7 @@ function EditSongInputLinkBox({
           type="text"
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
-          value={instrument || ""}
+          value={link.link}
           onChange={(e) => setInstrument(e.target.value)}
         />
       </div>
@@ -76,7 +73,7 @@ function EditSongInputLinkBox({
             type="range"
             min="0"
             max="100"
-            value={progress || 0}
+            value={link.progress}
             onChange={(e) => setProgress(Number(parseInt(e.target.value, 10)))}
             className="w-1/2"
           />
@@ -84,12 +81,12 @@ function EditSongInputLinkBox({
         <div className="relative flex flex-row pt-1 w-1/2">
           <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200 w-2/3 mt-6">
             <div
-              style={{ width: `${progress || 0}%` }}
+              style={{ width: `${link.progress || 0}%` }}
               className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gray-500"
             ></div>
           </div>
           <div className="w-1/3 pl-4 py-3 ml-5 text-right">
-            <span className="text-sm ml-auto">{progress || 0}%</span>
+            <span className="text-sm ml-auto">{link.progress || 0}%</span>
           </div>
         </div>
       </div>
