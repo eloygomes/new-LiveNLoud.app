@@ -65,70 +65,19 @@ function NewSongColumnA({
       return;
     }
 
-    // if (!instrument) {
-    //   console.error("Instrument is still undefined after setup.");
-    //   return;
-    // }
-
     if (typeof dataFromUrl === "string" && dataFromUrl.length > 0) {
       try {
         const parsedData = JSON.parse(dataFromUrl);
-        if (parsedData && Array.isArray(parsedData.userdata) && isMounted) {
-          const dataFromURLuserdata = parsedData.userdata;
 
-          const filteredData = dataFromURLuserdata.find((item) => {
-            const instruments = [
-              "guitar01",
-              "guitar02",
-              "bass",
-              "keys",
-              "drums",
-              "voice",
-            ];
-
-            return instruments.some((instrumentName) => {
-              const instrumentData = item[instrumentName];
-              const userLink =
-                typeof instrument?.link === "function"
-                  ? instrument.link()
-                  : instrument?.link;
-
-              const tempDiv = document.createElement("div");
-              tempDiv.innerHTML = userLink;
-              const userLinkContent =
-                tempDiv.querySelector("a")?.textContent || "Invalid link";
-
-              const dbLink =
-                typeof instrumentData?.link === "function"
-                  ? instrumentData.link()
-                  : instrumentData?.link;
-
-              return (
-                typeof dbLink === "string" &&
-                typeof userLinkContent === "string" &&
-                dbLink === userLinkContent
-              );
-            });
-          });
-
-          if (filteredData) {
-            setSongName(filteredData.song || "Unknown Song");
-            setArtistName(filteredData.artist || "Unknown Artist");
-            setCapoData(filteredData.guitar01?.capo || "No Capo");
-            setTomData(filteredData.guitar01?.tom || "No Tom");
-            setTunerData(filteredData.guitar01?.tuning || "Standard");
-            setGeralPercentage(filteredData.progressBar || 0);
-
-            // Update embedLink if it's different from the current value
-            if (filteredData.embedVideos.length > 0) {
-              setEmbedLink(filteredData.embedVideos);
-            }
-          } else {
-            console.log("Song and artist not found.");
-          }
-        } else {
-          console.error("Invalid JSON or userdata is not an array.");
-        }
+        const actualSongData = parsedData[parsedData.length - 1];
+        console.log("actualSongData", actualSongData.song);
+        setArtistName(actualSongData.artist);
+        setSongName(actualSongData.song);
+        setCapoData(actualSongData.capo);
+        setTomData(actualSongData.tom);
+        setTunerData(actualSongData.tuning);
+        setGeralPercentage(actualSongData.progressBar);
+        setEmbedLink(actualSongData.embed);
       } catch (error) {
         console.error("Error parsing dataFromUrl:", error);
       }
