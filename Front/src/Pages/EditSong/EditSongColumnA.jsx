@@ -1,60 +1,3 @@
-// /* eslint-disable react/prop-types */
-// import { useState, useEffect } from "react";
-// import EditSongEmbed from "./EditSongEmbed";
-// import GeralProgressBar from "./GeralProgressBar";
-// import EditSongSongData from "./EditSongSongData";
-
-// function EditSongColumnA({ dataFromAPI }) {
-//   const [songName, setSongName] = useState("");
-//   const [artistName, setArtistName] = useState("");
-//   const [capoData, setCapoData] = useState("");
-//   const [tomData, setTomData] = useState("");
-//   const [tunerData, setTunerData] = useState("");
-//   const [geralPercentage, setGeralPercentage] = useState(0);
-//   const [embedLink, setEmbedLink] = useState([]);
-
-//   useEffect(() => {
-//     if (dataFromAPI) {
-//       console.log(dataFromAPI);
-//       setSongName(dataFromAPI.song || "lllllll");
-//       setArtistName(dataFromAPI.artist || "");
-//       setCapoData(dataFromAPI.guitar01?.capo || "N/A");
-//       setTomData(dataFromAPI.guitar01?.tom || "N/A");
-//       setTunerData(dataFromAPI.guitar01?.tuning || "N/A");
-//       setGeralPercentage(dataFromAPI.progressBar || 0);
-//       setEmbedLink(dataFromAPI.embedVideos || []);
-//     }
-//   }, [dataFromAPI]);
-
-//   return (
-//     <>
-//       <EditSongSongData
-//         songName={songName}
-//         artistName={artistName}
-//         capoData={capoData}
-//         tomData={tomData}
-//         tunerData={tunerData}
-//         fistTime={dataFromAPI?.addedIn || "N/A"}
-//         lastTime={dataFromAPI?.guitar01?.lastPlay || "N/A"}
-//       />
-//       <GeralProgressBar geralPercentage={geralPercentage} />
-
-//       <EditSongEmbed ytEmbedSongList={embedLink} />
-
-//       <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">
-//         <button className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-//           Update
-//         </button>
-//         <button className="bg-red-500 hover:bg-blue-700 text-white font-bold ml-5 py-2 px-4 rounded">
-//           Discard
-//         </button>
-//       </div>
-//     </>
-//   );
-// }
-
-// export default EditSongColumnA;
-
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
 import EditSongEmbed from "./EditSongEmbed";
@@ -69,6 +12,8 @@ function EditSongColumnA({ dataFromAPI }) {
   const [tunerData, setTunerData] = useState("");
   const [geralPercentage, setGeralPercentage] = useState(0);
   const [embedLink, setEmbedLink] = useState([]);
+  const [firstPlay, setFirstPlay] = useState(false);
+  const [lastPlay, setLastPlay] = useState(false);
 
   useEffect(() => {
     if (dataFromAPI && typeof dataFromAPI === "string") {
@@ -82,6 +27,8 @@ function EditSongColumnA({ dataFromAPI }) {
         setTunerData(parsedData.guitar01?.tuning || "N/A");
         setGeralPercentage(parsedData.progressBar || 0);
         setEmbedLink(parsedData.embedVideos || []);
+        setFirstPlay(parsedData.guitar01?.firstPlay || false);
+        setLastPlay(parsedData.guitar01?.lastPlay || false);
       } catch (error) {
         console.error("Failed to parse dataFromAPI:", error);
       }
@@ -96,12 +43,13 @@ function EditSongColumnA({ dataFromAPI }) {
         capoData={capoData}
         tomData={tomData}
         tunerData={tunerData}
-        fistTime={dataFromAPI?.addedIn || "N/A"}
-        lastTime={dataFromAPI?.guitar01?.lastPlay || "N/A"}
+        fistTime={firstPlay}
+        lastTime={lastPlay}
       />
       <GeralProgressBar geralPercentage={geralPercentage} />
 
-      <EditSongEmbed ytEmbedSongList={embedLink} />
+      {/* Passando setEmbedLink corretamente */}
+      <EditSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
 
       <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">
         <button className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">

@@ -179,60 +179,6 @@ function NewSongColumnA({
     progBarVoice,
   ]);
 
-  // const createNewSong = async ({ instrumentName, progress }) => {
-  //   const userEmail = localStorage.getItem("userEmail");
-
-  //   console.log("songName", songName);
-  //   console.log("artistName", artistName);
-  //   console.log("instrumentName", instrumentName);
-  //   console.log("progress", progress);
-  //   console.log("userEmail", userEmail);
-  //   console.log("geralPercentage", geralPercentage);
-
-  //   if (!songName === "Loading..." || artistName === "Loading...") {
-  //     try {
-  //       const userdata = {
-  //         // song: songExtractedFromUrl,
-  //         song: songName,
-  //         artist: artistName,
-  //         progressBar: geralPercentage ? geralPercentage : 0,
-  //         instruments: {
-  //           guitar01: instrumentName === "guitar01",
-  //           guitar02: instrumentName === "guitar02",
-  //           bass: instrumentName === "bass",
-  //           keys: instrumentName === "keys",
-  //           drums: instrumentName === "drums",
-  //           voice: instrumentName === "voice",
-  //         },
-  //         [instrumentName]: {
-  //           active: true,
-  //           capo: capoData,
-  //           tuning: tunerData,
-  //           lastPlay: new Date().toISOString().split("T")[0],
-  //           // songCifra: "",
-  //           // progress: progress,
-  //         },
-  //         embedVideos: embedLink,
-  //         updateIn: new Date().toISOString().split("T")[0],
-  //         email: userEmail,
-  //       };
-  //       console.log("userdata", userdata);
-  //       const response = await axios.post(
-  //         `https://www.api.live.eloygomes.com.br/api/newsong`,
-  //         {
-  //           databaseComing: "liveNloud_",
-  //           collectionComing: "data",
-  //           userdata: userdata,
-  //         }
-  //       );
-  //       console.log("Data saved successfully:", response.data);
-  //     } catch (error) {
-  //       console.error("Error saving data:", error);
-  //     }
-  //     navigate("/");
-  //   }
-  // };
-
   const createNewSong = async ({ instrumentName, progress }) => {
     const userEmail = localStorage.getItem("userEmail");
 
