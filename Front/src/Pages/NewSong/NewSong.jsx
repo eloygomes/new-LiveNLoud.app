@@ -70,7 +70,7 @@ function NewSong() {
   return (
     <div className=" flex justify-center h-screen pt-20">
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
-        {/* <SnackBar snackbarMessage={snackbarMessage} /> */}
+        <SnackBar snackbarMessage={snackbarMessage} />
       </div>
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">

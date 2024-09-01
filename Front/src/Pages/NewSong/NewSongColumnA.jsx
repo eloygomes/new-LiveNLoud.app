@@ -40,6 +40,7 @@ function NewSongColumnA({
   const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
+    // eslint-disable-next-line no-unused-vars
     let isMounted = true; // Flag to avoid executing after the component is unmounted
 
     // Set instrument based on the available data
@@ -128,6 +129,99 @@ function NewSongColumnA({
     progBarVoice,
   ]);
 
+  // const createNewSong = async ({ instrumentName, progress }) => {
+  //   const userEmail = localStorage.getItem("userEmail");
+
+  //   console.log("songName", songName);
+  //   console.log("artistName", artistName);
+  //   console.log("instrumentName", instrumentName);
+  //   console.log("progress", progress);
+  //   console.log("geralPercentage", geralPercentage);
+
+  //   if (songName !== "Loading..." && artistName !== "Loading...") {
+  //     try {
+  //       const userdata = {
+  //         song: songName,
+  //         artist: artistName,
+  //         progressBar: geralPercentage ? geralPercentage : 0, // Certifique-se de que progressBar está definido
+  //         instruments: {
+  //           guitar01: instrumentName === "guitar01",
+  //           guitar02: instrumentName === "guitar02",
+  //           bass: instrumentName === "bass",
+  //           keys: instrumentName === "keys",
+  //           drums: instrumentName === "drums",
+  //           voice: instrumentName === "voice",
+  //         },
+  //         guitar01: {
+  //           active: instrumentName === "guitar01",
+  //           capo: instrumentName === "guitar01" ? capoData : null,
+  //           tuning: instrumentName === "guitar01" ? tunerData : null,
+  //           lastPlay:
+  //             instrumentName === "guitar01"
+  //               ? new Date().toISOString().split("T")[0]
+  //               : null,
+  //         },
+  //         guitar02: {
+  //           active: instrumentName === "guitar02",
+  //           capo: instrumentName === "guitar02" ? capoData : null,
+  //           tuning: instrumentName === "guitar02" ? tunerData : null,
+  //           lastPlay:
+  //             instrumentName === "guitar02"
+  //               ? new Date().toISOString().split("T")[0]
+  //               : null,
+  //         },
+  //         bass: {
+  //           active: instrumentName === "bass",
+  //           capo: instrumentName === "bass" ? capoData : "None",
+  //           tuning: instrumentName === "bass" ? tunerData : "Standard",
+  //           lastPlay:
+  //             instrumentName === "bass"
+  //               ? new Date().toISOString().split("T")[0]
+  //               : "2024-07-25",
+  //         },
+  //         keys: {
+  //           active: instrumentName === "keys",
+  //           capo: null,
+  //           tuning: null,
+  //           lastPlay: null,
+  //         },
+  //         drums: {
+  //           active: instrumentName === "drums",
+  //           capo: null,
+  //           tuning: null,
+  //           lastPlay: null,
+  //         },
+  //         voice: {
+  //           active: instrumentName === "voice",
+  //           capo: null,
+  //           tuning: null,
+  //           lastPlay: null,
+  //         },
+  //         embedVideos: embedLink,
+  //         addedIn: "2024-08-16", // Defina a data de adição inicial
+  //         updateIn: new Date().toISOString().split("T")[0], // Define a data atual para a última atualização
+  //         email: userEmail,
+  //       };
+
+  //       console.log("userdata", userdata); // Verifique os dados antes de enviar
+
+  //       const response = await axios.post(
+  //         `https://www.api.live.eloygomes.com.br/api/newsong`, // Certifique-se de que a URL está correta
+  //         {
+  //           databaseComing: "liveNloud_",
+  //           collectionComing: "data",
+  //           userdata: userdata,
+  //         }
+  //       );
+
+  //       console.log("Data saved successfully:", response.data);
+  //     } catch (error) {
+  //       console.error("Error saving data:", error);
+  //     }
+  //     // navigate("/");
+  //   }
+  // };
+
   const createNewSong = async ({ instrumentName, progress }) => {
     const userEmail = localStorage.getItem("userEmail");
 
@@ -151,25 +245,73 @@ function NewSongColumnA({
             drums: instrumentName === "drums",
             voice: instrumentName === "voice",
           },
-          [instrumentName]: {
-            active: true,
-            capo: capoData,
-            tuning: tunerData,
-            lastPlay: new Date().toISOString().split("T")[0],
+          guitar01: {
+            active: instrumentName === "guitar01",
+            capo: instrumentName === "guitar01" ? capoData : null,
+            tuning: instrumentName === "guitar01" ? tunerData : null,
+            lastPlay:
+              instrumentName === "guitar01"
+                ? new Date().toISOString().split("T")[0]
+                : null,
           },
-          embedVideos: embedLink,
-          updateIn: new Date().toISOString().split("T")[0],
+          guitar02: {
+            active: instrumentName === "guitar02",
+            capo: instrumentName === "guitar02" ? capoData : null,
+            tuning: instrumentName === "guitar02" ? tunerData : null,
+            lastPlay:
+              instrumentName === "guitar02"
+                ? new Date().toISOString().split("T")[0]
+                : null,
+          },
+          bass: {
+            active: instrumentName === "bass",
+            capo: instrumentName === "bass" ? capoData : "None",
+            tuning: instrumentName === "bass" ? tunerData : "Standard",
+            lastPlay:
+              instrumentName === "bass"
+                ? new Date().toISOString().split("T")[0]
+                : "2024-07-25",
+          },
+          keys: {
+            active: instrumentName === "keys",
+            capo: null,
+            tuning: null,
+            lastPlay: null,
+          },
+          drums: {
+            active: instrumentName === "drums",
+            capo: null,
+            tuning: null,
+            lastPlay: null,
+          },
+          voice: {
+            active: instrumentName === "voice",
+            capo: null,
+            tuning: null,
+            lastPlay: null,
+          },
+          embedVideos: embedLink || [],
+          addedIn: "2024-08-16", // Defina a data de adição inicial
+          updateIn: new Date().toISOString().split("T")[0], // Define a data atual para a última atualização
           email: userEmail,
         };
 
-        console.log("userdata", userdata); // Verifique os dados antes de enviar
+        // Converte o objeto para uma string JSON
+        const payload = JSON.stringify({
+          databaseComing: "liveNloud_",
+          collectionComing: "data",
+          userdata: userdata,
+        });
+
+        console.log("Payload JSON:", payload); // Verifique os dados antes de enviar
 
         const response = await axios.post(
-          `https://www.api.live.eloygomes.com.br/api/newsong`, // Certifique-se de que a URL está correta
+          `https://www.api.live.eloygomes.com.br/api/newsong`,
+          payload, // Envia a string JSON como o corpo da requisição
           {
-            databaseComing: "liveNloud_",
-            collectionComing: "data",
-            userdata: userdata,
+            headers: {
+              "Content-Type": "application/json", // Certifique-se de definir o cabeçalho Content-Type
+            },
           }
         );
 
