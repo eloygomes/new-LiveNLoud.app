@@ -1,32 +1,74 @@
+import { useEffect, useState } from "react";
+
 /* eslint-disable react/prop-types */
 function EditSongInputLinkBox({
   instrumentName,
-  instument,
+  instrument,
   setInstrument,
   progress,
   setProgress,
+  dataFromAPI,
 }) {
+  const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
+
+  console.log(instrumentName);
+  console.log(dataFromAPIParsed);
+
+  useEffect(() => {
+    try {
+      if (typeof dataFromAPI === "string" && dataFromAPI.trim() !== "") {
+        const dataToLoad = JSON.parse(dataFromAPI);
+        setDataFromAPIParsed(dataToLoad);
+      } else if (typeof dataFromAPI === "object" && dataFromAPI !== null) {
+        setDataFromAPIParsed(dataFromAPI);
+      } else {
+        console.warn("Invalid or empty dataFromAPI:", dataFromAPI);
+        setDataFromAPIParsed({});
+      }
+    } catch (error) {
+      console.error("Error parsing JSON:", error);
+      setDataFromAPIParsed({});
+    }
+  }, [dataFromAPI]);
+
+  useEffect(() => {
+    if (dataFromAPIParsed && dataFromAPIParsed[instrumentName]) {
+      const instrumentData = dataFromAPIParsed[instrumentName];
+      if (instrumentData && instrumentData.link) {
+        setInstrument(instrumentData.link);
+        setProgress(instrumentData.progress);
+      }
+    }
+  }, [dataFromAPIParsed, instrumentName, setInstrument, setProgress]);
+
+  console.log(dataFromAPIParsed); // work after a time
+  // console.log(dataFromAPIParsed.artist); // not work
+
   return (
-    <div className="flex flex-col mt-3 w-full neuphormism-b-se px-5 py-3">
+    <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
       <div className="flex flex-row justify-between">
-        <span className="text-sm pb-2 font-bold">{instrumentName}</span>
+        <span className="text-sm pb-2 font-bold">
+          {instrumentName.charAt(0).toUpperCase() + instrumentName.slice(1)}
+        </span>
         <div className="flex flex-row">
-          <span className="text-sm pb-2">STATUS:</span>
-          <span className="text-sm pb-2">OFFLINE</span>
+          <span
+            className={`${
+              instrument ? "text-green-500" : "text-red-500"
+            } text-sm rounded-sm`}
+          >
+            {instrument ? "Online" : "Offline"}
+          </span>
         </div>
       </div>
+
       <div className="flex flex-row h-6">
         <input
           type="text"
-          name="guitar01link"
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
-          value={instument}
+          value={instrument || ""}
           onChange={(e) => setInstrument(e.target.value)}
         />
-        <button className="px-1 ml-1 bg-blue-500 text-white rounded-sm">
-          +
-        </button>
       </div>
       <div className="flex flex-row">
         <div className="flex flex-row items-center mt-1 w-1/2">
@@ -34,18 +76,20 @@ function EditSongInputLinkBox({
             type="range"
             min="0"
             max="100"
-            value={progress}
-            onChange={(e) => setProgress(e.target.value)}
+            value={progress || 0}
+            onChange={(e) => setProgress(Number(parseInt(e.target.value, 10)))}
             className="w-1/2"
           />
-          <span className="ml-2 text-sm">{progress}%</span>
         </div>
-        <div className="relative pt-1 mt-6 w-1/2">
-          <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200">
+        <div className="relative flex flex-row pt-1 w-1/2">
+          <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200 w-2/3 mt-6">
             <div
-              style={{ width: `${progress}%` }}
-              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
+              style={{ width: `${progress || 0}%` }}
+              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gray-500"
             ></div>
+          </div>
+          <div className="w-1/3 pl-4 py-3 ml-5 text-right">
+            <span className="text-sm ml-auto">{progress || 0}%</span>
           </div>
         </div>
       </div>

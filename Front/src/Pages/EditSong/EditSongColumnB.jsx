@@ -1,7 +1,8 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import EditSongInputLinkBox from "./EditSongInputLinkBox";
 
-function EditSongColumnB() {
+function EditSongColumnB({ dataFromAPI }) {
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
   const [progGuitar01, setProgGuitar01] = useState(0);
@@ -31,46 +32,52 @@ function EditSongColumnB() {
       <div className="flex flex-col w-full">
         <h1 className="text-xl font-bold">Input Links</h1>
         <EditSongInputLinkBox
-          instrumentName="GUITAR 01"
+          instrumentName="Guitar01"
           instument={guitar01}
           setInstrument={setGuitar01}
           progress={progGuitar01}
           setProgress={setProgGuitar01}
+          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
-          instrumentName="GUITAR 02"
+          instrumentName="Guitar02"
           instument={guitar02}
           setInstrument={setGuitar02}
           progress={progGuitar02}
           setProgress={setProgGuitar02}
+          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
-          instrumentName="BASS"
+          instrumentName="Bass"
           instument={bass}
           setInstrument={setBass}
           progress={progBass}
           setProgress={setProgBass}
+          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
-          instrumentName="KEYS"
+          instrumentName="Keys"
           instument={key}
           setInstrument={setKey}
           progress={progKey}
           setProgress={setProgKey}
+          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
-          instrumentName="DRUMS"
+          instrumentName="Drums"
           instument={drums}
           setInstrument={setDrums}
           progress={progDrums}
           setProgress={setProgDrums}
+          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
-          instrumentName="VOICE"
+          instrumentName="Voice"
           instument={voice}
           setInstrument={setVoice}
           progress={progVoice}
           setProgress={setProgVoice}
+          dataFromAPI={dataFromAPI}
         />
       </div>
     </div>

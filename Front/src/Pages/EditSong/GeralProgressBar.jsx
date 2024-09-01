@@ -9,7 +9,7 @@ function GeralProgressBar({ geralPercentage }) {
       <div className="relative pt-1 mt-6 w-full">
         <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200">
           <div
-            style={{ width: `${80}%` }}
+            style={{ width: `${geralPercentage}%` }}
             className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
           ></div>
         </div>
