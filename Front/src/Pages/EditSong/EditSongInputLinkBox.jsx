@@ -38,7 +38,7 @@ function EditSongInputLinkBox({
     }
   }, [dataFromAPIParsed, instrumentName, setInstrument, setProgress]);
 
-  console.log(link);
+  // console.log(link);
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
