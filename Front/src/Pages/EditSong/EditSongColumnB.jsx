@@ -33,7 +33,7 @@ function EditSongColumnB({ dataFromAPI }) {
     if (dataFromAPI) {
       try {
         const dataParsed = JSON.parse(dataFromAPI);
-        console.log(dataParsed);
+        // console.log(dataParsed);
         setGuitar01(dataParsed.guitar01 || "");
         setGuitar02(dataParsed.guitar02 || "");
         setBass(dataParsed.bass || "");
