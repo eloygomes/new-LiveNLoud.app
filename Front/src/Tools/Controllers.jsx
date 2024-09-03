@@ -31,3 +31,19 @@ export const fetchAllSongData = async (email, artist, song) => {
     throw error; // Re-throwing the error if you want to handle it outside this function
   }
 };
+
+export const deleteOneSong = async (artist, song) => {
+  const url = "https://www.api.live.eloygomes.com.br/api/deleteonesong";
+  try {
+    const response = await axios.post(url, {
+      email: userEmail,
+      artist: artist,
+      song: song,
+    });
+    const songData = response.data;
+    return JSON.stringify(songData);
+  } catch (error) {
+    console.error(`Error fetching song data from ${url}`, error);
+    throw error; // Re-throwing the error if you want to handle it outside this function
+  }
+};
