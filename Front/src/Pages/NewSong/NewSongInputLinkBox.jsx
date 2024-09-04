@@ -41,7 +41,7 @@ function NewSongInputLinkBox({
 
   const handledata = async () => {
     if (!instrument || typeof instrument !== "string" || !instrument.trim()) {
-      setShowSnackBar(true);
+      // setShowSnackBar(true);
       setSnackbarMessage({
         title: "Error",
         message: "Please insert a valid URL before proceeding.",
