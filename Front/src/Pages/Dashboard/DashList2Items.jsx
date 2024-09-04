@@ -34,6 +34,8 @@ function DashList2Items() {
     fetchData();
   }, []);
 
+  console.log(data);
+
   return (
     <div className="flex flex-col">
       {data.map((item, index) => (
@@ -50,7 +52,8 @@ function DashList2Items() {
             }}
           />
           <div className="flex flex-row justify-around p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
-            <div className="w-[10%] text-center px-5">{item.id}</div>
+            {/* <div className="w-[10%] text-center px-5">{item.id}</div> */}
+            <div className="w-[10%] text-center px-5">{index + 1}</div>
             <div
               className="w-full px-5 overflow-hidden text-ellipsis whitespace-nowrap"
               title={item.song}
