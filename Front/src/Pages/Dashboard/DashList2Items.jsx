@@ -82,7 +82,7 @@ function DashList2Items() {
                   <a
                     href={
                       item.instruments[instrument.key] && item[instrument.key]
-                        ? `/presentation/${item.id}`
+                        ? `/presentation/${item.artist}/${item.song}/${instrument.key}`
                         : "#"
                     }
                     className={`${
