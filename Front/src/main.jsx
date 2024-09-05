@@ -68,7 +68,7 @@ const router = createBrowserRouter(
         />
         <Route path="/newsong" element={<ProtectedRoute element={NewSong} />} />
         <Route
-          path="/presentation/:idsong"
+          path="/presentation/:artist/:song/:instrument"
           element={<ProtectedRoute element={Presentation} />}
         />
         <Route path="/tuner" element={<ProtectedRoute element={Tuner} />} />
