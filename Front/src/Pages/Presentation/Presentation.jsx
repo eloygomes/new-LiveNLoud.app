@@ -275,6 +275,7 @@ function Presentation() {
   const [songFromURL, setSongFromURL] = useState("");
   const [songDataFetched, setSongDataFetched] = useState();
   const [instrumentSelected, setInstrumentSelected] = useState("keys");
+  const [embedLinks, setEmbedLinks] = useState([]);
 
   const [songCifraData, setSongCifraData] = useState("Loading...");
 
@@ -322,6 +323,7 @@ function Presentation() {
         const dataFromSongparsedResult = JSON.parse(dataFromSong);
         console.log(dataFromSongparsedResult);
         setSongDataFetched(dataFromSongparsedResult);
+        setEmbedLinks(dataFromSongparsedResult.embedVideos);
 
         // Chamando a função handleDataFromAPI com os dados e o instrumento selecionado
         handleDataFromAPI(dataFromSongparsedResult, urlInstrument);
@@ -333,12 +335,15 @@ function Presentation() {
     fetchData(); // Execute the async function
   }, []);
 
+  // console.log(songDataFetched.embedVideos);
+
   return (
     <div className="flex justify-center h-screen pt-20">
       <ToolBox
         toolBoxBtnStatus={toolBoxBtnStatus}
         setToolBoxBtnStatus={setToolBoxBtnStatus}
         toolBoxBtnStatusChange={toolBoxBtnStatusChange}
+        embedLinks={embedLinks}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
