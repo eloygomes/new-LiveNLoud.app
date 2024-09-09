@@ -182,11 +182,11 @@ function NewSongColumnA({
     }
 
     // Cleanup function to handle unmounting
-    return () => {
-      if (!hasSaved.current && addedSongName.current) {
-        deleteOneSong(artistName, addedSongName.current);
-      }
-    };
+    // return () => {
+    //   if (!hasSaved.current && addedSongName.current) {
+    //     deleteOneSong(artistName, addedSongName.current);
+    //   }
+    // };
   }, [
     dataFromUrl,
     songExtractedFromUrl,

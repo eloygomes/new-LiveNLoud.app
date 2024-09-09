@@ -93,13 +93,7 @@ function NewSongInputLinkBox({
   };
 
   useEffect(() => {
-    // const intervalId = setInterval(() => {
-    //   handledata().catch((error) => console.error(error));
-    // }, 5000); // 5 segundos de intervalo
-
     handledata().catch((error) => console.error(error));
-
-    // return () => clearInterval(intervalId); // Limpa o intervalo ao desmontar
   }, [instrument, progress]);
 
   return (
