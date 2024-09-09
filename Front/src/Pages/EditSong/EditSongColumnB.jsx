@@ -73,9 +73,9 @@ function EditSongColumnB({ dataFromAPI }) {
           setProgBass(parsed.bass.progress || 0);
         }
 
-        if (parsed.key) {
-          setKey(parsed.key.link || "");
-          setProgKey(parsed.key.progress || 0);
+        if (parsed.keys) {
+          setKey(parsed.keys.link || "");
+          setProgKey(parsed.keys.progress || 0);
         }
 
         if (parsed.drums) {
@@ -95,12 +95,19 @@ function EditSongColumnB({ dataFromAPI }) {
     }
   }, [dataFromAPI]);
 
-  console.log(guitar01);
-  console.log(guitar02);
-  console.log(bass);
-  console.log(key);
-  console.log(drums);
-  console.log(voice);
+  // console.log(guitar01);
+  // console.log(guitar02);
+  // console.log(bass);
+  // console.log(key);
+  // console.log(drums);
+  // console.log(voice);
+
+  console.log("progGuitar01", progGuitar01);
+  console.log("progGuitar02", progGuitar02);
+  console.log("progBass", progBass);
+  console.log("progKey", progKey);
+  console.log("progDrums", progDrums);
+  console.log("progVoice", progVoice);
 
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
