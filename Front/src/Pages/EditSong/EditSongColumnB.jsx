@@ -27,24 +27,80 @@ function EditSongColumnB({ dataFromAPI }) {
   const [voice, setVoice] = useState("");
   const [progVoice, setProgVoice] = useState(0);
 
-  // console.log(dataFromAPI);
-
   useEffect(() => {
-    if (dataFromAPI) {
-      try {
-        const dataParsed = JSON.parse(dataFromAPI);
-        // console.log(dataParsed);
-        setGuitar01(dataParsed.guitar01 || "");
-        setGuitar02(dataParsed.guitar02 || "");
-        setBass(dataParsed.bass || "");
-        setKey(dataParsed.keys || "");
-        setDrums(dataParsed.drums || "");
-        setVoice(dataParsed.voice || "");
-      } catch (error) {
-        console.error("Error parsing dataFromAPI:", error);
+    // Verifique se dataFromAPI está definida e possui dados válidos
+    if (dataFromAPI && Object.keys(dataFromAPI).length > 0) {
+      // console.log("dataFromAPI:", dataFromAPI);
+      const parsed = JSON.parse(dataFromAPI);
+      console.log("Parsed dataFromAPI:", parsed);
+      // console.log("Parsed dataFromAPI:", parsed.guitar02.link);
+
+      const listaofInstrument = [
+        "guitar01",
+        "guitar02",
+        "bass",
+        "key",
+        "drums",
+        "voice",
+      ];
+
+      for (let i = 0; i < listaofInstrument.length; i++) {
+        if (parsed[listaofInstrument[i]]) {
+          console.log("Instrumento inválido:", parsed[listaofInstrument[i]]);
+          console.log(
+            "Link from:",
+            listaofInstrument[i],
+            parsed[listaofInstrument[i]].link
+          );
+          console.log(parsed[listaofInstrument[i]].active);
+        }
       }
+
+      try {
+        // Carregar dados dos instrumentos
+        if (parsed.guitar01) {
+          setGuitar01(parsed.guitar01.link || "");
+          setProgGuitar01(parsed.guitar01.progress || 0);
+        }
+
+        if (parsed.guitar02) {
+          setGuitar02(parsed.guitar02.link || "");
+          setProgGuitar02(parsed.guitar02.progress || 0);
+        }
+
+        if (parsed.bass) {
+          setBass(parsed.bass.link || "");
+          setProgBass(parsed.bass.progress || 0);
+        }
+
+        if (parsed.key) {
+          setKey(parsed.key.link || "");
+          setProgKey(parsed.key.progress || 0);
+        }
+
+        if (parsed.drums) {
+          setDrums(parsed.drums.link || "");
+          setProgDrums(parsed.drums.progress || 0);
+        }
+
+        if (parsed.voice) {
+          setVoice(parsed.voice.link || "");
+          setProgVoice(parsed.voice.progress || 0);
+        }
+      } catch (error) {
+        console.error("Erro ao processar dataFromAPI:", error);
+      }
+    } else {
+      console.warn("dataFromAPI está vazio ou indefinido:", dataFromAPI);
     }
   }, [dataFromAPI]);
+
+  console.log(guitar01);
+  console.log(guitar02);
+  console.log(bass);
+  console.log(key);
+  console.log(drums);
+  console.log(voice);
 
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -56,7 +112,6 @@ function EditSongColumnB({ dataFromAPI }) {
           setInstrument={setGuitar01}
           progress={progGuitar01}
           setProgress={setProgGuitar01}
-          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
           instrumentName="Guitar02"
@@ -64,7 +119,6 @@ function EditSongColumnB({ dataFromAPI }) {
           setInstrument={setGuitar02}
           progress={progGuitar02}
           setProgress={setProgGuitar02}
-          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
           instrumentName="Bass"
@@ -72,7 +126,6 @@ function EditSongColumnB({ dataFromAPI }) {
           setInstrument={setBass}
           progress={progBass}
           setProgress={setProgBass}
-          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
           instrumentName="Keys"
@@ -80,7 +133,6 @@ function EditSongColumnB({ dataFromAPI }) {
           setInstrument={setKey}
           progress={progKey}
           setProgress={setProgKey}
-          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
           instrumentName="Drums"
@@ -88,7 +140,6 @@ function EditSongColumnB({ dataFromAPI }) {
           setInstrument={setDrums}
           progress={progDrums}
           setProgress={setProgDrums}
-          dataFromAPI={dataFromAPI}
         />
         <EditSongInputLinkBox
           instrumentName="Voice"
@@ -96,7 +147,6 @@ function EditSongColumnB({ dataFromAPI }) {
           setInstrument={setVoice}
           progress={progVoice}
           setProgress={setProgVoice}
-          dataFromAPI={dataFromAPI}
         />
       </div>
     </div>
