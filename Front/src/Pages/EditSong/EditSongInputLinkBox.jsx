@@ -38,7 +38,7 @@ function EditSongInputLinkBox({
     }
   }, [dataFromAPIParsed, instrumentName, setInstrument, setProgress]);
 
-  // console.log(link);
+  console.log(progress);
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
@@ -63,7 +63,7 @@ function EditSongInputLinkBox({
           type="text"
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
-          value={link.link}
+          value={link}
           onChange={(e) => setInstrument(e.target.value)}
         />
       </div>
@@ -73,7 +73,7 @@ function EditSongInputLinkBox({
             type="range"
             min="0"
             max="100"
-            value={link.progress}
+            value={progress}
             onChange={(e) => setProgress(Number(parseInt(e.target.value, 10)))}
             className="w-1/2"
           />
@@ -81,12 +81,12 @@ function EditSongInputLinkBox({
         <div className="relative flex flex-row pt-1 w-1/2">
           <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-200 w-2/3 mt-6">
             <div
-              style={{ width: `${link.progress || 0}%` }}
+              style={{ width: `${progress || 0}%` }}
               className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gray-500"
             ></div>
           </div>
           <div className="w-1/3 pl-4 py-3 ml-5 text-right">
-            <span className="text-sm ml-auto">{link.progress || 0}%</span>
+            <span className="text-sm ml-auto">{progress || 0}%</span>
           </div>
         </div>
       </div>
