@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -50,25 +51,27 @@ def get_cifra(artist, song):
 @app.route('/scrape', methods=['POST'])
 def scrape_and_store():
     data = request.json
-    print("Received data:", data)
+    # print("Received data:", data)
     artist = data.get('artist')
     song = data.get('song')
     instrument = data.get('instrument')
     userEmail = data.get('email')
     instrument_progressbar = data.get('instrument_progressbar')
+    link_url = data.get('link')
 
     if not artist or not song or not instrument or not userEmail:
         return jsonify({"message": "Missing required fields"}), 400
 
     songData = get_cifra(artist, song)
     if songData:
-        store_in_mongo(songData, instrument, userEmail, instrument_progressbar)
+        store_in_mongo(songData, instrument, userEmail,
+                       instrument_progressbar, link_url)
         return jsonify({"message": "Data stored successfully"}), 201
     else:
         return jsonify({"message": "Failed to scrape data"}), 500
 
 
-def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar):
+def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, link_url):
     try:
         # Conecta ao MongoDB usando a URI fornecida
         client = MongoClient("mongodb://root:example@db:27017/admin")
@@ -95,8 +98,16 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar):
                     "tuning": "",  # Placeholder, pode ser ajustado conforme necessário
                     "lastPlay": "2024-08-01",  # Data de última reprodução, pode ser ajustada
                     "songCifra": song_data[0]['song_cifra'] if instrument in ['guitar01', 'guitar02', 'bass', 'keys', 'drums', 'voice'] else "",
-                    "progress": instrument_progressbar  # Adiciona o progresso do instrumento
+                    "progress": instrument_progressbar,  # Adiciona o progresso do instrumento
+                    "link": link_url
                 }
+
+                # Remove o link e outros dados dos instrumentos que não são o atual
+                for other_instrument in ['guitar01', 'guitar02', 'bass', 'keys', 'drums', 'voice']:
+                    if other_instrument != instrument:
+                        song_entry[other_instrument]["link"] = ""
+                        song_entry[other_instrument]["songCifra"] = ""
+                        song_entry[other_instrument]["progress"] = 0
 
                 # Atualiza o documento no MongoDB com as novas informações
                 collection.update_one({"email": userEmail}, {
@@ -126,53 +137,59 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar):
                         "active": instrument == 'guitar01',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
                         "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar01' else "",
-                        "progress": instrument_progressbar if instrument == 'guitar01' else 0,
+                        "progress": int(instrument_progressbar) if instrument == 'guitar01' else 0,
+                        "link": link_url if instrument == 'guitar01' else ""
                     },
                     "guitar02": {
                         "active": instrument == 'guitar02',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
                         "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar02' else "",
-                        "progress": instrument_progressbar if instrument == 'guitar02' else 0,
+                        "progress": int(instrument_progressbar) if instrument == 'guitar02' else 0,
+                        "link": link_url if instrument == 'guitar02' else ""
                     },
                     "bass": {
                         "active": instrument == 'bass',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
                         "songCifra": song_data[0]['song_cifra'] if instrument == 'bass' else "",
-                        "progress": instrument_progressbar if instrument == 'bass' else 0,
+                        "progress": int(instrument_progressbar) if instrument == 'bass' else 0,
+                        "link": link_url if instrument == 'bass' else ""
                     },
                     "keys": {
                         "active": instrument == 'keys',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
                         "songCifra": song_data[0]['song_cifra'] if instrument == 'keys' else "",
-                        "progress": instrument_progressbar if instrument == 'keys' else 0,
+                        "progress": int(instrument_progressbar) if instrument == 'keys' else 0,
+                        "link": link_url if instrument == 'keys' else ""
                     },
                     "drums": {
                         "active": instrument == 'drums',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
                         "songCifra": song_data[0]['song_cifra'] if instrument == 'drums' else "",
-                        "progress": instrument_progressbar if instrument == 'drums' else 0,
+                        "progress": int(instrument_progressbar) if instrument == 'drums' else 0,
+                        "link": link_url if instrument == 'drums' else ""
                     },
                     "voice": {
                         "active": instrument == 'voice',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
                         "songCifra": song_data[0]['song_cifra'] if instrument == 'voice' else "",
-                        "progress": instrument_progressbar if instrument == 'voice' else 0,
+                        "progress": int(instrument_progressbar) if instrument == 'voice' else 0,
+                        "link": link_url if instrument == 'voice' else ""
                     },
                     "embedVideos": [],  # Placeholder para vídeos embutidos
-                    "addedIn": "2024-08-16",  # Data de adição
-                    "updateIn": "2024-08-16",  # Data de última atualização
+                    "addedIn": datetime.today().strftime('%Y-%m-%d'),  # Data de adição
+                    "updateIn": datetime.today().strftime('%Y-%m-%d'),  # Data de última atualização
                     "email": userEmail,  # Email do usuário
                 }
 
@@ -191,7 +208,7 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar):
                     "id": new_id,
                     "song": song['song_title'],
                     "artist": song['artist_name'],
-                    "progressBar": 85,
+                    "progressBar": 0,
                     "instruments": {
                         "guitar01": instrument == 'guitar01',
                         "guitar02": instrument == 'guitar02',
@@ -204,47 +221,59 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar):
                         "active": instrument == 'guitar01',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
-                        "songCifra": song['song_cifra'] if instrument == 'guitar01' else "",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar01' else "",
+                        "progress": int(instrument_progressbar) if instrument == 'guitar01' else 0,
+                        "link": link_url if instrument == 'guitar01' else ""
                     },
                     "guitar02": {
                         "active": instrument == 'guitar02',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
-                        "songCifra": song['song_cifra'] if instrument == 'guitar02' else "",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'guitar02' else "",
+                        "progress": int(instrument_progressbar) if instrument == 'guitar02' else 0,
+                        "link": link_url if instrument == 'guitar02' else ""
                     },
                     "bass": {
                         "active": instrument == 'bass',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
-                        "songCifra": song['song_cifra'] if instrument == 'bass' else "",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'bass' else "",
+                        "progress": int(instrument_progressbar) if instrument == 'bass' else 0,
+                        "link": link_url if instrument == 'bass' else ""
                     },
                     "keys": {
                         "active": instrument == 'keys',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
-                        "songCifra": song['song_cifra'] if instrument == 'keys' else "",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'keys' else "",
+                        "progress": int(instrument_progressbar) if instrument == 'keys' else 0,
+                        "link": link_url if instrument == 'keys' else ""
                     },
                     "drums": {
                         "active": instrument == 'drums',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
-                        "songCifra": song['song_cifra'] if instrument == 'drums' else "",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'drums' else "",
+                        "progress": int(instrument_progressbar) if instrument == 'drums' else 0,
+                        "link": link_url if instrument == 'drums' else ""
                     },
                     "voice": {
                         "active": instrument == 'voice',
                         "capo": "",
                         "tuning": "",
-                        "lastPlay": "2024-08-01",
-                        "songCifra": song['song_cifra'] if instrument == 'voice' else "",
+                        "lastPlay": datetime.today().strftime('%Y-%m-%d'),
+                        "songCifra": song_data[0]['song_cifra'] if instrument == 'voice' else "",
+                        "progress": int(instrument_progressbar) if instrument == 'voice' else 0,
+                        "link": link_url if instrument == 'voice' else ""
                     },
                     "embedVideos": [],
-                    "addedIn": "2024-08-16",
-                    "updateIn": "2024-08-16",
+                    "addedIn": datetime.today().strftime('%Y-%m-%d'),
+                    "updateIn": datetime.today().strftime('%Y-%m-%d'),
                     "email": userEmail,
                 })
 
