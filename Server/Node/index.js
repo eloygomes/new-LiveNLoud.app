@@ -22,11 +22,19 @@ connectToDatabase();
 
 app.use(express.json());
 
+// app.use(
+//   cors({
+//     origin: "*",
+//   })
+// );
+
 app.use(
   cors({
-    origin: "*",
+    origin: "http://localhost:5173", // Permita sua origem local
   })
 );
+
+app.use(express.json({ limit: "50mb" })); // Defina o limite conforme necessário
 
 // Nova Rota para chamar o serviço Python e realizar o scrape
 
@@ -156,9 +164,14 @@ app.post("/api/newsong", async (req, res) => {
                 ...userdata.embedVideos,
               ])
             ),
-            [userdata.instrumentName]: {
-              ...existingUser.userdata[songIndex][userdata.instrumentName],
-              ...userdata[userdata.instrumentName],
+            instruments: {
+              ...existingUser.userdata[songIndex].instruments, // Mantenha os instrumentos existentes
+              [userdata.instrumentName]: {
+                ...existingUser.userdata[songIndex].instruments[
+                  userdata.instrumentName
+                ],
+                ...userdata[userdata.instrumentName],
+              },
             },
             updateIn: new Date().toISOString().split("T")[0], // Atualiza a data de atualização
           };
@@ -234,22 +247,102 @@ app.post("/api/newsong", async (req, res) => {
 });
 
 // Rota para buscar uma musica específica no banco de dados
-app.get("/api/alldata/:dataid", async (req, res) => {
+app.post("/api/allsongdata", async (req, res) => {
+  console.log("allsongdata");
   try {
+    const { email, artist, song } = req.body;
     const database = client.db("liveNloud_");
     const collection = database.collection("data");
 
-    // Busca todos os filmes na coleção 'movies'
-    const songData = await collection.find({}).toArray();
+    // Verifica se os parâmetros foram passados
+    if (!email || !artist || !song) {
+      return res
+        .status(400)
+        .json({ message: "Email, artist e song são obrigatórios." });
+    }
 
-    res.json(allMovies);
+    // Busca o documento pelo email
+    const user = await collection.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    // Busca a música específica no array 'userdata'
+    const musicData = user.userdata.find(
+      (item) => item.artist === artist && item.song === song
+    );
+
+    if (!musicData) {
+      return res
+        .status(404)
+        .json({ message: "Música não encontrada para este usuário." });
+    }
+
+    // Retorna os dados completos da música
+    return res.status(200).json(musicData);
   } catch (error) {
-    console.error("Erro ao buscar os filmes:", error);
-    res.status(500).json({ message: "Erro ao buscar os filmes." });
+    console.error("Erro ao buscar os dados da música:", error);
+    res.status(500).json({ message: "Erro ao buscar os dados da música." });
   }
 });
 
-// Nova Rota para buscar todos os dados no banco de dados
+// Rota para buscar e deletar uma musica específica no banco de dados
+app.post("/api/deleteonesong", async (req, res) => {
+  console.log("deleteonesong");
+  try {
+    const { email, artist, song } = req.body;
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    // Verifica se os parâmetros foram passados
+    if (!email || !artist || !song) {
+      return res
+        .status(400)
+        .json({ message: "Email, artist e song são obrigatórios." });
+    }
+
+    // Busca o documento pelo email e remove a música específica do array 'userdata'
+    const updateResult = await collection.updateOne(
+      { email: email },
+      { $pull: { userdata: { artist: artist, song: song } } }
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      return res.status(404).json({ message: "Música não encontrada." });
+    }
+
+    return res.status(200).json({ message: "Música deletada com sucesso." });
+  } catch (error) {
+    console.error("Erro ao deletar a música:", error);
+    res.status(500).json({ message: "Erro ao deletar a música." });
+  }
+});
+
+// Todas as musicas de um usuario
+app.get("/api/alldata/:email", async (req, res) => {
+  try {
+    const { email } = req.params; // Obtém o email dos parâmetros da URL
+    console.log(email);
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    // Busca o documento pelo email
+    const user = await collection.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    // Retorna todos os dados de músicas do usuário
+    res.status(200).json(user.userdata);
+  } catch (error) {
+    console.error("Erro ao buscar as músicas:", error);
+    res.status(500).json({ message: "Erro ao buscar as músicas." });
+  }
+});
+
+// Nova Rota para buscar todos os dados de todos os usuarios no banco de dados
 app.get("/api/alldata/", async (req, res) => {
   try {
     const database = client.db("liveNloud_");
