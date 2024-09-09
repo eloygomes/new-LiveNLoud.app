@@ -12,15 +12,17 @@ function EditSong() {
   const song = localStorage.getItem("song");
 
   const loadDataFromUser = async () => {
-    // eslint-disable-next-line no-unused-vars
-    const data = await fetchAllSongData(userEmail, artist, song)
-      .then((data) => {
-        // console.log("Song data:", data);
+    try {
+      const data = await fetchAllSongData(userEmail, artist, song);
+      if (data) {
+        // console.log("Data fetched from API:", data); // Para verificar o que está sendo retornado
         setDataFromAPI(data);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+      } else {
+        console.warn("No data returned from API");
+      }
+    } catch (error) {
+      console.error("Error fetching data from API:", error);
+    }
   };
 
   useEffect(() => {

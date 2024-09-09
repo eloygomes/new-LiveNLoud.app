@@ -103,11 +103,11 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                 }
 
                 # Remove o link e outros dados dos instrumentos que não são o atual
-                for other_instrument in ['guitar01', 'guitar02', 'bass', 'keys', 'drums', 'voice']:
-                    if other_instrument != instrument:
-                        song_entry[other_instrument]["link"] = ""
-                        song_entry[other_instrument]["songCifra"] = ""
-                        song_entry[other_instrument]["progress"] = 0
+                # for other_instrument in ['guitar01', 'guitar02', 'bass', 'keys', 'drums', 'voice']:
+                #     if other_instrument != instrument:
+                #         song_entry[other_instrument]["link"] = ""
+                #         song_entry[other_instrument]["songCifra"] = ""
+                #         song_entry[other_instrument]["progress"] = 0
 
                 # Atualiza o documento no MongoDB com as novas informações
                 collection.update_one({"email": userEmail}, {

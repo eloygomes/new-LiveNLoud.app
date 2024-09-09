@@ -63,3 +63,29 @@ export const allDataFromOneSong = async (artist, song) => {
     throw error; // Re-throwing the error if you want to handle it outside this function
   }
 };
+
+// Função para atualizar os dados da música
+export const updateSongData = async (updatedData) => {
+  const userEmail = localStorage.getItem("userEmail"); // Pegando o email do usuário
+  const artist = localStorage.getItem("artist");
+  const song = localStorage.getItem("song");
+
+  const payload = {
+    email: userEmail,
+    artist: artist,
+    song: song,
+    updatedData: updatedData, // Passando os dados atualizados
+  };
+
+  try {
+    const response = await axios.post(
+      "https://www.api.live.eloygomes.com.br/api/updateonesong", // Endpoint para atualizar a música
+      payload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating song data:", error);
+    throw error;
+  }
+};
