@@ -114,42 +114,42 @@ function EditSongColumnB({ dataFromAPI }) {
       <div className="flex flex-col w-full">
         <h1 className="text-xl font-bold">Input Links</h1>
         <EditSongInputLinkBox
-          instrumentName="Guitar01"
+          instrumentName="guitar01"
           link={guitar01}
           setInstrument={setGuitar01}
           progress={progGuitar01}
           setProgress={setProgGuitar01}
         />
         <EditSongInputLinkBox
-          instrumentName="Guitar02"
+          instrumentName="guitar02"
           link={guitar02}
           setInstrument={setGuitar02}
           progress={progGuitar02}
           setProgress={setProgGuitar02}
         />
         <EditSongInputLinkBox
-          instrumentName="Bass"
+          instrumentName="bass"
           link={bass}
           setInstrument={setBass}
           progress={progBass}
           setProgress={setProgBass}
         />
         <EditSongInputLinkBox
-          instrumentName="Keys"
+          instrumentName="keys"
           link={key}
           setInstrument={setKey}
           progress={progKey}
           setProgress={setProgKey}
         />
         <EditSongInputLinkBox
-          instrumentName="Drums"
+          instrumentName="drums"
           link={drums}
           setInstrument={setDrums}
           progress={progDrums}
           setProgress={setProgDrums}
         />
         <EditSongInputLinkBox
-          instrumentName="Voice"
+          instrumentName="voice"
           link={voice}
           setInstrument={setVoice}
           progress={progVoice}

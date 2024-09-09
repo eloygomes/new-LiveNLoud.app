@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 
 /* eslint-disable react/prop-types */
@@ -40,6 +41,81 @@ function EditSongInputLinkBox({
 
   // console.log(progress);
 
+  const handledata = async () => {
+    // if (!instrument || typeof instrument !== "string" || !instrument.trim()) {
+    //   // setShowSnackBar(true);
+    //   setSnackbarMessage({
+    //     title: "Error",
+    //     message: "Please insert a valid URL before proceeding.",
+    //   });
+    //   return;
+    // }
+
+    const userEmail = localStorage.getItem("userEmail");
+    const artistFromUrl = localStorage.getItem("artist");
+    const songFromUrl = localStorage.getItem("song");
+
+    console.log("userEmail", userEmail);
+    console.log("artistFromUrl", artistFromUrl);
+    console.log("songFromUrl", songFromUrl);
+    console.log("instrument", instrumentName);
+    console.log("instrument_progressbar", progress);
+    console.log("link", link);
+
+    const url = link;
+    const parts = url.split("/").filter(Boolean); // Filtra partes vazias
+    const artist = parts[parts.length - 2]; // Penúltima parte
+    const song = parts[parts.length - 1]; // Última parte
+
+    console.log("artist", artist);
+    console.log("song", song);
+
+    // if (!userEmail) {
+    //   setShowSnackBar(true);
+    //   setSnackbarMessage({
+    //     title: "Error",
+    //     message: "User email is required to register the song.",
+    //   });
+    //   return;
+    // }
+
+    try {
+      // const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
+      // setArtistExtractedFromUrl(artistFromUrl);
+      // setSongExtractedFromUrl(songFromUrl);
+
+      // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
+      await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
+        artist: artist,
+        song: song,
+        email: userEmail,
+        instrument: `${instrumentName}`,
+        instrument_progressbar: `${progress}`,
+        link: link,
+      });
+
+      // Após o POST, realiza o GET para atualizar os dados
+      // await gettingSongData();
+    } catch (error) {
+      console.error(
+        "Error registering user in API:",
+        error.response ? error.response.data : error.message
+      );
+      // setShowSnackBar(true);
+      // setSnackbarMessage({
+      //   title: "Error",
+      //   message: error.response
+      //     ? error.response.data.message ||
+      //       "An error occurred while processing your request."
+      //     : "An error occurred while processing your request.",
+      // });
+    }
+  };
+
+  useEffect(() => {
+    handledata().catch((error) => console.error(error));
+  }, [link, progress]);
+
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
       <div className="flex flex-row justify-between">
@@ -65,6 +141,12 @@ function EditSongInputLinkBox({
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
           value={link}
           onChange={(e) => setInstrument(e.target.value)}
+          onBlur={() => {
+            handledata();
+            // console.log(`instrumentName: ${instrumentName}`);
+            // console.log(`instrument:${instrument}`);
+            // console.log(progress);
+          }}
         />
       </div>
       <div className="flex flex-row">
