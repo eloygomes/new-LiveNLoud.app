@@ -70,11 +70,26 @@ export const updateSongData = async (updatedData) => {
   const artist = localStorage.getItem("artist");
   const song = localStorage.getItem("song");
 
+  console.log("updatedData", updatedData);
+
+  console.log("CONTROLLERS", userEmail, artist, song, updatedData);
+
+  // const payload = {
+  //   email: userEmail,
+  //   artist: artist,
+  //   song: song,
+  //   updatedData: updatedData, // Passando os dados atualizados
+  // };
+
   const payload = {
-    email: userEmail,
-    artist: artist,
-    song: song,
-    updatedData: updatedData, // Passando os dados atualizados
+    userdata: {
+      email: userEmail,
+      artist: artist,
+      song: song,
+      ...updatedData, // Agora os dados são passados diretamente dentro de userdata
+    },
+    databaseComing: "liveNloud_", // Nome do banco de dados
+    collectionComing: "data", // Nome da coleção
   };
 
   try {

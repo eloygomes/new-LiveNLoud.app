@@ -32,7 +32,7 @@ function EditSongColumnB({ dataFromAPI }) {
     if (dataFromAPI && Object.keys(dataFromAPI).length > 0) {
       // console.log("dataFromAPI:", dataFromAPI);
       const parsed = JSON.parse(dataFromAPI);
-      console.log("Parsed dataFromAPI:", parsed);
+      // console.log("Parsed dataFromAPI:", parsed);
       // console.log("Parsed dataFromAPI:", parsed.guitar02.link);
 
       const listaofInstrument = [
@@ -46,13 +46,13 @@ function EditSongColumnB({ dataFromAPI }) {
 
       for (let i = 0; i < listaofInstrument.length; i++) {
         if (parsed[listaofInstrument[i]]) {
-          console.log("Instrumento inválido:", parsed[listaofInstrument[i]]);
-          console.log(
-            "Link from:",
-            listaofInstrument[i],
-            parsed[listaofInstrument[i]].link
-          );
-          console.log(parsed[listaofInstrument[i]].active);
+          // console.log("Instrumento inválido:", parsed[listaofInstrument[i]]);
+          // console.log(
+          //   "Link from:",
+          //   listaofInstrument[i],
+          //   parsed[listaofInstrument[i]].link
+          // );
+          // console.log(parsed[listaofInstrument[i]].active);
         }
       }
 
@@ -102,12 +102,12 @@ function EditSongColumnB({ dataFromAPI }) {
   // console.log(drums);
   // console.log(voice);
 
-  console.log("progGuitar01", progGuitar01);
-  console.log("progGuitar02", progGuitar02);
-  console.log("progBass", progBass);
-  console.log("progKey", progKey);
-  console.log("progDrums", progDrums);
-  console.log("progVoice", progVoice);
+  // console.log("progGuitar01", progGuitar01);
+  // console.log("progGuitar02", progGuitar02);
+  // console.log("progBass", progBass);
+  // console.log("progKey", progKey);
+  // console.log("progDrums", progDrums);
+  // console.log("progVoice", progVoice);
 
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
