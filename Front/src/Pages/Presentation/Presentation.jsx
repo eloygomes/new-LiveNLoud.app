@@ -93,7 +93,7 @@ function Presentation() {
   const handleDataFromAPI = (data, instrumentSelected) => {
     // Verificando se o objeto 'data' existe e se contém o instrumento selecionado
     if (data && data[instrumentSelected]) {
-      console.log(data[instrumentSelected]);
+      // console.log(data[instrumentSelected]);
       setSongCifraData(data[instrumentSelected].songCifra);
       return data[instrumentSelected];
     } else {
@@ -118,13 +118,13 @@ function Presentation() {
         setInstrumentSelected(urlInstrument);
 
         const urlSong = partes[partes.length - 2]; // 'Stand%20By%20Me'
-        const urlSongwithSpace = urlSong.replaceAll("%20", " ");
-        console.log("urlSongwithSpace", urlSongwithSpace);
+        const urlSongwithSpace = decodeURIComponent(urlSong); // Decodifica a URL
+        // console.log("urlSongwithSpace", urlSongwithSpace);
         setSongFromURL(urlSongwithSpace);
 
-        const urlBand = partes[partes.length - 3]; // 'OAsis'
-        const urlBandwithSpace = urlBand.replaceAll("%20", " ");
-        console.log("urlBandwithSpace", urlBandwithSpace);
+        const urlBand = partes[partes.length - 3]; // 'Legi%C3%A3o'
+        const urlBandwithSpace = decodeURIComponent(urlBand); // Decodifica a URL
+        // console.log("urlBandwithSpace", urlBandwithSpace);
         setArtistFromURL(urlBandwithSpace);
 
         const dataFromSong = await allDataFromOneSong(
@@ -132,7 +132,7 @@ function Presentation() {
           urlSongwithSpace
         );
         const dataFromSongparsedResult = JSON.parse(dataFromSong);
-        console.log(dataFromSongparsedResult);
+        // console.log(dataFromSongparsedResult);
         setSongDataFetched(dataFromSongparsedResult);
         setEmbedLinks(dataFromSongparsedResult.embedVideos);
 
