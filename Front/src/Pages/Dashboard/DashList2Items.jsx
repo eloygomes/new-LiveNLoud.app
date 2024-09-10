@@ -41,10 +41,9 @@ function DashList2Items() {
       {data.map((item, index) => (
         <div key={index} className="relative group hover:bg-gray-300">
           <Link
-            to={`/editsong/${item.artist.replace(
-              /\s+/g,
-              "-"
-            )}/${item.song.replace(/\s+/g, "-")}`}
+            to={`/editsong/${encodeURIComponent(
+              item.artist
+            )}/${encodeURIComponent(item.song)}`}
             className="absolute inset-0 z-10"
             onClick={() => {
               localStorage.setItem("song", item.song);
@@ -77,7 +76,7 @@ function DashList2Items() {
               </div>
             </div>
             <ul className="w-full text-center px-5 flex flex-row justify-between space-x-2 z-20">
-              {instrumentLabels.map((instrument) => (
+              {/* {instrumentLabels.map((instrument) => (
                 <li key={instrument.key} className="list-none">
                   <a
                     href={
@@ -94,6 +93,36 @@ function DashList2Items() {
                   >
                     {instrument.label}
                   </a>
+                </li>
+              ))} */}
+
+              {instrumentLabels.map((instrument) => (
+                <li key={instrument.key} className="list-none">
+                  <Link
+                    to={
+                      item.instruments[instrument.key] && item[instrument.key]
+                        ? `/presentation/${encodeURIComponent(
+                            item.artist
+                          )}/${encodeURIComponent(
+                            item.song
+                          )}/${encodeURIComponent(instrument.key)}`
+                        : "#"
+                    }
+                    className={`${
+                      item.instruments[instrument.key]
+                        ? "text-gray-700 hover:text-gray-900 hover:font-bold"
+                        : "text-gray-400"
+                    }`}
+                    onClick={(e) => {
+                      // Evita a navegação se o item não estiver disponível
+                      if (!item.instruments[instrument.key]) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
+                  >
+                    {instrument.label}
+                  </Link>
                 </li>
               ))}
             </ul>

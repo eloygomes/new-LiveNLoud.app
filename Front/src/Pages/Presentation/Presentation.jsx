@@ -73,6 +73,8 @@ const processSongCifra = (songCifra) => {
   const sections = splitSections(songCifra);
   const formattedSections = formatCifra(sections);
 
+  console.log(formattedSections);
+
   return {
     htmlBlocks: formattedSections,
   };
