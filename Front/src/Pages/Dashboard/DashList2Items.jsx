@@ -76,26 +76,6 @@ function DashList2Items() {
               </div>
             </div>
             <ul className="w-full text-center px-5 flex flex-row justify-between space-x-2 z-20">
-              {/* {instrumentLabels.map((instrument) => (
-                <li key={instrument.key} className="list-none">
-                  <a
-                    href={
-                      item.instruments[instrument.key] && item[instrument.key]
-                        ? `/presentation/${item.artist}/${item.song}/${instrument.key}`
-                        : "#"
-                    }
-                    className={`${
-                      item.instruments[instrument.key]
-                        ? "text-gray-700 hover:text-gray-900 hover:font-bold"
-                        : "text-gray-400"
-                    }`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {instrument.label}
-                  </a>
-                </li>
-              ))} */}
-
               {instrumentLabels.map((instrument) => (
                 <li key={instrument.key} className="list-none">
                   <Link
