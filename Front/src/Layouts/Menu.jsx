@@ -12,108 +12,169 @@ import UserDropdownMenuItems from "./UserDropdownMenuItems";
 1;
 import UserProfileAvatar from "./UserProfileAvatar";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function RootLayouts() {
   const [userDropdownMenuStatus, setUserDropdownMenuStatus] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigate = useNavigate(); // Initialize navigate here
 
   return (
     <>
       <header>
-        <nav className="neuphormism-b fixed w-full z-50">
-          {/* <nav className="rounded-[12px] bg-[#e0e0e0] shadow-[20px_20px_60px_#bebebe,-20px_-20px_60px_#ffffff]"> */}
-          <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
-            <div className="relative flex h-16 items-center justify-between">
-              <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-                {/* <!-- Mobile menu button--> */}
+        {/* Turn Right  */}
+        {/* {window.innerWidth <= 428 && (
+
+        )} */}
+        {/* Mobile  */}
+        {window.innerWidth <= 926 && window.innerWidth > 426 && (
+          <nav className=" p-4 neuphormism-b z-50">
+            <div className="flex justify-between items-center">
+              {/* Logo à esquerda */}
+              <div className="flex flex-row">
+                <img className="h-8 w-auto" src={logoProv} alt="Your Company" />
+                <h1
+                  className="ml-2 font-bold mr-5 p-1"
+                  onClick={() => navigate("/")}
+                >
+                  Live N Loud
+                </h1>
+              </div>
+
+              {/* Botão do menu hamburguer à direita */}
+              <div className="flex items-center">
                 <button
                   type="button"
-                  className="relative inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                  className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
                   aria-controls="mobile-menu"
-                  aria-expanded="false"
+                  aria-expanded={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 >
-                  <span className="absolute -inset-0.5"></span>
                   <span className="sr-only">Open main menu</span>
-                  {/* <!-- Icon when menu is closed. Menu open: "hidden", Menu closed: "block"  --> */}
-                  <svg
-                    className="block h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                    />
-                  </svg>
-                  {/* <!-- Icon when menu is open. Menu open: "block", Menu closed: "hidden" --> */}
-                  <svg
-                    className="hidden h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  {mobileMenuOpen ? (
+                    <svg
+                      className="block h-6 w-6"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="block h-6 w-6"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M3 6h18M3 12h18m-18 6h18"
+                      />
+                    </svg>
+                  )}
                 </button>
               </div>
-              <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="flex flex-row flex-shrink-0 items-center">
-                  <img
-                    className="h-8 w-auto"
-                    src={logoProv}
-                    alt="Your Company"
-                  />
-                  <h1
-                    className="ml-2 font-bold mr-5"
-                    onClick={() => navigate("/")}
+            </div>
+
+            {/* Menu móvel */}
+            {mobileMenuOpen && (
+              <div className="sm:flex" id="mobile-menu">
+                <div className="px-2 pt-2 pb-3 space-y-1">
+                  <Link
+                    to="/"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
-                    Live N Loud
-                  </h1>
+                    Home
+                  </Link>
+                  <Link
+                    to="/about"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    About
+                  </Link>
+                  <Link
+                    to="/contact"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Contact
+                  </Link>
                 </div>
-                <NavMenuItems />
               </div>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                {/* <!-- Profile dropdown --> */}
-                <div className="relative ml-3">
-                  <div>
-                    <button
-                      type="button"
-                      className="relative flex rounded-full  text-sm "
-                      id="user-menu-button"
-                      aria-expanded="false"
-                      aria-haspopup="true"
-                      onClick={() =>
-                        setUserDropdownMenuStatus(!userDropdownMenuStatus)
-                      }
+            )}
+          </nav>
+        )}
+        {/* Desktop  */}
+        {window.innerWidth >= 926 && (
+          <nav className="neuphormism-b fixed w-full z-50">
+            <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+              <div className="relative flex h-16 items-center justify-between">
+                <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
+                  {/* <!-- Mobile menu button--> */}
+                </div>
+                <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+                  <div className="flex flex-row flex-shrink-0 items-center">
+                    <img
+                      className="h-8 w-auto"
+                      src={logoProv}
+                      alt="Your Company"
+                    />
+                    <h1
+                      className="ml-2 font-bold mr-5"
+                      onClick={() => navigate("/")}
                     >
-                      <span className="absolute -inset-1.5"></span>
-                      <span className="sr-only">Open user menu</span>
-                      {/* SE O USUARIO NAO TIVER FOTO O SRC SERÁ: userIcon */}
-                      <UserProfileAvatar src={userPerfil} size={8} />
-                    </button>
+                      Live N Loud
+                    </h1>
                   </div>
-                  <UserDropdownMenu
-                    userDropdownMenuStatus={userDropdownMenuStatus}
-                    setUserDropdownMenuStatus={setUserDropdownMenuStatus}
-                  />
+                  <NavMenuItems />
+                </div>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                  {/* <!-- Profile dropdown --> */}
+                  <div className="relative ml-3">
+                    <div>
+                      <button
+                        type="button"
+                        className="relative flex rounded-full  text-sm "
+                        id="user-menu-button"
+                        aria-expanded="false"
+                        aria-haspopup="true"
+                        onClick={() =>
+                          setUserDropdownMenuStatus(!userDropdownMenuStatus)
+                        }
+                      >
+                        <span className="absolute -inset-1.5"></span>
+                        <span className="sr-only">Open user menu</span>
+                        {/* SE O USUARIO NAO TIVER FOTO O SRC SERÁ: userIcon */}
+                        <UserProfileAvatar src={userPerfil} size={8} />
+                      </button>
+                    </div>
+                    <UserDropdownMenu
+                      userDropdownMenuStatus={userDropdownMenuStatus}
+                      setUserDropdownMenuStatus={setUserDropdownMenuStatus}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          {/* <!-- Mobile menu, show/hide based on menu state. --> */}
-          <UserDropdownMenuItems />
-        </nav>
+            {/* <!-- Mobile menu, show/hide based on menu state. --> */}
+            <UserDropdownMenuItems />
+          </nav>
+        )}
       </header>
       <main>
         <Outlet />

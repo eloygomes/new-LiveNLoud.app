@@ -3,10 +3,10 @@ import axios from "axios";
 // LocalStorage user email
 const userEmail = localStorage.getItem("userEmail");
 
-export const requestData = async () => {
+export const requestData = async (email) => {
   try {
     const response = await axios.get(
-      `https://www.api.live.eloygomes.com.br/api/alldata/${userEmail}`
+      `https://www.api.live.eloygomes.com.br/api/alldata/${email}`
     );
     const dataFromUrlNAKED = JSON.stringify(response.data);
     return dataFromUrlNAKED;
