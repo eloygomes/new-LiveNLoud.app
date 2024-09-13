@@ -23,7 +23,13 @@ function DashList2Items() {
         const parsedResult = JSON.parse(result);
 
         if (Array.isArray(parsedResult)) {
-          setData(parsedResult);
+          // Filter out items without any instruments set to true
+          const filteredData = parsedResult.filter(
+            (item) =>
+              item.instruments &&
+              Object.values(item.instruments).some((val) => val === true)
+          );
+          setData(filteredData);
         } else {
           console.error("Unexpected data structure:", parsedResult);
         }
@@ -44,12 +50,11 @@ function DashList2Items() {
   }, []);
 
   console.log(data);
-  // console.log(data[0].username);
-  // console.log(data[0].userdata);
   console.log(data.length);
+
   return (
     <>
-      {data.length <= 1 ? (
+      {data.length < 1 ? (
         <div className="text-center py-10">Nenhuma música encontrada</div>
       ) : isMobile ? (
         <div className="flex flex-col">
@@ -157,13 +162,13 @@ function DashList2Items() {
                   className="w-full px-5 overflow-hidden text-ellipsis whitespace-nowrap"
                   title={item.song || ""}
                 >
-                  {item.song}
+                  {item.song || "N/A"}
                 </div>
                 <div
                   className="w-full pr-5 px-5 overflow-hidden text-ellipsis whitespace-nowrap"
                   title={item.artist || ""}
                 >
-                  {item.artist}
+                  {item.artist || "N/A"}
                 </div>
                 <div className="w-full flex items-center justify-center">
                   <div className="w-10/12 bg-gray-200 rounded-full input-neumorfismo">

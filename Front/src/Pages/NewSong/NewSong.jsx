@@ -50,7 +50,8 @@ function NewSong() {
   const gettingSongData = async () => {
     try {
       const response = await axios.get(
-        `https://www.api.live.eloygomes.com.br/api/alldata/${userEmail}`
+        // `https://www.api.live.eloygomes.com.br/api/alldata/${userEmail}`
+        `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
       );
       const dataFromUrlNAKED = JSON.stringify(response.data);
       setDataFromUrl(dataFromUrlNAKED);

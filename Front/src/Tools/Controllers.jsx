@@ -6,7 +6,8 @@ const userEmail = localStorage.getItem("userEmail");
 export const requestData = async (email) => {
   try {
     const response = await axios.get(
-      `https://www.api.live.eloygomes.com.br/api/alldata/${email}`
+      // `https://www.api.live.eloygomes.com.br/api/alldata/${email}`
+      `https://api.live.eloygomes.com.br/api/alldata/${email}`
     );
     const dataFromUrlNAKED = JSON.stringify(response.data);
     return dataFromUrlNAKED;
@@ -16,7 +17,8 @@ export const requestData = async (email) => {
 };
 
 export const fetchAllSongData = async (email, artist, song) => {
-  const url = "https://www.api.live.eloygomes.com.br/api/allsongdata";
+  // const url = "https://www.api.live.eloygomes.com.br/api/allsongdata";
+  const url = "https://api.live.eloygomes.com.br/api/allsongdata";
   // console.log("CONTROLLERS", url, email, artist, song);
   try {
     const response = await axios.post(url, {
@@ -33,7 +35,8 @@ export const fetchAllSongData = async (email, artist, song) => {
 };
 
 export const deleteOneSong = async (artist, song) => {
-  const url = "https://www.api.live.eloygomes.com.br/api/deleteonesong";
+  // const url = "https://www.api.live.eloygomes.com.br/api/deleteonesong";
+  const url = "https://api.live.eloygomes.com.br/api/deleteonesong";
   try {
     const response = await axios.post(url, {
       email: userEmail,
@@ -49,7 +52,8 @@ export const deleteOneSong = async (artist, song) => {
 };
 
 export const allDataFromOneSong = async (artist, song) => {
-  const url = "https://www.api.live.eloygomes.com.br/api/allsongdata";
+  // const url = "https://www.api.live.eloygomes.com.br/api/allsongdata";
+  const url = "https://api.live.eloygomes.com.br/api/allsongdata";
   try {
     const response = await axios.post(url, {
       email: userEmail,
@@ -94,7 +98,8 @@ export const updateSongData = async (updatedData) => {
 
   try {
     const response = await axios.post(
-      "https://www.api.live.eloygomes.com.br/api/updateonesong", // Endpoint para atualizar a música
+      // "https://www.api.live.eloygomes.com.br/api/updateonesong", // Endpoint para atualizar a música
+      "https://api.live.eloygomes.com.br/api/updateonesong", // Endpoint para atualizar a música
       payload,
       { headers: { "Content-Type": "application/json" } }
     );
