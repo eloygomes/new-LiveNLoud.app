@@ -65,7 +65,8 @@ function NewSongInputLinkBox({
       setSongExtractedFromUrl(songFromUrl);
 
       // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
-      await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
+      // await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
+      await axios.post("https://api.live.eloygomes.com.br/api/scrape", {
         artist: artistFromUrl,
         song: songFromUrl,
         email: userEmail,

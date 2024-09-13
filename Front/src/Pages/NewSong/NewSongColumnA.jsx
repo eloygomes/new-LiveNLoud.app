@@ -80,7 +80,7 @@ function NewSongColumnA({
 
         const actualSongData = parsedData[parsedData.length - 1];
 
-        // console.log(actualSongData);
+        console.log(actualSongData);
 
         setArtistName(actualSongData.artist);
         setSongName(actualSongData.song); // Immediately set the new song name
@@ -292,7 +292,8 @@ function NewSongColumnA({
         console.log(userdata);
 
         await axios.post(
-          `https://www.api.live.eloygomes.com.br/api/newsong`,
+          // `https://www.api.live.eloygomes.com.br/api/newsong`,
+          `https://api.live.eloygomes.com.br/api/newsong`,
           payload,
           {
             headers: {
