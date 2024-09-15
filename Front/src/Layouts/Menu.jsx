@@ -8,11 +8,9 @@ import userPerfil from "../assets/userPerfil.jpg";
 import "../index.css";
 import UserDropdownMenu from "./UserDropdownMenu";
 import NavMenuItems from "./NavMenuItems";
-import UserDropdownMenuItems from "./UserDropdownMenuItems";
-1;
+
 import UserProfileAvatar from "./UserProfileAvatar";
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
 
 export default function RootLayouts() {
   const [userDropdownMenuStatus, setUserDropdownMenuStatus] = useState(false);
@@ -29,7 +27,7 @@ export default function RootLayouts() {
         )} */}
         {/* Mobile  */}
         {window.innerWidth <= 926 && window.innerWidth > 426 && (
-          <nav className=" p-4 neuphormism-b z-50">
+          <nav className=" p-4 neuphormism-b ">
             <div className="flex justify-between items-center">
               {/* Logo à esquerda */}
               <div className="flex flex-row">
@@ -91,42 +89,36 @@ export default function RootLayouts() {
 
             {/* Menu móvel */}
             {mobileMenuOpen && (
-              <div className="sm:flex" id="mobile-menu">
-                <div className="px-2 pt-2 pb-3 space-y-1">
-                  <Link
-                    to="/"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Home
-                  </Link>
-                  <Link
-                    to="/about"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    About
-                  </Link>
-                  <Link
-                    to="/contact"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Contact
-                  </Link>
-                </div>
+              <div className="flex flex-row justify-between " id="mobile-menu">
+                <NavMenuItems />
+                <button
+                  type="button"
+                  className="relative flex rounded-full  text-sm "
+                  id="user-menu-button"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                  onClick={() =>
+                    setUserDropdownMenuStatus(!userDropdownMenuStatus)
+                  }
+                >
+                  <span className="absolute -inset-1.5"></span>
+                  <span className="sr-only">Open user menu</span>
+                  {/* SE O USUARIO NAO TIVER FOTO O SRC SERÁ: userIcon */}
+                  <UserProfileAvatar src={userPerfil} size={8} />
+                </button>
+                <UserDropdownMenu
+                  userDropdownMenuStatus={userDropdownMenuStatus}
+                  setUserDropdownMenuStatus={setUserDropdownMenuStatus}
+                />
               </div>
             )}
           </nav>
         )}
         {/* Desktop  */}
         {window.innerWidth >= 926 && (
-          <nav className="neuphormism-b fixed w-full z-50">
+          <nav className="neuphormism-b fixed w-full z-20">
             <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
               <div className="relative flex h-16 items-center justify-between">
-                <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-                  {/* <!-- Mobile menu button--> */}
-                </div>
                 <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                   <div className="flex flex-row flex-shrink-0 items-center">
                     <img
@@ -143,7 +135,7 @@ export default function RootLayouts() {
                   </div>
                   <NavMenuItems />
                 </div>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                <div className="absolute inset-y-0 right-20 top-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
                   {/* <!-- Profile dropdown --> */}
                   <div className="relative ml-3">
                     <div>
@@ -171,8 +163,6 @@ export default function RootLayouts() {
                 </div>
               </div>
             </div>
-            {/* <!-- Mobile menu, show/hide based on menu state. --> */}
-            <UserDropdownMenuItems />
           </nav>
         )}
       </header>

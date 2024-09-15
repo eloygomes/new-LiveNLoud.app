@@ -7,7 +7,7 @@ import { allDataFromOneSong } from "../../Tools/Controllers";
 
 const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
-  console.log(status);
+  // console.log(status);
 };
 
 const processSongCifra = (songCifra) => {
@@ -73,7 +73,7 @@ const processSongCifra = (songCifra) => {
   const sections = splitSections(songCifra);
   const formattedSections = formatCifra(sections);
 
-  console.log(formattedSections);
+  // console.log(formattedSections);
 
   return {
     htmlBlocks: formattedSections,
@@ -160,6 +160,7 @@ function Presentation() {
         songFromURL={songFromURL}
         artistFromURL={artistFromURL}
         instrumentSelected={instrumentSelected}
+        songDataFetched={songDataFetched}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">

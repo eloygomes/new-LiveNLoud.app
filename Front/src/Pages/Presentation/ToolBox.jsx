@@ -13,6 +13,7 @@ function ToolBox({
   songFromURL,
   artistFromURL,
   instrumentSelected,
+  songDataFetched,
 }) {
   const [linktoplay, setLinktoplay] = useState("");
   const [videoModalStatus, setVideoModalStatus] = useState(false);
@@ -58,6 +59,7 @@ function ToolBox({
                 songFromURL={songFromURL}
                 artistFromURL={artistFromURL}
                 instrumentSelected={instrumentSelected}
+                songDataFetched={songDataFetched}
               />
             </div>
             <h1 className="flex flex-row text-[6pt] font-bold items-center justify-center mx-auto w-full bg-gray-500 text-white">

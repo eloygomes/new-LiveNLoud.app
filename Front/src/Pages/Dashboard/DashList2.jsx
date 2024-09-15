@@ -35,7 +35,7 @@ function DashList2() {
         <div className="container mx-auto">
           <div className="flex flex-col mt-0">
             {/* Header que ficará fixo no topo */}
-            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-[68px] bg-white z-50">
+            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-[68px] bg-white z-30">
               <div className="w-[10%] text-center px-5">N</div>
               <div className="w-full px-5">SONGS</div>
               <div className="w-full pr-5">ARTISTS</div>

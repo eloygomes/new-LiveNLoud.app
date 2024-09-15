@@ -1,14 +1,14 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/jsx-key */
+import { useEffect, useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Link } from "react-router-dom";
 
 import FloatingBtns from "./FloatingBtns";
 import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
-import { useState } from "react";
-import { Link } from "react-router-dom";
 
 export default function TollBoxAcoord({
   embedLinks,
@@ -17,8 +17,16 @@ export default function TollBoxAcoord({
   songFromURL,
   artistFromURL,
   instrumentSelected,
+  songDataFetched,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
+  const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Link do player
+
+  useEffect(() => {
+    if (songDataFetched && songDataFetched.instruments) {
+      setInstLinkPageStatus(songDataFetched.instruments);
+    }
+  }, [songDataFetched]);
 
   const handlePlayClick = (url) => {
     setLinktoplay(url); // Atualiza o link do vídeo para ser reproduzido
@@ -29,8 +37,25 @@ export default function TollBoxAcoord({
     setExpanded(isExpanded ? panel : false); // Abre apenas o acordeão clicado, fecha os outros
   };
 
+  // Adicione um log para verificar os dados recebidos
+  console.log("songDataFetched:", songDataFetched);
+
+  // Verificação para garantir que songDataFetched e instruments existam
+  if (!songDataFetched || !songDataFetched.instruments) {
+    return <div>Carregando...</div>; // Ou qualquer outro indicador de carregamento
+  }
+
+  console.log("instLinkPageStatus:", instLinkPageStatus);
+  console.log(instLinkPageStatus["guitar01"]);
+  console.log(instLinkPageStatus["guitar02"]);
+  console.log(instLinkPageStatus["bass"]);
+  console.log(instLinkPageStatus["keys"]);
+  console.log(instLinkPageStatus["drums"]);
+  console.log(instLinkPageStatus["voice"]);
+
   return (
     <div>
+      {/* Accordion para Instruments */}
       <Accordion
         expanded={expanded === "panel1"}
         onChange={handleAccordionChange("panel1")}
@@ -45,18 +70,19 @@ export default function TollBoxAcoord({
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="mb-5">
+            {/* Primeira Linha de Instrumentos: G1 e G2 */}
             <li className="hover:font-semibold flex flex-row">
               <button
                 type="button"
                 className={`w-1/2 p-2 m-2 text-sm ${
-                  instrumentSelected === "guitar01"
+                  instLinkPageStatus["guitar01"]
                     ? "neuphormism-b-btn"
                     : "neuphormism-b-btn-desactivated"
                 }`}
               >
-                {instrumentSelected === "guitar01" ? (
+                {instLinkPageStatus["guitar01"] ? (
                   <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/guitar01}`}
+                    to={`/presentation/${artistFromURL}/${songFromURL}/guitar01`}
                   >
                     G1
                   </Link>
@@ -68,14 +94,14 @@ export default function TollBoxAcoord({
               <button
                 type="button"
                 className={`w-1/2 p-2 m-2 text-sm ${
-                  instrumentSelected === "guitar02"
+                  instLinkPageStatus["guitar02"]
                     ? "neuphormism-b-btn"
                     : "neuphormism-b-btn-desactivated"
                 }`}
               >
-                {instrumentSelected === "guitar02" ? (
+                {instLinkPageStatus["guitar02"] ? (
                   <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/guitar02}`}
+                    to={`/presentation/${artistFromURL}/${songFromURL}/guitar02`}
                   >
                     G2
                   </Link>
@@ -84,18 +110,20 @@ export default function TollBoxAcoord({
                 )}
               </button>
             </li>
+
+            {/* Segunda Linha de Instrumentos: B e K */}
             <li className="hover:font-semibold flex flex-row">
               <button
                 type="button"
                 className={`w-1/2 p-2 m-2 text-sm ${
-                  instrumentSelected === "bass"
+                  instLinkPageStatus["bass"]
                     ? "neuphormism-b-btn"
                     : "neuphormism-b-btn-desactivated"
                 }`}
               >
-                {instrumentSelected === "bass" ? (
+                {instLinkPageStatus["bass"] ? (
                   <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/bass}`}
+                    to={`/presentation/${artistFromURL}/${songFromURL}/bass`}
                   >
                     B
                   </Link>
@@ -107,14 +135,14 @@ export default function TollBoxAcoord({
               <button
                 type="button"
                 className={`w-1/2 p-2 m-2 text-sm ${
-                  instrumentSelected === "keys"
+                  instLinkPageStatus["keys"]
                     ? "neuphormism-b-btn"
                     : "neuphormism-b-btn-desactivated"
                 }`}
               >
-                {instrumentSelected === "keys" ? (
+                {instLinkPageStatus["keys"] ? (
                   <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/keys}`}
+                    to={`/presentation/${artistFromURL}/${songFromURL}/keys`}
                   >
                     K
                   </Link>
@@ -123,18 +151,20 @@ export default function TollBoxAcoord({
                 )}
               </button>
             </li>
+
+            {/* Terceira Linha de Instrumentos: D e V */}
             <li className="hover:font-semibold flex flex-row">
               <button
                 type="button"
                 className={`w-1/2 p-2 m-2 text-sm ${
-                  instrumentSelected === "drums"
+                  instLinkPageStatus["drums"]
                     ? "neuphormism-b-btn"
                     : "neuphormism-b-btn-desactivated"
                 }`}
               >
-                {instrumentSelected === "drums" ? (
+                {instLinkPageStatus["drums"] ? (
                   <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/drums}`}
+                    to={`/presentation/${artistFromURL}/${songFromURL}/drums`}
                   >
                     D
                   </Link>
@@ -142,17 +172,18 @@ export default function TollBoxAcoord({
                   "D"
                 )}
               </button>
+
               <button
                 type="button"
                 className={`w-1/2 p-2 m-2 text-sm ${
-                  instrumentSelected === "voice"
+                  instLinkPageStatus["voice"]
                     ? "neuphormism-b-btn"
                     : "neuphormism-b-btn-desactivated"
                 }`}
               >
-                {instrumentSelected === "voice" ? (
+                {instLinkPageStatus["voice"] ? (
                   <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/voice}`}
+                    to={`/presentation/${artistFromURL}/${songFromURL}/voice`}
                   >
                     V
                   </Link>
@@ -165,6 +196,7 @@ export default function TollBoxAcoord({
         </AccordionDetails>
       </Accordion>
 
+      {/* Accordion para Embed Links */}
       <Accordion
         expanded={expanded === "panel2"}
         onChange={handleAccordionChange("panel2")}
@@ -195,6 +227,7 @@ export default function TollBoxAcoord({
         </AccordionDetails>
       </Accordion>
 
+      {/* Accordion para Navegação */}
       <Accordion
         expanded={expanded === "panel3"}
         onChange={handleAccordionChange("panel3")}
@@ -210,25 +243,26 @@ export default function TollBoxAcoord({
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="mb-5">
-            <li className="hover:bg-gray-300 neuphormism-b-se  p-2 my-3 font-normal">
+            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
               <a href="#">intro</a>
             </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se  p-2 my-3 font-normal">
+            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
               <a href="#">verse</a>
             </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se  p-2 my-3 font-normal">
+            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
               <a href="#">chorus</a>
             </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se  p-2 my-3 font-normal">
+            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
               <a href="#">bridge</a>
             </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se  p-2 my-3 font-normal">
+            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
               <a href="#">chorus</a>
             </li>
           </ul>
         </AccordionDetails>
       </Accordion>
 
+      {/* Accordion para Highlight */}
       <Accordion
         expanded={expanded === "panel4"}
         onChange={handleAccordionChange("panel4")}
@@ -258,6 +292,7 @@ export default function TollBoxAcoord({
         </AccordionDetails>
       </Accordion>
 
+      {/* Accordion para Tools */}
       <Accordion
         expanded={expanded === "panel5"}
         onChange={handleAccordionChange("panel5")}
@@ -295,6 +330,7 @@ export default function TollBoxAcoord({
         </AccordionDetails>
       </Accordion>
 
+      {/* Accordion para Scrolling */}
       <Accordion
         expanded={expanded === "panel6"}
         onChange={handleAccordionChange("panel6")}
