@@ -27,7 +27,7 @@ export default function RootLayouts() {
         )} */}
         {/* Mobile  */}
         {window.innerWidth <= 926 && window.innerWidth > 426 && (
-          <nav className=" p-4 neuphormism-b ">
+          <nav className=" p-4  ">
             <div className="flex justify-between items-center">
               {/* Logo à esquerda */}
               <div className="flex flex-row">
@@ -93,7 +93,7 @@ export default function RootLayouts() {
                 <NavMenuItems />
                 <button
                   type="button"
-                  className="relative flex rounded-full  text-sm "
+                  className="relative flex rounded-full  text-sm py-2"
                   id="user-menu-button"
                   aria-expanded="false"
                   aria-haspopup="true"
