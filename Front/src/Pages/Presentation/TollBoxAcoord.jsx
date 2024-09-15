@@ -1,5 +1,4 @@
 /* eslint-disable react/prop-types */
-/* eslint-disable react/jsx-key */
 import { useEffect, useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -20,7 +19,7 @@ export default function TollBoxAcoord({
   songDataFetched,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
-  const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Link do player
+  const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Estado para armazenar o status dos instrumentos
 
   useEffect(() => {
     if (songDataFetched && songDataFetched.instruments) {
@@ -37,21 +36,10 @@ export default function TollBoxAcoord({
     setExpanded(isExpanded ? panel : false); // Abre apenas o acordeão clicado, fecha os outros
   };
 
-  // Adicione um log para verificar os dados recebidos
-  console.log("songDataFetched:", songDataFetched);
-
   // Verificação para garantir que songDataFetched e instruments existam
   if (!songDataFetched || !songDataFetched.instruments) {
     return <div>Carregando...</div>; // Ou qualquer outro indicador de carregamento
   }
-
-  console.log("instLinkPageStatus:", instLinkPageStatus);
-  console.log(instLinkPageStatus["guitar01"]);
-  console.log(instLinkPageStatus["guitar02"]);
-  console.log(instLinkPageStatus["bass"]);
-  console.log(instLinkPageStatus["keys"]);
-  console.log(instLinkPageStatus["drums"]);
-  console.log(instLinkPageStatus["voice"]);
 
   return (
     <div>
@@ -72,125 +60,119 @@ export default function TollBoxAcoord({
           <ul className="mb-5">
             {/* Primeira Linha de Instrumentos: G1 e G2 */}
             <li className="hover:font-semibold flex flex-row">
-              <button
-                type="button"
-                className={`w-1/2 p-2 m-2 text-sm ${
-                  instLinkPageStatus["guitar01"]
-                    ? "neuphormism-b-btn"
-                    : "neuphormism-b-btn-desactivated"
-                }`}
-              >
-                {instLinkPageStatus["guitar01"] ? (
-                  <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/guitar01`}
-                  >
-                    G1
-                  </Link>
-                ) : (
-                  "G1"
-                )}
-              </button>
+              {instLinkPageStatus["guitar01"] ? (
+                <Link
+                  to={`/presentation/${artistFromURL}/${songFromURL}/guitar01`}
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
+                >
+                  G1
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                  disabled
+                  aria-disabled="true"
+                >
+                  G1
+                </button>
+              )}
 
-              <button
-                type="button"
-                className={`w-1/2 p-2 m-2 text-sm ${
-                  instLinkPageStatus["guitar02"]
-                    ? "neuphormism-b-btn"
-                    : "neuphormism-b-btn-desactivated"
-                }`}
-              >
-                {instLinkPageStatus["guitar02"] ? (
-                  <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/guitar02`}
-                  >
-                    G2
-                  </Link>
-                ) : (
-                  "G2"
-                )}
-              </button>
+              {instLinkPageStatus["guitar02"] ? (
+                <Link
+                  to={`/presentation/${artistFromURL}/${songFromURL}/guitar02`}
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
+                >
+                  G2
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                  disabled
+                  aria-disabled="true"
+                >
+                  G2
+                </button>
+              )}
             </li>
 
             {/* Segunda Linha de Instrumentos: B e K */}
             <li className="hover:font-semibold flex flex-row">
-              <button
-                type="button"
-                className={`w-1/2 p-2 m-2 text-sm ${
-                  instLinkPageStatus["bass"]
-                    ? "neuphormism-b-btn"
-                    : "neuphormism-b-btn-desactivated"
-                }`}
-              >
-                {instLinkPageStatus["bass"] ? (
-                  <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/bass`}
-                  >
-                    B
-                  </Link>
-                ) : (
-                  "B"
-                )}
-              </button>
+              {instLinkPageStatus["bass"] ? (
+                <Link
+                  to={`/presentation/${artistFromURL}/${songFromURL}/bass`}
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
+                >
+                  B
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                  disabled
+                  aria-disabled="true"
+                >
+                  B
+                </button>
+              )}
 
-              <button
-                type="button"
-                className={`w-1/2 p-2 m-2 text-sm ${
-                  instLinkPageStatus["keys"]
-                    ? "neuphormism-b-btn"
-                    : "neuphormism-b-btn-desactivated"
-                }`}
-              >
-                {instLinkPageStatus["keys"] ? (
-                  <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/keys`}
-                  >
-                    K
-                  </Link>
-                ) : (
-                  "K"
-                )}
-              </button>
+              {instLinkPageStatus["keys"] ? (
+                <Link
+                  to={`/presentation/${artistFromURL}/${songFromURL}/keys`}
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
+                >
+                  K
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                  disabled
+                  aria-disabled="true"
+                >
+                  K
+                </button>
+              )}
             </li>
 
             {/* Terceira Linha de Instrumentos: D e V */}
             <li className="hover:font-semibold flex flex-row">
-              <button
-                type="button"
-                className={`w-1/2 p-2 m-2 text-sm ${
-                  instLinkPageStatus["drums"]
-                    ? "neuphormism-b-btn"
-                    : "neuphormism-b-btn-desactivated"
-                }`}
-              >
-                {instLinkPageStatus["drums"] ? (
-                  <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/drums`}
-                  >
-                    D
-                  </Link>
-                ) : (
-                  "D"
-                )}
-              </button>
+              {instLinkPageStatus["drums"] ? (
+                <Link
+                  to={`/presentation/${artistFromURL}/${songFromURL}/drums`}
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
+                >
+                  D
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                  disabled
+                  aria-disabled="true"
+                >
+                  D
+                </button>
+              )}
 
-              <button
-                type="button"
-                className={`w-1/2 p-2 m-2 text-sm ${
-                  instLinkPageStatus["voice"]
-                    ? "neuphormism-b-btn"
-                    : "neuphormism-b-btn-desactivated"
-                }`}
-              >
-                {instLinkPageStatus["voice"] ? (
-                  <Link
-                    to={`/presentation/${artistFromURL}/${songFromURL}/voice`}
-                  >
-                    V
-                  </Link>
-                ) : (
-                  "V"
-                )}
-              </button>
+              {instLinkPageStatus["voice"] ? (
+                <Link
+                  to={`/presentation/${artistFromURL}/${songFromURL}/voice`}
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
+                >
+                  V
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                  disabled
+                  aria-disabled="true"
+                >
+                  V
+                </button>
+              )}
             </li>
           </ul>
         </AccordionDetails>
@@ -239,7 +221,7 @@ export default function TollBoxAcoord({
           id="panel3-header"
           className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
         >
-          Navegation
+          Navigation
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="mb-5">
