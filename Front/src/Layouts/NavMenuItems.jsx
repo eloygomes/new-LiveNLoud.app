@@ -5,7 +5,7 @@ function NavMenuItems() {
     <>
       {window.innerWidth <= 926 && window.innerWidth > 426 && (
         <div className="hidden sm:ml-6 sm:block">
-          <div className="flex space-x-4 my-2">
+          <div className="flex space-x-4 my-4 ml-2">
             <NavLink
               to="/chordlibrary"
               className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
