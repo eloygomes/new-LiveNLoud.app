@@ -5,87 +5,17 @@ import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
 import { allDataFromOneSong } from "../../Tools/Controllers";
 
+import { processSongCifra } from "./ProcessSongCifra";
+
 const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
   // console.log(status);
 };
 
-const processSongCifra = (songCifra) => {
-  const splitSections = (cifra) => {
-    // Verifica se cifra é uma string válida
-    if (typeof cifra !== "string" || cifra.length === 0) {
-      console.error("Cifra inválida ou vazia");
-      return [];
-    }
-
-    const sectionPattern = /\[(.*?)\]/g;
-    let sections = [];
-    let match;
-    let lastIndex = 0;
-
-    while ((match = sectionPattern.exec(cifra)) !== null) {
-      if (lastIndex !== match.index) {
-        sections.push({
-          label:
-            sections.length > 0 ? sections[sections.length - 1].label : null,
-          content: cifra.slice(lastIndex, match.index).trim(),
-        });
-      }
-      sections.push({
-        label: match[1],
-        content: "",
-      });
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < cifra.length) {
-      sections.push({
-        label: sections.length > 0 ? sections[sections.length - 1].label : null,
-        content: cifra.slice(lastIndex).trim(),
-      });
-    }
-
-    return sections.filter((section) => section.content);
-  };
-
-  const formatSection = (section, index) => {
-    const label = section.label ? section.label.toLowerCase() : "";
-    const id = `section-${label.replace(/\s+/g, "-").toLowerCase()}-${index}`;
-
-    if (label.includes("intro")) {
-      return `<pre id="${id}" class="intro">${section.content}</pre>`;
-    } else if (label.includes("parte") || label.includes("primeira parte")) {
-      return `<pre id="${id}" class="verse">${section.content}</pre>`;
-    } else if (label.includes("refrão")) {
-      return `<pre id="${id}" class="chorus">${section.content}</pre>`;
-    } else if (label.includes("solo")) {
-      return `<pre id="${id}" class="solo">${section.content}</pre>`;
-    } else if (label.includes("ponte")) {
-      return `<pre id="${id}" class="bridge">${section.content}</pre>`;
-    } else {
-      return `<pre id="${id}" class="other">${section.content}</pre>`;
-    }
-  };
-
-  const formatCifra = (sections) =>
-    sections.map((section, index) => formatSection(section, index));
-
-  const sections = splitSections(songCifra);
-  const formattedSections = formatCifra(sections);
-
-  // console.log(formattedSections);
-
-  return {
-    htmlBlocks: formattedSections,
-  };
-};
-
 function Presentation() {
   const [toolBoxBtnStatus, setToolBoxBtnStatus] = useState(false);
-
   const [artistFromURL, setArtistFromURL] = useState("");
   const [songFromURL, setSongFromURL] = useState("");
-  // eslint-disable-next-line no-unused-vars
   const [songDataFetched, setSongDataFetched] = useState();
   const [instrumentSelected, setInstrumentSelected] = useState("keys");
   const [embedLinks, setEmbedLinks] = useState([]);
@@ -182,7 +112,7 @@ function Presentation() {
             {htmlBlocks.map((item, index) => (
               <div
                 key={index}
-                className="flex flex-col"
+                className="my-5"
                 dangerouslySetInnerHTML={{
                   __html: item,
                 }}
