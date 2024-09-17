@@ -18,7 +18,7 @@ function DashList2Items() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log(localStorage.getItem("userEmail"));
+        // console.log(localStorage.getItem("userEmail"));
         const result = await requestData(localStorage.getItem("userEmail"));
         const parsedResult = JSON.parse(result);
 
@@ -49,8 +49,8 @@ function DashList2Items() {
     }
   }, []);
 
-  console.log(data);
-  console.log(data.length);
+  // console.log(data);
+  // console.log(data.length);
 
   return (
     <>
