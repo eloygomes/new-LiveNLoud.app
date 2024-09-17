@@ -201,3 +201,8 @@ body {
   box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
   cursor: pointer;
 }
+
+
+.tab{
+  /* display: none; */
+}
