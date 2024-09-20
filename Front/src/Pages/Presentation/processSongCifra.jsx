@@ -88,77 +88,450 @@ export const processSongCifra = (songCifra) => {
   };
 
   // Função para processar a cifra linha por linha e dividir em seções
+  // const splitSections = (cifra) => {
+  //   // Verifica se a cifra é uma string válida
+  //   if (typeof cifra !== "string" || cifra.length === 0) {
+  //     console.error("Cifra inválida ou vazia");
+  //     return [];
+  //   }
+
+  //   // Divide a cifra em linhas
+  //   const lines = cifra.split("\n");
+
+  //   // Array para armazenar as seções
+  //   const sections = [];
+
+  //   // Objeto para a seção atual
+  //   let currentSection = null;
+
+  //   // Função para verificar se a linha é um rótulo (label)
+  //   const isLabelLine = (line) => {
+  //     return /^\s*\[.+?\]/.test(line.trim());
+  //   };
+
+  //   // Percorre cada linha da cifra
+  //   for (let i = 0; i < lines.length; i++) {
+  //     let line = lines[i];
+
+  //     // Remove espaços em branco no início e no fim
+  //     let trimmedLine = line.trim();
+
+  //     // Se a linha estiver vazia, continua para a próxima
+  //     if (trimmedLine.length === 0) {
+  //       continue;
+  //     }
+
+  //     // Verifica se a linha é "tom:"
+  //     if (trimmedLine.toLowerCase().startsWith("tom:")) {
+  //       // Se existe uma seção atual com conteúdo, adiciona essa seção ao array
+  //       if (currentSection && currentSection.content.trim()) {
+  //         sections.push({
+  //           ...currentSection,
+  //           content: currentSection.content.trim(),
+  //         });
+  //       }
+
+  //       // Inicia uma nova seção para o "tom"
+  //       currentSection = {
+  //         label: "tom",
+  //         content: line + "\n", // Inclui a linha atual
+  //         type: "key", // Tipo "key" para o tom
+  //       };
+
+  //       // Avança para a próxima linha
+  //       i++;
+
+  //       // Continua adicionando linhas ao "tom" enquanto não for vazia ou um label
+  //       while (i < lines.length) {
+  //         let nextLine = lines[i];
+  //         let trimmedNextLine = nextLine.trim();
+
+  //         // Se a linha está vazia ou é um rótulo, paramos de adicionar
+  //         if (trimmedNextLine.length === 0 || isLabelLine(nextLine)) {
+  //           i--; // Volta um índice para reprocessar essa linha no próximo loop
+  //           break;
+  //         }
+
+  //         // Adiciona a linha ao conteúdo da seção "tom"
+  //         currentSection.content += nextLine + "\n";
+
+  //         // Avança para a próxima linha
+  //         i++;
+  //       }
+
+  //       // Adiciona a seção "tom" ao array de seções imediatamente
+  //       sections.push({
+  //         ...currentSection,
+  //         content: currentSection.content.trim(),
+  //       });
+
+  //       // Redefine a seção atual para null para não anexar linhas subsequentes
+  //       currentSection = null;
+
+  //       // Continua para a próxima iteração
+  //       continue;
+  //     }
+
+  //     // Verifica se a linha é um rótulo (começa com colchetes [])
+  //     if (isLabelLine(trimmedLine)) {
+  //       // Se existe uma seção atual com conteúdo, adiciona ao array de seções
+  //       if (currentSection && currentSection.content.trim()) {
+  //         sections.push({
+  //           ...currentSection,
+  //           content: currentSection.content.trim(),
+  //         });
+  //       }
+
+  //       // Extrai o rótulo e o possível conteúdo na mesma linha
+  //       const labelMatch = trimmedLine.match(/^\s*\[(.+?)\](.*)$/);
+  //       const label = labelMatch[1];
+  //       const restOfLine = labelMatch[2];
+
+  //       // Determina o tipo da seção com base no rótulo
+  //       const type = getClassFromLabel(label);
+
+  //       // Inicia uma nova seção com o rótulo e tipo
+  //       currentSection = {
+  //         label: label,
+  //         content: line + "\n", // Inclui o rótulo e o possível conteúdo na mesma linha
+  //         type: type,
+  //       };
+
+  //       // Avança para a próxima linha
+  //       i++;
+
+  //       // Continua adicionando linhas à seção atual enquanto não for vazia ou um novo rótulo
+  //       while (i < lines.length) {
+  //         let nextLine = lines[i];
+  //         let trimmedNextLine = nextLine.trim();
+
+  //         // Se a linha está vazia ou é um novo rótulo, paramos de adicionar
+  //         if (trimmedNextLine.length === 0 || isLabelLine(nextLine)) {
+  //           i--; // Volta um índice para reprocessar essa linha no próximo loop
+  //           break;
+  //         }
+
+  //         // Adiciona a linha ao conteúdo da seção atual
+  //         currentSection.content += nextLine + "\n";
+
+  //         // Avança para a próxima linha
+  //         i++;
+  //       }
+
+  //       // Não adiciona a seção ao array aqui para permitir adicionar mais linhas se necessário
+  //       continue;
+  //     }
+
+  //     // Verifica se a linha é uma linha de tablatura (TAB)
+  //     if (isTabLine(trimmedLine)) {
+  //       // Se a seção atual não for do tipo "tab", salva a seção atual e inicia uma nova
+  //       if (!currentSection || currentSection.type !== "tab") {
+  //         if (currentSection && currentSection.content.trim()) {
+  //           sections.push({
+  //             ...currentSection,
+  //             content: currentSection.content.trim(),
+  //           });
+  //         }
+  //         currentSection = {
+  //           label: null,
+  //           content: "",
+  //           type: "tab",
+  //         };
+  //       }
+  //       // Adiciona a linha de tablatura ao conteúdo da seção atual
+  //       currentSection.content += line + "\n";
+  //       continue;
+  //     }
+
+  //     // Caso contrário, adiciona a linha à seção atual ou inicia uma nova seção de verso
+  //     if (!currentSection) {
+  //       // Inicia uma nova seção de verso
+  //       currentSection = {
+  //         label: null,
+  //         content: "",
+  //         type: "verse",
+  //       };
+  //     }
+
+  //     // Adiciona a linha ao conteúdo da seção atual
+  //     currentSection.content += line + "\n";
+  //   }
+
+  //   // Após o loop, adiciona a última seção ao array de seções
+  //   if (currentSection && currentSection.content.trim()) {
+  //     sections.push({
+  //       ...currentSection,
+  //       content: currentSection.content.trim(),
+  //     });
+  //   }
+
+  //   // Retorna o array de seções divididas
+  //   return sections;
+  // };
+
+  // Função para processar a cifra linha por linha e dividir em seções
   const splitSections = (cifra) => {
-    console.log(cifra);
+    // Verifica se a cifra é uma string válida
     if (typeof cifra !== "string" || cifra.length === 0) {
       console.error("Cifra inválida ou vazia");
       return [];
     }
 
+    // Divide a cifra em linhas
     const lines = cifra.split("\n");
-    const sections = [];
-    let currentSection = { label: null, content: "", type: "text" };
 
+    // Array para armazenar as seções
+    const sections = [];
+
+    // Objeto para a seção atual
+    let currentSection = null;
+
+    // Função para verificar se a linha é um rótulo (label)
+    const isLabelLine = (line) => {
+      return /^\s*\[.+?\]/.test(line.trim());
+    };
+
+    // Função para verificar se a linha é uma linha de tab
+    const isTabLine = (line) => {
+      const trimmedLine = line.trim();
+      if (trimmedLine.length === 0) return false;
+
+      // Padrão para detectar linhas de tab
+      const tabLinePattern = /^([eE]?[|].*|.*[-|][-|0-9~\\/hp()*x\s]*)$/;
+      return tabLinePattern.test(trimmedLine);
+    };
+
+    // Percorre cada linha da cifra
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const labelMatch = line.match(/^\s*\[(.+?)\]\s*$/);
-      if (labelMatch) {
-        // Salva a seção atual antes de iniciar uma nova
-        if (currentSection.content.trim()) {
+      let line = lines[i];
+
+      // Remove espaços em branco no início e no fim
+      let trimmedLine = line.trim();
+
+      // Verifica se a linha está vazia
+      if (trimmedLine.length === 0) {
+        // Se estamos em uma seção de tab, uma linha vazia indica o fim do bloco de tab
+        if (currentSection && currentSection.type === "tab") {
+          // Adiciona a seção atual ao array de seções
+          sections.push({
+            ...currentSection,
+            content: currentSection.content.trim(),
+          });
+          // Reseta a seção atual
+          currentSection = null;
+        }
+        continue;
+      }
+
+      // Verifica se a linha é "tom:"
+      if (trimmedLine.toLowerCase().startsWith("tom:")) {
+        // [Processamento da seção "tom" conforme antes]
+
+        // Se existe uma seção atual com conteúdo, adiciona essa seção ao array
+        if (currentSection && currentSection.content.trim()) {
           sections.push({
             ...currentSection,
             content: currentSection.content.trim(),
           });
         }
-        // Inicia uma nova seção com o rótulo detectado
-        const label = labelMatch[1];
+
+        // Inicia uma nova seção para o "tom"
         currentSection = {
-          label: label,
-          content: "",
-          type: getClassFromLabel(label),
+          label: "tom",
+          content: line + "\n", // Inclui a linha atual
+          type: "key", // Tipo "key" para o tom
         };
+
+        // Avança para a próxima linha
+        i++;
+
+        // Continua adicionando linhas ao "tom" enquanto não for vazia ou um label
+        while (i < lines.length) {
+          let nextLine = lines[i];
+          let trimmedNextLine = nextLine.trim();
+
+          // Se a linha está vazia ou é um rótulo, paramos de adicionar
+          if (trimmedNextLine.length === 0 || isLabelLine(nextLine)) {
+            i--; // Volta um índice para reprocessar essa linha no próximo loop
+            break;
+          }
+
+          // Adiciona a linha ao conteúdo da seção "tom"
+          currentSection.content += nextLine + "\n";
+
+          // Avança para a próxima linha
+          i++;
+        }
+
+        // Adiciona a seção "tom" ao array de seções imediatamente
+        sections.push({
+          ...currentSection,
+          content: currentSection.content.trim(),
+        });
+
+        // Redefine a seção atual para null para não anexar linhas subsequentes
+        currentSection = null;
+
+        // Continua para a próxima iteração
         continue;
       }
 
-      if (isTabLine(line)) {
-        if (currentSection.type !== "tab") {
-          if (currentSection.content.trim()) {
-            sections.push({
-              ...currentSection,
-              content: currentSection.content.trim(),
-            });
-          }
-          currentSection = { label: null, content: "", type: "tab" };
+      // Verifica se a linha é um rótulo (começa com colchetes [])
+      if (isLabelLine(trimmedLine)) {
+        // [Processamento dos rótulos conforme antes]
+
+        // Se existe uma seção atual com conteúdo, adiciona ao array de seções
+        if (currentSection && currentSection.content.trim()) {
+          sections.push({
+            ...currentSection,
+            content: currentSection.content.trim(),
+          });
         }
-        currentSection.content += line + "\n";
-      } else {
-        if (currentSection.type !== "text" && currentSection.type !== "verse") {
-          if (currentSection.content.trim()) {
-            sections.push({
-              ...currentSection,
-              content: currentSection.content.trim(),
-            });
+
+        // Extrai o rótulo e o possível conteúdo na mesma linha
+        const labelMatch = trimmedLine.match(/^\s*\[(.+?)\](.*)$/);
+        const label = labelMatch[1];
+        const restOfLine = labelMatch[2];
+
+        // Determina o tipo da seção com base no rótulo
+        const type = getClassFromLabel(label);
+
+        // Inicia uma nova seção com o rótulo e tipo
+        currentSection = {
+          label: label,
+          content: line + "\n", // Inclui o rótulo e o possível conteúdo na mesma linha
+          type: type,
+        };
+
+        // Avança para a próxima linha
+        i++;
+
+        // Continua adicionando linhas à seção atual enquanto não for vazia ou um novo rótulo
+        while (i < lines.length) {
+          let nextLine = lines[i];
+          let trimmedNextLine = nextLine.trim();
+
+          // Se a linha está vazia ou é um novo rótulo, paramos de adicionar
+          if (trimmedNextLine.length === 0 || isLabelLine(nextLine)) {
+            i--; // Volta um índice para reprocessar essa linha no próximo loop
+            break;
           }
-          currentSection = { label: null, content: "", type: "text" };
+
+          // Adiciona a linha ao conteúdo da seção atual
+          currentSection.content += nextLine + "\n";
+
+          // Avança para a próxima linha
+          i++;
         }
-        currentSection.content += line + "\n";
+
+        // Não adiciona a seção ao array aqui para permitir adicionar mais linhas se necessário
+        continue;
       }
+
+      // Verifica se a linha é uma linha de tab
+      if (isTabLine(trimmedLine)) {
+        // Se não estamos em uma seção de tab, iniciamos uma
+        if (!currentSection || currentSection.type !== "tab") {
+          // Se existe uma seção atual com conteúdo, adiciona ao array de seções
+          if (currentSection && currentSection.content.trim()) {
+            sections.push({
+              ...currentSection,
+              content: currentSection.content.trim(),
+            });
+          }
+          // Inicia uma nova seção de tab
+          currentSection = {
+            label: null,
+            content: "",
+            type: "tab",
+          };
+        }
+        // Adiciona a linha de tab ao conteúdo da seção atual
+        currentSection.content += line + "\n";
+        continue;
+      } else {
+        // Verifica se a linha atual contém acordes
+        if (containsChord(trimmedLine)) {
+          // Verifica se a próxima linha é uma tab
+          if (i + 1 < lines.length && isTabLine(lines[i + 1].trim())) {
+            // Inicia uma nova seção de tab se não estivermos em uma
+            if (!currentSection || currentSection.type !== "tab") {
+              if (currentSection && currentSection.content.trim()) {
+                sections.push({
+                  ...currentSection,
+                  content: currentSection.content.trim(),
+                });
+              }
+              currentSection = {
+                label: null,
+                content: "",
+                type: "tab",
+              };
+            }
+            // Adiciona a linha de acordes à seção de tab
+            currentSection.content += line + "\n";
+            // Adiciona as linhas de tab seguintes
+            i++;
+            while (i < lines.length && isTabLine(lines[i].trim())) {
+              currentSection.content += lines[i] + "\n";
+              i++;
+            }
+            i--; // Ajusta o índice
+            continue;
+          } else {
+            // Trata como um verso normal
+            if (!currentSection || currentSection.type !== "verse") {
+              if (currentSection && currentSection.content.trim()) {
+                sections.push({
+                  ...currentSection,
+                  content: currentSection.content.trim(),
+                });
+              }
+              currentSection = {
+                label: null,
+                content: "",
+                type: "verse",
+              };
+            }
+            currentSection.content += line + "\n";
+            continue;
+          }
+        }
+
+        // Se estamos em uma seção de tab e a linha atual não é uma tab, significa que o bloco de tab terminou
+        if (currentSection && currentSection.type === "tab") {
+          // Adiciona a seção de tab ao array de seções
+          sections.push({
+            ...currentSection,
+            content: currentSection.content.trim(),
+          });
+          currentSection = null;
+        }
+      }
+
+      // Caso contrário, adiciona a linha à seção atual ou inicia uma nova seção de verso
+      if (!currentSection) {
+        // Inicia uma nova seção de verso
+        currentSection = {
+          label: null,
+          content: "",
+          type: "verse",
+        };
+      }
+
+      // Adiciona a linha ao conteúdo da seção atual
+      currentSection.content += line + "\n";
     }
 
-    // Adiciona a última seção
-    if (currentSection.content.trim()) {
-      // Se a seção não tem rótulo e contém acordes, classificamos como verso
-      if (!currentSection.label && containsChord(currentSection.content)) {
-        currentSection.type = "verse";
-      } else if (!currentSection.label) {
-        currentSection.type = "other";
-      }
+    // Após o loop, adiciona a última seção ao array de seções
+    if (currentSection && currentSection.content.trim()) {
       sections.push({
         ...currentSection,
         content: currentSection.content.trim(),
       });
     }
 
+    // Retorna o array de seções divididas
     return sections;
   };
 
