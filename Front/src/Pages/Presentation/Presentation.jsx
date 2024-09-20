@@ -9,7 +9,6 @@
 
 // const toolBoxBtnStatusChange = (status, setStatus) => {
 //   setStatus(!status);
-//   // console.log(status);
 // };
 
 // function Presentation() {
@@ -19,13 +18,12 @@
 //   const [songDataFetched, setSongDataFetched] = useState();
 //   const [instrumentSelected, setInstrumentSelected] = useState("keys");
 //   const [embedLinks, setEmbedLinks] = useState([]);
+//   const [hideTabs, setHideTabs] = useState(false); // Novo estado para controlar a visibilidade das tabs
 
 //   const [songCifraData, setSongCifraData] = useState("Loading...");
 
 //   const handleDataFromAPI = (data, instrumentSelected) => {
-//     // Verificando se o objeto 'data' existe e se contém o instrumento selecionado
 //     if (data && data[instrumentSelected]) {
-//       // console.log(data[instrumentSelected]);
 //       setSongCifraData(data[instrumentSelected].songCifra);
 //       return data[instrumentSelected];
 //     } else {
@@ -46,17 +44,15 @@
 //         const partes = url.split("/");
 
 //         // Capturando o último e o penúltimo valores
-//         const urlInstrument = partes[partes.length - 1]; // 'keys'
+//         const urlInstrument = partes[partes.length - 1];
 //         setInstrumentSelected(urlInstrument);
 
-//         const urlSong = partes[partes.length - 2]; // 'Stand%20By%20Me'
-//         const urlSongwithSpace = decodeURIComponent(urlSong); // Decodifica a URL
-//         // console.log("urlSongwithSpace", urlSongwithSpace);
+//         const urlSong = partes[partes.length - 2];
+//         const urlSongwithSpace = decodeURIComponent(urlSong);
 //         setSongFromURL(urlSongwithSpace);
 
-//         const urlBand = partes[partes.length - 3]; // 'Legi%C3%A3o'
-//         const urlBandwithSpace = decodeURIComponent(urlBand); // Decodifica a URL
-//         // console.log("urlBandwithSpace", urlBandwithSpace);
+//         const urlBand = partes[partes.length - 3];
+//         const urlBandwithSpace = decodeURIComponent(urlBand);
 //         setArtistFromURL(urlBandwithSpace);
 
 //         const dataFromSong = await allDataFromOneSong(
@@ -64,7 +60,6 @@
 //           urlSongwithSpace
 //         );
 //         const dataFromSongparsedResult = JSON.parse(dataFromSong);
-//         // console.log(dataFromSongparsedResult);
 //         setSongDataFetched(dataFromSongparsedResult);
 //         setEmbedLinks(dataFromSongparsedResult.embedVideos);
 
@@ -75,10 +70,13 @@
 //       }
 //     };
 
-//     fetchData(); // Execute the async function
+//     fetchData();
 //   }, []);
 
-//   // console.log(songDataFetched.embedVideos);
+//   // Função para alternar a visibilidade das tabs
+//   const toggleTabsVisibility = () => {
+//     setHideTabs(!hideTabs);
+//   };
 
 //   return (
 //     <div className="flex justify-center h-screen pt-20">
@@ -108,11 +106,20 @@
 //               <FaGear className="w-8 h-8" />
 //             </div>
 //           </div>
+//           {/* Botão para esconder/mostrar as tabs */}
+//           <button
+//             onClick={toggleTabsVisibility}
+//             className="mb-5 px-4 py-2 bg-blue-500 text-white rounded"
+//           >
+//             {hideTabs ? "Mostrar Tabs" : "Esconder Tabs"}
+//           </button>
 //           <div className="flex flex-col neuphormism-b p-5">
 //             {htmlBlocks.map((item, index) => (
 //               <div
 //                 key={index}
-//                 className="my-5"
+//                 className={`my-5 ${
+//                   hideTabs && item.includes('class="tab"') ? "hidden" : ""
+//                 }`}
 //                 dangerouslySetInnerHTML={{
 //                   __html: item,
 //                 }}
@@ -147,7 +154,8 @@ function Presentation() {
   const [songDataFetched, setSongDataFetched] = useState();
   const [instrumentSelected, setInstrumentSelected] = useState("keys");
   const [embedLinks, setEmbedLinks] = useState([]);
-  const [hideTabs, setHideTabs] = useState(false); // Novo estado para controlar a visibilidade das tabs
+  const [hideTabs, setHideTabs] = useState(false); // Estado para controlar a visibilidade das tabs
+  const [hideNonTabs, setHideNonTabs] = useState(false); // Estado para controlar a visibilidade das seções que não são tabs
 
   const [songCifraData, setSongCifraData] = useState("Loading...");
 
@@ -207,6 +215,11 @@ function Presentation() {
     setHideTabs(!hideTabs);
   };
 
+  // Função para alternar a visibilidade das seções que não são tabs
+  const toggleNonTabsVisibility = () => {
+    setHideNonTabs(!hideNonTabs);
+  };
+
   return (
     <div className="flex justify-center h-screen pt-20">
       <ToolBox
@@ -235,19 +248,30 @@ function Presentation() {
               <FaGear className="w-8 h-8" />
             </div>
           </div>
-          {/* Botão para esconder/mostrar as tabs */}
-          <button
-            onClick={toggleTabsVisibility}
-            className="mb-5 px-4 py-2 bg-blue-500 text-white rounded"
-          >
-            {hideTabs ? "Mostrar Tabs" : "Esconder Tabs"}
-          </button>
+          {/* Botões para controlar a visibilidade */}
+          <div className="mb-5 flex space-x-4">
+            <button
+              onClick={toggleTabsVisibility}
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+            >
+              {hideTabs ? "Mostrar Tabs" : "Esconder Tabs"}
+            </button>
+            <button
+              onClick={toggleNonTabsVisibility}
+              className="px-4 py-2 bg-green-500 text-white rounded"
+            >
+              {hideNonTabs ? "Mostrar Seções" : "Esconder Seções"}
+            </button>
+          </div>
           <div className="flex flex-col neuphormism-b p-5">
             {htmlBlocks.map((item, index) => (
               <div
                 key={index}
                 className={`my-5 ${
-                  hideTabs && item.includes('class="tab"') ? "hidden" : ""
+                  (hideTabs && item.includes('class="tab"')) ||
+                  (hideNonTabs && !item.includes('class="tab"'))
+                    ? "hidden"
+                    : ""
                 }`}
                 dangerouslySetInnerHTML={{
                   __html: item,
