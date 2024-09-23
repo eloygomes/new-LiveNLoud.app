@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useEffect, useState, useMemo } from "react";
 import { requestData } from "../../Tools/Controllers";
 import { Link } from "react-router-dom";
 
-function DashList2Items() {
+function DashList2Items({ sortColumn, sortOrder }) {
   const [data, setData] = useState([]);
   const [isMobile, setIsMobile] = useState("");
 
@@ -18,12 +19,11 @@ function DashList2Items() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // console.log(localStorage.getItem("userEmail"));
         const result = await requestData(localStorage.getItem("userEmail"));
         const parsedResult = JSON.parse(result);
 
         if (Array.isArray(parsedResult)) {
-          // Filter out items without any instruments set to true
+          // Filtra itens sem instrumentos definidos
           const filteredData = parsedResult.filter(
             (item) =>
               item.instruments &&
@@ -49,16 +49,46 @@ function DashList2Items() {
     }
   }, []);
 
-  // console.log(data);
-  // console.log(data.length);
+  // Memoiza os dados ordenados para evitar reordenar em cada renderização
+  const sortedData = useMemo(() => {
+    if (!data) return [];
+
+    const dataCopy = [...data]; // Cria uma cópia para não mutar o estado original
+
+    if (sortColumn) {
+      dataCopy.sort((a, b) => {
+        let valueA, valueB;
+
+        if (sortColumn === "progressBar") {
+          // Ordena numericamente
+          valueA = a.progressBar || 0;
+          valueB = b.progressBar || 0;
+        } else {
+          // Ordena alfabeticamente
+          valueA = (a[sortColumn] || "").toString().toLowerCase();
+          valueB = (b[sortColumn] || "").toString().toLowerCase();
+        }
+
+        if (valueA < valueB) {
+          return sortOrder === "asc" ? -1 : 1;
+        } else if (valueA > valueB) {
+          return sortOrder === "asc" ? 1 : -1;
+        } else {
+          return 0;
+        }
+      });
+    }
+
+    return dataCopy;
+  }, [data, sortColumn, sortOrder]);
 
   return (
     <>
-      {data.length < 1 ? (
+      {sortedData.length < 1 ? (
         <div className="text-center py-10">Nenhuma música encontrada</div>
       ) : isMobile ? (
         <div className="flex flex-col">
-          {data.map((item, index) => (
+          {sortedData.map((item, index) => (
             <div key={index} className="relative group hover:bg-gray-300">
               <div className="flex flex-row justify-between p-3 border-b-[1px] border-gray-400 cursor-pointer hover:bg-gray-200 z-0 text-sm">
                 <Link
@@ -144,7 +174,7 @@ function DashList2Items() {
       ) : (
         // Desktop
         <div className="flex flex-col">
-          {data.map((item, index) => (
+          {sortedData.map((item, index) => (
             <div key={index} className="relative group hover:bg-gray-300">
               <Link
                 to={`/editsong/${encodeURIComponent(
