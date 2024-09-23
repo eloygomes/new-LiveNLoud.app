@@ -3,6 +3,8 @@ import DashList2Items from "./DashList2Items";
 
 function DashList2() {
   const [isMobile, setIsMobile] = useState("");
+  const [sortColumn, setSortColumn] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   useEffect(() => {
     if (window.innerWidth <= 845) {
@@ -12,6 +14,18 @@ function DashList2() {
     }
   }, []);
 
+  // Função para lidar com a ordenação
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Alterna entre ascendente e descendente se a mesma coluna for clicada novamente
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      // Define a nova coluna de ordenação e reseta a ordem para ascendente
+      setSortColumn(column);
+      setSortOrder("asc");
+    }
+  };
+
   return (
     <div className="w-full h-full">
       {isMobile ? (
@@ -19,15 +33,44 @@ function DashList2() {
           <div className="flex flex-col mt-0">
             {/* Header que ficará fixo no topo */}
             <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-50">
-              <div className="w-[10%] text-center px-1">N</div>
-              <div className="w-full px-5">SONGS</div>
-              <div className="w-full pr-5">ARTISTS</div>
-              <div className="w-full text-center px-5">PROGRESSION</div>
+              <div
+                className="w-[10%] text-center px-1 cursor-pointer"
+                onClick={() => handleSort("number")}
+              >
+                N
+              </div>
+              <div
+                className="w-full px-5 cursor-pointer"
+                onClick={() => handleSort("song")}
+              >
+                SONGS
+                {sortColumn === "song" && (
+                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                )}
+              </div>
+              <div
+                className="w-full pr-5 cursor-pointer"
+                onClick={() => handleSort("artist")}
+              >
+                ARTISTS
+                {sortColumn === "artist" && (
+                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                )}
+              </div>
+              <div
+                className="w-full text-center px-5 cursor-pointer"
+                onClick={() => handleSort("progressBar")}
+              >
+                PROGRESSION
+                {sortColumn === "progressBar" && (
+                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                )}
+              </div>
               <div className="w-full text-center px-5">INSTRUMENTS</div>
             </div>
 
             <ul className="overflow-auto h-screen mb-20">
-              <DashList2Items />
+              <DashList2Items sortColumn={sortColumn} sortOrder={sortOrder} />
             </ul>
           </div>
         </div>
@@ -36,15 +79,44 @@ function DashList2() {
           <div className="flex flex-col mt-0">
             {/* Header que ficará fixo no topo */}
             <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-[68px] bg-white z-30">
-              <div className="w-[10%] text-center px-5">N</div>
-              <div className="w-full px-5">SONGS</div>
-              <div className="w-full pr-5">ARTISTS</div>
-              <div className="w-full text-center px-5">PROGRESSION</div>
+              <div
+                className="w-[10%] text-center px-5 cursor-pointer"
+                onClick={() => handleSort("number")}
+              >
+                N
+              </div>
+              <div
+                className="w-full px-5 cursor-pointer"
+                onClick={() => handleSort("song")}
+              >
+                SONGS
+                {sortColumn === "song" && (
+                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                )}
+              </div>
+              <div
+                className="w-full pr-5 cursor-pointer"
+                onClick={() => handleSort("artist")}
+              >
+                ARTISTS
+                {sortColumn === "artist" && (
+                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                )}
+              </div>
+              <div
+                className="w-full text-center px-5 cursor-pointer"
+                onClick={() => handleSort("progressBar")}
+              >
+                PROGRESSION
+                {sortColumn === "progressBar" && (
+                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                )}
+              </div>
               <div className="w-full text-center px-5">INSTRUMENTS</div>
             </div>
 
             <ul className="overflow-auto h-screen">
-              <DashList2Items />
+              <DashList2Items sortColumn={sortColumn} sortOrder={sortOrder} />
             </ul>
           </div>
         </div>
