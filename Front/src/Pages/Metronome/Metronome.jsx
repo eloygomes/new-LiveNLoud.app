@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import MetronomeInput from "./MetronomeInput";
+import clickSound from "../../../public/click.mp3";
 
 const bpmList = [
   60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140,
@@ -19,7 +20,12 @@ function Metronome() {
     // Função para carregar o som de clique
     const loadClickSound = async () => {
       try {
-        const response = await fetch("/click.mp3"); // Certifique-se de que o arquivo está na pasta public
+        const response = await fetch(clickSound); // Certifique-se de que o arquivo está na pasta public
+        if (!response.ok) {
+          throw new Error(
+            `Erro na requisição fetch: ${response.status} ${response.statusText}`
+          );
+        }
         const arrayBuffer = await response.arrayBuffer();
         const audioContext = new (window.AudioContext ||
           window.webkitAudioContext)();
