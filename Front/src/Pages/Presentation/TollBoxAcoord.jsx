@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import Accordion from "@mui/material/Accordion";
@@ -8,7 +9,10 @@ import { Link } from "react-router-dom";
 
 import FloatingBtns from "./FloatingBtns";
 import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
-import ToolBoxMini from "./ToolBoxMini";
+import ToolBoxMini from "./ToolBoxMini"; // Certifique-se de que o caminho está correto
+// Importe aqui seus componentes de Tuner e Chord Library se já os tiver
+// import TunerComponent from './TunerComponent';
+// import ChordLibraryComponent from './ChordLibraryComponent';
 
 export default function TollBoxAcoord({
   embedLinks,
@@ -21,6 +25,11 @@ export default function TollBoxAcoord({
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Estado para armazenar o status dos instrumentos
+
+  // Estados para controlar qual ferramenta está ativa
+  const [TunerStatus, setTunerStatus] = useState(false);
+  const [MetronomeStatus, setMetronomeStatus] = useState(true); // Pode iniciar com true se quiser
+  const [ChordLibraryStatus, setChordLibraryStatus] = useState(false);
 
   useEffect(() => {
     if (songDataFetched && songDataFetched.instruments) {
@@ -293,20 +302,70 @@ export default function TollBoxAcoord({
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="my-5">
-            <ToolBoxMini bpm={bpm} />
+            {/* Renderização Condicional dos Componentes */}
+            {TunerStatus && (
+              <div className="block">
+                {/* Substitua pelo seu componente de Tuner */}
+                <div className="p-1 rounded-md mb-2 neuphormism-b">
+                  <div className="flex flex-col items-center justify-center h-32">
+                    <h1 className="text-xl">Tuner Component</h1>
+                  </div>
+                </div>
+              </div>
+            )}
+            {MetronomeStatus && (
+              <div className="block">
+                <ToolBoxMini bpm={bpm} />
+              </div>
+            )}
+            {ChordLibraryStatus && (
+              <div className="block">
+                {/* Substitua pelo seu componente de Chord Library */}
+                <div className="p-1 rounded-md mb-2 neuphormism-b">
+                  <div className="flex flex-col items-center justify-center h-32">
+                    <h1 className="text-xl">Chord Library Component</h1>
+                  </div>
+                </div>
+              </div>
+            )}
 
+            {/* Botões para Alternar os Componentes */}
             <li className="hover:font-semibold">
-              <button type="button" className="neuphormism-b-se w-full my-2">
+              <button
+                type="button"
+                className="neuphormism-b-se w-full my-2"
+                onClick={() => {
+                  setTunerStatus(true);
+                  setMetronomeStatus(false);
+                  setChordLibraryStatus(false);
+                }}
+              >
                 tuner
               </button>
             </li>
             <li className="hover:font-semibold">
-              <button type="button" className="neuphormism-b-se w-full my-2">
+              <button
+                type="button"
+                className="neuphormism-b-se w-full my-2"
+                onClick={() => {
+                  setTunerStatus(false);
+                  setMetronomeStatus(true);
+                  setChordLibraryStatus(false);
+                }}
+              >
                 metronome
               </button>
             </li>
             <li className="hover:font-semibold">
-              <button type="button" className="neuphormism-b-se w-full my-2">
+              <button
+                type="button"
+                className="neuphormism-b-se w-full my-2"
+                onClick={() => {
+                  setTunerStatus(false);
+                  setMetronomeStatus(false);
+                  setChordLibraryStatus(true);
+                }}
+              >
                 chord library
               </button>
             </li>
