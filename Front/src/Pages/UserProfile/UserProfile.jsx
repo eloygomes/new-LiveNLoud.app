@@ -15,7 +15,7 @@ function UserProfile() {
         const result = await requestData(localStorage.getItem("userEmail"));
         const parsedResult = JSON.parse(result);
 
-        console.log(parsedResult);
+        // console.log(parsedResult);
 
         if (Array.isArray(parsedResult)) {
           // Filtra itens sem instrumentos definidos
@@ -36,10 +36,31 @@ function UserProfile() {
     fetchData();
   }, []);
 
-  // console.log(data);
+  console.log(data[0]); // Use o operador ?. para evitar erros
+
+  // Verifique se data[0] existe antes de renderizar o conteúdo
+  if (!data[0]) {
+    return (
+      <div className="flex justify-center h-screen pt-20">
+        <div className="container mx-auto">
+          <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
+            <div className="flex flex-row my-5 neuphormism-b p-5">
+              <h1 className="text-4xl font-bold">User profile</h1>
+              <h4 className="ml-auto mt-auto text-sm">Edit your data</h4>
+            </div>
+            <div className="flex flex-row neuphormism-b p-5">
+              <div className="flex flex-col justify-center items-center w-full p-5">
+                <h2 className="text-md font-bold my-2 p-2">Loading...</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className=" flex justify-center h-screen pt-20">
+    <div className="flex justify-center h-screen pt-20">
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
@@ -55,7 +76,7 @@ function UserProfile() {
                 <div className="flex flex-col justify-center mt-10 flex-1">
                   <button className="neuphormism-b-btn mx-6 p-2">Upload</button>
                   <p className="text-[10px] p-6">
-                    Click to upload! The avatar imagens needs to be in a valid
+                    Click to upload! The avatar images need to be in a valid
                     format like JPG, JPEG, GIF and has max of 500x500px
                   </p>
                 </div>
@@ -64,7 +85,9 @@ function UserProfile() {
               <div className="flex flex-col">
                 <div className="text-sm mt-2 pt-2 pl-2">user name</div>
                 <div className="flex flex-row justify-between py-3">
-                  <div className=" text-md  pb-2 pl-2">Fausto Silva</div>
+                  <div className=" text-md  pb-2 pl-2">
+                    {data[0]?.username || "N/A"}
+                  </div>
                   <div className="flex items-center justify-center  bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">
                     <FaEdit className="text-gray-600 text-lg" />
                   </div>
@@ -74,7 +97,7 @@ function UserProfile() {
                 <div className=" mt-2 pt-2 pl-2">user email</div>
                 <div className="flex flex-row justify-between py-3">
                   <div className=" text-md  pb-2 pl-2">
-                    fausto.silva@domingao.com.br
+                    {data[0]?.email || "N/A"}
                   </div>
                 </div>
               </div>
@@ -93,20 +116,26 @@ function UserProfile() {
                 <div className="text-sm flex flex-col">
                   <div className=" mt-2 pt-2 pl-2">Added in</div>
                   <div className="flex flex-row justify-between py-3">
-                    <div className=" text-md  pb-2 pl-2">14/08/2024</div>
+                    <div className=" text-md  pb-2 pl-2">
+                      {data[0]?.addedIn || "N/A"}
+                    </div>
                   </div>
                 </div>
                 <div className="text-sm flex flex-col">
                   <div className=" mt-2 pt-2 pl-2">Last time played</div>
                   <div className="flex flex-row justify-end py-3">
-                    <div className=" text-md  pb-2 pl-2">14/08/2024</div>
+                    <div className=" text-md  pb-2 pl-2">
+                      {data[0]?.lastPlayed || "N/A"}
+                    </div>
                   </div>
                 </div>
               </div>
               <h2 className="text-md font-bold my-2 p-2">Progression</h2>
               <div className="flex flex-row justify-between">
-                <h2 className="text-md p-2">avarege progression</h2>
-                <h2 className="text-md p-2">30%</h2>
+                <h2 className="text-md p-2">average progression</h2>
+                <h2 className="text-md p-2">
+                  {data[0]?.averageProgression || "0%"}
+                </h2>
               </div>
 
               <div className="flex flex-row justify-between">
@@ -117,46 +146,28 @@ function UserProfile() {
 
               <div className="flex flex-row justify-between">
                 <h2 className="text-sm p-2">Guitar 01</h2>
-                <h2 className="text-sm p-2">6 songs</h2>
+                <h2 className="text-sm p-2">
+                  {data[0]?.songsByInstrument?.guitar01 || "0"} songs
+                </h2>
               </div>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-sm p-2">Guitar 02</h2>
-                <h2 className="text-sm p-2">3 songs</h2>
-              </div>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-sm p-2">Bass</h2>
-                <h2 className="text-sm p-2">2 songs</h2>
-              </div>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-sm p-2">Keys</h2>
-                <h2 className="text-sm p-2">5 songs</h2>
-              </div>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-sm p-2">Drums</h2>
-                <h2 className="text-sm p-2">7 songs</h2>
-              </div>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-sm p-2">Voice</h2>
-                <h2 className="text-sm p-2">1 songs</h2>
-              </div>
+              {/* Repita para os outros instrumentos, usando data[0]?.songsByInstrument?.instrumento */}
             </div>
             <div className="flex flex-col justify-start w-1/2 p-5">
               <h2 className="text-md font-bold my-2 p-2">Logs</h2>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-[10pt] p-2 w-1/2">
-                  Catalog updated, 45 song addeded
-                </h2>
-                <h2 className="text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
-                  08:30 - 19/12/2024
-                </h2>
-              </div>
-              <div className="flex flex-row justify-between">
-                <h2 className="text-[10pt] p-2">User name edited</h2>
-                <h2 className="text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
-                  08:30 - 19/12/2024
-                </h2>
-              </div>
-              <h2 className="text-md font-bold mb-2 mt-5 p-2">user settings</h2>
+              {/* Exemplo de como renderizar logs se estiverem disponíveis */}
+              {data[0]?.logs?.map((log, index) => (
+                <div className="flex flex-row justify-between" key={index}>
+                  <h2 className="text-[10pt] p-2 w-1/2">{log.message}</h2>
+                  <h2 className="text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
+                    {log.time}
+                  </h2>
+                </div>
+              )) || (
+                <div className="flex flex-row justify-between">
+                  <h2 className="text-[10pt] p-2">No logs available</h2>
+                </div>
+              )}
+              <h2 className="text-md font-bold mb-2 mt-5 p-2">User Settings</h2>
               <div className="flex flex-row justify-between">
                 <h2 className="text-sm py-5 px-2 w-1/2">Language</h2>
                 <div className="flex flex-row justify-end text-sm p-2 w-1/2 truncate flex-1 text-right">
@@ -164,17 +175,17 @@ function UserProfile() {
                     ENG 🇺🇸
                   </button>
                   <button className="mx-2 border-2 p-2 neuphormism-b-btn">
-                    BRA 🇧🇷{" "}
+                    BRA 🇧🇷
                   </button>
                 </div>
               </div>
-              <h2 className="text-md font-bold mb-2 mt-5 p-2">user data</h2>
+              <h2 className="text-md font-bold mb-2 mt-5 p-2">User Data</h2>
               <div className="flex flex-row justify-between">
                 <div className="flex flex-col w-1/2">
                   <h2 className="text-[10pt] py-5 px-2 w-1/2">All user data</h2>
                   <h5 className="text-[8pt]  px-2 ">
-                    This contains all data from user that was storage by the
-                    plataform
+                    This contains all data from user that was stored by the
+                    platform
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-sm p-2 w-1/2 truncate flex-1 text-right">
@@ -184,14 +195,14 @@ function UserProfile() {
                 </div>
               </div>
               <h2 className="text-md font-bold mb-2 mt-5 p-2">
-                plataform user data
+                Platform User Data
               </h2>
               <div className="flex flex-row justify-between">
                 <div className="flex flex-col w-1/2">
                   <h2 className="text-[10pt] py-5 px-2 w-1/2">All user data</h2>
                   <h5 className="text-[8pt]  px-2 ">
-                    This contains all data from user that was storage by the
-                    plataform(like all songs, playlists, etc.)
+                    This contains all data from user that was stored by the
+                    platform (like all songs, playlists, etc.)
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
@@ -200,15 +211,15 @@ function UserProfile() {
                   </button>
                 </div>
               </div>
-              <h2 className="text-md font-bold mb-2 mt-5 p-2">user account</h2>
+              <h2 className="text-md font-bold mb-2 mt-5 p-2">User Account</h2>
               <div className="flex flex-row justify-between">
                 <div className="flex flex-col w-1/2">
                   <h2 className="text-[10pt] py-5 px-2 w-1/2 truncate">
                     Delete user account
                   </h2>
                   <h5 className="text-[8pt]  px-2 ">
-                    This delete all data from user account contained on
-                    plataform, this could not be undo
+                    This will delete all data from user account contained on the
+                    platform; this cannot be undone
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
