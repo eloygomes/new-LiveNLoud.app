@@ -1,9 +1,43 @@
 import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatar from "./UserProfileAvatar";
 
+import { requestData } from "../../Tools/Controllers";
+
 import { FaEdit } from "react-icons/fa";
+import { useEffect, useState } from "react";
 
 function UserProfile() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await requestData(localStorage.getItem("userEmail"));
+        const parsedResult = JSON.parse(result);
+
+        console.log(parsedResult);
+
+        if (Array.isArray(parsedResult)) {
+          // Filtra itens sem instrumentos definidos
+          const filteredData = parsedResult.filter(
+            (item) =>
+              item.instruments &&
+              Object.values(item.instruments).some((val) => val === true)
+          );
+          setData(filteredData);
+        } else {
+          console.error("Unexpected data structure:", parsedResult);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // console.log(data);
+
   return (
     <div className=" flex justify-center h-screen pt-20">
       <div className="container mx-auto">
