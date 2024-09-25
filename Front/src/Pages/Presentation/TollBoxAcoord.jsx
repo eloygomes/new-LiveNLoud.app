@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 
 import FloatingBtns from "./FloatingBtns";
 import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
+import ToolBoxMini from "./ToolBoxMini";
 
 export default function TollBoxAcoord({
   embedLinks,
@@ -40,6 +41,8 @@ export default function TollBoxAcoord({
   if (!songDataFetched || !songDataFetched.instruments) {
     return <div>Carregando...</div>; // Ou qualquer outro indicador de carregamento
   }
+
+  const bpm = "120";
 
   return (
     <div>
@@ -290,9 +293,8 @@ export default function TollBoxAcoord({
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="my-5">
-            <li className="hover:font-semibold">
-              <div className="p-10 rounded-md mb-2 neuphormism-b"></div>
-            </li>
+            <ToolBoxMini bpm={bpm} />
+
             <li className="hover:font-semibold">
               <button type="button" className="neuphormism-b-se w-full my-2">
                 tuner
