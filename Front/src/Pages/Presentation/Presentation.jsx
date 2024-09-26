@@ -16,8 +16,9 @@ function Presentation() {
   const [songDataFetched, setSongDataFetched] = useState();
   const [instrumentSelected, setInstrumentSelected] = useState("keys");
   const [embedLinks, setEmbedLinks] = useState([]);
+
   const [hideTabs, setHideTabs] = useState(false); // Estado para controlar a visibilidade das tabs
-  const [hideNonTabs, setHideNonTabs] = useState(false); // Estado para controlar a visibilidade das seções que não são tabs
+  const [hideChords, setHideChords] = useState(false); // Estado para controlar a visibilidade dos acordes
 
   const [songCifraData, setSongCifraData] = useState("Loading...");
 
@@ -77,11 +78,6 @@ function Presentation() {
     setHideTabs(!hideTabs);
   };
 
-  // Função para alternar a visibilidade das seções que não são tabs
-  const toggleNonTabsVisibility = () => {
-    setHideNonTabs(!hideNonTabs);
-  };
-
   return (
     <div className="flex justify-center h-screen pt-20">
       <ToolBox
@@ -93,6 +89,9 @@ function Presentation() {
         artistFromURL={artistFromURL}
         instrumentSelected={instrumentSelected}
         songDataFetched={songDataFetched}
+        toggleTabsVisibility={toggleTabsVisibility}
+        hideChords={hideChords}
+        setHideChords={setHideChords}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
@@ -111,7 +110,7 @@ function Presentation() {
             </div>
           </div>
           {/* Botões para controlar a visibilidade */}
-          <div className="mb-5 flex space-x-4">
+          {/* <div className="mb-5 flex space-x-4">
             <button
               onClick={toggleTabsVisibility}
               className="px-4 py-2 bg-blue-500 text-white rounded"
@@ -119,16 +118,46 @@ function Presentation() {
               {hideTabs ? "Mostrar Tabs" : "Esconder Tabs"}
             </button>
             <button
-              onClick={toggleNonTabsVisibility}
-              className="px-4 py-2 bg-green-500 text-white rounded"
+              onClick={toggleChordsVisibility}
+              className="px-4 py-2 bg-red-500 text-white rounded"
             >
-              {hideNonTabs ? "Mostrar Seções" : "Esconder Seções"}
+              {hideChords ? "Mostrar Acordes" : "Esconder Acordes"}
             </button>
-          </div>
-          <div className="flex flex-col neuphormism-b p-5">
-            {htmlBlocks.map((block, index) => (
-              <div key={index} dangerouslySetInnerHTML={{ __html: block }} />
-            ))}
+          </div> */}
+          <div
+            className={`flex flex-col neuphormism-b p-5 ${
+              hideChords ? "hide-chords" : ""
+            }`}
+          >
+            {htmlBlocks.map((block, index) => {
+              // Extrair as classes do bloco
+              const classMatch = block.match(/class="([^"]*)"/);
+              const classes = classMatch ? classMatch[1].split(" ") : [];
+
+              // Determinar se o bloco deve ser renderizado
+              let shouldRender = true;
+
+              // Se hideTabs estiver ativo e o bloco tiver as classes que queremos esconder, não renderiza
+              if (
+                hideTabs &&
+                (classes.includes("presentation-combined-tab-chords") ||
+                  classes.includes("presentation-tab") ||
+                  classes.includes("presentation-tab-section"))
+              ) {
+                shouldRender = false;
+              }
+
+              if (shouldRender) {
+                return (
+                  <div
+                    key={index}
+                    dangerouslySetInnerHTML={{ __html: block }}
+                  />
+                );
+              } else {
+                return null;
+              }
+            })}
           </div>
         </div>
       </div>
