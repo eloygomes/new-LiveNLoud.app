@@ -212,3 +212,7 @@ body {
  
 
 }
+
+.hide-chords .notespresentation {
+  display: none;
+}

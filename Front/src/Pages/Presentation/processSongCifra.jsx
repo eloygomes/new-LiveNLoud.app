@@ -17,6 +17,11 @@ export const processSongCifra = (songCifra) => {
     return /^\s*\[.*\]\s*$/.test(line);
   };
 
+  // Função para verificar se uma linha é um rótulo de seção de tabulação
+  const isTabSectionLabel = (line) => {
+    return /^\s*\[Tab.*\]\s*$/.test(line);
+  };
+
   // Função para verificar se uma linha é uma tabulação
   const isTabLine = (line) => {
     // Verifica se a linha contém pelo menos um caractere de tabulação típico
@@ -66,8 +71,17 @@ export const processSongCifra = (songCifra) => {
 
     try {
       if (isSectionLabel(line)) {
-        // Trata rótulo de seção
-        htmlBlocks.push(`<pre id="section-${i}" class="mt-3">${line}</pre>`);
+        if (isTabSectionLabel(line)) {
+          // Trata rótulo de seção de tabulação
+          htmlBlocks.push(
+            `<pre id="section-${i}" class="mt-3 presentation-section presentation-tab-section">${line}</pre>`
+          );
+        } else {
+          // Trata rótulo de seção regular
+          htmlBlocks.push(
+            `<pre id="section-${i}" class="mt-3 presentation-section">${line}</pre>`
+          );
+        }
       } else if (isChordLine(line)) {
         // Linha de acordes
         let chordLine = addClassToChords(line);
@@ -83,7 +97,7 @@ export const processSongCifra = (songCifra) => {
         if (tabBlock.length > 0) {
           // Combina a linha de acordes com as linhas de tabulação
           htmlBlocks.push(
-            `<pre id="combined-${i}" class="mt-1">${chordLine}\n${tabBlock.join(
+            `<pre id="combined-${i}" class="mt-1 presentation-combined-tab-chords">${chordLine}\n${tabBlock.join(
               "\n"
             )}</pre>`
           );
@@ -91,7 +105,7 @@ export const processSongCifra = (songCifra) => {
         } else {
           // Só a linha de acordes, sem tabulação
           htmlBlocks.push(
-            `<pre id="chord-${i}" class="mt-1">${chordLine}</pre>`
+            `<pre id="chord-${i}" class="mt-1 presentation-chords">${chordLine}</pre>`
           );
         }
       } else if (isTabLine(line)) {
@@ -106,17 +120,21 @@ export const processSongCifra = (songCifra) => {
         }
 
         htmlBlocks.push(
-          `<pre id="tab-${i}" class="mt-0">${tabBlock.join("\n")}</pre>`
+          `<pre id="tab-${i}" class="mt-0 presentation-tab">${tabBlock.join(
+            "\n"
+          )}</pre>`
         );
         i = j - 1; // Pula as linhas que já foram processadas
       } else if (isBlankLine(line)) {
         // Linha em branco
-        htmlBlocks.push(`<pre id="space-${i}" class="my-5">${line}</pre>`);
+        htmlBlocks.push(
+          `<pre id="space-${i}" class="my-5 presentation-blank-line">${line}</pre>`
+        );
       } else {
         // Trata linha regular (letra da música) com possíveis acordes
         const processedLine = addClassToChords(originalLine);
         htmlBlocks.push(
-          `<pre id="line-${i}" class="mt-1">${processedLine}</pre>`
+          `<pre id="line-${i}" class="mt-1 presentation-lyrics">${processedLine}</pre>`
         );
       }
     } catch (error) {

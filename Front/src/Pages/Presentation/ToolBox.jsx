@@ -14,6 +14,9 @@ function ToolBox({
   artistFromURL,
   instrumentSelected,
   songDataFetched,
+  toggleTabsVisibility,
+  hideChords,
+  setHideChords,
 }) {
   const [linktoplay, setLinktoplay] = useState("");
   const [videoModalStatus, setVideoModalStatus] = useState(false);
@@ -60,6 +63,9 @@ function ToolBox({
                 artistFromURL={artistFromURL}
                 instrumentSelected={instrumentSelected}
                 songDataFetched={songDataFetched}
+                toggleTabsVisibility={toggleTabsVisibility}
+                hideChords={hideChords}
+                setHideChords={setHideChords}
               />
             </div>
             <h1 className="flex flex-row text-[6pt] font-bold items-center justify-center mx-auto w-full bg-gray-500 text-white">
