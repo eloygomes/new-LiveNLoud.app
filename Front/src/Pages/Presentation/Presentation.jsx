@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-
-// Gear Icon
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
 import { allDataFromOneSong } from "../../Tools/Controllers";
