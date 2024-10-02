@@ -109,21 +109,7 @@ function Presentation() {
               <FaGear className="w-8 h-8" />
             </div>
           </div>
-          {/* Botões para controlar a visibilidade */}
-          {/* <div className="mb-5 flex space-x-4">
-            <button
-              onClick={toggleTabsVisibility}
-              className="px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              {hideTabs ? "Mostrar Tabs" : "Esconder Tabs"}
-            </button>
-            <button
-              onClick={toggleChordsVisibility}
-              className="px-4 py-2 bg-red-500 text-white rounded"
-            >
-              {hideChords ? "Mostrar Acordes" : "Esconder Acordes"}
-            </button>
-          </div> */}
+
           <div
             className={`flex flex-col neuphormism-b p-5 ${
               hideChords ? "hide-chords" : ""
