@@ -32,7 +32,7 @@ function DashList2() {
         <div className="">
           <div className="flex flex-col mt-0">
             {/* Header que ficará fixo no topo */}
-            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-50">
+            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-40">
               <div
                 className="w-[10%] text-center px-1 cursor-pointer"
                 onClick={() => handleSort("number")}
