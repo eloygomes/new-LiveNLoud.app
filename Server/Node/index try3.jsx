@@ -1,6 +1,9 @@
 const express = require("express");
 const axios = require("axios");
 const { MongoClient } = require("mongodb");
+const http = require("http"); // Added for creating the HTTP server
+const { Server } = require("socket.io"); // Importing socket.io
+
 const app = express();
 const port = 3000;
 const cors = require("cors");
@@ -22,12 +25,6 @@ connectToDatabase();
 
 app.use(express.json());
 
-// app.use(
-//   cors({
-//     origin: "*",
-//   })
-// );
-
 app.use(
   cors({
     origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
@@ -36,15 +33,52 @@ app.use(
 
 app.use(express.json({ limit: "50mb" })); // Defina o limite conforme necessário
 
-// Nova Rota para chamar o serviço Python e realizar o scrape
+// Create an HTTP server for Express and socket.io
+const server = http.createServer(app);
 
+// Initialize socket.io with the HTTP server
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
+    methods: ["GET", "POST"],
+  },
+});
+
+// Handle socket.io connections
+io.on("connection", (socket) => {
+  console.log("Novo cliente conectado:", socket.id);
+
+  // Log connection details
+  console.log("Headers:", socket.handshake.headers);
+  console.log("Query parameters:", socket.handshake.query);
+  console.log("Origin:", socket.handshake.headers.origin);
+
+  // Example event listener
+  socket.on("message", (data) => {
+    console.log("Mensagem recebida do cliente:", data);
+    socket.emit("message", "Mensagem recebida com sucesso!");
+  });
+
+  // Log any errors that occur during the connection
+  socket.on("error", (error) => {
+    console.error("Erro no WebSocket:", error);
+  });
+
+  // Handle disconnection
+  socket.on("disconnect", (reason) => {
+    console.log("Cliente desconectado:", socket.id, "Razão:", reason);
+  });
+});
+
+// Example API routes
+
+// Nova Rota para chamar o serviço Python e realizar o scrape
 app.post("/api/scrape", async (req, res) => {
   try {
     const { artist, song, instrument, email, instrument_progressbar, link } =
       req.body;
 
-    // URL correta para chamar o serviço Flask rodando no container Python
-    const response = await axios.post("http://python:8000/scrape", {
+    const response = await axios.post(`${pythonApiUrl}/scrape`, {
       artist,
       song,
       instrument,
@@ -57,7 +91,6 @@ app.post("/api/scrape", async (req, res) => {
   } catch (error) {
     console.error("Erro ao chamar a API Python:", error.message);
 
-    // Adicionar mais detalhes sobre o erro
     if (error.response) {
       console.error("Resposta da API Python:", error.response.data);
       res.status(error.response.status).json({
@@ -77,7 +110,6 @@ app.post("/api/scrape", async (req, res) => {
     }
   }
 });
-
 // Rota para criar um novo item (usando o método POST corretamente)
 app.post("/api/signup", async (req, res) => {
   try {
@@ -358,6 +390,7 @@ app.get("/api/alldata/", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+// Start the HTTP server instead of app.listen
+server.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
