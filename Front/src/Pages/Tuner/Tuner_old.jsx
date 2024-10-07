@@ -7,50 +7,39 @@ function Tuner() {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    console.log("Attempting to connect to WebSocket...");
+    if (isTuning) {
+      // Establish WebSocket connection only when tuning starts
+      const newSocket = io("https://www.api.live.eloygomes.com.br", {
+        path: "/socket.io", // default path for socket.io
+        transports: ["websocket"], // specify websocket transport
+      });
 
-    // Establish WebSocket connection when the component mounts
-    const newSocket = io("https://www.api.live.eloygomes.com.br", {
-      path: "/socket.io",
-      transports: ["websocket"],
-      secure: true,
-      rejectUnauthorized: false, // Ignore SSL issues for development (set to true for production)
-    });
+      setSocket(newSocket);
 
-    newSocket.on("connect", () => {
-      console.log("Connected to WebSocket server:", newSocket.id);
-    });
+      newSocket.on("message", (data) => {
+        setNote(data.note);
+      });
 
-    newSocket.on("connect_error", (error) => {
-      console.error("Connection error:", error);
-    });
+      // Clean up WebSocket connection when tuning stops
+      return () => {
+        if (newSocket) {
+          newSocket.disconnect();
+        }
+      };
+    }
+  }, [isTuning]);
 
-    newSocket.on("disconnect", (reason) => {
-      console.log("Disconnected from WebSocket server. Reason:", reason);
-    });
+  const startTuning = () => {
+    setIsTuning(true);
+  };
 
-    newSocket.on("message", (data) => {
-      console.log("Message from server:", data);
-    });
-
-    newSocket.on("noteDetected", (data) => {
-      setNote(data.note);
-    });
-
-    newSocket.on("error", (error) => {
-      console.error("Socket error:", error);
-    });
-
-    setSocket(newSocket);
-
-    // Clean up WebSocket connection when the component unmounts
-    return () => {
-      if (newSocket) {
-        console.log("Disconnecting from WebSocket...");
-        newSocket.disconnect();
-      }
-    };
-  }, []);
+  const stopTuning = () => {
+    setIsTuning(false);
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+  };
 
   return (
     <div className="flex justify-center h-screen pt-20">
@@ -69,7 +58,7 @@ function Tuner() {
                   <button
                     className="neuphormism-b-se p-3 px-10 mx-auto"
                     type="button"
-                    onClick={() => setIsTuning(true)}
+                    onClick={startTuning}
                   >
                     Start Listening...
                   </button>
@@ -77,7 +66,7 @@ function Tuner() {
                   <button
                     className="neuphormism-b-se p-3 px-10 mx-auto"
                     type="button"
-                    onClick={() => setIsTuning(false)}
+                    onClick={stopTuning}
                   >
                     Stop Listening
                   </button>
