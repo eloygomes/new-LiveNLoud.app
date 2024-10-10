@@ -1,56 +1,43 @@
-import { useEffect, useState } from "react";
-import io from "socket.io-client";
+import { useEffect, useState, useRef } from "react";
+import { io } from "socket.io-client";
 
 function Tuner() {
-  const [note, setNote] = useState("");
   const [isTuning, setIsTuning] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    console.log("Attempting to connect to WebSocket...");
-
-    // Establish WebSocket connection when the component mounts
-    const newSocket = io("https://www.api.live.eloygomes.com.br", {
-      path: "/socket.io",
-      transports: ["websocket"],
-      secure: true,
-      rejectUnauthorized: false, // Ignore SSL issues for development (set to true for production)
+    // Estabelecer a conexão com o servidor Socket.IO
+    socketRef.current = io("http://api.live.eloygomes.com.br:3000", {
+      query: { email: "usuario@exemplo.com" }, // Substitua pelo email do usuário, se necessário
+      transports: ["websocket"], // Opcional: força o uso de WebSocket
     });
 
-    newSocket.on("connect", () => {
-      console.log("Connected to WebSocket server:", newSocket.id);
+    // Evento disparado quando a conexão é estabelecida
+    socketRef.current.on("connect", () => {
+      console.log("Conectado ao servidor Socket.IO:", socketRef.current.id);
     });
 
-    newSocket.on("connect_error", (error) => {
-      console.error("Connection error:", error);
+    // Evento disparado quando a conexão é perdida
+    socketRef.current.on("disconnect", () => {
+      console.log("Desconectado do servidor Socket.IO");
     });
 
-    newSocket.on("disconnect", (reason) => {
-      console.log("Disconnected from WebSocket server. Reason:", reason);
-    });
-
-    newSocket.on("message", (data) => {
-      console.log("Message from server:", data);
-    });
-
-    newSocket.on("noteDetected", (data) => {
-      setNote(data.note);
-    });
-
-    newSocket.on("error", (error) => {
-      console.error("Socket error:", error);
-    });
-
-    setSocket(newSocket);
-
-    // Clean up WebSocket connection when the component unmounts
+    // Limpeza na desmontagem do componente
     return () => {
-      if (newSocket) {
-        console.log("Disconnecting from WebSocket...");
-        newSocket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
       }
     };
   }, []);
+
+  const sendMsg = () => {
+    if (socketRef.current) {
+      // Enviar uma mensagem para o servidor
+      socketRef.current.emit("mensagemDoCliente", {
+        conteudo: "Olá do cliente!",
+      });
+    }
+  };
 
   return (
     <div className="flex justify-center h-screen pt-20">
@@ -69,7 +56,10 @@ function Tuner() {
                   <button
                     className="neuphormism-b-se p-3 px-10 mx-auto"
                     type="button"
-                    onClick={() => setIsTuning(true)}
+                    onClick={() => {
+                      setIsTuning(true);
+                      sendMsg();
+                    }}
                   >
                     Start Listening...
                   </button>
@@ -77,7 +67,10 @@ function Tuner() {
                   <button
                     className="neuphormism-b-se p-3 px-10 mx-auto"
                     type="button"
-                    onClick={() => setIsTuning(false)}
+                    onClick={() => {
+                      setIsTuning(false);
+                      sendMsg();
+                    }}
                   >
                     Stop Listening
                   </button>
@@ -85,7 +78,7 @@ function Tuner() {
               </div>
               <div className="p-10 w-[90%] mx-auto py-72 rounded-md mb-2 neuphormism-b">
                 <div className="flex items-center justify-center">
-                  <h1 className="text-[150px]">{note || "..."}</h1>
+                  <h1 className="text-[150px]">{"..."}</h1>
                 </div>
               </div>
             </div>
