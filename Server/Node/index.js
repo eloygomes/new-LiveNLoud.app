@@ -1,14 +1,20 @@
 const express = require("express");
 const axios = require("axios");
 const { MongoClient } = require("mongodb");
-const app = express();
-const port = 3000;
-const cors = require("cors");
+
+// Socket.IO
+const http = require("http");
+const { Server } = require("socket.io");
 
 const uri = "mongodb://root:example@db:27017/admin";
 const client = new MongoClient(uri);
 const pythonApiUrl = "http://python_scraper:8000";
 
+const app = express();
+const port = 3000;
+const cors = require("cors");
+
+// Função para conectar ao banco de dados
 async function connectToDatabase() {
   try {
     await client.connect();
@@ -20,13 +26,35 @@ async function connectToDatabase() {
 
 connectToDatabase();
 
-app.use(express.json());
+// Crie o servidor HTTP a partir do Express
+const server = http.createServer(app);
 
-// app.use(
-//   cors({
-//     origin: "*",
-//   })
-// );
+// Configure o Socket.IO com o servidor HTTP
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
+    methods: ["GET", "POST"],
+  },
+});
+
+// Socket.IO conexão
+io.on("connection", (socket) => {
+  const userEmail = socket.handshake.query.email;
+  const pipa = socket.handshake.query.pipa;
+  console.log("Usuário conectado:", socket.id, "Email:", userEmail);
+  console.log("pipa", pipa);
+
+  // Adicione o socket a uma sala específica do usuário
+  if (userEmail) {
+    socket.join(userEmail);
+  }
+
+  socket.on("disconnect", () => {
+    console.log("Usuário desconectado:", socket.id);
+  });
+});
+
+app.use(express.json());
 
 app.use(
   cors({
@@ -36,9 +64,9 @@ app.use(
 
 app.use(express.json({ limit: "50mb" })); // Defina o limite conforme necessário
 
-// Nova Rota para chamar o serviço Python e realizar o scrape
-
+// Rota para chamar o serviço Python e realizar o scrape
 app.post("/api/scrape", async (req, res) => {
+  console.log("scrape called");
   try {
     const { artist, song, instrument, email, instrument_progressbar, link } =
       req.body;
@@ -78,7 +106,7 @@ app.post("/api/scrape", async (req, res) => {
   }
 });
 
-// Rota para criar um novo item (usando o método POST corretamente)
+// Rota para criar um novo usuário
 app.post("/api/signup", async (req, res) => {
   try {
     const { userdata, databaseComing, collectionComing } = req.body;
@@ -106,6 +134,7 @@ app.post("/api/signup", async (req, res) => {
     });
 
     console.log("Usuário criado com sucesso:", result);
+
     return res.status(201).json({
       message: "Usuário criado com sucesso!",
       userId: result.insertedId,
@@ -119,15 +148,11 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
+// Rota para adicionar ou atualizar uma música
 app.post("/api/newsong", async (req, res) => {
   try {
-    console.log("Dados recebidos:", req.body);
-
     const { userdata } = req.body;
     const { databaseComing, collectionComing } = req.body;
-
-    console.log("Banco de dados:", databaseComing);
-    console.log("Coleção:", collectionComing);
 
     // Verifica se os nomes estão presentes e válidos
     if (!databaseComing || !collectionComing) {
@@ -139,7 +164,6 @@ app.post("/api/newsong", async (req, res) => {
     const database = client.db(databaseComing.trim());
     const collection = database.collection(collectionComing.trim());
 
-    console.log("Verificando se o email já existe...");
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
 
@@ -184,6 +208,7 @@ app.post("/api/newsong", async (req, res) => {
           );
 
           console.log("Usuário atualizado com sucesso:", updateResult);
+
           return res.status(200).json({
             message: "Dados atualizados com sucesso!",
             updatedUser: updateResult,
@@ -197,6 +222,7 @@ app.post("/api/newsong", async (req, res) => {
           );
 
           console.log("Novo registro adicionado com sucesso:", updateResult);
+
           return res.status(200).json({
             message: "Novo registro adicionado com sucesso!",
             updatedUser: updateResult,
@@ -218,6 +244,7 @@ app.post("/api/newsong", async (req, res) => {
           "Campo userdata inicializado e atualizado com sucesso:",
           updateResult
         );
+
         return res.status(200).json({
           message: "Dados atualizados com sucesso!",
           updatedUser: updateResult,
@@ -234,6 +261,7 @@ app.post("/api/newsong", async (req, res) => {
       });
 
       console.log("Usuário criado com sucesso:", result);
+
       return res.status(201).json({
         message: "Usuário criado com sucesso!",
         userId: result.insertedId,
@@ -246,9 +274,8 @@ app.post("/api/newsong", async (req, res) => {
   }
 });
 
-// Rota para buscar uma musica específica no banco de dados
+// Rota para buscar uma música específica no banco de dados
 app.post("/api/allsongdata", async (req, res) => {
-  console.log("allsongdata");
   try {
     const { email, artist, song } = req.body;
     const database = client.db("liveNloud_");
@@ -287,7 +314,7 @@ app.post("/api/allsongdata", async (req, res) => {
   }
 });
 
-// Rota para buscar e deletar uma musica específica no banco de dados
+// Rota para buscar e deletar uma música específica no banco de dados
 app.post("/api/deleteonesong", async (req, res) => {
   console.log("deleteonesong");
   try {
@@ -319,7 +346,7 @@ app.post("/api/deleteonesong", async (req, res) => {
   }
 });
 
-// Todas as musicas de um usuario
+// Rota para obter todas as músicas de um usuário
 app.get("/api/alldata/:email", async (req, res) => {
   try {
     const { email } = req.params; // Obtém o email dos parâmetros da URL
@@ -342,22 +369,23 @@ app.get("/api/alldata/:email", async (req, res) => {
   }
 });
 
-// Nova Rota para buscar todos os dados de todos os usuarios no banco de dados
+// Rota para buscar todos os dados de todos os usuários no banco de dados
 app.get("/api/alldata/", async (req, res) => {
   try {
     const database = client.db("liveNloud_");
     const collection = database.collection("data");
 
-    // Busca todos os filmes na coleção 'movies'
-    const allMovies = await collection.find({}).toArray();
+    // Busca todos os documentos na coleção 'data'
+    const allData = await collection.find({}).toArray();
 
-    res.json(allMovies);
+    res.json(allData);
   } catch (error) {
-    console.error("Erro ao buscar os filmes:", error);
-    res.status(500).json({ message: "Erro ao buscar os filmes." });
+    console.error("Erro ao buscar os dados:", error);
+    res.status(500).json({ message: "Erro ao buscar os dados." });
   }
 });
 
-app.listen(port, () => {
+// Inicie o servidor HTTP (Express + Socket.IO)
+server.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
