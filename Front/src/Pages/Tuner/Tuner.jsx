@@ -5,10 +5,12 @@ function Tuner() {
   const [isTuning, setIsTuning] = useState(false);
   const socketRef = useRef(null);
 
+  const userEmail = localStorage.getItem("userEmail");
+
   useEffect(() => {
     // Estabelecer a conexão com o servidor Socket.IO
     socketRef.current = io("http://api.live.eloygomes.com.br:3000", {
-      query: { email: "usuario@exemplo.com" }, // Substitua pelo email do usuário, se necessário
+      query: { email: userEmail, pipa: "odeio" }, // Substitua pelo email do usuário, se necessário
       transports: ["websocket"], // Opcional: força o uso de WebSocket
     });
 
@@ -28,7 +30,7 @@ function Tuner() {
         socketRef.current.disconnect();
       }
     };
-  }, []);
+  }, [userEmail]);
 
   const sendMsg = () => {
     if (socketRef.current) {

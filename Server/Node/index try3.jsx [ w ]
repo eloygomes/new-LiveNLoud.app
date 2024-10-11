@@ -40,7 +40,9 @@ const io = new Server(server, {
 // Socket.IO conexão
 io.on("connection", (socket) => {
   const userEmail = socket.handshake.query.email;
+  const pipa = socket.handshake.query.pipa;
   console.log("Usuário conectado:", socket.id, "Email:", userEmail);
+  console.log("pipa", pipa);
 
   // Adicione o socket a uma sala específica do usuário
   if (userEmail) {
