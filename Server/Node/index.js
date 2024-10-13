@@ -11,7 +11,8 @@ const client = new MongoClient(uri);
 const pythonApiUrl = "http://python_scraper:8000";
 
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000;
+
 const cors = require("cors");
 
 // Função para conectar ao banco de dados
@@ -37,20 +38,63 @@ const io = new Server(server, {
   },
 });
 
-// Socket.IO conexão
-io.on("connection", (socket) => {
+// Namespaces
+const clientNamespace = io.of("/"); // Namespace padrão para clientes
+const pythonNamespace = io.of("/python"); // Namespace dedicado para o script Python
+
+// INSTRUCTIONS
+// •	messageToServer: Evento que o cliente emite para enviar dados ao servidor.
+// •	processData: Evento que o servidor emite para o script Python com os dados a serem processados.
+// •	processedData: Evento que o script Python emite para enviar os dados processados de volta ao servidor.
+// •	messageFromServer: Evento que o servidor emite para enviar os dados processados de volta ao cliente.
+
+// Handle client connections
+clientNamespace.on("connection", (socket) => {
   const userEmail = socket.handshake.query.email;
   const pipa = socket.handshake.query.pipa;
-  console.log("Usuário conectado:", socket.id, "Email:", userEmail);
-  console.log("pipa", pipa);
 
-  // Adicione o socket a uma sala específica do usuário
+  console.log("Usuário conectado:", socket.id, "Email:", userEmail);
+  console.log("FRONT", pipa);
+
   if (userEmail) {
     socket.join(userEmail);
   }
 
+  // Escutar eventos do cliente
+  socket.on("messageToServer", (data) => {
+    console.log("Recebido do cliente:", data);
+
+    // Emitir evento 'processData' para o script Python com os dados e o ID do cliente
+    pythonNamespace.emit("processData", { ...data, clientId: socket.id });
+  });
+
   socket.on("disconnect", () => {
     console.log("Usuário desconectado:", socket.id);
+  });
+});
+
+// Handle Python script connections
+pythonNamespace.on("connection", (socket) => {
+  console.log(`Script Python conectado: ${socket.id}`);
+
+  // Receber dados processados do script Python
+  socket.on("processedData", (data) => {
+    console.log("Dados processados recebidos do Python:", data);
+
+    // Enviar os dados processados de volta ao cliente original
+    const clientId = data.clientId;
+    const clientSocket = clientNamespace.sockets.get(clientId);
+
+    if (clientSocket) {
+      clientSocket.emit("messageFromServer", data);
+      console.log("Dados processados enviados ao cliente:", clientId);
+    } else {
+      console.log("Cliente não encontrado:", clientId);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`Script Python desconectado: ${socket.id}`);
   });
 });
 
@@ -386,6 +430,10 @@ app.get("/api/alldata/", async (req, res) => {
 });
 
 // Inicie o servidor HTTP (Express + Socket.IO)
-server.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
+// server.listen(port, () => {
+//   console.log(`Servidor rodando em http://localhost:${port}`);
+// });
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
 });
