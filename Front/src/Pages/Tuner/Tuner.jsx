@@ -10,8 +10,8 @@ function Tuner() {
   useEffect(() => {
     // Estabelecer a conexão com o servidor Socket.IO
     socketRef.current = io("http://api.live.eloygomes.com.br:3000", {
-      query: { email: userEmail, pipa: "odeio" }, // Substitua pelo email do usuário, se necessário
-      transports: ["websocket"], // Opcional: força o uso de WebSocket
+      query: { email: userEmail, pipa: "caraca" },
+      transports: ["websocket"],
     });
 
     // Evento disparado quando a conexão é estabelecida
@@ -24,9 +24,16 @@ function Tuner() {
       console.log("Desconectado do servidor Socket.IO");
     });
 
+    // **Novo código: Listener para a resposta do servidor**
+    socketRef.current.on("messageFromServer", (data) => {
+      console.log("Resposta recebida do servidor:", data);
+      // Você pode atualizar o estado ou executar outras ações com os dados recebidos
+    });
+
     // Limpeza na desmontagem do componente
     return () => {
       if (socketRef.current) {
+        socketRef.current.off("messageFromServer"); // Remove o listener
         socketRef.current.disconnect();
       }
     };
@@ -34,10 +41,11 @@ function Tuner() {
 
   const sendMsg = () => {
     if (socketRef.current) {
-      // Enviar uma mensagem para o servidor
-      socketRef.current.emit("mensagemDoCliente", {
-        conteudo: "Olá do cliente!",
-      });
+      const messageData = {
+        audioData: [0.1, 0.2, 0.3, 0.4, 0.5],
+        // Remova 'clientId' aqui; o servidor adiciona o 'clientId' automaticamente
+      };
+      socketRef.current.emit("messageToServer", messageData);
     }
   };
 
