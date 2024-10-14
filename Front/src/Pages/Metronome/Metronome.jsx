@@ -118,7 +118,7 @@ function Metronome() {
             </h4>
           </div>
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <div className="flex flex-col justify-start py-5 w-[90%]  mx-auto  rounded-md mb-2">
+            <div className="flex flex-col justify-start  w-[90%]  mx-auto  rounded-md mb-2">
               <div className="p-10 flex flex-row justify-between w-[90%]  mx-auto mb-5 rounded-md neuphormism-b ">
                 <div className="w-[90%] flex flex-row justify-start">
                   <MetronomeInput
