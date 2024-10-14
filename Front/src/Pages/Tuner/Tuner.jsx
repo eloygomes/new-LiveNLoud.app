@@ -3,50 +3,93 @@ import { io } from "socket.io-client";
 
 function Tuner() {
   const [isTuning, setIsTuning] = useState(false);
+  const [tunerNote, setTunerNote] = useState("");
+  const [tuningBar, setTuningBar] = useState("");
   const socketRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
 
   const userEmail = localStorage.getItem("userEmail");
 
   useEffect(() => {
     // Estabelecer a conexão com o servidor Socket.IO
     socketRef.current = io("http://api.live.eloygomes.com.br:3000", {
-      query: { email: userEmail, pipa: "caraca" },
+      query: { email: userEmail },
       transports: ["websocket"],
     });
 
-    // Evento disparado quando a conexão é estabelecida
     socketRef.current.on("connect", () => {
       console.log("Conectado ao servidor Socket.IO:", socketRef.current.id);
     });
 
-    // Evento disparado quando a conexão é perdida
     socketRef.current.on("disconnect", () => {
       console.log("Desconectado do servidor Socket.IO");
     });
 
-    // **Novo código: Listener para a resposta do servidor**
+    // Listener para a resposta do servidor
     socketRef.current.on("messageFromServer", (data) => {
-      console.log("Resposta recebida do servidor:", data);
-      // Você pode atualizar o estado ou executar outras ações com os dados recebidos
+      console.log("Resposta recebida do servidor:", data.tuningBar);
+      setTunerNote(data.note);
+      setTuningBar(data.tuningBar);
+      // Aqui você pode atualizar o estado ou exibir os resultados
     });
 
-    // Limpeza na desmontagem do componente
     return () => {
       if (socketRef.current) {
-        socketRef.current.off("messageFromServer"); // Remove o listener
+        socketRef.current.off("messageFromServer");
         socketRef.current.disconnect();
       }
     };
   }, [userEmail]);
 
-  const sendMsg = () => {
-    if (socketRef.current) {
-      const messageData = {
-        audioData: [0.1, 0.2, 0.3, 0.4, 0.5],
-        // Remova 'clientId' aqui; o servidor adiciona o 'clientId' automaticamente
-      };
-      socketRef.current.emit("messageToServer", messageData);
+  const startRecording = async () => {
+    if (!navigator.mediaDevices.getUserMedia) {
+      alert("Seu navegador não suporta captura de áudio.");
+      return;
     }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (event) => {
+        const audioData = event.inputBuffer.getChannelData(0);
+        // Converte o Float32Array em ArrayBuffer
+        const audioBuffer = float32ToInt16(audioData);
+        // Envia o áudio ao servidor
+        socketRef.current.emit("messageToServer", { audioData: audioBuffer });
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      mediaRecorderRef.current = { stream, audioContext, processor };
+    } catch (error) {
+      console.error("Erro ao acessar o microfone:", error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      const { stream, audioContext, processor, source } =
+        mediaRecorderRef.current;
+      processor.disconnect();
+      source.disconnect();
+      audioContext.close();
+      stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
+    }
+  };
+
+  const float32ToInt16 = (buffer) => {
+    let l = buffer.length;
+    const buf = new Int16Array(l);
+    while (l--) {
+      buf[l] = Math.min(1, buffer[l]) * 0x7fff;
+    }
+    return buf.buffer;
   };
 
   return (
@@ -62,33 +105,28 @@ function Tuner() {
           <div className="flex flex-row my-5 neuphormism-b p-5">
             <div className="flex flex-col justify-start py-5 w-[90%] mx-auto rounded-md mb-2">
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
-                {!isTuning ? (
+                {
                   <button
                     className="neuphormism-b-se p-3 px-10 mx-auto"
                     type="button"
                     onClick={() => {
-                      setIsTuning(true);
-                      sendMsg();
+                      if (!isTuning) {
+                        setIsTuning(true);
+                        startRecording();
+                      } else {
+                        setIsTuning(false);
+                        stopRecording();
+                      }
                     }}
                   >
-                    Start Listening...
+                    {isTuning ? "Stop Listening" : "Start Listening..."}
                   </button>
-                ) : (
-                  <button
-                    className="neuphormism-b-se p-3 px-10 mx-auto"
-                    type="button"
-                    onClick={() => {
-                      setIsTuning(false);
-                      sendMsg();
-                    }}
-                  >
-                    Stop Listening
-                  </button>
-                )}
+                }
               </div>
               <div className="p-10 w-[90%] mx-auto py-72 rounded-md mb-2 neuphormism-b">
-                <div className="flex items-center justify-center">
-                  <h1 className="text-[150px]">{"..."}</h1>
+                <div className="flex flex-col items-center justify-center">
+                  <h1 className="text-[150px]">{tunerNote || "..."}</h1>
+                  <h1 className="text-[25px]">{tuningBar || "..."}</h1>
                 </div>
               </div>
             </div>
