@@ -27,7 +27,7 @@ function Tuner() {
 
     // Listener para a resposta do servidor
     socketRef.current.on("messageFromServer", (data) => {
-      console.log("Resposta recebida do servidor:", data.tuningBar);
+      // console.log("Resposta recebida do servidor:", data.tuningBar);
       setTunerNote(data.note);
       setTuningBar(data.tuningBar);
       // Aqui você pode atualizar o estado ou exibir os resultados
@@ -103,7 +103,7 @@ function Tuner() {
             </h4>
           </div>
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <div className="flex flex-col justify-start py-5 w-[90%] mx-auto rounded-md mb-2">
+            <div className="flex flex-col justify-start  w-[90%]  mx-auto  rounded-md mb-2">
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
                 {
                   <button
@@ -123,7 +123,7 @@ function Tuner() {
                   </button>
                 }
               </div>
-              <div className="p-10 w-[90%] mx-auto py-72 rounded-md mb-2 neuphormism-b">
+              <div className="p-10 w-[90%] mx-auto  rounded-md mb-2 neuphormism-b">
                 <div className="flex flex-col items-center justify-center">
                   <h1 className="text-[150px]">{tunerNote || "..."}</h1>
                   <h1 className="text-[25px]">{tuningBar || "..."}</h1>

@@ -51,53 +51,6 @@ const pythonNamespace = io.of('/python'); // Namespace dedicado para o script Py
 // •	messageFromServer: Evento que o servidor emite para enviar os dados processados de volta ao cliente.
 
 // Handle client connections
-// clientNamespace.on('connection', (socket) => {
-//   const userEmail = socket.handshake.query.email;
-//   const pipa = socket.handshake.query.pipa;
-  
-//   console.log('Usuário conectado:', socket.id, 'Email:', userEmail);
-//   console.log('FRONT', pipa);
-
-//   // Adicione o socket a uma sala específica do usuário
-//   if (userEmail) {
-//     socket.join(userEmail);
-//   }
-
-//   // Escutar eventos do cliente
-//   socket.on('messageToServer', (data) => {
-//     console.log('Recebido do cliente:', data);
-    
-//     // Emitir evento para o script Python com o ID do cliente para rastreamento
-//     pythonNamespace.emit('para_script_python', { ...data, clientId: socket.id });
-
-//   });
-
-//   socket.on('disconnect', () => {
-//     console.log('Usuário desconectado:', socket.id);
-//   });
-// });
-
-
-
-// Handle Python script connections
-// pythonNamespace.on('connection', (socket) => {
-//   console.log(`Script Python conectado: ${socket.id}`);
-
-//   socket.on('mensagem_cliente', (data) => {
-//     console.log('Python response:', data.conteudo);
-//     // Enviar resposta ao cliente Python
-//     // socket.emit('para_script_python', { conteudo: 'Mensagem recebida e processada pelo servidor.' });
-//     socket.emit('para_script_python', { conteudo: data });
-//     console.log('Mensagem enviada ao cliente Python');
-//   });
-
-//   socket.on('disconnect', () => {
-//     console.log(`Script Python desconectado: ${socket.id}`);
-//   });
-// });
-
-
-// Handle client connections
 clientNamespace.on('connection', (socket) => {
   const userEmail = socket.handshake.query.email;
   const pipa = socket.handshake.query.pipa;
