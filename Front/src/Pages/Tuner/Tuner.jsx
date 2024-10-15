@@ -12,7 +12,12 @@ function Tuner() {
 
   useEffect(() => {
     // Estabelecer a conexão com o servidor Socket.IO
-    socketRef.current = io("http://api.live.eloygomes.com.br:3000", {
+    // socketRef.current = io("http://api.live.eloygomes.com.br:3000", {
+    //   query: { email: userEmail },
+    //   transports: ["websocket"],
+    // });
+
+    socketRef.current = io("https://api.live.eloygomes.com.br", {
       query: { email: userEmail },
       transports: ["websocket"],
     });
@@ -138,3 +143,5 @@ function Tuner() {
 }
 
 export default Tuner;
+
+// ____________
