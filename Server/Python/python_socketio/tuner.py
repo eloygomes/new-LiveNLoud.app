@@ -23,6 +23,8 @@ note_frequencies = {
 }
 
 # Cria ranges para cada nota
+
+
 def create_note_ranges(frequencies):
     note_ranges = {}
     notes = list(frequencies.keys())
@@ -33,12 +35,16 @@ def create_note_ranges(frequencies):
         midpoint = np.sqrt(frequencies[current_note] * frequencies[next_note])
         note_ranges[current_note] = (frequencies[current_note], midpoint)
     last_note = notes[-1]
-    note_ranges[last_note] = (frequencies[last_note], frequencies[last_note] * 2)
+    note_ranges[last_note] = (frequencies[last_note],
+                              frequencies[last_note] * 2)
     return note_ranges
+
 
 note_ranges = create_note_ranges(note_frequencies)
 
 # Função para detectar o pitch
+
+
 def detect_pitch(samples):
     """Detects the pitch of the audio data using autocorrelation."""
     # samples já é um array numpy de float32
@@ -66,6 +72,7 @@ def detect_pitch(samples):
 
     return frequency
 
+
 def find_autocorrelation_peak(corr, rate):
     """Finds the peak in the autocorrelation function corresponding to the fundamental frequency."""
     # Mínimo e máximo períodos (em samples)
@@ -84,6 +91,7 @@ def find_autocorrelation_peak(corr, rate):
 
     return peak_index
 
+
 def find_nearest_note_in_range(freq):
     """Finds the nearest note and its frequency range."""
     for note, (low, high) in note_ranges.items():
@@ -91,9 +99,11 @@ def find_nearest_note_in_range(freq):
             return note, low, high
     return None, None, None
 
+
 def cents_difference(freq, ref_freq):
     """Calculates the difference in cents between two frequencies."""
     return 1200 * np.log2(freq / ref_freq)
+
 
 def create_tuning_bar(cents):
     """Creates a bar indicator showing the deviation in cents."""
@@ -116,10 +126,10 @@ def create_tuning_bar(cents):
     bar_string = '[' + ''.join(bar) + ']'
     return bar_string
 
+
 # Taxa de amostragem (deve ser a mesma usada no cliente)
 RATE = 44100
 
-import socketio
 
 sio = socketio.Client()
 
@@ -127,16 +137,22 @@ NODEJS_URL = 'http://node:3000'
 NAMESPACE = '/python'
 
 # Evento de conexão
+
+
 @sio.event(namespace=NAMESPACE)
 def connect():
     print("Conectado ao servidor Node.js via Socket.IO")
 
 # Evento de desconexão
+
+
 @sio.event(namespace=NAMESPACE)
 def disconnect():
     print("Desconectado do servidor Node.js")
 
 # Receber dados para processamento
+
+
 @sio.on('processData', namespace=NAMESPACE)
 def receber_dados(data):
     print(f"Dados recebidos para processamento do cliente {data['clientId']}")
@@ -145,7 +161,8 @@ def receber_dados(data):
         client_id = data['clientId']
 
         # Converter o áudio recebido em um array numpy
-        audio_array = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
+        audio_array = np.frombuffer(
+            audio_data, dtype=np.int16).astype(np.float32)
 
         # Processar o áudio para detectar o pitch
         pitch = detect_pitch(audio_array)
@@ -176,8 +193,10 @@ def receber_dados(data):
     except Exception as e:
         print(f"Erro ao processar os dados: {e}")
 
+
 if __name__ == '__main__':
     # Inicie a conexão
-    print(f"Tentando conectar ao servidor Node.js no namespace {NAMESPACE} em {NODEJS_URL}")
+    print(f"Tentando conectar ao servidor Node.js no namespace {
+          NAMESPACE} em {NODEJS_URL}")
     sio.connect(NODEJS_URL, namespaces=[NAMESPACE])
     sio.wait()

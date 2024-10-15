@@ -31,10 +31,22 @@ connectToDatabase();
 const server = http.createServer(app);
 
 // Configure o Socket.IO com o servidor HTTP
+// const io = new Server(server, {
+//   cors: {
+//     origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
+//     methods: ["GET", "POST"],
+//   },
+// });
+
 const io = new Server(server, {
+  path: "/socket.io",
   cors: {
-    origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
+    origin: [
+      "https://www.live.eloygomes.com.br",
+      "https://api.live.eloygomes.com.br",
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
