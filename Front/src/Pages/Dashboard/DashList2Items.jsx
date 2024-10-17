@@ -85,7 +85,7 @@ function DashList2Items({ sortColumn, sortOrder }) {
   return (
     <>
       {sortedData.length < 1 ? (
-        <div className="text-center py-10">Nenhuma música encontrada</div>
+        <div className="text-center py-10">Carregando musicas...</div>
       ) : isMobile ? (
         <div className="flex flex-col">
           {sortedData.map((item, index) => (
