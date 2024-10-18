@@ -37,6 +37,12 @@ function ChordLibrary() {
     }`;
   };
 
+  const getChordNameClean = () => {
+    return `${selectedRoot}${selectedQuality ? `/${selectedQuality}` : ""}${
+      selectedTension ? ` ${selectedTension}` : ""
+    }${selectedBass ? `/${selectedBass}` : ""}`;
+  };
+
   const getChord = () => {
     const selectedChord = getChordName().trim();
     console.log("selectedChord", selectedChord);
@@ -127,7 +133,7 @@ function ChordLibrary() {
               </div>
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
                 <h1 className="text-3xl flex-1  text-center mx-auto">
-                  {getChordName() || "Select a chord"}
+                  {getChordNameClean() || "Select a chord"}
                 </h1>
               </div>
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
