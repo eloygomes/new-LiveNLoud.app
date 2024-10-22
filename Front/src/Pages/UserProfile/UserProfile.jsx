@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 
 function UserProfile() {
   const [data, setData] = useState([]);
+  const [getFullName, setGetFullName] = useState("");
+  const [getUsername, setGetUsername] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -16,6 +18,11 @@ function UserProfile() {
         const parsedResult = JSON.parse(result);
 
         // console.log(parsedResult);
+        // console.log(parsedResult[0].fullName);
+        setGetFullName(parsedResult[0].fullName);
+        // console.log(parsedResult[0].username);
+        setGetUsername(parsedResult[0].username);
+        localStorage.setItem("username", parsedResult[0].username);
 
         if (Array.isArray(parsedResult)) {
           // Filtra itens sem instrumentos definidos
@@ -36,7 +43,7 @@ function UserProfile() {
     fetchData();
   }, []);
 
-  console.log(data[0]); // Use o operador ?. para evitar erros
+  // console.log(data); // Use o operador ?. para evitar erros
 
   // Verifique se data[0] existe antes de renderizar o conteúdo
   if (!data[0]) {
@@ -70,15 +77,22 @@ function UserProfile() {
           <div className="flex flex-row neuphormism-b p-5">
             <div className="flex flex-col justify-between w-1/2 p-5">
               <div className="flex flex-row">
-                <div className="flex-1">
+                <div className="w-1/2">
                   <UserProfileAvatar src={userPerfil} size={200} />
                 </div>
-                <div className="flex flex-col justify-center mt-10 flex-1">
-                  <button className="neuphormism-b-btn mx-6 p-2">Upload</button>
-                  <p className="text-[10px] p-6">
-                    Click to upload! The avatar images need to be in a valid
-                    format like JPG, JPEG, GIF and has max of 500x500px
-                  </p>
+                <div className="flex flex-col w-1/2">
+                  <h1 className="text-3xl font-bold ml-5 flex">
+                    {getFullName}
+                  </h1>
+                  <div className="flex flex-col justify-center mt-5 flex-1">
+                    <button className="neuphormism-b-btn mx-6 p-2">
+                      Upload
+                    </button>
+                    <p className="text-[10px] p-6">
+                      Click to upload! The avatar images need to be in a valid
+                      format like JPG, JPEG, GIF and has max of 500x500px
+                    </p>
+                  </div>
                 </div>
               </div>
               <h2 className="text-md font-bold my-2 p-2">User Data</h2>
@@ -86,7 +100,7 @@ function UserProfile() {
                 <div className="text-sm mt-2 pt-2 pl-2">user name</div>
                 <div className="flex flex-row justify-between py-3">
                   <div className=" text-md  pb-2 pl-2">
-                    {data[0]?.username || "N/A"}
+                    {getUsername || "N/A"}
                   </div>
                   <div className="flex items-center justify-center  bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">
                     <FaEdit className="text-gray-600 text-lg" />

@@ -281,6 +281,8 @@ function NewSongColumnA({
           addedIn: new Date().toISOString().split("T")[0],
           updateIn: new Date().toISOString().split("T")[0],
           email: userEmail,
+          username: "",
+          fullName: "",
         };
 
         const payload = JSON.stringify({

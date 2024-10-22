@@ -99,28 +99,6 @@ export default function RootLayouts() {
               </div>
 
               {/* Menu móvel */}
-              {/* {mobileMenuOpen && (
-              // <div className="flex flex-row justify-between " id="mobile-menu">
-              //   <NavMenuItems />
-              //   <button
-              //     type="button"
-              //     className="relative flex rounded-full  text-sm py-2"
-              //     id="user-menu-button"
-              //     aria-expanded="false"
-              //     aria-haspopup="true"
-              //     onClick={() =>
-              //       setUserDropdownMenuStatus(!userDropdownMenuStatus)
-              //     }
-              //   >
-              //     <UserProfileAvatar src={userPerfil} size={8} />
-              //   </button>
-              //   <UserDropdownMenu
-              //     userDropdownMenuStatus={userDropdownMenuStatus}
-              //     setUserDropdownMenuStatus={setUserDropdownMenuStatus}
-              //   />
-              // </div>
-              <div className="absolute w-screen h-screen bg-red-500 z-50"></div>
-            )} */}
             </nav>
           </>
         )}
