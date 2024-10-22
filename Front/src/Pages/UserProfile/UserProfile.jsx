@@ -1,15 +1,18 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { FaEdit } from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatar from "./UserProfileAvatar";
-
 import { requestData } from "../../Tools/Controllers";
-
-import { FaEdit } from "react-icons/fa";
-import { useEffect, useState } from "react";
 
 function UserProfile() {
   const [data, setData] = useState([]);
   const [getFullName, setGetFullName] = useState("");
   const [getUsername, setGetUsername] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(userPerfil);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -17,15 +20,11 @@ function UserProfile() {
         const result = await requestData(localStorage.getItem("userEmail"));
         const parsedResult = JSON.parse(result);
 
-        // console.log(parsedResult);
-        // console.log(parsedResult[0].fullName);
         setGetFullName(parsedResult[0].fullName);
-        // console.log(parsedResult[0].username);
         setGetUsername(parsedResult[0].username);
         localStorage.setItem("username", parsedResult[0].username);
 
         if (Array.isArray(parsedResult)) {
-          // Filtra itens sem instrumentos definidos
           const filteredData = parsedResult.filter(
             (item) =>
               item.instruments &&
@@ -35,6 +34,11 @@ function UserProfile() {
         } else {
           console.error("Unexpected data structure:", parsedResult);
         }
+
+        // Verificar se há uma imagem de perfil existente
+        if (parsedResult[0].profileImage) {
+          setPreviewUrl(parsedResult[0].profileImage);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -43,7 +47,137 @@ function UserProfile() {
     fetchData();
   }, []);
 
-  // console.log(data); // Use o operador ?. para evitar erros
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validação do tipo de arquivo
+      const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+      if (!validTypes.includes(file.type)) {
+        setUploadError("Apenas imagens JPG, JPEG, PNG e GIF são permitidas.");
+        return;
+      }
+
+      // Validação do tamanho do arquivo (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setUploadError("O tamanho da imagem não deve exceder 5MB.");
+        return;
+      }
+
+      setSelectedFile(file);
+      setUploadError("");
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // const handleUpload = async () => {
+  //   if (!selectedFile) {
+  //     alert("Por favor, selecione uma imagem para upload.");
+  //     return;
+  //   }
+
+  //   const formData = new FormData();
+  //   formData.append("profileImage", selectedFile);
+
+  //   try {
+  //     setUploading(true);
+  //     setUploadError("");
+
+  //     // Obter o email do usuário do localStorage ou de outra fonte de autenticação
+  //     const userEmail = localStorage.getItem("userEmail");
+  //     if (!userEmail) {
+  //       throw new Error("Email do usuário não encontrado.");
+  //     }
+
+  //     const response = await axios.post(
+  //       "https://api.live.eloygomes.com.br/api/uploadProfileImage",
+  //       formData,
+  //       {
+  //         headers: {
+  //           "Content-Type": "multipart/form-data",
+  //           "x-user-email": userEmail, // Enviar o email do usuário no cabeçalho
+  //         },
+  //       }
+  //     );
+
+  //     if (response.status === 200) {
+  //       alert("Imagem enviada com sucesso!");
+  //       setPreviewUrl(response.data.imageUrl); // Atualize a URL da imagem se a API retornar
+  //     } else {
+  //       setUploadError("Erro ao enviar a imagem.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Erro no upload:", error);
+  //     setUploadError(
+  //       error.response?.data?.message || "Erro ao enviar a imagem."
+  //     );
+  //   } finally {
+  //     setUploading(false);
+  //   }
+  // };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert("Por favor, selecione uma imagem para upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("profileImage", selectedFile);
+
+    // Obter o email do usuário do localStorage ou de outra fonte de autenticação
+    const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) {
+      throw new Error("Email do usuário não encontrado.");
+    }
+
+    // Adicionar o email ao FormData
+    formData.append("email", userEmail);
+
+    try {
+      setUploading(true);
+      setUploadError("");
+
+      const response = await axios.post(
+        "https://api.live.eloygomes.com.br/api/uploadProfileImage",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        alert("Imagem enviada com sucesso!");
+
+        // Obter a imagem do servidor
+        const imageResponse = await axios.get(
+          `https://api.live.eloygomes.com.br/api/profileImage/${userEmail}`,
+          {
+            responseType: "blob",
+          }
+        );
+        const imageBlob = imageResponse.data;
+        const imageObjectURL = URL.createObjectURL(imageBlob);
+        setPreviewUrl(imageObjectURL);
+      } else {
+        setUploadError("Erro ao enviar a imagem.");
+      }
+    } catch (error) {
+      console.error("Erro no upload:", error);
+      setUploadError(
+        error.response?.data?.message || "Erro ao enviar a imagem."
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Verifique se data[0] existe antes de renderizar o conteúdo
   if (!data[0]) {
@@ -77,21 +211,47 @@ function UserProfile() {
           <div className="flex flex-row neuphormism-b p-5">
             <div className="flex flex-col justify-between w-1/2 p-5">
               <div className="flex flex-row">
-                <div className="w-1/2">
-                  <UserProfileAvatar src={userPerfil} size={200} />
-                </div>
-                <div className="flex flex-col w-1/2">
-                  <h1 className="text-3xl font-bold ml-5 flex">
-                    {getFullName}
-                  </h1>
-                  <div className="flex flex-col justify-center mt-5 flex-1">
-                    <button className="neuphormism-b-btn mx-6 p-2">
-                      Upload
-                    </button>
-                    <p className="text-[10px] p-6">
-                      Click to upload! The avatar images need to be in a valid
-                      format like JPG, JPEG, GIF and has max of 500x500px
-                    </p>
+                <div className="flex flex-row p-1 ">
+                  <div className="flex flex-col justify-center items-start w-full p-1">
+                    <h2 className="text-md font-bold my-2 p-2">
+                      Selecionar Imagem de Perfil
+                    </h2>
+                    <div className="flex flex-row justify-between">
+                      <div className="flex flex-row w-2/3">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden w-1/2"
+                          id="profileImage"
+                        />
+                        <label
+                          htmlFor="profileImage"
+                          className="cursor-pointer"
+                        >
+                          <UserProfileAvatar src={previewUrl} size={200} />
+                        </label>
+                      </div>
+                      <div className="flex flex-col w-1/3">
+                        <button
+                          onClick={handleUpload}
+                          className="neuphormism-b-btn mx-6 p-2 mt-4"
+                          disabled={uploading}
+                        >
+                          {uploading ? "Enviando..." : "Upload"}
+                        </button>
+                        {uploadError && (
+                          <p className="text-red-500 text-sm mt-2">
+                            {uploadError}
+                          </p>
+                        )}
+                        <p className="text-[10px] ">
+                          Clique para selecionar e fazer upload! As imagens de
+                          avatar precisam estar em um formato válido como JPG,
+                          JPEG, GIF e ter no máximo 500x500px.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -169,14 +329,16 @@ function UserProfile() {
             <div className="flex flex-col justify-start w-1/2 p-5">
               <h2 className="text-md font-bold my-2 p-2">Logs</h2>
               {/* Exemplo de como renderizar logs se estiverem disponíveis */}
-              {data[0]?.logs?.map((log, index) => (
-                <div className="flex flex-row justify-between" key={index}>
-                  <h2 className="text-[10pt] p-2 w-1/2">{log.message}</h2>
-                  <h2 className="text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
-                    {log.time}
-                  </h2>
-                </div>
-              )) || (
+              {data[0]?.logs?.length > 0 ? (
+                data[0].logs.map((log, index) => (
+                  <div className="flex flex-row justify-between" key={index}>
+                    <h2 className="text-[10pt] p-2 w-1/2">{log.message}</h2>
+                    <h2 className="text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
+                      {log.time}
+                    </h2>
+                  </div>
+                ))
+              ) : (
                 <div className="flex flex-row justify-between">
                   <h2 className="text-[10pt] p-2">No logs available</h2>
                 </div>
@@ -244,6 +406,39 @@ function UserProfile() {
               </div>
             </div>
           </div>
+          {/* Seção de Upload de Imagem */}
+          {/* <div className="flex flex-row neuphormism-b p-5 mt-10">
+            <div className="flex flex-col justify-center items-center w-full p-5">
+              <h2 className="text-md font-bold my-2 p-2">
+                Selecionar Imagem de Perfil
+              </h2>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                id="profileImage"
+              />
+              <label htmlFor="profileImage" className="cursor-pointer">
+                <UserProfileAvatar src={previewUrl} size={200} />
+              </label>
+              <button
+                onClick={handleUpload}
+                className="neuphormism-b-btn mx-6 p-2 mt-4"
+                disabled={uploading}
+              >
+                {uploading ? "Enviando..." : "Upload"}
+              </button>
+              {uploadError && (
+                <p className="text-red-500 text-sm mt-2">{uploadError}</p>
+              )}
+              <p className="text-[10px] p-6">
+                Clique para selecionar e fazer upload! As imagens de avatar
+                precisam estar em um formato válido como JPG, JPEG, GIF e ter no
+                máximo 500x500px.
+              </p>
+            </div>
+          </div> */}
         </div>
       </div>
     </div>

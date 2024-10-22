@@ -4,11 +4,11 @@ const { MongoClient, Binary } = require("mongodb");
 const multer = require("multer");
 const path = require("path");
 const sharp = require("sharp"); // Importar sharp
-const fs = require("fs");
+const fs = require('fs');
 
 // Socket.IO
-const http = require("http");
-const { Server } = require("socket.io");
+const http = require('http');
+const { Server } = require('socket.io');
 
 const uri = "mongodb://root:example@db:27017/admin";
 const client = new MongoClient(uri);
@@ -36,20 +36,17 @@ connectToDatabase();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  path: "/socket.io",
+  path: '/socket.io',
   cors: {
-    origin: [
-      "https://www.live.eloygomes.com.br",
-      "https://api.live.eloygomes.com.br",
-    ],
+    origin: ["https://www.live.eloygomes.com.br", "https://api.live.eloygomes.com.br"],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
 // Namespaces
-const clientNamespace = io.of("/"); // Namespace padrão para clientes
-const pythonNamespace = io.of("/python"); // Namespace dedicado para o script Python
+const clientNamespace = io.of('/'); // Namespace padrão para clientes
+const pythonNamespace = io.of('/python'); // Namespace dedicado para o script Python
 
 // INSTRUÇÕES
 // •	messageToServer: Evento que o cliente emite para enviar dados ao servidor.
@@ -58,51 +55,51 @@ const pythonNamespace = io.of("/python"); // Namespace dedicado para o script Py
 // •	messageFromServer: Evento que o servidor emite para enviar os dados processados de volta ao cliente.
 
 // Handle client connections
-clientNamespace.on("connection", (socket) => {
+clientNamespace.on('connection', (socket) => {
   const userEmail = socket.handshake.query.email;
   const pipa = socket.handshake.query.pipa;
 
-  console.log("Usuário conectado:", socket.id, "Email:", userEmail);
-  console.log("FRONT", pipa);
+  console.log('Usuário conectado:', socket.id, 'Email:', userEmail);
+  console.log('FRONT', pipa);
 
   if (userEmail) {
     socket.join(userEmail);
   }
 
   // Escutar eventos do cliente
-  socket.on("messageToServer", (data) => {
-    console.log("Recebido do cliente:", data);
+  socket.on('messageToServer', (data) => {
+    console.log('Recebido do cliente:', data);
 
     // Emitir evento 'processData' para o script Python com os dados e o ID do cliente
-    pythonNamespace.emit("processData", { ...data, clientId: socket.id });
+    pythonNamespace.emit('processData', { ...data, clientId: socket.id });
   });
 
-  socket.on("disconnect", () => {
-    console.log("Usuário desconectado:", socket.id);
+  socket.on('disconnect', () => {
+    console.log('Usuário desconectado:', socket.id);
   });
 });
 
 // Handle Python script connections
-pythonNamespace.on("connection", (socket) => {
+pythonNamespace.on('connection', (socket) => {
   console.log(`Script Python conectado: ${socket.id}`);
 
   // Receber dados processados do script Python
-  socket.on("processedData", (data) => {
-    console.log("Dados processados recebidos do Python:", data);
+  socket.on('processedData', (data) => {
+    console.log('Dados processados recebidos do Python:', data);
 
     // Enviar os dados processados de volta ao cliente original
     const clientId = data.clientId;
     const clientSocket = clientNamespace.sockets.get(clientId);
 
     if (clientSocket) {
-      clientSocket.emit("messageFromServer", data);
-      console.log("Dados processados enviados ao cliente:", clientId);
+      clientSocket.emit('messageFromServer', data);
+      console.log('Dados processados enviados ao cliente:', clientId);
     } else {
-      console.log("Cliente não encontrado:", clientId);
+      console.log('Cliente não encontrado:', clientId);
     }
   });
 
-  socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
     console.log(`Script Python desconectado: ${socket.id}`);
   });
 });
@@ -135,9 +132,7 @@ const storage = multer.diskStorage({
 // Filtro de arquivo para aceitar apenas imagens
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif/;
-  const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimeType = allowedTypes.test(file.mimetype);
 
   if (extname && mimeType) {
@@ -157,12 +152,8 @@ const upload = multer({
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     // Erros do Multer
-    if (err.code === "LIMIT_FILE_SIZE") {
-      return res
-        .status(400)
-        .json({
-          message: "O tamanho do arquivo excede o limite permitido de 5MB.",
-        });
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: "O tamanho do arquivo excede o limite permitido de 5MB." });
     }
     return res.status(400).json({ message: err.message });
   } else if (err) {
@@ -172,79 +163,68 @@ app.use((err, req, res, next) => {
   next();
 });
 
-app.post(
-  "/api/uploadProfileImage",
-  upload.single("profileImage"),
-  async (req, res) => {
-    try {
-      const originalFilePath = req.file.path; // Caminho do arquivo original
 
-      // Processar a imagem com Sharp e obter um buffer
-      const processedImageBuffer = await sharp(originalFilePath)
-        .resize(200, 200)
-        .jpeg({ quality: 80 }) // Opcional: definir qualidade e formato
-        .toBuffer();
+app.post('/api/uploadProfileImage', upload.single('profileImage'), async (req, res) => {
+  try {
+    const originalFilePath = req.file.path; // Caminho do arquivo original
 
-      // Excluir o arquivo original, pois não precisamos mais dele
-      fs.unlink(originalFilePath, (err) => {
-        if (err) {
-          console.error("Erro ao excluir o arquivo original:", err);
-        } else {
-          console.log("Arquivo original excluído com sucesso.");
-        }
-      });
+    // Processar a imagem com Sharp e obter um buffer
+    const processedImageBuffer = await sharp(originalFilePath)
+      .resize(200, 200)
+      .jpeg({ quality: 80 }) // Opcional: definir qualidade e formato
+      .toBuffer();
 
-      // Obter referência à coleção onde as imagens serão armazenadas
-      const database = client.db("liveNloud_"); // Substitua pelo nome do seu banco de dados
-      const collection = database.collection("profileImages");
-
-      // Garantir que o campo 'email' seja único para evitar duplicatas
-      await collection.createIndex({ email: 1 }, { unique: true });
-
-      // Criar ou atualizar o documento para a imagem
-      const filter = { email: req.body.email }; // Filtro para encontrar o documento do usuário
-      const update = {
-        $set: {
-          image: new Binary(processedImageBuffer),
-          uploadDate: new Date(),
-        },
-      };
-      const options = { upsert: true }; // Cria o documento se não existir
-
-      const result = await collection.updateOne(filter, update, options);
-
-      if (result.upsertedCount > 0) {
-        console.log(
-          "Imagem salva no MongoDB com sucesso. Novo documento criado com ID:",
-          result.upsertedId._id
-        );
-      } else if (result.modifiedCount > 0) {
-        console.log("Imagem atualizada no MongoDB com sucesso.");
+    // Excluir o arquivo original, pois não precisamos mais dele
+    fs.unlink(originalFilePath, (err) => {
+      if (err) {
+        console.error('Erro ao excluir o arquivo original:', err);
       } else {
-        console.log("Nenhuma alteração feita no MongoDB.");
+        console.log('Arquivo original excluído com sucesso.');
       }
+    });
 
-      // Retornar uma resposta ao cliente
-      res.status(200).json({
-        message: "Imagem enviada e processada com sucesso!",
-        // Opcional: retornar o ID do documento ou outras informações
-      });
-    } catch (err) {
-      if (err.code === 11000) {
-        // Código de erro para duplicação de chave
-        console.error(
-          "Erro: O email fornecido já possui uma imagem de perfil."
-        );
-        res
-          .status(400)
-          .json({ error: "O email fornecido já possui uma imagem de perfil." });
-      } else {
-        console.error("Erro ao processar e salvar a imagem:", err);
-        res.status(500).json({ error: "Erro ao processar e salvar a imagem" });
-      }
+    // Obter referência à coleção onde as imagens serão armazenadas
+    const database = client.db('liveNloud_'); // Substitua pelo nome do seu banco de dados
+    const collection = database.collection('profileImages');
+
+    // Garantir que o campo 'email' seja único para evitar duplicatas
+    await collection.createIndex({ email: 1 }, { unique: true });
+
+    // Criar ou atualizar o documento para a imagem
+    const filter = { email: req.body.email }; // Filtro para encontrar o documento do usuário
+    const update = {
+      $set: {
+        image: new Binary(processedImageBuffer),
+        uploadDate: new Date(),
+      },
+    };
+    const options = { upsert: true }; // Cria o documento se não existir
+
+    const result = await collection.updateOne(filter, update, options);
+
+    if (result.upsertedCount > 0) {
+      console.log('Imagem salva no MongoDB com sucesso. Novo documento criado com ID:', result.upsertedId._id);
+    } else if (result.modifiedCount > 0) {
+      console.log('Imagem atualizada no MongoDB com sucesso.');
+    } else {
+      console.log('Nenhuma alteração feita no MongoDB.');
+    }
+
+    // Retornar uma resposta ao cliente
+    res.status(200).json({
+      message: 'Imagem enviada e processada com sucesso!',
+      // Opcional: retornar o ID do documento ou outras informações
+    });
+  } catch (err) {
+    if (err.code === 11000) { // Código de erro para duplicação de chave
+      console.error('Erro: O email fornecido já possui uma imagem de perfil.');
+      res.status(400).json({ error: 'O email fornecido já possui uma imagem de perfil.' });
+    } else {
+      console.error('Erro ao processar e salvar a imagem:', err);
+      res.status(500).json({ error: 'Erro ao processar e salvar a imagem' });
     }
   }
-);
+});
 // app.post('/api/uploadProfileImage', upload.single('profileImage'), async (req, res) => {
 
 //   try {
@@ -292,35 +272,34 @@ app.post(
 //   }
 // });
 
-app.get("/api/profileImage/:email", async (req, res) => {
+app.get('/api/profileImage/:email', async (req, res) => {
   try {
     const { email } = req.params;
 
-    const database = client.db("liveNloud_");
-    const collection = database.collection("profileImages");
+    const database = client.db('liveNloud_');
+    const collection = database.collection('profileImages');
 
     // Buscar a imagem pelo email
     const imageDocument = await collection.findOne({ email: email });
 
     if (!imageDocument) {
-      return res.status(404).json({ message: "Imagem não encontrada." });
+      return res.status(404).json({ message: 'Imagem não encontrada.' });
     }
 
     // Enviar os dados binários da imagem
-    res.set("Content-Type", "image/jpeg");
+    res.set('Content-Type', 'image/jpeg');
     res.send(imageDocument.image.buffer);
   } catch (err) {
-    console.error("Erro ao buscar a imagem:", err);
-    res.status(500).json({ error: "Erro ao buscar a imagem" });
+    console.error('Erro ao buscar a imagem:', err);
+    res.status(500).json({ error: 'Erro ao buscar a imagem' });
   }
 });
 
 // Rota para chamar o serviço Python e realizar o scrape
 app.post("/api/scrape", async (req, res) => {
-  console.log("scrape called");
+  console.log('scrape called');
   try {
-    const { artist, song, instrument, email, instrument_progressbar, link } =
-      req.body;
+    const { artist, song, instrument, email, instrument_progressbar, link } = req.body;
 
     const response = await axios.post(`${pythonApiUrl}/scrape`, {
       artist,
@@ -332,6 +311,7 @@ app.post("/api/scrape", async (req, res) => {
     });
 
     res.status(response.status).json(response.data);
+
   } catch (error) {
     console.error("Erro ao chamar a API Python:", error.message);
 
@@ -344,9 +324,7 @@ app.post("/api/scrape", async (req, res) => {
       });
     } else if (error.request) {
       console.error("Nenhuma resposta recebida da API Python");
-      res
-        .status(500)
-        .json({ message: "Nenhuma resposta recebida da API Python" });
+      res.status(500).json({ message: "Nenhuma resposta recebida da API Python" });
     } else {
       console.error("Erro na configuração da requisição para a API Python");
       res.status(500).json({
@@ -636,6 +614,6 @@ app.get("/api/alldata/", async (req, res) => {
 });
 
 // Inicie o servidor HTTP (Express + Socket.IO)
-server.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
 });
