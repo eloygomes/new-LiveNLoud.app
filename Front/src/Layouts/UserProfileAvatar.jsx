@@ -60,7 +60,7 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
   size = 40;
 
   return (
-    <div className="flex items-center space-x-2 my-5">
+    <div className="flex items-center space-x-2 my-0">
       <img
         className={`object-cover neuphormism-b-avatar rounded-full`}
         alt={alt}

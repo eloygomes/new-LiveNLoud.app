@@ -54,6 +54,14 @@ body {
   cursor: pointer;
 }
 
+.neuphormism-b-dark {
+  border-radius: 5px;
+  /* background: linear-gradient(145deg, #efefef80, #f0f0f07d); */
+  background: linear-gradient(145deg, #d1d1d12a, #b5b5b582);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
 .neuphormism-b-btn-flat {
   border-radius: 5px;
   background: linear-gradient(145deg, #efefef, #f0f0f0);
