@@ -68,7 +68,7 @@ function UserDropdownMenu({
         <div
           className={`${
             userDropdownMenuStatus ? "" : "hidden"
-          } w-[400px] absolute top-3 right-0  mt-0 origin-top-right rounded-md bg-white py-0 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none neuphormism-b flex flex-row  `}
+          } w-[400px] absolute top-0 -right-3  -mt-1 origin-top-right rounded-md bg-white py-0 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none neuphormism-b-dark flex flex-row  `}
           role="menu"
           aria-orientation="vertical"
           aria-labelledby="user-menu-button"
@@ -103,15 +103,11 @@ function UserDropdownMenu({
           <h1 className="mr-4 py-3 px-4 flex-1 truncate  font-extrabold uppercase ">
             {userName}
           </h1>
-          <div className="py-2 ">
-            <div className="flex items-center space-x-2  relative right-3">
-              <img
-                className={`w-8 h-8 object-cover neuphormism-b-avatar`}
-                alt={`alt`}
-                src={userPerfil}
-                onClick={() => setUserDropdownMenuStatus(false)}
-              />
-            </div>
+          <div
+            className="py-0 my-0 mt-1 mr-3"
+            onClick={() => setUserDropdownMenuStatus(false)}
+          >
+            <UserProfileAvatar src={userPerfil} size={200} />
           </div>
         </div>
       )}

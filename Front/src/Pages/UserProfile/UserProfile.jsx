@@ -13,6 +13,7 @@ function UserProfile() {
   const [previewUrl, setPreviewUrl] = useState(userPerfil);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [imageUpdated, setImageUpdated] = useState(0); // Estado para controlar a atualização da imagem
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,10 +36,7 @@ function UserProfile() {
           console.error("Unexpected data structure:", parsedResult);
         }
 
-        // Verificar se há uma imagem de perfil existente
-        if (parsedResult[0].profileImage) {
-          setPreviewUrl(parsedResult[0].profileImage);
-        }
+        // Não é mais necessário definir previewUrl aqui, pois o UserProfileAvatar gerencia isso
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -75,52 +73,6 @@ function UserProfile() {
     }
   };
 
-  // const handleUpload = async () => {
-  //   if (!selectedFile) {
-  //     alert("Por favor, selecione uma imagem para upload.");
-  //     return;
-  //   }
-
-  //   const formData = new FormData();
-  //   formData.append("profileImage", selectedFile);
-
-  //   try {
-  //     setUploading(true);
-  //     setUploadError("");
-
-  //     // Obter o email do usuário do localStorage ou de outra fonte de autenticação
-  //     const userEmail = localStorage.getItem("userEmail");
-  //     if (!userEmail) {
-  //       throw new Error("Email do usuário não encontrado.");
-  //     }
-
-  //     const response = await axios.post(
-  //       "https://api.live.eloygomes.com.br/api/uploadProfileImage",
-  //       formData,
-  //       {
-  //         headers: {
-  //           "Content-Type": "multipart/form-data",
-  //           "x-user-email": userEmail, // Enviar o email do usuário no cabeçalho
-  //         },
-  //       }
-  //     );
-
-  //     if (response.status === 200) {
-  //       alert("Imagem enviada com sucesso!");
-  //       setPreviewUrl(response.data.imageUrl); // Atualize a URL da imagem se a API retornar
-  //     } else {
-  //       setUploadError("Erro ao enviar a imagem.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Erro no upload:", error);
-  //     setUploadError(
-  //       error.response?.data?.message || "Erro ao enviar a imagem."
-  //     );
-  //   } finally {
-  //     setUploading(false);
-  //   }
-  // };
-
   const handleUpload = async () => {
     if (!selectedFile) {
       alert("Por favor, selecione uma imagem para upload.");
@@ -156,16 +108,15 @@ function UserProfile() {
       if (response.status === 200) {
         alert("Imagem enviada com sucesso!");
 
-        // Obter a imagem do servidor
-        const imageResponse = await axios.get(
-          `https://api.live.eloygomes.com.br/api/profileImage/${userEmail}`,
-          {
-            responseType: "blob",
-          }
-        );
-        const imageBlob = imageResponse.data;
-        const imageObjectURL = URL.createObjectURL(imageBlob);
-        setPreviewUrl(imageObjectURL);
+        // Atualizar o estado para notificar o UserProfileAvatar
+        setImageUpdated((prev) => prev + 1);
+
+        // Limpar o arquivo selecionado e o previewUrl
+        setSelectedFile(null);
+        setPreviewUrl(userPerfil);
+
+        // Forçar o reload da página para garantir que a imagem seja atualizada em todos os componentes
+        window.location.reload();
       } else {
         setUploadError("Erro ao enviar a imagem.");
       }
@@ -229,7 +180,11 @@ function UserProfile() {
                           htmlFor="profileImage"
                           className="cursor-pointer"
                         >
-                          <UserProfileAvatar src={previewUrl} size={200} />
+                          {/* A imagem será atualizada automaticamente quando upload for realizado */}
+                          <UserProfileAvatar
+                            size={200}
+                            imageUpdated={imageUpdated}
+                          />
                         </label>
                       </div>
                       <div className="flex flex-col w-1/3">
@@ -407,38 +362,7 @@ function UserProfile() {
             </div>
           </div>
           {/* Seção de Upload de Imagem */}
-          {/* <div className="flex flex-row neuphormism-b p-5 mt-10">
-            <div className="flex flex-col justify-center items-center w-full p-5">
-              <h2 className="text-md font-bold my-2 p-2">
-                Selecionar Imagem de Perfil
-              </h2>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-                id="profileImage"
-              />
-              <label htmlFor="profileImage" className="cursor-pointer">
-                <UserProfileAvatar src={previewUrl} size={200} />
-              </label>
-              <button
-                onClick={handleUpload}
-                className="neuphormism-b-btn mx-6 p-2 mt-4"
-                disabled={uploading}
-              >
-                {uploading ? "Enviando..." : "Upload"}
-              </button>
-              {uploadError && (
-                <p className="text-red-500 text-sm mt-2">{uploadError}</p>
-              )}
-              <p className="text-[10px] p-6">
-                Clique para selecionar e fazer upload! As imagens de avatar
-                precisam estar em um formato válido como JPG, JPEG, GIF e ter no
-                máximo 500x500px.
-              </p>
-            </div>
-          </div> */}
+          {/* Removido porque agora está integrado na parte principal */}
         </div>
       </div>
     </div>
