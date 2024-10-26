@@ -7,12 +7,12 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
   const userEmail = localStorage.getItem("userEmail");
 
   useEffect(() => {
-    console.log("useEffect chamado");
-    console.log("userEmail:", userEmail);
+    // console.log("useEffect chamado");
+    // console.log("userEmail:", userEmail);
 
     async function fetchProfileImage() {
       if (userEmail) {
-        console.log("Buscando imagem de perfil do servidor...");
+        // console.log("Buscando imagem de perfil do servidor...");
         try {
           const imageResponse = await axios.get(
             `https://api.live.eloygomes.com.br/api/profileImage/${encodeURIComponent(
@@ -22,12 +22,12 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
               responseType: "blob",
             }
           );
-          console.log("Resposta da API:", imageResponse);
+          // console.log("Resposta da API:", imageResponse);
 
           if (imageResponse.status === 200) {
             const imageBlob = imageResponse.data;
             const imageObjectURL = URL.createObjectURL(imageBlob);
-            console.log("URL da imagem criada:", imageObjectURL);
+            // console.log("URL da imagem criada:", imageObjectURL);
             setImageSrc(imageObjectURL);
           } else {
             console.warn("Status da resposta não é 200:", imageResponse.status);
@@ -55,7 +55,7 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
     };
   }, [userEmail]); // Removemos 'src' das dependências
 
-  console.log("imageSrc atual:", imageSrc);
+  // console.log("imageSrc atual:", imageSrc);
 
   size = 40;
 

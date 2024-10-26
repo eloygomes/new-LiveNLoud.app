@@ -39,7 +39,7 @@ export default function UserProfileAvatar({ src, size, alt = "User Avatar" }) {
     };
   }, [src, userEmail]);
 
-  console.log(imageSrc);
+  // console.log(imageSrc);
 
   return (
     <div className="flex items-center space-x-2 my-5">
