@@ -1,8 +1,9 @@
-import { Button, TextField, Grid, Typography } from "@mui/material";
+import { TextField, Grid, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 import { login } from "../../authFunctions";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { sendPasswordReset } from "../../authFunctions";
 
 function Login() {
   const [userEmail, setUserEmail] = useState("");
@@ -19,6 +20,14 @@ function Login() {
     } catch (error) {
       console.error("Login failed:", error);
       // Você pode adicionar lógica para mostrar uma mensagem de erro ao usuário aqui
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (userEmail) {
+      await sendPasswordReset(userEmail);
+    } else {
+      alert("Insert a valid email");
     }
   };
 
@@ -52,28 +61,36 @@ function Login() {
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
                     />
-                    <TextField
-                      variant="outlined"
-                      margin="normal"
-                      required
-                      fullWidth
-                      name="password"
-                      label="Password"
-                      type="password"
-                      id="password"
-                      autoComplete="current-password"
-                      value={userPassword}
-                      onChange={(e) => setUserPassword(e.target.value)}
-                    />
-                    <Button
+                    <div className="flex flex-col">
+                      <TextField
+                        variant="outlined"
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="password"
+                        label="Password"
+                        type="password"
+                        id="password"
+                        autoComplete="current-password"
+                        value={userPassword}
+                        onChange={(e) => setUserPassword(e.target.value)}
+                      />
+                      <div
+                        className="text-[10px] flex justify-end w-full py-1"
+                        onClick={handlePasswordReset}
+                      >
+                        Forgot Password?
+                      </div>
+                    </div>
+                    <button
                       type="submit"
-                      fullWidth
-                      variant="contained"
-                      color="primary"
-                      style={{ margin: "20px 0 10px" }}
+                      style={{
+                        margin: "20px 0 10px",
+                      }}
+                      className="neuphormism-b-btn-gold    w-full    py-3    transform    active:scale-95    transition-transform    duration-100  "
                     >
                       Login
-                    </Button>
+                    </button>
                   </form>
                   <Link to="/userregistration">
                     <div className="text-sm flex justify-start w-full pt-5">

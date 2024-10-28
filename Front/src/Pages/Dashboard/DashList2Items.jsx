@@ -122,7 +122,7 @@ function DashList2Items({ sortColumn, sortOrder }) {
                     <div className="flex items-center justify-center flex-1">
                       <div className="w-10/12 bg-gray-200 rounded-full input-neumorfismo">
                         <div
-                          className="bg-gray-700 rounded text-center py-1 text-[8pt] leading-none text-white"
+                          className="bg-[#DAA520] rounded text-center py-1 text-[8pt] leading-none text-white"
                           style={{ width: `${item.progressBar || 0}%` }}
                         >
                           {item.progressBar || 0}%
@@ -203,7 +203,7 @@ function DashList2Items({ sortColumn, sortOrder }) {
                 <div className="w-full flex items-center justify-center">
                   <div className="w-10/12 bg-gray-200 rounded-full input-neumorfismo">
                     <div
-                      className="bg-gray-700 rounded text-center py-1 text-[8pt] leading-none text-white"
+                      className="bg-[#DAA520] rounded text-center py-1 text-[8pt] leading-none text-black"
                       style={{ width: `${item.progressBar || 0}%` }}
                     >
                       {item.progressBar || 0}%

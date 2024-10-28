@@ -5,6 +5,7 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "./firebase"; // Importa o auth do arquivo firebase.js
 
@@ -55,5 +56,18 @@ export const loginWithGoogle = async () => {
     console.log("User logged in with Google:", result.user);
   } catch (error) {
     console.error("Error logging in with Google:", error.message);
+  }
+};
+
+// Função para enviar e-mail de redefinição de senha
+export const sendPasswordReset = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    console.log("E-mail de redefinição de senha enviado");
+  } catch (error) {
+    console.error(
+      "Erro ao enviar e-mail de redefinição de senha:",
+      error.message
+    );
   }
 };
