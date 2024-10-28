@@ -10,7 +10,11 @@ export default function FloatingActionButtons() {
       sx={{ "& > :not(style)": { m: 1 } }}
     >
       <Link to="/newsong">
-        <Fab color="primary" aria-label="add">
+        <Fab
+          color="primary"
+          aria-label="add"
+          style={{ backgroundColor: "#DAA520" }}
+        >
           <AddIcon />
         </Fab>
       </Link>
