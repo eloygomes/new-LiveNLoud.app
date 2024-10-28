@@ -44,7 +44,7 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="flex justify-center h-screen pt-0 sm:pt-0 md:pt-5 lg:pt-20 xl:pt-20 2xl:pt-20">
+    <div className="flex justify-center h-screen pt-0 sm:pt-0 md:pt-5 lg:pt-1 xl:pt-1 2xl:pt-1 overflow-y-hidden">
       {isMobile === 1 ? (
         <>
           <div className="bg-black flex justify-center items-center">

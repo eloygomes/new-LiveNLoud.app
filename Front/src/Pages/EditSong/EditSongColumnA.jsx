@@ -6,13 +6,22 @@ import EditSongSongData from "./EditSongSongData";
 import { deleteOneSong, updateSongData } from "../../Tools/Controllers"; // Função que você vai criar para atualizar
 import { useNavigate } from "react-router-dom";
 
-function EditSongColumnA({ dataFromAPI }) {
+function EditSongColumnA({
+  dataFromAPI,
+  progGuitar01,
+  progGuitar02,
+  progBass,
+  progKey,
+  progDrums,
+  progVoice,
+}) {
   const [songName, setSongName] = useState("");
   const [artistName, setArtistName] = useState("");
   const [capoData, setCapoData] = useState("");
   const [tomData, setTomData] = useState("");
   const [tunerData, setTunerData] = useState("");
   const [geralPercentage, setGeralPercentage] = useState(0);
+  const [geralPercentageEdit, setGeralPercentageEdit] = useState("");
   const [embedLink, setEmbedLink] = useState([]);
   const [firstPlay, setFirstPlay] = useState("");
   const [lastPlay, setLastPlay] = useState("");
@@ -20,67 +29,82 @@ function EditSongColumnA({ dataFromAPI }) {
   // guitar01
   const [songCifraguitar01, setSongCifraguitar01] = useState(null);
   const [instrActiveStatusguitar01, setInstrActiveStatusguitar01] =
-    useState(null);
-  const [instCapoguitar01, setInstCapoguitar01] = useState(null);
-  const [instTuningguitar01, setInstTuningguitar01] = useState(null);
-  const [instLastPlayedguitar01, setInstLastPlayedguitar01] = useState(null);
-  const [instLinkguitar01, setInstLinkguitar01] = useState(null);
-  const [instProgressBarguitar01, setInstProgressBarguitar01] = useState(null);
+    useState(false); // Inicializar como false
+  const [instCapoguitar01, setInstCapoguitar01] = useState("");
+  const [instTuningguitar01, setInstTuningguitar01] = useState("");
+  const [instLastPlayedguitar01, setInstLastPlayedguitar01] = useState("");
+  const [instLinkguitar01, setInstLinkguitar01] = useState("");
+  const [instProgressBarguitar01, setInstProgressBarguitar01] = useState(0);
 
   // guitar02
   const [songCifraguitar02, setSongCifraguitar02] = useState(null);
   const [instrActiveStatusguitar02, setInstrActiveStatusguitar02] =
-    useState(null);
-  const [instCapoguitar02, setInstCapoguitar02] = useState(null);
-  const [instTuningguitar02, setInstTuningguitar02] = useState(null);
-  const [instLastPlayedguitar02, setInstLastPlayedguitar02] = useState(null);
-  const [instLinkguitar02, setInstLinkguitar02] = useState(null);
-  const [instProgressBarguitar02, setInstProgressBarguitar02] = useState(null);
+    useState(false); // Inicializar como false
+  const [instCapoguitar02, setInstCapoguitar02] = useState("");
+  const [instTuningguitar02, setInstTuningguitar02] = useState("");
+  const [instLastPlayedguitar02, setInstLastPlayedguitar02] = useState("");
+  const [instLinkguitar02, setInstLinkguitar02] = useState("");
+  const [instProgressBarguitar02, setInstProgressBarguitar02] = useState(0);
 
   //bass
   const [songCifrabass, setSongCifrabass] = useState(null);
-  const [instrActiveStatusbass, setInstrActiveStatusbass] = useState(null);
-  const [instCapobass, setInstCapobass] = useState(null);
-  const [instTuningbass, setInstTuningbass] = useState(null);
-  const [instLastPlayedbass, setInstLastPlayedbass] = useState(null);
-  const [instLinkbass, setInstLinkbass] = useState(null);
-  const [instProgressBarbass, setInstProgressBarbass] = useState(null);
+  const [instrActiveStatusbass, setInstrActiveStatusbass] = useState(false); // Inicializar como false
+  const [instCapobass, setInstCapobass] = useState("");
+  const [instTuningbass, setInstTuningbass] = useState("");
+  const [instLastPlayedbass, setInstLastPlayedbass] = useState("");
+  const [instLinkbass, setInstLinkbass] = useState("");
+  const [instProgressBarbass, setInstProgressBarbass] = useState(0);
 
   //keyboard
   const [songCifrakeyboard, setSongCifrakeyboard] = useState(null);
   const [instrActiveStatuskeyboard, setInstrActiveStatuskeyboard] =
-    useState(null);
-  const [instCapokeyboard, setInstCapokeyboard] = useState(null);
-  const [instTuningkeyboard, setInstTuningkeyboard] = useState(null);
-  const [instLastPlayedkeyboard, setInstLastPlayedkeyboard] = useState(null);
-  const [instLinkkeyboard, setInstLinkkeyboard] = useState(null);
-  const [instProgressBarkeyboard, setInstProgressBarkeyboard] = useState(null);
+    useState(false); // Inicializar como false
+  const [instCapokeyboard, setInstCapokeyboard] = useState("");
+  const [instTuningkeyboard, setInstTuningkeyboard] = useState("");
+  const [instLastPlayedkeyboard, setInstLastPlayedkeyboard] = useState("");
+  const [instLinkkeyboard, setInstLinkkeyboard] = useState("");
+  const [instProgressBarkeyboard, setInstProgressBarkeyboard] = useState(0);
 
   //drums
   const [songCifradrums, setSongCifradrums] = useState(null);
-  const [instrActiveStatusdrums, setInstrActiveStatusdrums] = useState(null);
-  const [instCapodrums, setInstCapodrums] = useState(null);
-  const [instTuningdrums, setInstTuningdrums] = useState(null);
-  const [instLastPlayeddrums, setInstLastPlayeddrums] = useState(null);
-  const [instLinkdrums, setInstLinkdrums] = useState(null);
-  const [instProgressBardrums, setInstProgressBardrums] = useState(null);
+  const [instrActiveStatusdrums, setInstrActiveStatusdrums] = useState(false); // Inicializar como false
+  const [instCapodrums, setInstCapodrums] = useState("");
+  const [instTuningdrums, setInstTuningdrums] = useState("");
+  const [instLastPlayeddrums, setInstLastPlayeddrums] = useState("");
+  const [instLinkdrums, setInstLinkdrums] = useState("");
+  const [instProgressBardrums, setInstProgressBardrums] = useState(0);
 
   //voice
   const [songCifravoice, setSongCifravoice] = useState(null);
-  const [instrActiveStatusvoice, setInstrActiveStatusvoice] = useState(null);
-  const [instCapovoice, setInstCapovoice] = useState(null);
-  const [instTuningvoice, setInstTuningvoice] = useState(null);
-  const [instLastPlayedvoice, setInstLastPlayedvoice] = useState(null);
-  const [instLinkvoice, setInstLinkvoice] = useState(null);
-  const [instProgressBarvoice, setInstProgressBarvoice] = useState(null);
+  const [instrActiveStatusvoice, setInstrActiveStatusvoice] = useState(false); // Inicializar como false
+  const [instCapovoice, setInstCapovoice] = useState("");
+  const [instTuningvoice, setInstTuningvoice] = useState("");
+  const [instLastPlayedvoice, setInstLastPlayedvoice] = useState("");
+  const [instLinkvoice, setInstLinkvoice] = useState("");
+  const [instProgressBarvoice, setInstProgressBarvoice] = useState(0);
 
   const navigator = useNavigate();
+
+  useEffect(() => {
+    setGeralPercentage(
+      Math.round(
+        (Number(progGuitar01) +
+          Number(progGuitar02) +
+          Number(progBass) +
+          Number(progKey) +
+          Number(progDrums) +
+          Number(progVoice)) /
+          6
+      )
+    );
+  }, [progGuitar01, progGuitar02, progBass, progKey, progDrums, progVoice]);
 
   useEffect(() => {
     if (dataFromAPI && typeof dataFromAPI === "string") {
       try {
         const parsedData = JSON.parse(dataFromAPI);
         console.log("Parsed data:", parsedData);
+        console.log(parsedData.progressBar);
 
         setArtistName(parsedData.artist || "");
         setSongName(parsedData.song || "");
@@ -157,19 +181,19 @@ function EditSongColumnA({ dataFromAPI }) {
     }
   }, [dataFromAPI]);
 
-  const handleUpdate = async () => {
-    // const updatedData = {
-    //   artist: artistName,
-    //   song: songName,
-    //   capo: capoData,
-    //   tom: tomData,
-    //   tuning: tunerData,
-    //   progressBar: geralPercentage,
-    //   embedVideos: embedLink,
-    //   addedIn: firstPlay,
-    //   lastPlayed: lastPlay,
-    // };
+  console.log(
+    progGuitar01,
+    progGuitar02,
+    progBass,
+    progKey,
+    progDrums,
+    progVoice
+  );
 
+  console.log("geralPercentageEdit", geralPercentageEdit);
+  console.log("geralPercentage", geralPercentage);
+
+  const handleUpdate = async () => {
     try {
       const userEmail = localStorage.getItem("userEmail");
       const updatedData = {
@@ -177,77 +201,83 @@ function EditSongColumnA({ dataFromAPI }) {
         artist: artistName,
         progressBar: geralPercentage || 0,
         instruments: {
-          guitar01: instrActiveStatusguitar01 ? true : false,
-          guitar02: instrActiveStatusguitar02 ? true : false,
-          bass: instrActiveStatusbass ? true : false,
-          keys: instrActiveStatuskeyboard ? true : false,
-          drums: instrActiveStatusdrums ? true : false,
-          voice: instrActiveStatusvoice ? true : false,
+          guitar01: instrActiveStatusguitar01
+            ? {
+                active: true,
+                capo: instCapoguitar01,
+                lastPlay: instLastPlayedguitar01,
+                link: instLinkguitar01,
+                progress: instProgressBarguitar01,
+                songCifra: songCifraguitar01,
+                tuning: instTuningguitar01,
+              }
+            : false,
+          guitar02: instrActiveStatusguitar02
+            ? {
+                active: true,
+                capo: instCapoguitar02,
+                lastPlay: instLastPlayedguitar02,
+                link: instLinkguitar02,
+                progress: instProgressBarguitar02,
+                songCifra: songCifraguitar02,
+                tuning: instTuningguitar02,
+              }
+            : false,
+          bass: instrActiveStatusbass
+            ? {
+                active: true,
+                capo: instCapobass,
+                lastPlay: instLastPlayedbass,
+                link: instLinkbass,
+                progress: instProgressBarbass,
+                songCifra: songCifrabass,
+                tuning: instTuningbass,
+              }
+            : false,
+          keys: instrActiveStatuskeyboard
+            ? {
+                active: true,
+                capo: instCapokeyboard,
+                lastPlay: instLastPlayedkeyboard,
+                link: instLinkkeyboard,
+                progress: instProgressBarkeyboard,
+                songCifra: songCifrakeyboard,
+                tuning: instTuningkeyboard,
+              }
+            : false,
+          drums: instrActiveStatusdrums
+            ? {
+                active: true,
+                capo: instCapodrums,
+                lastPlay: instLastPlayeddrums,
+                link: instLinkdrums,
+                progress: instProgressBardrums,
+                songCifra: songCifradrums,
+                tuning: instTuningdrums,
+              }
+            : false,
+          voice: instrActiveStatusvoice
+            ? {
+                active: true,
+                capo: instCapovoice,
+                lastPlay: instLastPlayedvoice,
+                link: instLinkvoice,
+                progress: instProgressBarvoice,
+                songCifra: songCifravoice,
+                tuning: instTuningvoice,
+              }
+            : false,
         },
-        guitar01: {
-          active: instrActiveStatusguitar01,
-          capo: instCapoguitar01,
-          lastPlay: instLastPlayedguitar01,
-          link: instLinkguitar01,
-          progress: instProgressBarguitar01,
-          songCifra: songCifraguitar01,
-          tuning: instTuningguitar01,
-        },
-        guitar02: {
-          active: instrActiveStatusguitar02,
-          capo: instCapoguitar02,
-          lastPlay: instLastPlayedguitar02,
-          link: instLinkguitar02,
-          progress: instProgressBarguitar02,
-          songCifra: songCifraguitar02,
-          tuning: instTuningguitar02,
-        },
-        bass: {
-          active: instrActiveStatusbass,
-          capo: instCapobass,
-          lastPlay: instLastPlayedbass,
-          link: instLinkbass,
-          progress: instProgressBarbass,
-          songCifra: songCifrabass,
-          tuning: instTuningbass,
-        },
-        keys: {
-          active: instrActiveStatuskeyboard,
-          capo: instCapokeyboard,
-          lastPlay: instLastPlayedkeyboard,
-          link: instLinkkeyboard,
-          progress: instProgressBarkeyboard,
-          songCifra: songCifrakeyboard,
-          tuning: instTuningkeyboard,
-        },
-        drums: {
-          active: instrActiveStatusdrums,
-          capo: instCapodrums,
-          lastPlay: instLastPlayeddrums,
-          link: instLinkdrums,
-          progress: instProgressBardrums,
-          songCifra: songCifradrums,
-          tuning: instTuningdrums,
-        },
-        voice: {
-          active: instrActiveStatusvoice,
-          capo: instCapovoice,
-          lastPlay: instLastPlayedvoice,
-          link: instLinkvoice,
-          progress: instProgressBarvoice,
-          songCifra: songCifravoice,
-          tuning: instTuningvoice,
-        },
-
         embedVideos: embedLink || [],
-        // addedIn: new Date().toISOString().split("T")[0],
         updateIn: new Date().toISOString().split("T")[0],
         email: userEmail,
       };
 
-      // Chame a função que você criará para atualizar os dados no banco
+      // Chame a função que você criou para atualizar os dados no banco
       await updateSongData(updatedData);
       console.log("Song data updated successfully.");
+      // Redirecionar para a página inicial
+      navigator("/");
     } catch (error) {
       console.error("Error updating song data:", error);
     }
@@ -255,7 +285,7 @@ function EditSongColumnA({ dataFromAPI }) {
 
   const handleDelete = async () => {
     try {
-      // Chame a função que você criará para deletar os dados no banco
+      // Chame a função que você vai criar para deletar os dados no banco
       await deleteOneSong(artistName, songName);
       console.log("Song data deleted successfully.", artistName, songName);
       // Redirecionar para a página inicial
@@ -281,10 +311,7 @@ function EditSongColumnA({ dataFromAPI }) {
         setTomData={setTomData}
         setTunerData={setTunerData}
       />
-      <GeralProgressBar
-        geralPercentage={geralPercentage}
-        setGeralPercentage={setGeralPercentage}
-      />
+      <GeralProgressBar geralPercentage={geralPercentage} />
       <EditSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
 
       <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">

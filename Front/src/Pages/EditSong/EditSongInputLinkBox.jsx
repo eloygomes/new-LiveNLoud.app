@@ -55,37 +55,24 @@ function EditSongInputLinkBox({
     const artistFromUrl = localStorage.getItem("artist");
     const songFromUrl = localStorage.getItem("song");
 
-    console.log("userEmail", userEmail);
-    console.log("artistFromUrl", artistFromUrl);
-    console.log("songFromUrl", songFromUrl);
-    console.log("instrument", instrumentName);
-    console.log("instrument_progressbar", progress);
-    console.log("link", link);
+    // console.log("userEmail", userEmail);
+    // console.log("artistFromUrl", artistFromUrl);
+    // console.log("songFromUrl", songFromUrl);
+    // console.log("instrument", instrumentName);
+    // console.log("instrument_progressbar", progress);
+    // console.log("link", link);
 
     const url = link;
     const parts = url.split("/").filter(Boolean); // Filtra partes vazias
     const artist = parts[parts.length - 2]; // Penúltima parte
     const song = parts[parts.length - 1]; // Última parte
 
-    console.log("artist", artist);
-    console.log("song", song);
-
-    // if (!userEmail) {
-    //   setShowSnackBar(true);
-    //   setSnackbarMessage({
-    //     title: "Error",
-    //     message: "User email is required to register the song.",
-    //   });
-    //   return;
-    // }
+    // console.log("artist", artist);
+    // console.log("song", song);
 
     try {
-      // const { artistFromUrl, songFromUrl } = extractArtistAndSong(instrument);
-      // setArtistExtractedFromUrl(artistFromUrl);
-      // setSongExtractedFromUrl(songFromUrl);
-
       // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
-      await axios.post("https://www.api.live.eloygomes.com.br/api/scrape", {
+      await axios.post("https://api.live.eloygomes.com.br/api/scrape", {
         artist: artist,
         song: song,
         email: userEmail,
@@ -101,14 +88,6 @@ function EditSongInputLinkBox({
         "Error registering user in API:",
         error.response ? error.response.data : error.message
       );
-      // setShowSnackBar(true);
-      // setSnackbarMessage({
-      //   title: "Error",
-      //   message: error.response
-      //     ? error.response.data.message ||
-      //       "An error occurred while processing your request."
-      //     : "An error occurred while processing your request.",
-      // });
     }
   };
 
