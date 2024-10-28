@@ -76,7 +76,7 @@ function DashList2() {
         </div>
       ) : (
         <div className="container mx-auto">
-          <div className="flex flex-col mt-0">
+          <div className="flex flex-col mt-0 h-[97vh]">
             {/* Header que ficará fixo no topo */}
             <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-[68px] bg-white z-30">
               <div
@@ -115,7 +115,7 @@ function DashList2() {
               <div className="w-full text-center px-5">INSTRUMENTS</div>
             </div>
 
-            <ul className="overflow-auto h-screen">
+            <ul className="overflow-auto h-screen mt-16 pb-60">
               <DashList2Items sortColumn={sortColumn} sortOrder={sortOrder} />
             </ul>
           </div>

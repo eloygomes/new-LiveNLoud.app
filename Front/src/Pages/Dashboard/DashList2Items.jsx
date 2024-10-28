@@ -173,7 +173,7 @@ function DashList2Items({ sortColumn, sortOrder }) {
         </div>
       ) : (
         // Desktop
-        <div className="flex flex-col">
+        <div className="flex flex-col h-full">
           {sortedData.map((item, index) => (
             <div key={index} className="relative group hover:bg-gray-300">
               <Link
@@ -246,6 +246,7 @@ function DashList2Items({ sortColumn, sortOrder }) {
               </div>
             </div>
           ))}
+
           <div className="border-b border-gray-300"></div>
         </div>
       )}

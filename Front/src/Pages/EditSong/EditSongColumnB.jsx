@@ -2,30 +2,38 @@ import { useEffect, useState } from "react";
 import EditSongInputLinkBox from "./EditSongInputLinkBox";
 
 /* eslint-disable react/prop-types */
-function EditSongColumnB({ dataFromAPI }) {
+function EditSongColumnB({
+  dataFromAPI,
+  progGuitar01,
+  setProgGuitar01,
+  progGuitar02,
+  setProgGuitar02,
+  progBass,
+  setProgBass,
+  progKey,
+  setProgKey,
+  progDrums,
+  setProgDrums,
+  progVoice,
+  setProgVoice,
+}) {
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
-  const [progGuitar01, setProgGuitar01] = useState(0);
 
   // Guitar 02
   const [guitar02, setGuitar02] = useState("");
-  const [progGuitar02, setProgGuitar02] = useState(0);
 
   // Bass
   const [bass, setBass] = useState("");
-  const [progBass, setProgBass] = useState(0);
 
   // Key
   const [key, setKey] = useState("");
-  const [progKey, setProgKey] = useState(0);
 
   // Drums
   const [drums, setDrums] = useState("");
-  const [progDrums, setProgDrums] = useState(0);
 
   // Voice
   const [voice, setVoice] = useState("");
-  const [progVoice, setProgVoice] = useState(0);
 
   useEffect(() => {
     // Verifique se dataFromAPI está definida e possui dados válidos
@@ -94,20 +102,6 @@ function EditSongColumnB({ dataFromAPI }) {
       console.warn("dataFromAPI está vazio ou indefinido:", dataFromAPI);
     }
   }, [dataFromAPI]);
-
-  // console.log(guitar01);
-  // console.log(guitar02);
-  // console.log(bass);
-  // console.log(key);
-  // console.log(drums);
-  // console.log(voice);
-
-  // console.log("progGuitar01", progGuitar01);
-  // console.log("progGuitar02", progGuitar02);
-  // console.log("progBass", progBass);
-  // console.log("progKey", progKey);
-  // console.log("progDrums", progDrums);
-  // console.log("progVoice", progVoice);
 
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">

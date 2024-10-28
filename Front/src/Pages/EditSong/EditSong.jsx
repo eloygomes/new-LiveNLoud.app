@@ -6,6 +6,14 @@ import { fetchAllSongData } from "../../Tools/Controllers";
 function EditSong() {
   const [dataFromAPI, setDataFromAPI] = useState([]);
 
+  // Column B
+  const [progGuitar01, setProgGuitar01] = useState(0);
+  const [progGuitar02, setProgGuitar02] = useState(0);
+  const [progBass, setProgBass] = useState(0);
+  const [progKey, setProgKey] = useState(0);
+  const [progDrums, setProgDrums] = useState(0);
+  const [progVoice, setProgVoice] = useState(0);
+
   // LocalStorage user email
   const userEmail = localStorage.getItem("userEmail");
   const artist = localStorage.getItem("artist");
@@ -39,10 +47,32 @@ function EditSong() {
           </div>
           <div className="flex flex-row">
             <div className="left-column w-1/2">
-              <EditSongColumnA dataFromAPI={dataFromAPI} />
+              <EditSongColumnA
+                dataFromAPI={dataFromAPI}
+                progGuitar01={progGuitar01}
+                progGuitar02={progGuitar02}
+                progBass={progBass}
+                progKey={progKey}
+                progDrums={progDrums}
+                progVoice={progVoice}
+              />
             </div>
             <div className="right-column w-1/2">
-              <EditSongColumnB dataFromAPI={dataFromAPI} />
+              <EditSongColumnB
+                dataFromAPI={dataFromAPI}
+                progGuitar01={progGuitar01}
+                setProgGuitar01={setProgGuitar01}
+                progGuitar02={progGuitar02}
+                setProgGuitar02={setProgGuitar02}
+                progBass={progBass}
+                setProgBass={setProgBass}
+                progKey={progKey}
+                setProgKey={setProgKey}
+                progDrums={progDrums}
+                setProgDrums={setProgDrums}
+                progVoice={progVoice}
+                setProgVoice={setProgVoice}
+              />
             </div>
           </div>
         </div>

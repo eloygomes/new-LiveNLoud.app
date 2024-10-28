@@ -75,15 +75,7 @@ export const updateSongData = async (updatedData) => {
   const song = localStorage.getItem("song");
 
   console.log("updatedData", updatedData);
-
   console.log("CONTROLLERS", userEmail, artist, song, updatedData);
-
-  // const payload = {
-  //   email: userEmail,
-  //   artist: artist,
-  //   song: song,
-  //   updatedData: updatedData, // Passando os dados atualizados
-  // };
 
   const payload = {
     userdata: {
@@ -98,8 +90,7 @@ export const updateSongData = async (updatedData) => {
 
   try {
     const response = await axios.post(
-      // "https://www.api.live.eloygomes.com.br/api/updateonesong", // Endpoint para atualizar a música
-      "https://api.live.eloygomes.com.br/api/updateonesong", // Endpoint para atualizar a música
+      "https://api.live.eloygomes.com.br/api/newsong", // Atualizado para a rota correta
       payload,
       { headers: { "Content-Type": "application/json" } }
     );
