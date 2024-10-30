@@ -53,16 +53,15 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
         URL.revokeObjectURL(imageSrc);
       }
     };
-  }, [userEmail]); // Removemos 'src' das dependências
-
+  }, [userEmail]);
   // console.log("imageSrc atual:", imageSrc);
 
   size = 40;
 
   return (
-    <div className="flex items-center space-x-2 my-0">
+    <div className="flex items-center space-x-2 my-0 w-[40px] ">
       <img
-        className={`object-cover neuphormism-b-avatar rounded-full`}
+        className={`object-cover neuphormism-b-avatar rounded-full relative right-[7px]`}
         alt={alt}
         src={imageSrc}
         style={{ width: `${size}px`, height: `${size}px` }} // Garantir que a largura e a altura sejam iguais

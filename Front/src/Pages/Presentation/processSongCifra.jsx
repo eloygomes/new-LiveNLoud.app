@@ -17,49 +17,126 @@ export const processSongCifra = (songCifra) => {
     return /^\s*\[.*\]\s*$/.test(line);
   };
 
-  // Função para verificar se uma linha é um rótulo de seção de tabulação
-  const isTabSectionLabel = (line) => {
-    return /^\s*\[Tab.*\]\s*$/.test(line);
+  // Função para extrair o nome da seção
+  const getSectionName = (line) => {
+    const match = line.match(/^\s*\[([^\]]+)\]\s*$/);
+    if (match) {
+      return match[1].trim().toLowerCase().replace(/\s+/g, "-");
+    }
+    return null;
   };
 
-  // Função para verificar se uma linha é uma tabulação
+  // Função para determinar a classe da seção com base no nome
+  const getSectionClass = (sectionName) => {
+    sectionName = sectionName.toLowerCase();
+    if (sectionName.includes("parte") || sectionName.includes("verse")) {
+      return "verse";
+    } else if (
+      sectionName.includes("refrão") ||
+      sectionName.includes("chorus")
+    ) {
+      return "chorus";
+    } else if (sectionName.includes("intro")) {
+      return "intro";
+    } else if (sectionName.includes("solo")) {
+      return "solo";
+    } else {
+      return "section";
+    }
+  };
+
+  // Função para verificar se uma linha é uma linha de tabulação
   const isTabLine = (line) => {
-    // Verifica se a linha contém pelo menos um caractere de tabulação típico
-    return /^[A-Ga-gd][#b]?[-|:\d\s]/.test(line);
+    return /\|[-\s\d|]*\|?/.test(line);
   };
 
-  // Regex para identificar acordes complexos iniciados com letra maiúscula
-  const chordRegexString =
-    "([A-GHJ][#b]?((maj7|7M|maj|min|m|add|sus[24]?|dim7?|aug|[\\d])[d#b]*)*(\\/([A-GHJ][#b]?((maj7|7M|maj|min|m|add|sus[24]?|dim7?|aug|[\\d])[d#b]*)*))?)";
+  // Função para verificar se uma linha contém a palavra "tom"
+  const isTomLine = (line) => {
+    return line.toLowerCase().includes("tom");
+  };
 
-  const chordLineRegex = new RegExp("^\\s*(" + chordRegexString + "\\s*)+$");
+  // Lista de palavras que não são acordes para evitar falsos positivos
+  const nonChordWords = [
+    "Coração",
+    "Dedilhado",
+    "Final",
+    "Estrofes",
+    "Frase",
+    "Casta_nhos",
+    "Escala",
+    "coração",
+    "dedilhado",
+    "final",
+    "estrofes",
+    "frase",
+    "casta_nhos",
+    "escala",
+    "Fontes",
+
+    // Adicione outras palavras conforme necessário
+  ];
+
+  // Regex para identificar acordes, incluindo sustenidos/bemóis após a barra
+  const chordRegexString =
+    "([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?(?:\\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?)?)";
+
+  const chordValidationRegex = new RegExp("^" + chordRegexString + "$");
+
+  // Atualiza o chordPattern para capturar acordes corretamente
+  // const chordPattern = new RegExp(
+  //   "(^|\\s)" + chordRegexString + "(?=\\s|$)",
+  //   "g"
+  // );
 
   const chordPattern = new RegExp(
-    "\\b" + chordRegexString + "\\b(?![a-z])",
+    "(\\b|\\s|[-:])" + chordRegexString + "(?=\\s|$)",
     "g"
   );
 
-  // Função para verificar se uma linha é uma linha de acordes
-  const isChordLine = (line) => {
-    return chordLineRegex.test(line);
+  // Função para verificar se uma string é um acorde válido
+  const isChord = (word) => {
+    if (nonChordWords.includes(word)) {
+      return false;
+    }
+    return chordValidationRegex.test(word);
   };
 
-  // Função para envolver as notas musicais com a classe `notespresentation`
+  // Função para verificar se uma linha é uma linha de acordes
+  const isChordLine = (line) => {
+    const words = line.trim().split(/\s+/);
+    let chordCount = 0;
+
+    for (const word of words) {
+      if (isChord(word)) {
+        chordCount++;
+      }
+    }
+
+    // Considera como linha de acordes se mais da metade das palavras forem acordes
+    return chordCount / words.length >= 0.6 && chordCount > 0;
+  };
+
+  // Função para verificar se uma linha contém pelo menos um acorde
+  const containsChord = (line) => {
+    const words = line.trim().split(/\s+/);
+    for (const word of words) {
+      if (isChord(word)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Função ajustada para envolver os acordes com a classe `notespresentation`
   const addClassToChords = (line) => {
-    return line.replace(chordPattern, (match) => {
-      // Verifica se o match é um acorde válido
-      if (isChord(match.trim())) {
-        return `<span class="notespresentation">${match.trim()}</span>`;
+    return line.replace(chordPattern, (match, p1) => {
+      const chord = match.trim();
+      if (isChord(chord)) {
+        return p1 + `<span class="notespresentation">${chord}</span>`;
       } else {
         return match;
       }
     });
-  };
-
-  // Função para verificar se uma string é um acorde válido
-  const isChord = (word) => {
-    const chordValidationRegex = new RegExp("^" + chordRegexString + "$");
-    return chordValidationRegex.test(word);
   };
 
   let i = 0;
@@ -70,75 +147,131 @@ export const processSongCifra = (songCifra) => {
     const line = originalLine.trim();
 
     try {
-      if (isSectionLabel(line)) {
-        if (isTabSectionLabel(line)) {
-          // Trata rótulo de seção de tabulação
+      if (isBlankLine(line)) {
+        // Linha em branco
+        htmlBlocks.push(
+          `<pre id="space-${i}" class="my-5 presentation-blank-line"></pre>`
+        );
+      } else if (isTomLine(line)) {
+        // Linha com "tom"
+        let blockContent = line;
+        let j = i;
+
+        // Verifica se tem acorde na mesma linha
+        if (containsChord(line)) {
+          // Já tem acorde na mesma linha
+          blockContent = addClassToChords(blockContent);
           htmlBlocks.push(
-            `<pre id="section-${i}" class="mt-3 presentation-section presentation-tab-section">${line}</pre>`
+            `<pre id="tom-${i}" class="presentation-tom">${blockContent}</pre>`
           );
         } else {
-          // Trata rótulo de seção regular
+          // Procura acorde nas próximas linhas
+          let foundChord = false;
+          while (!foundChord && j + 1 < totalLines) {
+            j++;
+            const nextLine = lines[j].trim();
+            if (containsChord(nextLine)) {
+              blockContent += "\n" + addClassToChords(nextLine);
+              foundChord = true;
+            } else if (isBlankLine(nextLine) || isSectionLabel(nextLine)) {
+              break;
+            } else {
+              blockContent += "\n" + nextLine;
+            }
+          }
           htmlBlocks.push(
-            `<pre id="section-${i}" class="mt-3 presentation-section">${line}</pre>`
+            `<pre id="tom-${i}" class="presentation-tom">${blockContent}</pre>`
           );
+          i = j;
         }
-      } else if (isChordLine(line)) {
-        // Linha de acordes
-        let chordLine = addClassToChords(line);
-        let tabBlock = [];
+      } else if (isSectionLabel(line)) {
+        // Linha com rótulo de seção
+        const sectionLabel = line;
+        const sectionName = getSectionName(line) || `section-${i}`;
+        const sectionClass = getSectionClass(sectionLabel);
+        let blockContent = line;
+        let j = i;
 
-        // Verifica se as próximas linhas são tabulações
-        let j = i + 1;
-        while (j < totalLines && isTabLine(lines[j])) {
-          tabBlock.push(lines[j]);
-          j++;
-        }
-
-        if (tabBlock.length > 0) {
-          // Combina a linha de acordes com as linhas de tabulação
+        // Verifica se tem acorde na mesma linha
+        if (containsChord(line)) {
+          // Já tem acorde na mesma linha
+          blockContent = addClassToChords(blockContent);
           htmlBlocks.push(
-            `<pre id="combined-${i}" class="mt-1 presentation-combined-tab-chords">${chordLine}\n${tabBlock.join(
-              "\n"
-            )}</pre>`
+            `<pre id="section-${sectionName}-${i}" class="${sectionClass}">${blockContent}</pre>`
           );
-          i = j - 1; // Pule as linhas processadas
         } else {
-          // Só a linha de acordes, sem tabulação
+          // Procura acorde nas próximas linhas
+          let foundChord = false;
+          while (!foundChord && j + 1 < totalLines) {
+            j++;
+            const nextLine = lines[j].trim();
+            if (containsChord(nextLine)) {
+              blockContent += "\n" + addClassToChords(nextLine);
+              foundChord = true;
+            } else if (isBlankLine(nextLine) || isSectionLabel(nextLine)) {
+              break;
+            } else {
+              blockContent += "\n" + nextLine;
+            }
+          }
           htmlBlocks.push(
-            `<pre id="chord-${i}" class="mt-1 presentation-chords">${chordLine}</pre>`
+            `<pre id="section-${sectionName}-${i}" class="${sectionClass}">${blockContent}</pre>`
           );
+          i = j;
         }
       } else if (isTabLine(line)) {
         // Inicia um bloco de tabulação
         let tabBlock = [originalLine];
+        let j = i;
 
-        // Coleta linhas de tabulação subsequentes
-        let j = i + 1;
-        while (j < totalLines && isTabLine(lines[j])) {
-          tabBlock.push(lines[j]);
+        while (j + 1 < totalLines && isTabLine(lines[j + 1])) {
           j++;
+          tabBlock.push(lines[j]);
         }
 
+        // Gera um ID para o tab
+        const tabId = `tab${i}`;
         htmlBlocks.push(
-          `<pre id="tab-${i}" class="mt-0 presentation-tab">${tabBlock.join(
-            "\n"
-          )}</pre>`
+          `<pre id="${tabId}" class="tab">\n${tabBlock.join("\n")}</pre>`
         );
-        i = j - 1; // Pula as linhas que já foram processadas
-      } else if (isBlankLine(line)) {
-        // Linha em branco
-        htmlBlocks.push(
-          `<pre id="space-${i}" class="my-5 presentation-blank-line">${line}</pre>`
-        );
+        i = j;
+      } else if (isChordLine(line)) {
+        // Linha de acordes
+        let chordLine = addClassToChords(line);
+        let lyricLine = "";
+        let j = i;
+
+        // Verifica se a próxima linha é letra
+        if (j + 1 < totalLines) {
+          const nextLine = lines[j + 1].trim();
+          if (
+            !isChordLine(nextLine) &&
+            !isBlankLine(nextLine) &&
+            !isSectionLabel(nextLine) &&
+            !isTabLine(nextLine)
+          ) {
+            lyricLine = nextLine;
+            j++;
+          }
+        }
+
+        if (lyricLine) {
+          htmlBlocks.push(
+            `<pre id="chord-lyric-${i}" class="mt-1 presentation-chord-lyrics">${chordLine}\n${lyricLine}</pre>`
+          );
+          i = j;
+        } else {
+          htmlBlocks.push(
+            `<pre id="chord-${i}" class="mt-1 presentation-chords">${chordLine}</pre>`
+          );
+        }
       } else {
-        // Trata linha regular (letra da música) com possíveis acordes
-        const processedLine = addClassToChords(originalLine);
+        // Linha de letra
         htmlBlocks.push(
-          `<pre id="line-${i}" class="mt-1 presentation-lyrics">${processedLine}</pre>`
+          `<pre id="line-${i}" class="mt-1 presentation-lyrics">${line}</pre>`
         );
       }
     } catch (error) {
-      // Captura e relata erros específicos de processamento
       console.error(`Erro ao processar a linha ${i + 1}: ${error.message}`);
       throw new Error(`Erro ao processar a linha ${i + 1}: ${error.message}`);
     }
