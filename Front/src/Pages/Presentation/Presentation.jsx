@@ -35,6 +35,14 @@ function Presentation() {
   // Processar o songCifraData usando o algoritmo fornecido
   const { htmlBlocks } = processSongCifra(songCifraData);
 
+  // console.log("htmlBlocks", htmlBlocks);
+  // console.log("htmlBlocks", typeof htmlBlocks); // objeto
+
+  console.log("songCifraData", songCifraData);
+  // console.log("songCifraData", typeof songCifraData); // string
+
+  // console.log("htmlBlocks", htmlBlocks);
+
   useEffect(() => {
     const fetchData = async () => {
       try {

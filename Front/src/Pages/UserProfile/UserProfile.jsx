@@ -4,6 +4,8 @@ import { FaEdit } from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatar from "./UserProfileAvatar";
 import { requestData } from "../../Tools/Controllers";
+import PasswordResetModal from "./PasswordResetModal";
+import { sendPasswordReset } from "../../authFunctions";
 
 function UserProfile() {
   const [data, setData] = useState([]);
@@ -14,6 +16,9 @@ function UserProfile() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [imageUpdated, setImageUpdated] = useState(0); // Estado para controlar a atualização da imagem
+
+  // Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,6 +49,29 @@ function UserProfile() {
 
     fetchData();
   }, []);
+
+  const handleEditPasswordClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handlePasswordSubmit = async () => {
+    try {
+      const userEmail = localStorage.getItem("userEmail"); // ou o estado onde você armazena o e-mail
+      if (userEmail) {
+        await sendPasswordReset(userEmail);
+        alert("Email para redefinição de senha enviado com sucesso!");
+        handleCloseModal();
+      } else {
+        alert("O e-mail do usuário não foi encontrado.");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar e-mail de redefinição de senha:", error);
+    }
+  };
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -153,6 +181,11 @@ function UserProfile() {
 
   return (
     <div className="flex justify-center h-screen pt-20">
+      <PasswordResetModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handlePasswordSubmit}
+      />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
@@ -165,7 +198,7 @@ function UserProfile() {
                 <div className="flex flex-row p-1 ">
                   <div className="flex flex-col justify-center items-start w-full p-1">
                     <h2 className="text-md font-bold my-2 p-2">
-                      Selecionar Imagem de Perfil
+                      Select your profile image
                     </h2>
                     <div className="flex flex-row justify-between">
                       <div className="flex flex-row w-2/3">
@@ -190,7 +223,7 @@ function UserProfile() {
                       <div className="flex flex-col w-1/3">
                         <button
                           onClick={handleUpload}
-                          className="neuphormism-b-btn mx-6 p-2 mt-4"
+                          className="neuphormism-b-btn mr-6 p-2 mt-16 mb-5"
                           disabled={uploading}
                         >
                           {uploading ? "Enviando..." : "Upload"}
@@ -236,7 +269,10 @@ function UserProfile() {
                   <div className=" text-md  pb-2 pl-2">***********</div>
                   <div className=" text-md  ">
                     <div className="flex items-center justify-center  bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">
-                      <FaEdit className="text-gray-600 text-lg" />
+                      {/* EDITAR SENHA  */}
+                      <div onClick={handleEditPasswordClick}>
+                        <FaEdit className="text-gray-600 text-lg" />
+                      </div>
                     </div>
                   </div>
                 </div>
