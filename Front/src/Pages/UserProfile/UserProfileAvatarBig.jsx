@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import userProfPic from "../../assets/userPerfil.jpg";
 
 /* eslint-disable react/prop-types */
-export default function UserProfileAvatar({ src, size, alt = "User Avatar" }) {
+export default function UserProfileAvatarBig({
+  src,
+  size,
+  alt = "User Avatar",
+}) {
   const [imageSrc, setImageSrc] = useState(src);
   const userEmail = localStorage.getItem("userEmail");
 
@@ -20,6 +25,7 @@ export default function UserProfileAvatar({ src, size, alt = "User Avatar" }) {
           const imageObjectURL = URL.createObjectURL(imageBlob);
           setImageSrc(imageObjectURL);
         } catch (error) {
+          setImageSrc(userProfPic);
           console.error("Erro ao buscar a imagem de perfil:", error);
         }
       }

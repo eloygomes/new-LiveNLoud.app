@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import userProfPic from "../assets/userPerfil.jpg";
 
 /* eslint-disable react/prop-types */
 export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
@@ -12,7 +13,7 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
 
     async function fetchProfileImage() {
       if (userEmail) {
-        // console.log("Buscando imagem de perfil do servidor...");
+        // console.log("Buscando imagem de perfil do servidor....");
         try {
           const imageResponse = await axios.get(
             `https://api.live.eloygomes.com.br/api/profileImage/${encodeURIComponent(
@@ -33,6 +34,7 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
             console.warn("Status da resposta não é 200:", imageResponse.status);
           }
         } catch (error) {
+          setImageSrc(userProfPic);
           console.error("Erro ao buscar a imagem de perfil:", error);
         }
       } else {
@@ -59,9 +61,9 @@ export default function UserProfileAvatar({ size = 40, alt = "User Avatar" }) {
   size = 40;
 
   return (
-    <div className="flex items-center space-x-2 my-0 w-[40px] ">
+    <div className="flex items-center space-x-2 my-0 w-[40px]  ">
       <img
-        className={`object-cover neuphormism-b-avatar rounded-full relative right-[7px]`}
+        className={`object-cover neuphormism-b-avatar rounded-full relative `}
         alt={alt}
         src={imageSrc}
         style={{ width: `${size}px`, height: `${size}px` }} // Garantir que a largura e a altura sejam iguais
