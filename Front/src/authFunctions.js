@@ -6,8 +6,24 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   sendPasswordResetEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  updatePassword,
 } from "firebase/auth";
 import { auth } from "./firebase"; // Importa o auth do arquivo firebase.js
+
+// Função para reautenticar um usuário
+export async function reauthenticateUser(oldPassword) {
+  const user = auth.currentUser;
+  const credential = EmailAuthProvider.credential(user.email, oldPassword);
+  await reauthenticateWithCredential(user, credential);
+}
+
+// Função para alterar a senha
+export async function changeUserPassword(newPassword) {
+  const user = auth.currentUser;
+  await updatePassword(user, newPassword);
+}
 
 // Função para registrar um usuário
 export const signUp = async (email, password) => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
-import { allDataFromOneSong } from "../../Tools/Controllers";
+import { allDataFromOneSong, updateLastPlayed } from "../../Tools/Controllers";
 
 import { processSongCifra } from "./ProcessSongCifra";
 
@@ -38,10 +38,23 @@ function Presentation() {
   // console.log("htmlBlocks", htmlBlocks);
   // console.log("htmlBlocks", typeof htmlBlocks); // objeto
 
-  console.log("songCifraData", songCifraData);
+  // console.log("songCifraData", songCifraData);
   // console.log("songCifraData", typeof songCifraData); // string
 
   // console.log("htmlBlocks", htmlBlocks);
+
+  useEffect(() => {
+    const userEmail = localStorage.getItem("userEmail");
+
+    const artistFromURL = localStorage.getItem("artist");
+    const songFromURL = localStorage.getItem("song");
+
+    console.log("userEmail", userEmail);
+    console.log("artistFromURL", artistFromURL);
+    console.log("songFromURL", songFromURL);
+
+    updateLastPlayed(songFromURL, artistFromURL, instrumentSelected);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {

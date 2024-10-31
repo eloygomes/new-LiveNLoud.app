@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useMemo } from "react";
-import { requestData } from "../../Tools/Controllers";
+import { requestData, updateLastPlayed } from "../../Tools/Controllers";
 import { Link } from "react-router-dom";
 
 function DashList2Items({ sortColumn, sortOrder }) {
@@ -229,6 +229,15 @@ function DashList2Items({ sortColumn, sortOrder }) {
                             : "text-gray-400"
                         }`}
                         onClick={(e) => {
+                          // console.log(item.song, item.artist, instrument.key);
+                          localStorage.setItem("song", item.song || "");
+                          localStorage.setItem("artist", item.artist || "");
+
+                          // updateLastPlayed(
+                          //   item.song,
+                          //   item.artist,
+                          //   instrument.key
+                          // );
                           if (
                             !item.instruments ||
                             !item.instruments[instrument.key]

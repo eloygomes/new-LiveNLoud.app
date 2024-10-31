@@ -1,11 +1,17 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { FaEdit } from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
-import UserProfileAvatar from "./UserProfileAvatar";
+import UserProfileAvatarBig from "./UserProfileAvatarBig";
 import { requestData } from "../../Tools/Controllers";
 import PasswordResetModal from "./PasswordResetModal";
-import { sendPasswordReset } from "../../authFunctions";
+import {
+  sendPasswordReset,
+  reauthenticateUser,
+  changeUserPassword,
+} from "../../authFunctions";
+import UsernameEditModal from "./UsernameEditModal";
 
 function UserProfile() {
   const [data, setData] = useState([]);
@@ -15,7 +21,10 @@ function UserProfile() {
   const [previewUrl, setPreviewUrl] = useState(userPerfil);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [imageUpdated, setImageUpdated] = useState(0); // Estado para controlar a atualização da imagem
+  // Estado para controlar a atualização da imagem
+  const [imageUpdated, setImageUpdated] = useState(0);
+  // estado para o modal de username
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,18 +67,44 @@ function UserProfile() {
     setIsModalOpen(false);
   };
 
-  const handlePasswordSubmit = async () => {
+  const handleEditUsernameClick = () => {
+    setIsUsernameModalOpen(true); // Abre o modal de edição de username
+  };
+
+  const handleUsernameSubmit = async (newUsername) => {
     try {
-      const userEmail = localStorage.getItem("userEmail"); // ou o estado onde você armazena o e-mail
-      if (userEmail) {
-        await sendPasswordReset(userEmail);
-        alert("Email para redefinição de senha enviado com sucesso!");
-        handleCloseModal();
-      } else {
-        alert("O e-mail do usuário não foi encontrado.");
-      }
+      const userEmail = localStorage.getItem("userEmail");
+      await axios.put(
+        "https://www.api.live.eloygomes.com.br/api/updateUsername",
+        {
+          email: userEmail,
+          newUsername,
+        }
+      );
+      setGetUsername(newUsername); // Atualiza o estado com o novo nome de usuário
+      alert("Username atualizado com sucesso!");
+      setIsUsernameModalOpen(false);
     } catch (error) {
-      console.error("Erro ao enviar e-mail de redefinição de senha:", error);
+      console.error("Erro ao atualizar o nome de usuário:", error);
+      alert("Erro ao atualizar o nome de usuário.");
+    }
+  };
+
+  const handlePasswordSubmit = async (oldPassword, newPassword) => {
+    try {
+      // Verifique se o usuário foi autenticado com a senha antiga
+      await reauthenticateUser(oldPassword);
+      // Atualize a senha para a nova senha
+      await changeUserPassword(newPassword);
+      alert("Senha alterada com sucesso!");
+      handleCloseModal();
+    } catch (error) {
+      console.error("Erro ao alterar a senha:", error);
+      if (error.code === "auth/wrong-password") {
+        alert("A senha antiga está incorreta.");
+      } else {
+        alert("Ocorreu um erro ao tentar alterar a senha.");
+      }
     }
   };
 
@@ -179,12 +214,18 @@ function UserProfile() {
     );
   }
 
+  console.log(data);
+
   return (
     <div className="flex justify-center h-screen pt-20">
       <PasswordResetModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSubmit={handlePasswordSubmit}
+        onSubmit={handlePasswordSubmit} // Passa oldPassword e newPassword
+      />
+      <UsernameEditModal
+        isOpen={isUsernameModalOpen}
+        onClose={() => setIsUsernameModalOpen(false)}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
@@ -214,7 +255,7 @@ function UserProfile() {
                           className="cursor-pointer"
                         >
                           {/* A imagem será atualizada automaticamente quando upload for realizado */}
-                          <UserProfileAvatar
+                          <UserProfileAvatarBig
                             size={200}
                             imageUpdated={imageUpdated}
                           />
@@ -251,7 +292,9 @@ function UserProfile() {
                     {getUsername || "N/A"}
                   </div>
                   <div className="flex items-center justify-center  bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">
-                    <FaEdit className="text-gray-600 text-lg" />
+                    <div onClick={handleEditUsernameClick}>
+                      <FaEdit className="text-gray-600 text-lg" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -269,7 +312,6 @@ function UserProfile() {
                   <div className=" text-md  pb-2 pl-2">***********</div>
                   <div className=" text-md  ">
                     <div className="flex items-center justify-center  bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">
-                      {/* EDITAR SENHA  */}
                       <div onClick={handleEditPasswordClick}>
                         <FaEdit className="text-gray-600 text-lg" />
                       </div>
@@ -286,11 +328,78 @@ function UserProfile() {
                     </div>
                   </div>
                 </div>
+
                 <div className="text-sm flex flex-col">
-                  <div className=" mt-2 pt-2 pl-2">Last time played</div>
+                  <div className="mt-2 pt-2 pl-2">Last time played</div>
                   <div className="flex flex-row justify-end py-3">
-                    <div className=" text-md  pb-2 pl-2">
-                      {data[0]?.lastPlayed || "N/A"}
+                    <div className="text-md pb-2 pl-2">
+                      {(() => {
+                        if (!data || data.length === 0) return "N/A";
+
+                        const instrumentNames = [
+                          "guitar01",
+                          "guitar02",
+                          "bass",
+                          "keys",
+                          "drums",
+                          "voice",
+                        ];
+
+                        const allLastPlayDates = [];
+
+                        data.forEach((entry) => {
+                          instrumentNames.forEach((instrument) => {
+                            let lastPlay = entry[instrument]?.lastPlay;
+                            if (lastPlay) {
+                              if (Array.isArray(lastPlay)) {
+                                // lastPlay é um array
+                                lastPlay.forEach((lp) => {
+                                  let date;
+                                  if (
+                                    typeof lp === "string" ||
+                                    typeof lp === "number" ||
+                                    lp instanceof Date
+                                  ) {
+                                    date = new Date(lp);
+                                  } else if (lp && lp["$date"]) {
+                                    date = new Date(lp["$date"]);
+                                  }
+                                  if (date && !isNaN(date)) {
+                                    allLastPlayDates.push(date);
+                                  }
+                                });
+                              } else {
+                                // lastPlay é um único valor
+                                let date;
+                                if (
+                                  typeof lastPlay === "string" ||
+                                  typeof lastPlay === "number" ||
+                                  lastPlay instanceof Date
+                                ) {
+                                  date = new Date(lastPlay);
+                                } else if (lastPlay && lastPlay["$date"]) {
+                                  date = new Date(lastPlay["$date"]);
+                                }
+                                if (date && !isNaN(date)) {
+                                  allLastPlayDates.push(date);
+                                }
+                              }
+                            }
+                          });
+                        });
+
+                        if (allLastPlayDates.length === 0) {
+                          return "N/A";
+                        }
+
+                        const mostRecentDate = new Date(
+                          Math.max(
+                            ...allLastPlayDates.map((date) => date.getTime())
+                          )
+                        );
+
+                        return mostRecentDate.toLocaleString();
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -397,8 +506,6 @@ function UserProfile() {
               </div>
             </div>
           </div>
-          {/* Seção de Upload de Imagem */}
-          {/* Removido porque agora está integrado na parte principal */}
         </div>
       </div>
     </div>

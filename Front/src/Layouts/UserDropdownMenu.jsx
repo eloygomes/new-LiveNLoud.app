@@ -108,7 +108,7 @@ function UserDropdownMenu({
             </h6>
           </div>
           <div
-            className="py-0 my-0 mt-1 mr-36"
+            className="py-0 my-0 mt-1   relative right-3"
             onClick={() => setUserDropdownMenuStatus(false)}
           >
             <UserProfileAvatar src={userPerfil} size={200} />
