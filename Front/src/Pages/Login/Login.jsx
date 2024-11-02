@@ -25,6 +25,7 @@ function Login() {
 
   const handlePasswordReset = async () => {
     if (userEmail) {
+      alert("Password reset email sent");
       await sendPasswordReset(userEmail);
     } else {
       alert("Insert a valid email");
