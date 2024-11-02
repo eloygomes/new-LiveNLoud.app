@@ -330,7 +330,9 @@ function UserProfile() {
                 </div>
 
                 <div className="text-sm flex flex-col">
-                  <div className="mt-2 pt-2 pl-2">Last time played</div>
+                  <div className="mt-2 pt-2 pl-2 text-right">
+                    Last time played
+                  </div>
                   <div className="flex flex-row justify-end py-3">
                     <div className="text-md pb-2 pl-2">
                       {(() => {
@@ -450,7 +452,7 @@ function UserProfile() {
                   <button className="mx-2 border-2 p-2 neuphormism-b-btn">
                     ENG 🇺🇸
                   </button>
-                  <button className="mx-2 border-2 p-2 neuphormism-b-btn">
+                  <button className="mx-2 border-2 p-2 neuphormism-b-btn text-gray-300">
                     BRA 🇧🇷
                   </button>
                 </div>
@@ -458,14 +460,14 @@ function UserProfile() {
               <h2 className="text-md font-bold mb-2 mt-5 p-2">User Data</h2>
               <div className="flex flex-row justify-between">
                 <div className="flex flex-col w-1/2">
-                  <h2 className="text-[10pt] py-5 px-2 w-1/2">All user data</h2>
+                  <h2 className="text-[10pt] py-3 px-2 w-1/2">All user data</h2>
                   <h5 className="text-[8pt]  px-2 ">
                     This contains all data from user that was stored by the
                     platform
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-sm p-2 w-1/2 truncate flex-1 text-right">
-                  <button className="mx-2 border-2 p-2 neuphormism-b-btn">
+                  <button className="mx-2 border-2 p-2 py-5 neuphormism-b-btn">
                     Download
                   </button>
                 </div>
@@ -475,10 +477,11 @@ function UserProfile() {
               </h2>
               <div className="flex flex-row justify-between">
                 <div className="flex flex-col w-1/2">
-                  <h2 className="text-[10pt] py-5 px-2 w-1/2">All user data</h2>
+                  <h2 className="text-[10pt] py-3 px-2 w-1/2 whitespace-nowrap">
+                    Delete all songs
+                  </h2>
                   <h5 className="text-[8pt]  px-2 ">
-                    This contains all data from user that was stored by the
-                    platform (like all songs, playlists, etc.)
+                    This will delete all songs from your account
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
@@ -490,7 +493,7 @@ function UserProfile() {
               <h2 className="text-md font-bold mb-2 mt-5 p-2">User Account</h2>
               <div className="flex flex-row justify-between">
                 <div className="flex flex-col w-1/2">
-                  <h2 className="text-[10pt] py-5 px-2 w-1/2 truncate">
+                  <h2 className="text-[10pt] py-3 px-2 w-1/2 whitespace-nowrap">
                     Delete user account
                   </h2>
                   <h5 className="text-[8pt]  px-2 ">
