@@ -9,8 +9,32 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   updatePassword,
+  deleteUser,
 } from "firebase/auth";
 import { auth } from "./firebase"; // Importa o auth do arquivo firebase.js
+
+// Função para deletar a conta do usuário
+export const deleteUserAccount = async (password) => {
+  try {
+    const user = auth.currentUser;
+
+    if (!user) {
+      console.error("Nenhum usuário está logado.");
+      return;
+    }
+
+    // Reautenticar o usuário com a senha fornecida
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+
+    // Deletar o usuário do Firebase Authentication
+    await deleteUser(user);
+
+    console.log("Usuário deletado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao deletar o usuário:", error.message);
+  }
+};
 
 // Função para reautenticar um usuário
 export async function reauthenticateUser(oldPassword) {

@@ -136,3 +136,61 @@ export const updateLastPlayed = async (song, artist, instrument) => {
     throw error;
   }
 };
+
+// New function to download user data
+export const downloadUserData = async () => {
+  try {
+    const response = await axios.get(
+      `https://api.live.eloygomes.com.br/api/downloadUserData/${userEmail}`,
+      {
+        responseType: "blob",
+      }
+    );
+
+    const blob = new Blob([response.data], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = "userdata.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Error downloading user data:", error);
+  }
+};
+
+// New function to delete all users songs
+export const deleteAllUserSongs = async () => {
+  const url = "https://api.live.eloygomes.com.br/api/deleteAllUserSongs";
+
+  try {
+    const response = await axios.post(url, { email: userEmail });
+
+    const result = response.data;
+    return result;
+  } catch (error) {
+    console.error(
+      `Error deleting songs:`,
+      error.response?.data?.message || error.message
+    );
+    throw error;
+  }
+};
+
+// Função para deletar a conta completa do usuário
+export const deleteUserAccount = async () => {
+  const url = "https://api.live.eloygomes.com.br/api/deleteUserAccount";
+
+  try {
+    const response = await axios.post(url, { email: userEmail });
+
+    const result = response.data;
+    return result;
+  } catch (error) {
+    console.error(
+      `Erro ao deletar a conta do usuário:`,
+      error.response?.data?.message || error.message
+    );
+    throw error;
+  }
+};

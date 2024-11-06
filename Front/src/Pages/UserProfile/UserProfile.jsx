@@ -4,14 +4,21 @@ import axios from "axios";
 import { FaEdit } from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatarBig from "./UserProfileAvatarBig";
-import { requestData } from "../../Tools/Controllers";
+import {
+  deleteAllUserSongs,
+  downloadUserData,
+  requestData,
+} from "../../Tools/Controllers";
 import PasswordResetModal from "./PasswordResetModal";
 import {
   sendPasswordReset,
   reauthenticateUser,
   changeUserPassword,
+  deleteUserAccount, // Importar a função deleteUserAccount
+  logout, // Importar a função logout, se necessário
 } from "../../authFunctions";
 import UsernameEditModal from "./UsernameEditModal";
+import DeleteAccountModal from "./DeleteAccountModal"; // Importar o novo modal
 
 function UserProfile() {
   const [data, setData] = useState([]);
@@ -23,11 +30,10 @@ function UserProfile() {
   const [uploadError, setUploadError] = useState("");
   // Estado para controlar a atualização da imagem
   const [imageUpdated, setImageUpdated] = useState(0);
-  // estado para o modal de username
+  // Estados para os modais
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
-
-  // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Novo estado para o modal de exclusão
 
   useEffect(() => {
     const fetchData = async () => {
@@ -193,26 +199,49 @@ function UserProfile() {
     }
   };
 
-  // Verifique se data[0] existe antes de renderizar o conteúdo
-  if (!data[0]) {
-    return (
-      <div className="flex justify-center h-screen pt-20">
-        <div className="container mx-auto">
-          <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
-            <div className="flex flex-row my-5 neuphormism-b p-5">
-              <h1 className="text-4xl font-bold">User profile</h1>
-              <h4 className="ml-auto mt-auto text-sm">Edit your data</h4>
-            </div>
-            <div className="flex flex-row neuphormism-b p-5">
-              <div className="flex flex-col justify-center items-center w-full p-5">
-                <h2 className="text-md font-bold my-2 p-2">Loading...</h2>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete all your songs?")) {
+      try {
+        const result = await deleteAllUserSongs();
+        alert(result.message);
+        console.log("Remaining Songs:", result.remainingSongs);
+        // Optionally, update your state or UI to reflect the changes
+      } catch (error) {
+        alert(
+          `Failed to delete songs: ${
+            error.response?.data?.message || error.message
+          }`
+        );
+      }
+    }
+  };
+
+  const handleDeleteAccountClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteAccount = async (password) => {
+    try {
+      await deleteUserAccount(password);
+      alert("Sua conta foi deletada com sucesso.");
+
+      // Limpar dados do localStorage
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("username");
+
+      // Redirecionar o usuário para a página de login
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Erro ao deletar a conta:", error);
+      if (error.code === "auth/wrong-password") {
+        alert("Senha incorreta. Por favor, tente novamente.");
+      } else {
+        alert("Erro ao deletar a conta: " + error.message);
+      }
+    } finally {
+      setIsDeleteModalOpen(false);
+    }
+  };
 
   console.log(data);
 
@@ -226,6 +255,12 @@ function UserProfile() {
       <UsernameEditModal
         isOpen={isUsernameModalOpen}
         onClose={() => setIsUsernameModalOpen(false)}
+        onSubmit={handleUsernameSubmit}
+      />
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onSubmit={handleDeleteAccount}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
@@ -235,6 +270,7 @@ function UserProfile() {
           </div>
           <div className="flex flex-row neuphormism-b p-5">
             <div className="flex flex-col justify-between w-1/2 p-5">
+              {/* Seção de imagem de perfil */}
               <div className="flex flex-row">
                 <div className="flex flex-row p-1 ">
                   <div className="flex flex-col justify-center items-start w-full p-1">
@@ -284,6 +320,7 @@ function UserProfile() {
                   </div>
                 </div>
               </div>
+              {/* Seção de dados do usuário */}
               <h2 className="text-md font-bold my-2 p-2">User Data</h2>
               <div className="flex flex-col">
                 <div className="text-sm mt-2 pt-2 pl-2">user name</div>
@@ -467,7 +504,10 @@ function UserProfile() {
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-sm p-2 w-1/2 truncate flex-1 text-right">
-                  <button className="mx-2 border-2 p-2 py-5 neuphormism-b-btn">
+                  <button
+                    className="mx-2 border-2 p-2 py-5 neuphormism-b-btn"
+                    onClick={() => downloadUserData()}
+                  >
                     Download
                   </button>
                 </div>
@@ -485,7 +525,10 @@ function UserProfile() {
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
-                  <button className="mx-2 border-2 p-5 neuphormism-b-btn-red text-white font-semibold">
+                  <button
+                    className="mx-2 border-2 p-5 neuphormism-b-btn-red text-white font-semibold"
+                    onClick={() => handleDelete()}
+                  >
                     Delete
                   </button>
                 </div>
@@ -502,7 +545,11 @@ function UserProfile() {
                   </h5>
                 </div>
                 <div className="flex flex-row justify-end text-[10pt] p-2 w-1/2 truncate flex-1 text-right">
-                  <button className="mx-2 border-2 p-5 neuphormism-b-btn-red text-white font-semibold">
+                  {/* Abre o modal para o usuário digitar a senha e confirmar a exclusão */}
+                  <button
+                    className="mx-2 border-2 p-5 neuphormism-b-btn-red text-white font-semibold"
+                    onClick={() => handleDeleteAccountClick()}
+                  >
                     Delete
                   </button>
                 </div>
