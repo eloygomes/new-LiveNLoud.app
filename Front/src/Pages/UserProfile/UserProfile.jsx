@@ -6,6 +6,7 @@ import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatarBig from "./UserProfileAvatarBig";
 import {
   deleteAllUserSongs,
+  deleteUserAccountOnDb,
   downloadUserData,
   requestData,
 } from "../../Tools/Controllers";
@@ -224,6 +225,8 @@ function UserProfile() {
     try {
       await deleteUserAccount(password);
       alert("Sua conta foi deletada com sucesso.");
+
+      // await deleteUserAccountOnDb();
 
       // Limpar dados do localStorage
       localStorage.removeItem("userEmail");

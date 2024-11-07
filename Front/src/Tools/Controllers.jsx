@@ -178,7 +178,7 @@ export const deleteAllUserSongs = async () => {
 };
 
 // Função para deletar a conta completa do usuário
-export const deleteUserAccount = async () => {
+export const deleteUserAccountOnDb = async () => {
   const url = "https://api.live.eloygomes.com.br/api/deleteUserAccount";
 
   try {
