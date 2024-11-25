@@ -158,11 +158,9 @@ app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     // Erros do Multer
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res
-        .status(400)
-        .json({
-          message: "O tamanho do arquivo excede o limite permitido de 5MB.",
-        });
+      return res.status(400).json({
+        message: "O tamanho do arquivo excede o limite permitido de 5MB.",
+      });
     }
     return res.status(400).json({ message: err.message });
   } else if (err) {
@@ -245,52 +243,6 @@ app.post(
     }
   }
 );
-// app.post('/api/uploadProfileImage', upload.single('profileImage'), async (req, res) => {
-
-//   try {
-//     const originalFilePath = req.file.path; // Caminho do arquivo original
-
-//     // Processar a imagem com Sharp e obter um buffer
-//     const processedImageBuffer = await sharp(originalFilePath)
-//       .resize(200, 200)
-//       .jpeg({ quality: 80 }) // Opcional: definir qualidade e formato
-//       .toBuffer();
-
-//     // Excluir o arquivo original, pois não precisamos mais dele
-//     fs.unlink(originalFilePath, (err) => {
-//       if (err) {
-//         console.error('Erro ao excluir o arquivo original:', err);
-//       } else {
-//         console.log('Arquivo original excluído com sucesso.');
-//       }
-//     });
-
-//     // Obter referência à coleção onde as imagens serão armazenadas
-//     const database = client.db('liveNloud_'); // Substitua pelo nome do seu banco de dados
-//     const collection = database.collection('profileImages');
-
-//     // Criar um documento para a imagem
-//     const imageDocument = {
-//       email: req.body.email, // Presumindo que o email do usuário seja enviado no corpo da requisição
-//       image: new Binary(processedImageBuffer),
-//       uploadDate: new Date(),
-//     };
-
-//     // Inserir o documento no MongoDB
-//     const result = await collection.insertOne(imageDocument);
-
-//     console.log('Imagem salva no MongoDB com sucesso:', result.insertedId);
-
-//     // Retornar uma resposta ao cliente
-//     res.status(200).json({
-//       message: 'Imagem enviada e processada com sucesso!',
-//       imageId: result.insertedId,
-//     });
-//   } catch (err) {
-//     console.error('Erro ao processar e salvar a imagem:', err);
-//     res.status(500).json({ error: 'Erro ao processar e salvar a imagem' });
-//   }
-// });
 
 app.get("/api/profileImage/:email", async (req, res) => {
   try {
@@ -632,6 +584,245 @@ app.get("/api/alldata/", async (req, res) => {
   } catch (error) {
     console.error("Erro ao buscar os dados:", error);
     res.status(500).json({ message: "Erro ao buscar os dados." });
+  }
+});
+
+// Rota para atualizar o nome do usuário
+app.put("/api/updateUsername", async (req, res) => {
+  try {
+    const { email, newUsername } = req.body;
+
+    // Check if email and newUsername are provided
+    if (!email || !newUsername) {
+      return res
+        .status(400)
+        .json({ message: "Email and new username are required." });
+    }
+
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    // Find and update the username for the specified email
+    const updateResult = await collection.updateOne(
+      { email: email },
+      { $set: { "userdata.$[].username": newUsername } }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    console.log("Username updated successfully:", updateResult);
+
+    return res.status(200).json({
+      message: "Username updated successfully!",
+      modifiedCount: updateResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error updating username:", error);
+    res.status(500).json({ message: "Error updating username." });
+  }
+});
+
+// Rota para atualizar o last time played
+app.put("/api/lastPlay", async (req, res) => {
+  try {
+    const { email, song, artist, instrument } = req.body;
+
+    // Verificação de dados obrigatórios
+    if (!email || !song || !artist || !instrument) {
+      return res.status(400).json({
+        message: "Email, música, artista e instrumento são obrigatórios.",
+      });
+    }
+
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    // Primeiro, converte lastPlay para array se ainda não for
+    await collection.updateOne(
+      {
+        email: email,
+        "userdata.song": song,
+        "userdata.artist": artist,
+        [`userdata.${instrument}.lastPlay`]: { $type: "date" },
+      },
+      {
+        $set: { [`userdata.$[elem].${instrument}.lastPlay`]: [new Date()] },
+      },
+      { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
+    );
+
+    // Em seguida, adiciona a nova data ao array lastPlay
+    const updateResult = await collection.updateOne(
+      { email: email, "userdata.song": song, "userdata.artist": artist },
+      {
+        $push: { [`userdata.$[elem].${instrument}.lastPlay`]: new Date() },
+      },
+      { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Usuário ou música/artista não encontrados." });
+    }
+
+    console.log("Campo lastPlay atualizado com sucesso:", updateResult);
+
+    return res.status(200).json({
+      message: "Campo lastPlay atualizado com sucesso!",
+      modifiedCount: updateResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar o campo lastPlay:", error);
+    res.status(500).json({ message: "Erro ao atualizar o campo lastPlay." });
+  }
+});
+
+// Rota para download user data em formato JSON
+app.get("/api/downloadUserData/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    // Fetch the user's data from the database
+    const user = await collection.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Convert the user data to a JSON string with indentation for readability
+    const jsonData = JSON.stringify(user.userdata, null, 2);
+
+    // Set headers to prompt the browser to download the file
+    res.setHeader("Content-Disposition", "attachment; filename=userdata.json");
+    res.setHeader("Content-Type", "application/json");
+
+    // Send the JSON data as the response
+    res.send(jsonData);
+  } catch (error) {
+    console.error("Error downloading user data:", error);
+    res.status(500).json({ message: "Error downloading user data." });
+  }
+});
+
+// Route to delete all songs except the one with id = 1
+// Route to delete all songs except the one with id = 1
+app.post("/api/deleteAllUserSongs", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    console.log("Received request to delete songs for email:", email);
+
+    // Validate that email is provided
+    if (!email) {
+      console.log("Email not provided in the request.");
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const database = client.db("liveNloud_"); // Your database name
+    const collection = database.collection("data"); // Your collection name
+
+    // Find the user document
+    const user = await collection.findOne({ email: email });
+
+    if (!user) {
+      console.log(`User with email ${email} not found.`);
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Log the current userdata
+    console.log(`Current userdata for ${email}:`, user.userdata);
+
+    // Ensure userdata is an array
+    if (!Array.isArray(user.userdata)) {
+      console.log(`userdata for ${email} is not an array.`);
+      return res.status(400).json({ message: "Invalid userdata format." });
+    }
+
+    // Check if there's a userdata element with id = 1
+    const firstSong = user.userdata.find((song) => song.id === 1);
+
+    if (!firstSong) {
+      console.log(`No userdata element with id = 1 found for email: ${email}`);
+      return res.status(400).json({ message: "No song with id = 1 found." });
+    }
+
+    // Use the $pull operator to remove all userdata elements where id != 1
+    const updateResult = await collection.updateOne(
+      { email: email },
+      { $pull: { userdata: { id: { $ne: 1 } } } }
+    );
+
+    console.log("Update result:", updateResult);
+
+    if (updateResult.matchedCount === 0) {
+      console.log(`No documents matched for email: ${email}`);
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (updateResult.modifiedCount === 0) {
+      console.log(`No songs were deleted for email: ${email}`);
+      return res.status(200).json({
+        message:
+          "No songs were deleted. Either only one song exists or 'id' fields do not match.",
+        modifiedCount: updateResult.modifiedCount,
+      });
+    }
+
+    // Fetch the updated document to confirm the changes
+    const updatedUser = await collection.findOne({ email: email });
+    console.log(`Updated userdata for ${email}:`, updatedUser.userdata);
+
+    return res.status(200).json({
+      message: "All songs except the first one have been deleted successfully!",
+      modifiedCount: updateResult.modifiedCount,
+      remainingSongs: updatedUser.userdata, // Optional: return the remaining songs
+    });
+  } catch (error) {
+    console.error("Error deleting songs:", error);
+    res.status(500).json({ message: "Error deleting songs." });
+  }
+});
+
+// Rota para deletar a conta completa do usuário
+app.post("/api/deleteUserAccount", async (req, res) => {
+  try {
+    const { email } = req.body;
+    console.log("deleting:", email);
+
+    console.log("Recebido pedido para deletar conta do email:", email);
+
+    // Validação: Verificar se o email foi fornecido
+    if (!email) {
+      console.log("Email não fornecido no pedido.");
+      return res.status(400).json({ message: "Email é obrigatório." });
+    }
+
+    const database = client.db("liveNloud_"); // Substitua pelo nome do seu banco de dados se for diferente
+    const collection = database.collection("data"); // Substitua pelo nome da sua coleção se for diferente
+
+    // Tentar deletar o documento do usuário baseado no email
+    const deleteResult = await collection.deleteOne({ email: email });
+
+    console.log("Resultado da operação de deletar:", deleteResult);
+    ``;
+
+    if (deleteResult.deletedCount === 0) {
+      console.log(`Nenhum usuário encontrado com o email: ${email}`);
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    return res.status(200).json({
+      message: "Conta do usuário deletada com sucesso!",
+      deletedCount: deleteResult.deletedCount,
+    });
+  } catch (error) {
+    console.error("Erro ao deletar a conta do usuário:", error);
+    res.status(500).json({ message: "Erro ao deletar a conta do usuário." });
   }
 });
 
