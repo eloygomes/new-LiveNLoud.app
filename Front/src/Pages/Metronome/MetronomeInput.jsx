@@ -1,48 +1,7 @@
-// /* eslint-disable react/prop-types */
-// import * as React from "react";
-// import Box from "@mui/material/Box";
-// import InputLabel from "@mui/material/InputLabel";
-// import MenuItem from "@mui/material/MenuItem";
-// import FormControl from "@mui/material/FormControl";
-// import Select from "@mui/material/Select";
-
-// export default function MetronomeInput({ values = [], inputLabel }) {
-//   // Default value is an empty array
-//   const [age, setAge] = React.useState("");
-
-//   const handleChange = (event) => {
-//     setAge(event.target.value);
-//   };
-
-//   return (
-//     <Box sx={{ minWidth: 120, marginRight: 2 }}>
-//       <FormControl fullWidth>
-//         <InputLabel id="demo-simple-select-label">{inputLabel}</InputLabel>
-//         <Select
-//           labelId="demo-simple-select-label"
-//           id="demo-simple-select"
-//           value={age}
-//           label="Age"
-//           onChange={handleChange}
-//         >
-//           {values.map((note, index) => (
-//             <MenuItem key={index} value={note}>
-//               {note}
-//             </MenuItem>
-//           ))}
-//         </Select>
-//       </FormControl>
-//     </Box>
-//   );
-// }
-
 /* eslint-disable react/prop-types */
-
 import Box from "@mui/material/Box";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select from "@mui/material/Select";
+import Typography from "@mui/material/Typography";
+import Slider from "@mui/material/Slider";
 
 export default function MetronomeInput({
   values = [],
@@ -50,24 +9,42 @@ export default function MetronomeInput({
   value,
   onChange,
 }) {
+  // Definindo o mínimo e máximo com base no array de valores
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // Considerando que os valores estão uniformemente espaçados
+  const step = values[1] - values[0];
+
   return (
-    <Box sx={{ minWidth: 120, marginRight: 2 }}>
-      <FormControl fullWidth>
-        <InputLabel id="bpm-select-label">{inputLabel}</InputLabel>
-        <Select
-          labelId="bpm-select-label"
-          id="bpm-select"
-          value={value}
-          label={inputLabel}
-          onChange={onChange}
-        >
-          {values.map((bpmValue, index) => (
-            <MenuItem key={index} value={bpmValue}>
-              {bpmValue}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+    <Box sx={{ width: 300, marginRight: 2 }}>
+      <Typography id="bpm-slider" gutterBottom>
+        {inputLabel}
+      </Typography>
+      <Slider
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(_, newValue) =>
+          // Simulando um evento, para manter a compatibilidade com o onChange do componente pai
+          onChange({ target: { value: newValue } })
+        }
+        valueLabelDisplay="auto"
+        aria-labelledby="bpm-slider"
+        sx={{
+          color: "#DAA520", // Cor principal do Slider (afeta o thumb e a track)
+          "& .MuiSlider-thumb": {
+            backgroundColor: "#FFFFFF", // Cor do thumb
+          },
+          "& .MuiSlider-track": {
+            backgroundColor: "#DAA520", // Cor da track (barra que indica o progresso)
+          },
+          "& .MuiSlider-rail": {
+            opacity: 0.5, // Transparência da rail (barra de fundo)
+            backgroundColor: "#BDBDBD", // Cor da rail
+          },
+        }}
+      />
     </Box>
   );
 }
