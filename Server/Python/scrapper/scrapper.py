@@ -58,17 +58,19 @@ def scrape_and_store():
     userEmail = data.get('email')
     instrument_progressbar = data.get('instrument_progressbar')
     link_url = data.get('link')
+    
+          
 
     if not artist or not song or not instrument or not userEmail:
         return jsonify({"message": "Missing required fields"}), 400
 
     songData = get_cifra(artist, song)
     if songData:
-        store_in_mongo(songData, instrument, userEmail,
-                       instrument_progressbar, link_url)
+        store_in_mongo(songData, instrument, userEmail, instrument_progressbar, link_url)
         return jsonify({"message": "Data stored successfully"}), 201
     else:
         return jsonify({"message": "Failed to scrape data"}), 500
+
 
 
 def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, link_url):
@@ -101,13 +103,6 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                     "progress": instrument_progressbar,  # Adiciona o progresso do instrumento
                     "link": link_url
                 }
-
-                # Remove o link e outros dados dos instrumentos que não são o atual
-                # for other_instrument in ['guitar01', 'guitar02', 'bass', 'keys', 'drums', 'voice']:
-                #     if other_instrument != instrument:
-                #         song_entry[other_instrument]["link"] = ""
-                #         song_entry[other_instrument]["songCifra"] = ""
-                #         song_entry[other_instrument]["progress"] = 0
 
                 # Atualiza o documento no MongoDB com as novas informações
                 collection.update_one({"email": userEmail}, {
