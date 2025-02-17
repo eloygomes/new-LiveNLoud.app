@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import MetronomeInput from "./MetronomeInput";
 import clickSound from "../../../public/click.mp3";
+import VolumeControl from "./VolumeControl";
 
 const bpmList = [
   60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140,
@@ -9,14 +10,19 @@ const bpmList = [
 ];
 
 function Metronome() {
-  /* =========== Lógica do Metrônomo =========== */
+  /* =========== Estados e Refs =========== */
   const [bpm, setBpm] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isOn, setIsOn] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+
   const audioContextRef = useRef(null);
   const clickSoundBufferRef = useRef(null);
+  const gainNodeRef = useRef(null);
   const intervalIdRef = useRef(null);
 
+  /* =========== Carrega o Som do Metrônomo e Cria o GainNode Global =========== */
   useEffect(() => {
     const loadClickSound = async () => {
       try {
@@ -33,6 +39,10 @@ function Metronome() {
 
         audioContextRef.current = audioContext;
         clickSoundBufferRef.current = clickBuffer;
+
+        // Cria o GainNode global para controle de volume
+        gainNodeRef.current = audioContext.createGain();
+        gainNodeRef.current.connect(audioContext.destination);
       } catch (error) {
         console.error("Erro ao carregar o som de clique:", error);
       }
@@ -47,18 +57,32 @@ function Metronome() {
     };
   }, []);
 
+  /* =========== Atualiza o Volume em Tempo Real =========== */
+  useEffect(() => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
+  /* =========== Função Global para Tocar o Click =========== */
+  const playClickSound = () => {
+    if (audioContextRef.current && clickSoundBufferRef.current) {
+      const clickSoundSource = audioContextRef.current.createBufferSource();
+      clickSoundSource.buffer = clickSoundBufferRef.current;
+
+      // Usa o GainNode global para controle dinâmico do volume
+      clickSoundSource.connect(gainNodeRef.current);
+
+      clickSoundSource.start();
+    }
+  };
+
+  /* =========== Controla a Reprodução do Metrônomo =========== */
   useEffect(() => {
     if (isPlaying) {
       const interval = (60 / bpm) * 1000;
-      const playClickSound = () => {
-        if (audioContextRef.current && clickSoundBufferRef.current) {
-          const clickSoundSource = audioContextRef.current.createBufferSource();
-          clickSoundSource.buffer = clickSoundBufferRef.current;
-          clickSoundSource.connect(audioContextRef.current.destination);
-          clickSoundSource.start();
-        }
-      };
 
+      // Usa a função global playClickSound (sem criar novo GainNode)
       intervalIdRef.current = setInterval(() => {
         setIsOn((prev) => !prev);
         playClickSound();
@@ -77,6 +101,7 @@ function Metronome() {
     };
   }, [isPlaying, bpm]);
 
+  /* =========== Atalhos do Teclado =========== */
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.code === "Space" || event.keyCode === 32) {
@@ -104,7 +129,6 @@ function Metronome() {
   const [stopwatchTime, setStopwatchTime] = useState(0); // tempo em ms
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
   const stopwatchIntervalRef = useRef(null);
-  // Armazena os laps com lapNumber, totalTime e split
   const [laps, setLaps] = useState([]);
 
   const handleStopwatchStartStop = () => {
@@ -122,14 +146,12 @@ function Metronome() {
 
   const handleLapOrReset = () => {
     if (isStopwatchRunning) {
-      // Calcula o split: diferença entre o tempo atual e o total da última lap (ou 0, se for a primeira)
       const lastTotal = laps.length > 0 ? laps[laps.length - 1].totalTime : 0;
       const lapSplit = stopwatchTime - lastTotal;
       const lapNumber = laps.length + 1;
       const newLap = { lapNumber, totalTime: stopwatchTime, split: lapSplit };
       setLaps((prevLaps) => [...prevLaps, newLap]);
     } else {
-      // Se o cronômetro estiver parado, reseta tudo
       setStopwatchTime(0);
       setLaps([]);
     }
@@ -156,26 +178,46 @@ function Metronome() {
               Choose your BPM and hit Play!
             </h4>
           </div>
-          <div className="flex flex-row my-5 neuphormism-b p-5">
+          <div className="w-full flex flex-row justify-between my-5 neuphormism-b p-5">
             {/* Lado A: Metronome */}
-            <div className="flex flex-col justify-start w-[50%] mx-auto rounded-md mb-2">
-              <div className="py-10 px-5 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
-                <div className="w-[70%] flex flex-row justify-start">
-                  <MetronomeInput
-                    values={bpmList}
-                    inputLabel="BPM"
-                    value={bpm}
-                    onChange={handleBpmChange}
-                  />
-                </div>
-                <div className="w-[20%] mr-5">
-                  <button
-                    className="w-full flex items-center justify-center neuphormism-b-se p-8"
-                    type="button"
-                    onClick={handlePlayClick}
-                  >
-                    {isPlaying ? "Parar" : "Play!"}
-                  </button>
+            <div className="w-[49%] flex flex-col mb-5 rounded-md neuphormism-b py-5">
+              <div className="flex flex-col px-5">
+                <div className="flex flex-row justify-between  mb-5 py-10 px-5 neuphormism-b">
+                  <div className="w-[50%] flex flex-row justify-start p-2 pr-10">
+                    <MetronomeInput
+                      values={bpmList}
+                      inputLabel="BPM"
+                      value={bpm}
+                      onChange={handleBpmChange}
+                    />
+                  </div>
+                  <div className="w-[50%] flex flex-row justify-between">
+                    <button
+                      className="w-[49%] h-[200px] flex items-center justify-center neuphormism-b-se mx-5 "
+                      type="button"
+                      onClick={handlePlayClick}
+                    >
+                      {isPlaying ? "Parar" : "Play!"}
+                    </button>
+                    <VolumeControl
+                      value={volume}
+                      onChange={(e) => setVolume(parseFloat(e.target.value))}
+                      isMuted={isMuted}
+                      onMute={() => setIsMuted((prev) => !prev)}
+                    />
+                    <div className="flex flex-row">
+                      <div className="w-[10%] flex flex-row justify-start mt-5">
+                        {/* <VolumeControl
+                          value={volume}
+                          onChange={(e) =>
+                            setVolume(parseFloat(e.target.value))
+                          }
+                          isMuted={isMuted}
+                          onMute={() => setIsMuted((prev) => !prev)}
+                        /> */}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div
@@ -191,10 +233,9 @@ function Metronome() {
             </div>
 
             {/* Lado B: Stopwatch */}
-            <div className="w-[50%] flex flex-col mb-5 rounded-md neuphormism-b">
+            <div className="w-[49%] flex flex-col mb-5 rounded-md neuphormism-b">
               <div className="flex flex-col justify-start mx-auto rounded-md mb-2">
                 <div className="w-full flex flex-col justify-between">
-                  {/* Container com largura fixa e fonte monoespaçada */}
                   <div className="w-full mx-auto text-center ">
                     <h1 className="sm:text-[80px] md:text-[60px] lg:text-[80px] xl:text-[80px] 2xl:text-[80px] font-mono py-5">
                       {formatTime(stopwatchTime)}

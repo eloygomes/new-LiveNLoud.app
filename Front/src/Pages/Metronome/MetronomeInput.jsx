@@ -16,11 +16,12 @@ export default function MetronomeInput({
   const step = values[1] - values[0];
 
   return (
-    <Box sx={{ width: 300, marginRight: 2 }}>
+    <Box className="mr-0 " sx={{ width: 300 }}>
       <Typography id="bpm-slider" gutterBottom>
-        {inputLabel}
+        <div className="text-6xl">{inputLabel}</div>
       </Typography>
       <Slider
+        className="my-10"
         value={value}
         min={min}
         max={max}
