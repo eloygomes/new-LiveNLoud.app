@@ -9,16 +9,17 @@ export default function MetronomeInput({
   value,
   onChange,
 }) {
-  // Definindo o mínimo e máximo com base no array de valores
   const min = Math.min(...values);
   const max = Math.max(...values);
-  // Considerando que os valores estão uniformemente espaçados
+
   const step = values[1] - values[0];
 
   return (
     <Box className="mr-0 " sx={{ width: 300 }}>
       <Typography id="bpm-slider" gutterBottom>
-        <div className="text-6xl">{inputLabel}</div>
+        <div className="md:text-5xl lg:text-6xl xl:text-6xl 2xl:text-6xl">
+          {inputLabel}
+        </div>
       </Typography>
       <Slider
         className="my-10"
@@ -26,10 +27,7 @@ export default function MetronomeInput({
         min={min}
         max={max}
         step={step}
-        onChange={(_, newValue) =>
-          // Simulando um evento, para manter a compatibilidade com o onChange do componente pai
-          onChange({ target: { value: newValue } })
-        }
+        onChange={(_, newValue) => onChange({ target: { value: newValue } })}
         valueLabelDisplay="auto"
         aria-labelledby="bpm-slider"
         sx={{

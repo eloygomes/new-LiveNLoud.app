@@ -217,7 +217,7 @@ function DashList2() {
 
   // Detecta se é mobile
   useEffect(() => {
-    setIsMobile(window.innerWidth <= 845);
+    setIsMobile(window.innerWidth < 840);
   }, []);
 
   // Callback memoizado para filtrar músicas conforme as tags selecionadas
@@ -257,7 +257,7 @@ function DashList2() {
         <div>
           <div className="flex flex-col mt-0">
             {/* Header fixo para mobile */}
-            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-40">
+            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-40 sm:mt-0 md:mt-14 lg:mt-14 xl:mt-14 2xl:mt-14">
               <div
                 className="w-[10%] text-center px-1 cursor-pointer"
                 onClick={() => handleSort("number")}
