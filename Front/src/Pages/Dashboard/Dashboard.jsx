@@ -13,7 +13,7 @@ function Dashboard() {
       if (window.innerWidth <= 426) {
         setIsMobile(1);
         console.log(1);
-      } else if (window.innerWidth <= 926 && window.innerWidth > 426) {
+      } else if (window.innerWidth <= 768 && window.innerWidth > 426) {
         setIsMobile(2);
         console.log(2);
       } else {

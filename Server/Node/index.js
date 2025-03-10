@@ -108,9 +108,16 @@ pythonNamespace.on("connection", (socket) => {
 });
 
 // Middleware para JSON e CORS
+// app.use(
+//   cors({
+//     origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
+//     credentials: true,
+//   })
+// );
+
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://www.live.eloygomes.com.br"],
+    origin: "*", // Permite todas as origens durante o desenvolvimento
     credentials: true,
   })
 );
@@ -158,9 +165,11 @@ app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     // Erros do Multer
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({
-        message: "O tamanho do arquivo excede o limite permitido de 5MB.",
-      });
+      return res
+        .status(400)
+        .json({
+          message: "O tamanho do arquivo excede o limite permitido de 5MB.",
+        });
     }
     return res.status(400).json({ message: err.message });
   } else if (err) {
@@ -388,6 +397,13 @@ app.post("/api/newsong", async (req, res) => {
               new Set([
                 ...existingUser.userdata[songIndex].embedVideos,
                 ...userdata.embedVideos,
+              ])
+            ),
+            // Adicione esta linha para armazenar o setlist vindo do front
+            setlist: Array.from(
+              new Set([
+                ...(existingUser.userdata[songIndex].setlist ?? []),
+                ...(userdata.setlist ?? []),
               ])
             ),
             instruments: {
@@ -631,9 +647,11 @@ app.put("/api/lastPlay", async (req, res) => {
 
     // Verificação de dados obrigatórios
     if (!email || !song || !artist || !instrument) {
-      return res.status(400).json({
-        message: "Email, música, artista e instrumento são obrigatórios.",
-      });
+      return res
+        .status(400)
+        .json({
+          message: "Email, música, artista e instrumento são obrigatórios.",
+        });
     }
 
     const database = client.db("liveNloud_");

@@ -22,12 +22,8 @@ export default function RootLayouts() {
   return (
     <>
       <header>
-        {/* Turn Right  */}
-        {/* {window.innerWidth <= 428 && (
-
-        )} */}
-        {/* Mobile  */}
-        {window.innerWidth <= 926 && window.innerWidth > 426 && (
+        {/* {window.innerWidth <= 926 && window.innerWidth > 426 && ( */}
+        {window.innerWidth <= 768 && (
           <>
             {mobileMenuOpen && (
               <div className="absolute w-screen h-screen neuphormism-b  z-50">
@@ -103,7 +99,7 @@ export default function RootLayouts() {
           </>
         )}
         {/* Desktop  */}
-        {window.innerWidth >= 926 && (
+        {window.innerWidth >= 769 && (
           <nav className="neuphormism-b fixed w-full z-20">
             <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
               <div className="relative flex h-16 items-center justify-between">

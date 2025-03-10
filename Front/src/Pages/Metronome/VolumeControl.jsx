@@ -61,6 +61,7 @@ export default function VolumeControl({ value, onChange, isMuted, onMute }) {
         onClick={onMute}
         sx={{
           marginTop: 2,
+          width: 3,
 
           backgroundColor: "#DAA520",
           "&:hover": { backgroundColor: "#B8860B" },

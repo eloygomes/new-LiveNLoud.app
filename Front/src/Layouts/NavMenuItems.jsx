@@ -3,7 +3,8 @@ import { NavLink } from "react-router-dom";
 function NavMenuItems() {
   return (
     <>
-      {window.innerWidth <= 926 && window.innerWidth > 426 && (
+      {/* {window.innerWidth <= 926 && window.innerWidth > 426 && ( */}
+      {window.innerWidth <= 768 && (
         <div className="hidden sm:ml-6 sm:block">
           <div className="flex space-x-4 my-4 ml-2">
             <NavLink
@@ -27,7 +28,7 @@ function NavMenuItems() {
           </div>
         </div>
       )}
-      {window.innerWidth >= 926 && (
+      {window.innerWidth >= 769 && (
         <div className="hidden sm:ml-6 sm:block">
           <div className="flex space-x-4">
             <NavLink
