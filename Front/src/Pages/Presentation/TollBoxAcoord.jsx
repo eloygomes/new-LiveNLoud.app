@@ -9,10 +9,26 @@ import { Link } from "react-router-dom";
 
 import FloatingBtns from "./FloatingBtns";
 import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
-import ToolBoxMini from "./ToolBoxMini"; // Certifique-se de que o caminho está correto
-// Importe aqui seus componentes de Tuner e Chord Library se já os tiver
-// import TunerComponent from './TunerComponent';
-// import ChordLibraryComponent from './ChordLibraryComponent';
+import ToolBoxMini from "./ToolBoxMini";
+
+// Uma lista de instrumentos, igual ao que você usa em DashList2Items
+const instrumentLabels = [
+  { key: "guitar01", label: "G1" },
+  { key: "guitar02", label: "G2" },
+  { key: "bass", label: "B" },
+  { key: "keys", label: "K" },
+  { key: "drums", label: "D" },
+  { key: "voice", label: "V" },
+];
+
+// Função auxiliar para agrupar o array em pares [ [item1,item2], [item3,item4], ... ]
+function chunkArray(array, size) {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}
 
 export default function TollBoxAcoord({
   embedLinks,
@@ -27,11 +43,11 @@ export default function TollBoxAcoord({
   setHideChords,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
-  const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Estado para armazenar o status dos instrumentos
+  const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
   // Estados para controlar qual ferramenta está ativa
   const [TunerStatus, setTunerStatus] = useState(false);
-  const [MetronomeStatus, setMetronomeStatus] = useState(true); // Pode iniciar com true se quiser
+  const [MetronomeStatus, setMetronomeStatus] = useState(true);
   const [ChordLibraryStatus, setChordLibraryStatus] = useState(false);
 
   useEffect(() => {
@@ -41,18 +57,20 @@ export default function TollBoxAcoord({
   }, [songDataFetched]);
 
   const handlePlayClick = (url) => {
-    setLinktoplay(url); // Atualiza o link do vídeo para ser reproduzido
-    setVideoModalStatus(true); // Abre o modal do player
+    setLinktoplay(url);
+    setVideoModalStatus(true);
   };
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
-    setExpanded(isExpanded ? panel : false); // Abre apenas o acordeão clicado, fecha os outros
+    setExpanded(isExpanded ? panel : false);
   };
 
-  // Verificação para garantir que songDataFetched e instruments existam
   if (!songDataFetched || !songDataFetched.instruments) {
-    return <div>Carregando...</div>; // Ou qualquer outro indicador de carregamento
+    return <div>Carregando...</div>;
   }
+
+  // Montamos um array de arrays, cada subarray com 2 instrumentos (exemplo)
+  const chunkedInstruments = chunkArray(instrumentLabels, 2);
 
   const bpm = "120";
 
@@ -73,122 +91,35 @@ export default function TollBoxAcoord({
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="mb-5">
-            {/* Primeira Linha de Instrumentos: G1 e G2 */}
-            <li className="hover:font-semibold flex flex-row">
-              {instLinkPageStatus["guitar01"] ? (
-                <Link
-                  to={`/presentation/${artistFromURL}/${songFromURL}/guitar01`}
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
-                >
-                  G1
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                  disabled
-                  aria-disabled="true"
-                >
-                  G1
-                </button>
-              )}
-
-              {instLinkPageStatus["guitar02"] ? (
-                <Link
-                  to={`/presentation/${artistFromURL}/${songFromURL}/guitar02`}
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
-                >
-                  G2
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                  disabled
-                  aria-disabled="true"
-                >
-                  G2
-                </button>
-              )}
-            </li>
-
-            {/* Segunda Linha de Instrumentos: B e K */}
-            <li className="hover:font-semibold flex flex-row">
-              {instLinkPageStatus["bass"] ? (
-                <Link
-                  to={`/presentation/${artistFromURL}/${songFromURL}/bass`}
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
-                >
-                  B
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                  disabled
-                  aria-disabled="true"
-                >
-                  B
-                </button>
-              )}
-
-              {instLinkPageStatus["keys"] ? (
-                <Link
-                  to={`/presentation/${artistFromURL}/${songFromURL}/keys`}
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
-                >
-                  K
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                  disabled
-                  aria-disabled="true"
-                >
-                  K
-                </button>
-              )}
-            </li>
-
-            {/* Terceira Linha de Instrumentos: D e V */}
-            <li className="hover:font-semibold flex flex-row">
-              {instLinkPageStatus["drums"] ? (
-                <Link
-                  to={`/presentation/${artistFromURL}/${songFromURL}/drums`}
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
-                >
-                  D
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                  disabled
-                  aria-disabled="true"
-                >
-                  D
-                </button>
-              )}
-
-              {instLinkPageStatus["voice"] ? (
-                <Link
-                  to={`/presentation/${artistFromURL}/${songFromURL}/voice`}
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded"
-                >
-                  V
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                  disabled
-                  aria-disabled="true"
-                >
-                  V
-                </button>
-              )}
-            </li>
+            {chunkedInstruments.map((row, rowIndex) => (
+              <li key={rowIndex} className="hover:font-semibold flex flex-row">
+                {row.map((instrument) => {
+                  const { key, label } = instrument;
+                  const isActive = instLinkPageStatus[key]; // true/false
+                  return isActive ? (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        window.location.href = `/presentation/${artistFromURL}/${songFromURL}/${key}`;
+                      }}
+                      className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded text-center"
+                    >
+                      {label}
+                    </button>
+                  ) : (
+                    <button
+                      key={key}
+                      type="button"
+                      className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
+                      disabled
+                      aria-disabled="true"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </li>
+            ))}
           </ul>
         </AccordionDetails>
       </Accordion>

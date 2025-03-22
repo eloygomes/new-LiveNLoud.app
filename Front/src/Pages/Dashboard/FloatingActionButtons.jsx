@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 export default function FloatingActionButtons() {
   return (
     <Box
-      className="fixed bottom-0 right-0 p-4"
+      className="fixed bottom-0 right-0 p-4 z-50"
       sx={{ "& > :not(style)": { m: 1 } }}
     >
       <Link to="/newsong">
