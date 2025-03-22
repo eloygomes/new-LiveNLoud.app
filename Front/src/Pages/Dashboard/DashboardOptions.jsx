@@ -1,20 +1,41 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
-// import { MdAddCircle } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
+
+const LOCAL_STORAGE_KEY = "mySelectedSetlists";
 
 export default function DashboardOptions({
   optStatus,
   setOptStatus,
   onFilterChange,
 }) {
-  // Estado para as setlists globais, as selecionadas e o input de nova setlist
   const [setlists, setSetlists] = useState([]);
-  const [selectedSetlists, setSelectedSetlists] = useState([]);
-  // const [newSetlist, setNewSetlist] = useState("");
+  const [selectedSetlists, setSelectedSetlists] = useState(null);
 
-  // Busca todas as músicas e extrai somente as setlists de cada uma
+  // 1) Carregar do localStorage na montagem (apenas se selectedSetlists ainda === null)
+  useEffect(() => {
+    if (selectedSetlists === null) {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setSelectedSetlists(parsed);
+          } else {
+            setSelectedSetlists([]);
+          }
+        } catch (err) {
+          console.error("Erro ao ler do localStorage:", err);
+          setSelectedSetlists([]);
+        }
+      } else {
+        setSelectedSetlists([]);
+      }
+    }
+  }, [selectedSetlists]);
+
+  // 2) Buscar setlists no backend
   useEffect(() => {
     async function fetchSetlists() {
       const userEmail = localStorage.getItem("userEmail");
@@ -23,9 +44,7 @@ export default function DashboardOptions({
           `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
         );
         const data = await response.json();
-        // Para cada música, extrai o array "setlist" (se existir)
         const allSetlists = data.flatMap((song) => song.setlist || []);
-        // Remove duplicatas usando Set
         const distinctSetlists = [...new Set(allSetlists)];
         setSetlists(distinctSetlists);
       } catch (error) {
@@ -35,49 +54,56 @@ export default function DashboardOptions({
     fetchSetlists();
   }, []);
 
-  // Atualiza os filtros sempre que os filtros ativos (selectedSetlists) mudam
+  // 3) Sempre que selectedSetlists mudar (ou seja, o usuário clicou em algo), salva e emite callback
   useEffect(() => {
-    if (onFilterChange) {
-      onFilterChange(selectedSetlists);
+    if (selectedSetlists !== null) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(selectedSetlists));
+      if (onFilterChange) {
+        onFilterChange(selectedSetlists);
+      }
     }
-  }, [selectedSetlists]);
+  }, [selectedSetlists, onFilterChange]);
 
+  // Enquanto `selectedSetlists` for null, ainda estamos carregando
+  if (selectedSetlists === null) {
+    return <div>Carregando filtros...</div>;
+  }
+
+  // Alternar inclusão/remoção da tag
   const toggleTag = (tag) => {
-    if (selectedSetlists.includes(tag)) {
-      setSelectedSetlists(selectedSetlists.filter((item) => item !== tag));
-    } else {
-      setSelectedSetlists([...selectedSetlists, tag]);
-    }
+    setSelectedSetlists((prev) =>
+      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
+    );
   };
 
-  // Remove a setlist dos arrays globais e selecionados
+  // Excluir completamente a tag
   const handleDeleteSetlist = (tag) => {
-    setSetlists(setlists.filter((item) => item !== tag));
-    setSelectedSetlists(selectedSetlists.filter((item) => item !== tag));
+    setSetlists((prev) => prev.filter((item) => item !== tag));
+    setSelectedSetlists((prev) => prev.filter((item) => item !== tag));
   };
-
+  console.log("optStatus", optStatus);
   return (
-    <div className="flex flex-col top-[67px] sticky justify-between neuphormism-b bg-white z-30 h-[150px]">
+    <div
+      className={`flex flex-col top-[67px] sticky justify-between neuphormism-b bg-white z-30 h-[150px] ${
+        optStatus ? "" : "hidden"
+      }`}
+    >
       {/* Cabeçalho */}
-      <div className="flex flex-row py-1 justify-between  rounded-t-md bg-black/10">
+      <div className="flex flex-row py-1 justify-between rounded-t-md bg-black/10">
         <h1 className="px-5 font-bold text-md">Setlists disponíveis:</h1>
-        <div className="px-5 " onClick={() => setOptStatus(false)}>
+        <div className="px-5" onClick={() => setOptStatus(false)}>
           <IoClose className="w-6 h-6 cursor-pointer" />
         </div>
       </div>
 
       {/* Corpo principal */}
       <div className="flex flex-row justify-between px-5">
-        {/* Exibe as setlists (tags) disponíveis */}
-        <div className="w-1/2 pr-2">
-          {/* <label className="block py-2 text-sm font-semibold">
-            Setlists disponíveis:
-          </label> */}
-          <div className="flex flex-wrap gap-2">
-            {setlists.length === 0 ? (
-              <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
-            ) : (
-              setlists.map((tag, index) => {
+        <div className="w-full pr-2">
+          {setlists.length === 0 ? (
+            <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {setlists.map((tag, index) => {
                 const isActive = selectedSetlists.includes(tag);
                 return (
                   <div
@@ -116,13 +142,13 @@ export default function DashboardOptions({
                     />
                   </div>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Rodapé: botão para ocultar as Options */}
+      {/* Rodapé */}
       <div
         className="text-center text-[10px] text-white font-bold rounded-b-md bg-[#000000]/60 cursor-pointer py-0"
         onClick={() => setOptStatus(!optStatus)}

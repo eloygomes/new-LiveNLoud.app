@@ -34,6 +34,7 @@ function Presentation() {
 
   // Processar o songCifraData usando o algoritmo fornecido
   const { htmlBlocks } = processSongCifra(songCifraData);
+  console.log("htmlBlocks", htmlBlocks);
 
   // console.log("htmlBlocks", htmlBlocks);
   // console.log("htmlBlocks", typeof htmlBlocks); // objeto
