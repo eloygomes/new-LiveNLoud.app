@@ -1,5 +1,4 @@
 export const processSongCifra = (songCifra) => {
-  // Verifica se a cifra é uma string válida
   if (typeof songCifra !== "string" || songCifra.trim() === "") {
     throw new Error("Cifra inválida ou vazia");
   }
@@ -7,55 +6,34 @@ export const processSongCifra = (songCifra) => {
   const lines = songCifra.split("\n");
   const htmlBlocks = [];
 
-  // Função para verificar se uma linha é uma linha em branco
-  const isBlankLine = (line) => {
-    return line.trim() === "";
-  };
+  const totalLines = lines.length;
+  let i = 0;
 
-  // Função para verificar se uma linha é um rótulo de seção
-  const isSectionLabel = (line) => {
-    return /^\s*\[.*\]\s*$/.test(line);
-  };
+  // parseSectionLabel => detectar algo tipo "[Intro]" e capturar resto
+  function parseSectionLabel(line) {
+    const regex = /^\s*\[([^\]]+)\](.*)$/;
+    const match = line.match(regex);
+    if (!match) return null;
 
-  // Função para extrair o nome da seção
-  const getSectionName = (line) => {
-    const match = line.match(/^\s*\[([^\]]+)\]\s*$/);
-    if (match) {
-      return match[1].trim().toLowerCase().replace(/\s+/g, "-");
-    }
-    return null;
-  };
+    const rawSectionName = match[1].trim();
+    const restOfLine = match[2]; // pode conter acordes extras
+    return { sectionName: rawSectionName, restOfLine };
+  }
 
-  // Função para determinar a classe da seção com base no nome
-  const getSectionClass = (sectionName) => {
-    sectionName = sectionName.toLowerCase();
-    if (sectionName.includes("parte") || sectionName.includes("verse")) {
-      return "verse";
-    } else if (
-      sectionName.includes("refrão") ||
-      sectionName.includes("chorus")
-    ) {
-      return "chorus";
-    } else if (sectionName.includes("intro")) {
-      return "intro";
-    } else if (sectionName.includes("solo")) {
-      return "solo";
-    } else {
-      return "section";
-    }
-  };
+  function getSectionClass(sectionName) {
+    const lower = sectionName.toLowerCase();
+    if (lower.includes("verse") || lower.includes("parte")) return "verse";
+    if (lower.includes("refrão") || lower.includes("chorus")) return "chorus";
+    if (lower.includes("intro")) return "intro";
+    if (lower.includes("solo")) return "solo";
+    if (lower.includes("bridge") || lower.includes("ponte")) return "bridge";
+    return "section";
+  }
 
-  // Função para verificar se uma linha é uma linha de tabulação
-  const isTabLine = (line) => {
-    return /\|[-\s\d|]*\|?/.test(line);
-  };
+  const isBlankLine = (line) => line.trim() === "";
+  const isTabLine = (line) => /\|[-\s\d|]*\|?/.test(line);
+  const isTomLine = (line) => line.toLowerCase().includes("tom");
 
-  // Função para verificar se uma linha contém a palavra "tom"
-  const isTomLine = (line) => {
-    return line.toLowerCase().includes("tom");
-  };
-
-  // Lista de palavras que não são acordes para evitar falsos positivos
   const nonChordWords = [
     "Coração",
     "Dedilhado",
@@ -72,214 +50,228 @@ export const processSongCifra = (songCifra) => {
     "casta_nhos",
     "escala",
     "Fontes",
-
-    // Adicione outras palavras conforme necessário
   ];
 
-  // Regex para identificar acordes, incluindo sustenidos/bemóis após a barra
   const chordRegexString =
     "([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?(?:\\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?)?)";
-
   const chordValidationRegex = new RegExp("^" + chordRegexString + "$");
-
-  // Atualiza o chordPattern para capturar acordes corretamente
-  // const chordPattern = new RegExp(
-  //   "(^|\\s)" + chordRegexString + "(?=\\s|$)",
-  //   "g"
-  // );
-
   const chordPattern = new RegExp(
     "(\\b|\\s|[-:])" + chordRegexString + "(?=\\s|$)",
     "g"
   );
 
-  // Função para verificar se uma string é um acorde válido
-  const isChord = (word) => {
-    if (nonChordWords.includes(word)) {
-      return false;
-    }
+  function isChord(word) {
+    if (nonChordWords.includes(word)) return false;
     return chordValidationRegex.test(word);
-  };
+  }
 
-  // Função para verificar se uma linha é uma linha de acordes
-  const isChordLine = (line) => {
+  function isChordLine(line) {
     const words = line.trim().split(/\s+/);
     let chordCount = 0;
-
-    for (const word of words) {
-      if (isChord(word)) {
-        chordCount++;
-      }
+    for (const w of words) {
+      if (isChord(w)) chordCount++;
     }
-
-    // Considera como linha de acordes se mais da metade das palavras forem acordes
     return chordCount / words.length >= 0.6 && chordCount > 0;
-  };
+  }
 
-  // Função para verificar se uma linha contém pelo menos um acorde
-  const containsChord = (line) => {
+  function containsChord(line) {
     const words = line.trim().split(/\s+/);
-    for (const word of words) {
-      if (isChord(word)) {
-        return true;
-      }
-    }
-    return false;
-  };
+    return words.some((w) => isChord(w));
+  }
 
-  // Função ajustada para envolver os acordes com a classe `notespresentation`
-  const addClassToChords = (line) => {
+  function addClassToChords(line) {
     return line.replace(chordPattern, (match, p1) => {
       const chord = match.trim();
       if (isChord(chord)) {
         return p1 + `<span class="notespresentation">${chord}</span>`;
-      } else {
-        return match;
       }
+      return match;
     });
-  };
-
-  let i = 0;
-  const totalLines = lines.length;
-
-  while (i < totalLines) {
-    const originalLine = lines[i];
-    const line = originalLine.trim();
-
-    try {
-      if (isBlankLine(line)) {
-        // Linha em branco
-        htmlBlocks.push(
-          `<pre id="space-${i}" class="my-5 presentation-blank-line"></pre>`
-        );
-      } else if (isTomLine(line)) {
-        // Linha com "tom"
-        let blockContent = line;
-        let j = i;
-
-        // Verifica se tem acorde na mesma linha
-        if (containsChord(line)) {
-          // Já tem acorde na mesma linha
-          blockContent = addClassToChords(blockContent);
-          htmlBlocks.push(
-            `<pre id="tom-${i}" class="presentation-tom">${blockContent}</pre>`
-          );
-        } else {
-          // Procura acorde nas próximas linhas
-          let foundChord = false;
-          while (!foundChord && j + 1 < totalLines) {
-            j++;
-            const nextLine = lines[j].trim();
-            if (containsChord(nextLine)) {
-              blockContent += "\n" + addClassToChords(nextLine);
-              foundChord = true;
-            } else if (isBlankLine(nextLine) || isSectionLabel(nextLine)) {
-              break;
-            } else {
-              blockContent += "\n" + nextLine;
-            }
-          }
-          htmlBlocks.push(
-            `<pre id="tom-${i}" class="presentation-tom">${blockContent}</pre>`
-          );
-          i = j;
-        }
-      } else if (isSectionLabel(line)) {
-        // Linha com rótulo de seção
-        const sectionLabel = line;
-        const sectionName = getSectionName(line) || `section-${i}`;
-        const sectionClass = getSectionClass(sectionLabel);
-        let blockContent = line;
-        let j = i;
-
-        // Verifica se tem acorde na mesma linha
-        if (containsChord(line)) {
-          // Já tem acorde na mesma linha
-          blockContent = addClassToChords(blockContent);
-          htmlBlocks.push(
-            `<pre id="section-${sectionName}-${i}" class="${sectionClass}">${blockContent}</pre>`
-          );
-        } else {
-          // Procura acorde nas próximas linhas
-          let foundChord = false;
-          while (!foundChord && j + 1 < totalLines) {
-            j++;
-            const nextLine = lines[j].trim();
-            if (containsChord(nextLine)) {
-              blockContent += "\n" + addClassToChords(nextLine);
-              foundChord = true;
-            } else if (isBlankLine(nextLine) || isSectionLabel(nextLine)) {
-              break;
-            } else {
-              blockContent += "\n" + nextLine;
-            }
-          }
-          htmlBlocks.push(
-            `<pre id="section-${sectionName}-${i}" class="${sectionClass}">${blockContent}</pre>`
-          );
-          i = j;
-        }
-      } else if (isTabLine(line)) {
-        // Inicia um bloco de tabulação
-        let tabBlock = [originalLine];
-        let j = i;
-
-        while (j + 1 < totalLines && isTabLine(lines[j + 1])) {
-          j++;
-          tabBlock.push(lines[j]);
-        }
-
-        // Gera um ID para o tab
-        const tabId = `tab${i}`;
-        htmlBlocks.push(
-          `<pre id="${tabId}" class="tab">\n${tabBlock.join("\n")}</pre>`
-        );
-        i = j;
-      } else if (isChordLine(line)) {
-        // Linha de acordes
-        let chordLine = addClassToChords(line);
-        let lyricLine = "";
-        let j = i;
-
-        // Verifica se a próxima linha é letra
-        if (j + 1 < totalLines) {
-          const nextLine = lines[j + 1].trim();
-          if (
-            !isChordLine(nextLine) &&
-            !isBlankLine(nextLine) &&
-            !isSectionLabel(nextLine) &&
-            !isTabLine(nextLine)
-          ) {
-            lyricLine = nextLine;
-            j++;
-          }
-        }
-
-        if (lyricLine) {
-          htmlBlocks.push(
-            `<pre id="chord-lyric-${i}" class="mt-1 presentation-chord-lyrics">${chordLine}\n${lyricLine}</pre>`
-          );
-          i = j;
-        } else {
-          htmlBlocks.push(
-            `<pre id="chord-${i}" class="mt-1 presentation-chords">${chordLine}</pre>`
-          );
-        }
-      } else {
-        // Linha de letra
-        htmlBlocks.push(
-          `<pre id="line-${i}" class="mt-1 presentation-lyrics">${line}</pre>`
-        );
-      }
-    } catch (error) {
-      console.error(`Erro ao processar a linha ${i + 1}: ${error.message}`);
-      throw new Error(`Erro ao processar a linha ${i + 1}: ${error.message}`);
-    }
-
-    i++;
   }
 
-  return {
-    htmlBlocks,
-  };
+  // Processa 1 linha “isolada”
+  function processSingleLine(index) {
+    const originalLine = lines[index];
+    const line = originalLine.trim();
+
+    if (isBlankLine(line)) {
+      return {
+        html: `<pre id="space-${index}" class="my-5 presentation-blank-line"></pre>`,
+        nextIndex: index,
+      };
+    } else if (isTomLine(line)) {
+      let blockContent = line;
+      let j = index;
+      if (containsChord(line)) {
+        blockContent = addClassToChords(blockContent);
+        return {
+          html: `<pre id="tom-${index}" class="presentation-tom">${blockContent}</pre>`,
+          nextIndex: index,
+        };
+      } else {
+        let foundChord = false;
+        while (!foundChord && j + 1 < totalLines) {
+          j++;
+          const nextLine = lines[j].trim();
+          if (containsChord(nextLine)) {
+            blockContent += "\n" + addClassToChords(nextLine);
+            foundChord = true;
+          } else if (isBlankLine(nextLine) || parseSectionLabel(nextLine)) {
+            j--;
+            break;
+          } else {
+            blockContent += "\n" + nextLine;
+          }
+        }
+        return {
+          html: `<pre id="tom-${index}" class="presentation-tom">${blockContent}</pre>`,
+          nextIndex: j,
+        };
+      }
+    } else if (isTabLine(line)) {
+      let tabBlock = [originalLine];
+      let j = index;
+      while (j + 1 < totalLines && isTabLine(lines[j + 1])) {
+        j++;
+        tabBlock.push(lines[j]);
+      }
+      const tabId = `tab${index}`;
+      return {
+        html: `<pre id="${tabId}" class="tab">\n${tabBlock.join("\n")}</pre>`,
+        nextIndex: j,
+      };
+    } else if (isChordLine(line)) {
+      let chordLine = addClassToChords(line);
+      let lyricLine = "";
+      let j = index;
+      if (j + 1 < totalLines) {
+        const nextLine = lines[j + 1].trim();
+        if (
+          !isChordLine(nextLine) &&
+          !isBlankLine(nextLine) &&
+          !parseSectionLabel(nextLine) &&
+          !isTabLine(nextLine)
+        ) {
+          lyricLine = nextLine;
+          j++;
+        }
+      }
+      if (lyricLine) {
+        return {
+          html: `<pre id="chord-lyric-${index}" class="mt-1 presentation-chord-lyrics">${chordLine}\n${lyricLine}</pre>`,
+          nextIndex: j,
+        };
+      } else {
+        return {
+          html: `<pre id="chord-${index}" class="mt-1 presentation-chords">${chordLine}</pre>`,
+          nextIndex: index,
+        };
+      }
+    } else {
+      // Linha “normal” (lyrics etc.)
+      return {
+        html: `<pre id="line-${index}" class="mt-1 presentation-lyrics">${line}</pre>`,
+        nextIndex: index,
+      };
+    }
+  }
+
+  // Função para agrupar as linhas entre seções em <div class="verse">
+  function processVerseBlock(startIndex) {
+    const linesGroup = [];
+    let j = startIndex;
+
+    while (j < totalLines) {
+      const trimmed = lines[j].trim();
+      // se encontramos outro rótulo, ou blank line isolada, paramos
+      if (parseSectionLabel(trimmed)) break;
+      // se for blank line, ainda podemos querer incluí-la no verse
+      // mas se preferir que blank line quebre o verso, faça outro if aqui
+      // Exemplo:
+      // if (isBlankLine(trimmed)) break;
+
+      // processa a linha
+      const { html, nextIndex } = processSingleLine(j);
+      linesGroup.push(html);
+      j = nextIndex + 1;
+    }
+
+    // Montamos o container do verso
+    const blockHtml = `<div class="verse" id="auto-verse-${startIndex}">
+${linesGroup.join("\n")}
+</div>`;
+    return { blockHtml, nextIndex: j - 1 };
+  }
+
+  // Loop principal
+  while (i < totalLines) {
+    const trimmed = lines[i].trim();
+    const labelObj = parseSectionLabel(trimmed);
+
+    if (labelObj) {
+      // Se encontramos algo como [Intro], [Refrão], etc.
+      const { sectionName, restOfLine } = labelObj;
+      const sectionClass = getSectionClass(sectionName);
+
+      let groupHTML = [];
+      let j = i;
+
+      // Se a mesma linha tiver acordes (restOfLine), trata como chord line
+      if (restOfLine.trim()) {
+        const combined = `[${sectionName}]` + restOfLine;
+        const chordLine = addClassToChords(combined);
+        groupHTML.push(
+          `<pre id="section-label-${i}" class="mt-1 ${sectionClass}">${chordLine}</pre>`
+        );
+      } else {
+        // Se não há acordes adicionais
+        groupHTML.push(
+          `<pre id="section-label-${i}" class="mt-1 ${sectionClass}">[${sectionName}]</pre>`
+        );
+      }
+
+      j++;
+      // Agora, coletamos as linhas subsequentes até acharmos outro label / blank
+      const subsection = [];
+      while (j < totalLines) {
+        const subLine = lines[j].trim();
+        if (parseSectionLabel(subLine)) break;
+        // se quiser que blank line encerre, cheque aqui
+        if (isBlankLine(subLine)) {
+          // vamos inserir a blank line e depois encerrar
+          const { html } = processSingleLine(j);
+          subsection.push(html);
+          j++;
+          break;
+        }
+        const { html, nextIndex } = processSingleLine(j);
+        subsection.push(html);
+        j = nextIndex + 1;
+      }
+
+      // “Fecha” o container
+      const containerHTML = `<div class="${sectionClass}" id="section-${sectionName}-${i}">
+${groupHTML.join("\n")}
+${subsection.join("\n")}
+</div>`;
+      htmlBlocks.push(containerHTML);
+
+      i = j;
+    } else {
+      // Se não é label, tentamos agrupar como verse
+      if (isBlankLine(trimmed)) {
+        // processa single
+        const { html, nextIndex } = processSingleLine(i);
+        htmlBlocks.push(html);
+        i = nextIndex + 1;
+      } else {
+        // aqui chamamos a processVerseBlock
+        const { blockHtml, nextIndex } = processVerseBlock(i);
+        htmlBlocks.push(blockHtml);
+        i = nextIndex + 1;
+      }
+    }
+  }
+
+  return { htmlBlocks };
 };
