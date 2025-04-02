@@ -22,6 +22,7 @@ function DashList2() {
         const songsData = Array.isArray(data) ? data : [];
         setSongs(songsData);
         setFilteredSongs(songsData);
+        // console.log("songsData", songsData);
       } catch (error) {
         console.error("Erro ao buscar músicas:", error);
       }
