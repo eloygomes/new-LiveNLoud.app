@@ -9,6 +9,12 @@ function NewSong() {
   const [artistExtractedFromUrl, setArtistExtractedFromUrl] = useState();
   const [songExtractedFromUrl, setSongExtractedFromUrl] = useState();
 
+  const [artistScrapado, setArtistScrapado] = useState("");
+  const [songScrapado, setSongScrapado] = useState("");
+  const [cifraExiste, setCifraExiste] = useState("");
+
+  const [cifraFROMDB, setCifraFROMDB] = useState(null);
+
   // Column B
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
@@ -101,6 +107,9 @@ function NewSong() {
                     progBarKey={progBarKey}
                     progBarDrums={progBarDrums}
                     progBarVoice={progBarVoice}
+                    cifraExiste={cifraExiste}
+                    setCifraFROMDB={setCifraFROMDB}
+                    cifraFROMDB={cifraFROMDB}
                   />
                 </div>
                 <div className="right-column w-1/2">
@@ -134,6 +143,10 @@ function NewSong() {
                     gettingSongData={gettingSongData}
                     setShowSnackBar={setShowSnackBar}
                     setSnackbarMessage={setSnackbarMessage}
+                    cifraExiste={cifraExiste}
+                    setCifraExiste={setCifraExiste}
+                    setCifraFROMDB={setCifraFROMDB}
+                    cifraFROMDB={cifraFROMDB}
                   />
                 </div>
               </div>
@@ -172,6 +185,10 @@ function NewSong() {
                     progBarKey={progBarKey}
                     progBarDrums={progBarDrums}
                     progBarVoice={progBarVoice}
+                    setSongScrapado={setSongScrapado}
+                    songScrapado={songScrapado}
+                    setArtistScrapado={setArtistScrapado}
+                    artistScrapado={artistScrapado}
                   />
                 </div>
                 <div className="right-column w-1/2">
@@ -205,6 +222,11 @@ function NewSong() {
                     gettingSongData={gettingSongData}
                     setShowSnackBar={setShowSnackBar}
                     setSnackbarMessage={setSnackbarMessage}
+                    dataFromUrl={dataFromUrl}
+                    setSongScrapado={setSongScrapado}
+                    songScrapado={songScrapado}
+                    setArtistScrapado={setArtistScrapado}
+                    artistScrapado={artistScrapado}
                   />
                 </div>
               </div>

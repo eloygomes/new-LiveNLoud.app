@@ -9,6 +9,9 @@ function Dashboard() {
 
   // useEffect para monitorar mudanças no tamanho da janela e detectar rotação
   useEffect(() => {
+    // localStorage.clear("cifraFROMDB");
+    // localStorage.clear("fromWHERE");
+
     const handleResize = () => {
       if (window.innerWidth <= 426) {
         setIsMobile(1);

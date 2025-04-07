@@ -32,6 +32,12 @@ function NewSongColumnB({
   setShowSnackBar,
   setSnackbarMessage,
   dataFromUrl,
+  setSongScrapado,
+  setArtistScrapado,
+  cifraExiste,
+  setCifraExiste,
+  setCifraFROMDB,
+  cifraFROMDB,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -49,6 +55,12 @@ function NewSongColumnB({
           setShowSnackBar={setShowSnackBar}
           setSnackbarMessage={setSnackbarMessage}
           dataFromUrl={dataFromUrl}
+          setSongScrapado={setSongScrapado}
+          setArtistScrapado={setArtistScrapado}
+          cifraExiste={cifraExiste}
+          setCifraExiste={setCifraExiste}
+          setCifraFROMDB={setCifraFROMDB}
+          cifraFROMDB={cifraFROMDB}
         />
         <NewSongInputLinkBox
           instrumentName="guitar02"
@@ -62,6 +74,12 @@ function NewSongColumnB({
           setShowSnackBar={setShowSnackBar}
           setSnackbarMessage={setSnackbarMessage}
           dataFromUrl={dataFromUrl}
+          setSongScrapado={setSongScrapado}
+          setArtistScrapado={setArtistScrapado}
+          cifraExiste={cifraExiste}
+          setCifraExiste={setCifraExiste}
+          setCifraFROMDB={setCifraFROMDB}
+          cifraFROMDB={cifraFROMDB}
         />
         <NewSongInputLinkBox
           instrumentName="bass"
@@ -75,6 +93,12 @@ function NewSongColumnB({
           setShowSnackBar={setShowSnackBar}
           setSnackbarMessage={setSnackbarMessage}
           dataFromUrl={dataFromUrl}
+          setSongScrapado={setSongScrapado}
+          setArtistScrapado={setArtistScrapado}
+          cifraExiste={cifraExiste}
+          setCifraExiste={setCifraExiste}
+          setCifraFROMDB={setCifraFROMDB}
+          cifraFROMDB={cifraFROMDB}
         />
         <NewSongInputLinkBox
           instrumentName="keys"
@@ -88,6 +112,12 @@ function NewSongColumnB({
           setShowSnackBar={setShowSnackBar}
           setSnackbarMessage={setSnackbarMessage}
           dataFromUrl={dataFromUrl}
+          setSongScrapado={setSongScrapado}
+          setArtistScrapado={setArtistScrapado}
+          cifraExiste={cifraExiste}
+          setCifraExiste={setCifraExiste}
+          setCifraFROMDB={setCifraFROMDB}
+          cifraFROMDB={cifraFROMDB}
         />
         <NewSongInputLinkBox
           instrumentName="drums"
@@ -101,6 +131,12 @@ function NewSongColumnB({
           setShowSnackBar={setShowSnackBar}
           setSnackbarMessage={setSnackbarMessage}
           dataFromUrl={dataFromUrl}
+          setSongScrapado={setSongScrapado}
+          setArtistScrapado={setArtistScrapado}
+          cifraExiste={cifraExiste}
+          setCifraExiste={setCifraExiste}
+          setCifraFROMDB={setCifraFROMDB}
+          cifraFROMDB={cifraFROMDB}
         />
         <NewSongInputLinkBox
           instrumentName="voice"
@@ -114,6 +150,12 @@ function NewSongColumnB({
           setShowSnackBar={setShowSnackBar}
           setSnackbarMessage={setSnackbarMessage}
           dataFromUrl={dataFromUrl}
+          setSongScrapado={setSongScrapado}
+          setArtistScrapado={setArtistScrapado}
+          cifraExiste={cifraExiste}
+          setCifraExiste={setCifraExiste}
+          setCifraFROMDB={setCifraFROMDB}
+          cifraFROMDB={cifraFROMDB}
         />
       </div>
     </div>
