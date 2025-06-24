@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DashList2 from "./DashList2";
 import FloatingActionButtons from "./FloatingActionButtons";
-import Rotate from "../../assets/auto-rotate-img.gif";
+import Rotate from "../../assets/userPerfil.jpg";
 
 function Dashboard() {
   // Estado para armazenar se a tela é mobile (largura <= 426px)
