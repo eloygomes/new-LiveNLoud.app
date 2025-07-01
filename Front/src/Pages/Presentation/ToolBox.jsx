@@ -17,6 +17,7 @@ function ToolBox({
   toggleTabsVisibility,
   hideChords,
   setHideChords,
+  setSelectContenttoShow,
 }) {
   const [linktoplay, setLinktoplay] = useState("");
   const [videoModalStatus, setVideoModalStatus] = useState(false);
@@ -66,6 +67,7 @@ function ToolBox({
                 toggleTabsVisibility={toggleTabsVisibility}
                 hideChords={hideChords}
                 setHideChords={setHideChords}
+                setSelectContenttoShow={setSelectContenttoShow}
               />
             </div>
             <h1 className="flex flex-row text-[6pt] font-bold items-center justify-center mx-auto w-full bg-gray-500 text-white">
