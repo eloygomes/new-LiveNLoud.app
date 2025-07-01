@@ -41,6 +41,7 @@ export default function TollBoxAcoord({
   toggleTabsVisibility,
   hideChords,
   setHideChords,
+  setSelectContenttoShow,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
@@ -210,7 +211,10 @@ export default function TollBoxAcoord({
               <button
                 type="button"
                 className="neuphormism-b-se w-full my-2"
-                onClick={toggleTabsVisibility}
+                // onClick={toggleTabsVisibility}
+                onClick={() => {
+                  setSelectContenttoShow("tabs");
+                }}
               >
                 tabs
               </button>
@@ -219,13 +223,22 @@ export default function TollBoxAcoord({
               <button
                 type="button"
                 className="neuphormism-b-se w-full my-2"
-                onClick={() => setHideChords(!hideChords)}
+                // onClick={toggleTabsVisibility}
+                onClick={() => {
+                  setSelectContenttoShow("chords");
+                }}
               >
                 notes
               </button>
             </li>
             <li className="hover:font-semibold">
-              <button type="button" className="neuphormism-b-se w-full my-2">
+              <button
+                type="button"
+                className="neuphormism-b-se w-full my-2"
+                onClick={() => {
+                  setSelectContenttoShow("lyrics");
+                }}
+              >
                 lyrics
               </button>
             </li>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
 import { allDataFromOneSong, updateLastPlayed } from "../../Tools/Controllers";
@@ -22,9 +22,33 @@ function Presentation() {
 
   const [songCifraData, setSongCifraData] = useState("Loading...");
 
+  const [songLyrics, setSongLyrics] = useState("Loading...");
+  const [songChords, setSongChords] = useState("Loading...");
+  const [songTabs, setSongTabs] = useState("Loading...");
+
+  const [selectContenttoShow, setSelectContenttoShow] = useState("default");
+
+  // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
+  const contentSelected = useMemo(() => {
+    switch (selectContenttoShow) {
+      case "tabs":
+        return songTabs;
+      case "chords":
+        return songChords;
+      case "lyrics":
+        return songLyrics;
+      default:
+        return songCifraData; // mostra cifra completa no primeiro carregamento
+    }
+  }, [selectContenttoShow, songCifraData, songLyrics, songChords, songTabs]);
+
   const handleDataFromAPI = (data, instrumentSelected) => {
     if (data && data[instrumentSelected]) {
       setSongCifraData(data[instrumentSelected].songCifra);
+      setSongLyrics(data[instrumentSelected].songLyrics);
+      setSongChords(data[instrumentSelected].songChords);
+      setSongTabs(data[instrumentSelected].songTabs);
+
       return data[instrumentSelected];
     } else {
       console.log("Instrumento não encontrado ou data é undefined");
@@ -33,10 +57,20 @@ function Presentation() {
   };
 
   // Processar o songCifraData usando o algoritmo fornecido
-  const { htmlBlocks } = processSongCifra(songCifraData);
-  console.log("htmlBlocks", htmlBlocks);
-
   // console.log("htmlBlocks", htmlBlocks);
+
+  // const { htmlBlocks } = processSongCifra(songCifraData);
+  // const { htmlBlocks } = processSongCifra(songChords);
+  // const { htmlBlocks } = processSongCifra(songLyrics);
+  // const { htmlBlocks } = processSongCifra(songTabs);
+
+  const { htmlBlocks } = processSongCifra(contentSelected);
+
+  console.log("songLyrics", songLyrics);
+  console.log("songChords", songChords);
+  console.log("songTabs", songTabs);
+
+  console.log("htmlBlocks", htmlBlocks);
   // console.log("htmlBlocks", typeof htmlBlocks); // objeto
 
   // console.log("songCifraData", songCifraData);
@@ -50,9 +84,9 @@ function Presentation() {
     const artistFromURL = localStorage.getItem("artist");
     const songFromURL = localStorage.getItem("song");
 
-    console.log("userEmail", userEmail);
-    console.log("artistFromURL", artistFromURL);
-    console.log("songFromURL", songFromURL);
+    // console.log("userEmail", userEmail);
+    // console.log("artistFromURL", artistFromURL);
+    // console.log("songFromURL", songFromURL);
 
     updateLastPlayed(songFromURL, artistFromURL, instrumentSelected);
   }, []);
@@ -114,6 +148,7 @@ function Presentation() {
         toggleTabsVisibility={toggleTabsVisibility}
         hideChords={hideChords}
         setHideChords={setHideChords}
+        setSelectContenttoShow={setSelectContenttoShow}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
