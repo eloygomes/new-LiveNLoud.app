@@ -213,6 +213,16 @@ export default function TollBoxAcoord({
                 className="neuphormism-b-se w-full my-2"
                 // onClick={toggleTabsVisibility}
                 onClick={() => {
+                  setSelectContenttoShow("full");
+                }}
+              >
+                original
+              </button>
+              <button
+                type="button"
+                className="neuphormism-b-se w-full my-2"
+                // onClick={toggleTabsVisibility}
+                onClick={() => {
                   setSelectContenttoShow("tabs");
                 }}
               >

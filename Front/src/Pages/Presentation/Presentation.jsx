@@ -37,6 +37,8 @@ function Presentation() {
         return songChords;
       case "lyrics":
         return songLyrics;
+      case "full":
+        return songCifraData; // Retorna a cifra completa
       default:
         return songCifraData; // mostra cifra completa no primeiro carregamento
     }
