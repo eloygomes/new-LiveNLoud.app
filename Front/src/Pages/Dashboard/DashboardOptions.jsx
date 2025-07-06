@@ -81,7 +81,7 @@ export default function DashboardOptions({
     setSetlists((prev) => prev.filter((item) => item !== tag));
     setSelectedSetlists((prev) => prev.filter((item) => item !== tag));
   };
-  console.log("optStatus", optStatus);
+  // console.log("optStatus", optStatus);
   return (
     <div
       className={`flex flex-col top-[67px] sticky justify-between neuphormism-b bg-white z-30 h-[150px] ${
