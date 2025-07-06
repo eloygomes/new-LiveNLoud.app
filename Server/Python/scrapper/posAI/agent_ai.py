@@ -7,8 +7,8 @@ import sys
 import importlib
 from typing import Optional
 
-from dotenv import load_dotenv
-from pydantic import BaseModel
+from dotenv import load_dotenv # type: ignore
+from pydantic import BaseModel # type: ignore
 
 import logging
 logging.basicConfig(
@@ -18,12 +18,12 @@ logging.basicConfig(
 )
 
 # LangChain
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain.memory import ConversationBufferMemory
-from langchain.tools import Tool
+from langchain_openai import ChatOpenAI # type: ignore
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder # type: ignore
+from langchain_core.output_parsers import PydanticOutputParser # type: ignore
+from langchain.agents import create_tool_calling_agent, AgentExecutor # type: ignore
+from langchain.memory import ConversationBufferMemory # type: ignore
+from langchain.tools import Tool # type: ignore
 
 # carregar variáveis (.env) caso use OPENAI_API_KEY etc.
 load_dotenv()
@@ -145,23 +145,36 @@ def _extract_chords(cifra: str) -> str:
         if not _META_RE.match(l) and (m := _CHORD_RE.findall(l))
     )
 
+
+def _is_tab_line(line: str) -> bool:
+    """Retorna True se a linha for uma linha de tablatura."""
+    return (
+        line.lstrip().startswith(_TAB_STARTS)
+        or line.count("-") >= 5
+    )
+
 def _extract_tabs(cifra: str) -> str:
-    out, lines = [], cifra.splitlines()
+    out: list[str] = []
+    lines = cifra.splitlines()
+    n = len(lines)
     i = 0
-    while i < len(lines):
-        ln = lines[i].rstrip()
-        is_tab = ln.lstrip().startswith(_TAB_STARTS) or ln.count("-") >= 5
-        if is_tab:
-            if i > 0 and _CHORD_RE.search(lines[i - 1]):
-                out.append(lines[i - 1].rstrip())
-            while i < len(lines) and (
-                lines[i].lstrip().startswith(_TAB_STARTS) or lines[i].count("-") >= 5
-            ):
-                out.append(lines[i].rstrip())
+
+    while i < n:
+        # se a linha atual parece tab...
+        if _is_tab_line(lines[i]):
+            # ...e as próximas duas linhas também parecem tab
+            if i + 2 < n and _is_tab_line(lines[i+1]) and _is_tab_line(lines[i+2]):
+                # então coletamos todo o bloco de tablatura
+                while i < n and _is_tab_line(lines[i]):
+                    out.append(lines[i].rstrip())
+                    i += 1
+                out.append("")  # separador entre blocos
+            else:
+                # se não formar mínimo de 3 linhas, ignora só esta
                 i += 1
-            out.append("")
         else:
             i += 1
+
     return "\n".join(out)
 
 # ───────────────────────  Função pública  ───────────────────────

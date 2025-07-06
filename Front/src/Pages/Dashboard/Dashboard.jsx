@@ -9,19 +9,19 @@ function Dashboard() {
 
   // useEffect para monitorar mudanças no tamanho da janela e detectar rotação
   useEffect(() => {
-    // localStorage.clear("cifraFROMDB");
-    // localStorage.clear("fromWHERE");
+    localStorage.setItem("cifraFROMDB", "");
+    localStorage.setItem("fromWHERE", "");
 
     const handleResize = () => {
       if (window.innerWidth <= 426) {
         setIsMobile(1);
-        console.log(1);
+        // console.log(1);
       } else if (window.innerWidth <= 768 && window.innerWidth > 426) {
         setIsMobile(2);
-        console.log(2);
+        // console.log(2);
       } else {
         setIsMobile(3);
-        console.log(3);
+        // console.log(3);
       }
     };
 
@@ -60,7 +60,7 @@ function Dashboard() {
         </>
       ) : isMobile === 2 ? (
         <>
-          <div className="w-full mobile deitado">
+          <div className="w-full mobile ">
             <DashList2 />
             <FloatingActionButtons />
           </div>
