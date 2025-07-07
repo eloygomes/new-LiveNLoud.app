@@ -145,8 +145,71 @@ function NewSongColumnA({
           actualSongData.guitar01.progress || parseInt(progBarG01 / 6) || 0
         );
       }
-      // (idem para guitar02, bass, keys, drums, voice...)
-      // ...se necessário, copie o padrão acima mudando a prop e o progBarXX
+
+      if (instrumentName === "guitar02" && actualSongData.guitar02?.active) {
+        setSongCifra(actualSongData.guitar02.songCifra);
+        setInstrActiveStatus(true);
+        setInstCapo(actualSongData.guitar02.capo);
+        setInstTuning(actualSongData.guitar02.tuning);
+        setInstLastPlayed(actualSongData.guitar02.lastPlay);
+        setInstLink(actualSongData.guitar02.link);
+        setInstProgressBar(actualSongData.guitar02.progress);
+        setGeralPercentage(
+          actualSongData.guitar02.progress || parseInt(progBarG02 / 6) || 0
+        );
+      }
+
+      if (instrumentName === "bass" && actualSongData.bass?.active) {
+        setSongCifra(actualSongData.bass.songCifra);
+        setInstrActiveStatus(true);
+        setInstCapo(actualSongData.bass.capo);
+        setInstTuning(actualSongData.bass.tuning);
+        setInstLastPlayed(actualSongData.bass.lastPlay);
+        setInstLink(actualSongData.bass.link);
+        setInstProgressBar(actualSongData.bass.progress);
+        setGeralPercentage(
+          actualSongData.bass.progress || parseInt(progBarBass / 6) || 0
+        );
+      }
+
+      if (instrumentName === "keys" && actualSongData.keys?.active) {
+        setSongCifra(actualSongData.keys.songCifra);
+        setInstrActiveStatus(true);
+        setInstCapo(actualSongData.keys.capo);
+        setInstTuning(actualSongData.keys.tuning);
+        setInstLastPlayed(actualSongData.keys.lastPlay);
+        setInstLink(actualSongData.keys.link);
+        setInstProgressBar(actualSongData.keys.progress);
+        setGeralPercentage(
+          actualSongData.keys.progress || parseInt(progBarKey / 6) || 0
+        );
+      }
+
+      if (instrumentName === "drums" && actualSongData.drums?.active) {
+        setSongCifra(actualSongData.drums.songCifra);
+        setInstrActiveStatus(true);
+        setInstCapo(actualSongData.drums.capo);
+        setInstTuning(actualSongData.drums.tuning);
+        setInstLastPlayed(actualSongData.drums.lastPlay);
+        setInstLink(actualSongData.drums.link);
+        setInstProgressBar(actualSongData.drums.progress);
+        setGeralPercentage(
+          actualSongData.drums.progress || parseInt(progBarDrums / 6) || 0
+        );
+      }
+
+      if (instrumentName === "voice" && actualSongData.voice?.active) {
+        setSongCifra(actualSongData.voice.songCifra);
+        setInstrActiveStatus(true);
+        setInstCapo(actualSongData.voice.capo);
+        setInstTuning(actualSongData.voice.tuning);
+        setInstLastPlayed(actualSongData.voice.lastPlay);
+        setInstLink(actualSongData.voice.link);
+        setInstProgressBar(actualSongData.voice.progress);
+        setGeralPercentage(
+          actualSongData.voice.progress || parseInt(progBarVoice / 6) || 0
+        );
+      }
 
       addedSongName.current = actualSongData.song;
     }

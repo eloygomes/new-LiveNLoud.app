@@ -327,7 +327,6 @@ function NewSongInputLinkBox({
 }) {
   // __ handleSubmit: principal lógica de validação, extração, check e scrape
   const handleSubmit = useCallback(async () => {
-    console.log("01");
     // 1) Validações básicas
     if (!instrument?.trim()) {
       setSnackbarMessage({ title: "Error", message: "Insira uma URL válida." });
@@ -348,7 +347,6 @@ function NewSongInputLinkBox({
     let finalArtist = artistName;
     let finalSong = songName;
     if (useLinkExtraction && (!artistName || !songName)) {
-      console.log("02");
       const parts = instrument.split("/").filter(Boolean);
       console.log("Parts extracted from URL:", parts);
       if (parts.length < 2) {
@@ -376,8 +374,6 @@ function NewSongInputLinkBox({
 
     // 3) Checar se já existe no banco
     try {
-      console.log("03");
-
       const res = await axios.post(
         "https://api.live.eloygomes.com.br/api/generalCifra",
         { instrument: instrumentName, link: instrument }
