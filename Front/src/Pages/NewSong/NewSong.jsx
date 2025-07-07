@@ -110,6 +110,8 @@ function NewSong() {
                     cifraExiste={cifraExiste}
                     setCifraFROMDB={setCifraFROMDB}
                     cifraFROMDB={cifraFROMDB}
+                    setShowSnackBar={setShowSnackBar}
+                    setSnackbarMessage={setSnackbarMessage}
                   />
                 </div>
                 <div className="right-column w-1/2">

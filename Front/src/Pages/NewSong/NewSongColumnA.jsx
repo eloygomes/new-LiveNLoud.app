@@ -28,6 +28,8 @@ function NewSongColumnA({
   songScrapado,
   artistScrapado,
   cifraExiste,
+  setShowSnackBar,
+  setSnackbarMessage,
 }) {
   const [songName, setSongName] = useState(null);
   const [artistName, setArtistName] = useState(null);
@@ -121,6 +123,20 @@ function NewSongColumnA({
       }
     }
 
+    const handlePercentage = () => {
+      setGeralPercentage(
+        parseInt(
+          (progBarG01 ||
+            0 + progBarG02 ||
+            0 + progBarBass ||
+            0 + progBarKey ||
+            0 + progBarDrums ||
+            0 + progBarVoice ||
+            0) / 6
+        )
+      );
+    };
+
     // Se parse deu certo, preenche estados
     if (actualSongData) {
       setArtistName(actualSongData.artist || "");
@@ -129,7 +145,8 @@ function NewSongColumnA({
       setTomData(actualSongData.tom);
       setTunerData(actualSongData.tuning);
       setAddedInDATE(actualSongData.addedIn);
-      setGeralPercentage(actualSongData.progressBar);
+      // setGeralPercentage(actualSongData.progressBar);
+      handlePercentage();
       setEmbedLink(actualSongData.embed || []);
 
       // Exemplo para guitar01; repita lógica para outros instrumentos
@@ -141,9 +158,11 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.guitar01.lastPlay);
         setInstLink(actualSongData.guitar01.link);
         setInstProgressBar(actualSongData.guitar01.progress);
-        setGeralPercentage(
-          actualSongData.guitar01.progress || parseInt(progBarG01 / 6) || 0
-        );
+        // setGeralPercentage(
+        //   actualSongData.guitar01.progress || parseInt(progBarG01 / 6) || 0
+        // );
+        // setGeralPercentage(parseInt(progBarG01 / 6) || 0);
+        handlePercentage();
       }
 
       if (instrumentName === "guitar02" && actualSongData.guitar02?.active) {
@@ -154,9 +173,7 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.guitar02.lastPlay);
         setInstLink(actualSongData.guitar02.link);
         setInstProgressBar(actualSongData.guitar02.progress);
-        setGeralPercentage(
-          actualSongData.guitar02.progress || parseInt(progBarG02 / 6) || 0
-        );
+        handlePercentage();
       }
 
       if (instrumentName === "bass" && actualSongData.bass?.active) {
@@ -167,9 +184,7 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.bass.lastPlay);
         setInstLink(actualSongData.bass.link);
         setInstProgressBar(actualSongData.bass.progress);
-        setGeralPercentage(
-          actualSongData.bass.progress || parseInt(progBarBass / 6) || 0
-        );
+        handlePercentage();
       }
 
       if (instrumentName === "keys" && actualSongData.keys?.active) {
@@ -180,9 +195,7 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.keys.lastPlay);
         setInstLink(actualSongData.keys.link);
         setInstProgressBar(actualSongData.keys.progress);
-        setGeralPercentage(
-          actualSongData.keys.progress || parseInt(progBarKey / 6) || 0
-        );
+        handlePercentage();
       }
 
       if (instrumentName === "drums" && actualSongData.drums?.active) {
@@ -193,9 +206,7 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.drums.lastPlay);
         setInstLink(actualSongData.drums.link);
         setInstProgressBar(actualSongData.drums.progress);
-        setGeralPercentage(
-          actualSongData.drums.progress || parseInt(progBarDrums / 6) || 0
-        );
+        handlePercentage();
       }
 
       if (instrumentName === "voice" && actualSongData.voice?.active) {
@@ -206,9 +217,7 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.voice.lastPlay);
         setInstLink(actualSongData.voice.link);
         setInstProgressBar(actualSongData.voice.progress);
-        setGeralPercentage(
-          actualSongData.voice.progress || parseInt(progBarVoice / 6) || 0
-        );
+        handlePercentage();
       }
 
       addedSongName.current = actualSongData.song;
@@ -329,9 +338,17 @@ function NewSongColumnA({
       <div className="flex flex-row neuphormism-b-btn-flat p-5 my-5 mr-5 justify-start">
         <button
           className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green"
-          onClick={() =>
-            createNewSong({ instrumentName, geralPercentage, setlist })
-          }
+          onClick={() => {
+            createNewSong({ instrumentName, geralPercentage, setlist });
+
+            setShowSnackBar(true);
+            setSnackbarMessage({
+              title: "Success",
+              message: `Song "${songName}" by ${artistName} saved successfully!`,
+            });
+
+            console.log("Saving song:", { songName, artistName });
+          }}
         >
           Save
         </button>
