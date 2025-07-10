@@ -55,7 +55,7 @@ function NewSongSetlist({
 
   // console.log("setlist", setlist);
 
-  console.log("setlistOptions", setlistOptions);
+  // console.log("setlistOptions", setlistOptions);
 
   return (
     <div className="my-4 p-3 border rounded   neuphormism-b p-5 my-5 mr-5">

@@ -75,7 +75,7 @@ const NewSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
 
   return (
     <div className="flex flex-col neuphormism-b p-5 my-5 mr-5">
-      <h1 className="text-xl pb-2 font-bold">Embed</h1>
+      <h1 className="text-xl pb-2 font-bold">Videos</h1>
 
       {selectedVideo && (
         <div className="mb-4 p-3 border border-gray-300 rounded-md bg-gray-100">
