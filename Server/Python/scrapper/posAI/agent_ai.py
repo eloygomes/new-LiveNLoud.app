@@ -218,16 +218,3 @@ def agent(
     logging.info("[agent] output -> %s", resp.model_dump())
     return resp
 
-# ─────────────────────────  Teste rápido  ────────────────────────
-if __name__ == "__main__":
-    # Para testar isoladamente:
-    import scrapper  # garante que userData existe
-    scrapper.userData.append(
-        {
-            "song_title": "Pescador de Ilusões",
-            "artist_name": "O Rappa",
-            "song_cifra": "tom:C\nAm  G\nLetra ...\n",
-        }
-    )
-    r = agent("teste@teste.com", "Pescador de Ilusões", "O Rappa")
-    print(r.model_dump())
