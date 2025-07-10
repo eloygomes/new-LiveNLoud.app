@@ -728,7 +728,6 @@ app.get("/api/downloadUserData/:email", async (req, res) => {
 });
 
 // Route to delete all songs except the one with id = 1
-// Route to delete all songs except the one with id = 1
 app.post("/api/deleteAllUserSongs", async (req, res) => {
   try {
     const { email } = req.body;
@@ -841,6 +840,176 @@ app.post("/api/deleteUserAccount", async (req, res) => {
   } catch (error) {
     console.error("Erro ao deletar a conta do usuário:", error);
     res.status(500).json({ message: "Erro ao deletar a conta do usuário." });
+  }
+});
+
+// Rota para consultar as musicas no banco geral
+// app.post('/api/generalCifra', async (req, res) => {
+//   try {
+//     const { artist, song, instrument } = req.body;
+
+//     const database = client.db("generalCifras");
+//     const collection = database.collection("Documents");
+
+//     // Montamos um filtro dinâmico, por exemplo:
+//     // { artist: 'O Rappa', song: 'Anjos', 'instruments.guitar01': true }
+//     const filter = {
+//       artist: artist,
+//       song: song,
+//       [`instruments.${instrument}`]: true
+//     };
+
+//     // Buscamos um único documento que atenda a todos esses critérios
+//     const document = await collection.findOne(filter);
+
+//     if (!document) {
+//       return res.status(404).json({ message: "Documento não encontrado" });
+//     }
+
+//     // Se achou, retornamos o documento completo
+//     return res.status(200).json(document);
+
+//   } catch (error) {
+//     console.error("Erro ao tentar localizar cifra no banco geral:", error);
+//     return res.status(500).json({ message: "Erro ao tentar localizar cifra no banco geral." });
+//   }
+// });
+app.post("/api/generalCifra", async (req, res) => {
+  try {
+    const { instrument, link } = req.body;
+
+    const database = client.db("generalCifras");
+    const collection = database.collection("Documents");
+
+    // Filtro baseado somente no instrumento e no link específico
+    const filter = {
+      [`instruments.${instrument}`]: true,
+      [`${instrument}.link`]: link,
+    };
+
+    const document = await collection.findOne(filter);
+    if (!document) {
+      return res.status(404).json({ message: "Documento não encontrado" });
+    }
+
+    // Retorna o documento completo
+    return res.status(200).json(document);
+  } catch (error) {
+    console.error("Erro ao tentar localizar cifra no banco geral:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao tentar localizar cifra no banco geral." });
+  }
+});
+
+app.post("/api/createMusic", async (req, res) => {
+  try {
+    const {
+      song,
+      artist,
+      progressBar,
+      instruments = {},
+      guitar01,
+      guitar02,
+      bass,
+      keys,
+      drums,
+      voice,
+      embedVideos = [],
+      email = "",
+      setlist = [],
+    } = req.body;
+
+    // ---------- utilitário: remove "progress" do objeto -----------
+    const stripProgress = (instr) => {
+      if (!instr || typeof instr !== "object") return instr;
+      const { progress, ...clean } = instr;
+      return clean;
+    };
+
+    // ---------- prepara payload limpo -----------------------------
+    const incoming = {
+      song,
+      artist,
+      progressBar,
+      instruments,
+      guitar01: stripProgress(guitar01),
+      guitar02: stripProgress(guitar02),
+      bass: stripProgress(bass),
+      keys: stripProgress(keys),
+      drums: stripProgress(drums),
+      voice: stripProgress(voice),
+      embedVideos,
+      email,
+      setlist,
+      updateIn: new Date().toISOString().split("T")[0],
+    };
+
+    const database = client.db("generalCifras");
+    const collection = database.collection("Documents");
+
+    // ---------- se já existe (mesmo song + artist) -> faz merge ----
+    const filter = { song: song, artist: artist };
+    const existing = await collection.findOne(filter);
+
+    if (existing) {
+      // Merge instruments flags (true se qualquer um dos lados for true)
+      const mergedInstruments = {
+        ...existing.instruments,
+        ...incoming.instruments,
+      };
+
+      // Helper para mesclar sub‑documento de instrumento
+      const mergeInstrument = (inst) => {
+        if (!incoming[inst]) return existing[inst]; // nada novo
+        const oldDoc = existing[inst] || {};
+        return { ...oldDoc, ...incoming[inst] }; // incoming contém link específico
+      };
+
+      const update = {
+        $set: {
+          progressBar: incoming.progressBar ?? existing.progressBar,
+          instruments: mergedInstruments,
+          guitar01: mergeInstrument("guitar01"),
+          guitar02: mergeInstrument("guitar02"),
+          bass: mergeInstrument("bass"),
+          keys: mergeInstrument("keys"),
+          drums: mergeInstrument("drums"),
+          voice: mergeInstrument("voice"),
+          updateIn: incoming.updateIn,
+        },
+        $addToSet: {
+          embedVideos: { $each: incoming.embedVideos },
+          setlist: { $each: incoming.setlist },
+        },
+      };
+
+      await collection.updateOne(filter, update);
+
+      return res.status(200).json({
+        message: "Música existente atualizada com sucesso.",
+      });
+    }
+
+    // ---------- se não existe -> cria novo documento ---------------
+    const newMusic = {
+      ...incoming,
+      addedIn: new Date().toISOString().split("T")[0],
+    };
+
+    const result = await collection.insertOne(newMusic);
+
+    return res.status(201).json({
+      message: "Música adicionada com sucesso.",
+      insertedId: result.insertedId,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      // Chave duplicada (caso índice unique seja criado)
+      return res.status(200).json({ message: "Música já cadastrada." });
+    }
+    console.error("Erro ao criar/atualizar música:", error);
+    return res.status(500).json({ message: "Erro ao criar/atualizar música." });
   }
 });
 

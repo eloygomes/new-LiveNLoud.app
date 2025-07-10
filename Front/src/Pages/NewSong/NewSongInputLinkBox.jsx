@@ -214,13 +214,23 @@ function NewSongInputLinkBox({
           value={progress}
           onChange={(e) => {
             setProgress(Number(e.target.value));
+          }}
+          onMouseUp={() => {
             handleSubmit();
             setShowSnackBar(true);
             setSnackbarMessage({
               title: "Load",
               message: "Carregando dados...",
             });
-          }}
+          }} // desktop
+          onTouchEnd={() => {
+            handleSubmit();
+            setShowSnackBar(true);
+            setSnackbarMessage({
+              title: "Load",
+              message: "Carregando dados...",
+            });
+          }} // mobile
           className="flex-1"
         />
         <div className="w-14 text-right text-sm">{progress}%</div>

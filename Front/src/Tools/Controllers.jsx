@@ -69,8 +69,8 @@ export const updateSongData = async (updatedData) => {
   const artist = localStorage.getItem("artist");
   const song = localStorage.getItem("song");
 
-  console.log("updatedData", updatedData);
-  console.log("CONTROLLERS", userEmail, artist, song, updatedData);
+  // console.log("updatedData", updatedData);
+  // console.log("CONTROLLERS", userEmail, artist, song, updatedData);
 
   const payload = {
     userdata: {
