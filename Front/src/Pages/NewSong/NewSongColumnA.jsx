@@ -6,7 +6,7 @@ import GeralProgressBar from "./GeralProgressBar";
 import NewSongSongData from "./NewSongSongData";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { deleteOneSong } from "../../Tools/Controllers";
+import { deleteOneSong, getAllUserSetlists } from "../../Tools/Controllers";
 import NewSongSetlist from "./NewSongSetlist";
 
 function NewSongColumnA({
@@ -122,6 +122,17 @@ function NewSongColumnA({
         console.warn("Failed to parse dataFromUrl:", err);
       }
     }
+
+    // Carrega as opções de setlist de forma assíncrona
+    (async () => {
+      try {
+        const lists = await getAllUserSetlists();
+        // console.log("allSetlists", lists);
+        setSetListOptions(lists);
+      } catch (err) {
+        console.error("Erro ao buscar setlists:", err);
+      }
+    })();
 
     const handlePercentage = () => {
       setGeralPercentage(
@@ -326,6 +337,7 @@ function NewSongColumnA({
         lastTime={addedInDATE}
       />
       <GeralProgressBar geralPercentage={geralPercentage} />
+
       <NewSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
 
       <NewSongSetlist
