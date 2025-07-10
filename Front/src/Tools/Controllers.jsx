@@ -64,7 +64,6 @@ export const allDataFromOneSong = async (artist, song) => {
   }
 };
 
-// Função para atualizar os dados da música
 export const updateSongData = async (updatedData) => {
   const userEmail = localStorage.getItem("userEmail"); // Pegando o email do usuário
   const artist = localStorage.getItem("artist");
@@ -137,7 +136,6 @@ export const updateLastPlayed = async (song, artist, instrument) => {
   }
 };
 
-// New function to download user data
 export const downloadUserData = async () => {
   try {
     const response = await axios.get(
@@ -159,7 +157,6 @@ export const downloadUserData = async () => {
   }
 };
 
-// New function to delete all users songs
 export const deleteAllUserSongs = async () => {
   const url = "https://api.live.eloygomes.com.br/api/deleteAllUserSongs";
 
@@ -177,7 +174,6 @@ export const deleteAllUserSongs = async () => {
   }
 };
 
-// Função para deletar a conta completa do usuário
 export const deleteUserAccountOnDb = async () => {
   const url = "https://api.live.eloygomes.com.br/api/deleteUserAccount";
 
@@ -192,5 +188,35 @@ export const deleteUserAccountOnDb = async () => {
       error.response?.data?.message || error.message
     );
     throw error;
+  }
+};
+
+export const getAllUserSetlists = async () => {
+  // const url = `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`;
+
+  // try {
+  //   const response = await axios.get(url);
+  //   const data = response.data;
+
+  //   // Extrair setlists únicos de todas as músicas
+  //   const allSetlists = data.flatMap((song) => song.setlist || []);
+  //   const distinctSetlists = [...new Set(allSetlists)];
+
+  //   return distinctSetlists;
+  // } catch (error) {
+  //   console.error("Erro ao buscar setlists do usuário:", error);
+  //   throw error;
+  // }
+
+  try {
+    const response = await fetch(
+      `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
+    );
+    const data = await response.json();
+    const allSetlists = data.flatMap((song) => song.setlist || []);
+    const distinctSetlists = [...new Set(allSetlists)];
+    return distinctSetlists;
+  } catch (error) {
+    console.error("Erro ao buscar setlists:", error);
   }
 };

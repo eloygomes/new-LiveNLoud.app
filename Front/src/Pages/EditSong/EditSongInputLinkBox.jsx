@@ -20,7 +20,7 @@ function EditSongInputLinkBox({
       } else if (typeof dataFromAPI === "object" && dataFromAPI !== null) {
         setDataFromAPIParsed(dataFromAPI);
       } else {
-        console.warn("Invalid or empty dataFromAPI:", dataFromAPI);
+        // console.warn("Invalid or empty dataFromAPI:", dataFromAPI);
         setDataFromAPIParsed({});
       }
     } catch (error) {
@@ -42,15 +42,6 @@ function EditSongInputLinkBox({
   // console.log(progress);
 
   const handledata = async () => {
-    // if (!instrument || typeof instrument !== "string" || !instrument.trim()) {
-    //   // setShowSnackBar(true);
-    //   setSnackbarMessage({
-    //     title: "Error",
-    //     message: "Please insert a valid URL before proceeding.",
-    //   });
-    //   return;
-    // }
-
     const userEmail = localStorage.getItem("userEmail");
     const artistFromUrl = localStorage.getItem("artist");
     const songFromUrl = localStorage.getItem("song");
@@ -91,9 +82,9 @@ function EditSongInputLinkBox({
     }
   };
 
-  useEffect(() => {
-    handledata().catch((error) => console.error(error));
-  }, [link, progress]);
+  // useEffect(() => {
+  //   handledata().catch((error) => console.error(error));
+  // }, [link, progress]);
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">

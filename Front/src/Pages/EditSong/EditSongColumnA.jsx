@@ -107,31 +107,12 @@ function EditSongColumnA({
     );
   }, [progGuitar01, progGuitar02, progBass, progKey, progDrums, progVoice]);
 
-  // Carregar TODAS as opções de setlists do backend (para exibir como "tags")
-  useEffect(() => {
-    async function fetchAllSetlists() {
-      try {
-        // Ajuste para seu endpoint real, se houver
-        const response = await fetch(
-          "https://api.seudominio.com.br/allSetlists"
-        );
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setSetListOptions(data);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar lista global de setlists:", error);
-      }
-    }
-    fetchAllSetlists();
-  }, []);
-
   // Quando dataFromAPI chega, parse e preenche
   useEffect(() => {
     if (dataFromAPI && typeof dataFromAPI === "string") {
       try {
         const parsedData = JSON.parse(dataFromAPI);
-        console.log("Parsed data:", parsedData);
+        // console.log("Parsed data:", parsedData);
 
         setArtistName(parsedData.artist || "");
         setSongName(parsedData.song || "");

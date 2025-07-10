@@ -1,19 +1,25 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MdAddCircle } from "react-icons/md";
+import { getAllUserSetlists } from "../../Tools/Controllers";
+import { IoClose } from "react-icons/io5";
+import { RiDeleteBin6Line } from "react-icons/ri";
 
 function NewSongSetlist({
-  setlistOptions,
+  setlistOptions = [],
   setSetlistOptions,
-  setlist,
+  setlist = [],
   setSetlist,
 }) {
   // Guardamos o input do usuário para criar um novo setlist
   const [newSetlistName, setNewSetlistName] = useState("");
 
-  const toggleSetlist = (item) => {
+  // Guardamos os setlists já existentes
+  const [setlists, setSetlists] = useState([]);
+
+  const toggleTag = (item) => {
     if (setlist.includes(item)) {
       // Se já está no setlist, removemos
       setSetlist((prev) => prev.filter((x) => x !== item));
@@ -21,6 +27,12 @@ function NewSongSetlist({
       // Se não está, adicionamos
       setSetlist((prev) => [...prev, item]);
     }
+  };
+
+  // Remove a tag definitivamente do sistema
+  const handleDeleteSetlist = (tag) => {
+    setSetlistOptions((prev) => prev.filter((t) => t !== tag));
+    setSetlist((prev) => prev.filter((t) => t !== tag));
   };
 
   // Criar um novo setlist e adicionar ao array de "opções globais" + "setlist" atual
@@ -41,11 +53,14 @@ function NewSongSetlist({
     setNewSetlistName("");
   };
 
+  // console.log("setlist", setlist);
+
+  console.log("setlistOptions", setlistOptions);
+
   return (
     <div className="my-4 p-3 border rounded   neuphormism-b p-5 my-5 mr-5">
-      <h2 className="text-lg font-bold mb-2">Setlist (Tags)</h2>
+      <h2 className="text-lg font-bold mb-2">Setlists</h2>
 
-      {/* Formulário para criar um novo setlist (e já ativar) */}
       <div className="mt-4">
         <label htmlFor="newSetlistName" className="block mb-1 font-semibold">
           Criar um novo setlist:
@@ -58,53 +73,64 @@ function NewSongSetlist({
             placeholder="Ex: 'Show2023' ou 'Ensaios'"
             value={newSetlistName}
             onChange={(e) => setNewSetlistName(e.target.value)}
+            onBlur={() => handleAddNew()}
           />
-
-          <button
-            onClick={handleAddNew}
-            className="bg-green-600 text-white px-3 py-1 rounded"
-            title="Adicionar nova tag"
-          >
-            <MdAddCircle className="w-7 h-7" />
-          </button>
         </div>
       </div>
 
-      {/* Mostramos abaixo quais setlists estão selecionados para esta música */}
       <div className="mt-4">
-        <span className="font-semibold">Setlists selecionados:</span>
-        {setlist.length === 0 ? (
-          <p className="italic text-sm">Nenhum setlist adicionado ainda.</p>
-        ) : (
-          <ul className="list-disc  mt-1">
-            {setlist.map((tag, index) => {
-              const isActive = setlist.includes(tag);
-              return (
-                <span
-                  key={index}
-                  onClick={() => toggleTag(tag)}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "10px",
-                    margin: "2px",
-                    cursor: "pointer",
-                    backgroundColor: isActive ? "goldenrod" : "#9ca3af",
-                    color: "#fff",
-                    userSelect: "none",
-                  }}
-                  title={
-                    isActive
-                      ? "Clique para remover esta tag"
-                      : "Clique para adicionar esta tag"
-                  }
-                >
-                  {tag}
-                </span>
-              );
-            })}
-          </ul>
-        )}
+        <h1 className="px-0 font-bold text-md">Setlists disponíveis:</h1>
+        <div className="w-full pr-2">
+          {setlistOptions.length === 0 ? (
+            <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {setlistOptions.map((tag, index) => {
+                const isActive = setlist.includes(tag);
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-1"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "6px 10px",
+                      borderRadius: "10px",
+                      margin: "2px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      backgroundColor: isActive ? "goldenrod" : "#9ca3af",
+                      color: "#fff",
+                      userSelect: "none",
+                    }}
+                  >
+                    <span
+                      onClick={() => toggleTag(tag)}
+                      title={
+                        isActive
+                          ? "Clique para remover este filtro"
+                          : "Clique para adicionar este filtro"
+                      }
+                    >
+                      {tag}
+                    </span>
+                    <RiDeleteBin6Line
+                      className="w-4 h-4 ml-1"
+                      title="Remover setlist do sistema"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSetlist(tag);
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Formulário para criar um novo setlist (e já ativar) */}
     </div>
   );
 }

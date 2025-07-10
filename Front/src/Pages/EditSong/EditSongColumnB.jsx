@@ -99,7 +99,7 @@ function EditSongColumnB({
         console.error("Erro ao processar dataFromAPI:", error);
       }
     } else {
-      console.warn("dataFromAPI está vazio ou indefinido:", dataFromAPI);
+      // console.warn("dataFromAPI está vazio ou indefinido:", dataFromAPI);
     }
   }, [dataFromAPI]);
 
