@@ -1,402 +1,272 @@
 
-
-# from __future__ import annotations
-
-# """
-# Backend Flask – scraping, IA e persistência
-# Reescrito para manter *todo* o espaçamento/indentação das cifras e
-# evitar perda de formatação nos pontos críticos indicados.
-# """
-
-# # ─── IMPORTS ─────────────────────────────────────────────────────
-# from flask import Flask, request, jsonify
-# from pymongo import MongoClient
-# from bs4 import BeautifulSoup
-# from datetime import datetime
-# import requests
-# import logging
-# import sys
-
-# # -----------------------------------------------------------------
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="[%(asctime)s] %(levelname)s  %(message)s",
-#     force=True,  # override any previous basicConfig
-# )
-
-# # ─── Buffer global visível ao agent_ai ───────────────────────────
-# userData: list[dict] = []  # será preenchido pelo scraper antes de chamar o agente
-
-# # Importa somente depois de definir userData (evita import circular)
-# from agent_ai import agent  # noqa: E402  pylint: disable=wrong-import-position
-
-# # ─── CONFIG  GERAIS ──────────────────────────────────────────────
-# app          = Flask(__name__)
-# MONGO_URL    = "mongodb://root:example@db:27017/admin"
-# NODE_API_URL = "https://api.live.eloygomes.com.br/api/createMusic"
-
-# # ─────────────────────────────────────────────────────────────────
-# # SCRAPER  – mantém espaçamento ORIGINAL
-# # ----------------------------------------------------------------
-
-# def get_cifra(url: str) -> list[dict] | None:
-#     """Scrape da cifra no CifraClub mantendo formatação completa."""
-#     logging.info("Fetching URL %s", url)
-#     try:
-#         resp = requests.get(url, timeout=15)
-#         resp.raise_for_status()
-#     except requests.RequestException as exc:
-#         logging.error("Request error: %s", exc)
-#         return None
-
-#     soup  = BeautifulSoup(resp.text, "html.parser")
-#     bloc  = soup.select_one("div.g-1.g-fix.cifra")
-#     if not bloc:
-#         logging.warning("Cifra block not found in page")
-#         return None
-
-#     title   = (bloc.select_one("h1.t1") or {}).get_text(strip=True)
-#     artist  = (bloc.select_one("h2.t3") or {}).get_text(strip=True)
-#     txtdiv  = bloc.select_one("div.cifra_cnt")
-
-#     # ⚠️  NÃO use strip=True aqui: mantemos tabs, espaços, linhas vazias
-#     cifra = txtdiv.get_text("\n", strip=False) if txtdiv else ""
-
-#     return [{
-#         "song_title":  title,
-#         "artist_name": artist,
-#         "song_cifra":  cifra,
-#     }]
-
-# # ─────────────────────────────────────────────────────────────────
-# # REST  ENDPOINT  /scrape
-# # ----------------------------------------------------------------
-
-# @app.route("/scrape", methods=["POST"])
-# def scrape_and_store():
-#     payload = request.get_json(force=True, silent=True) or {}
-
-#     instrument  = payload.get("instrument")
-#     user_email  = payload.get("email")
-#     if not instrument or not user_email:
-#         return jsonify({"message": "Missing required fields"}), 400
-
-#     link = (payload.get("link") or "").strip()
-#     url  = link or f"https://www.cifraclub.com.br/{payload.get('artist')}/{payload.get('song')}/"
-
-#     data = get_cifra(url)
-#     logging.info("Scraper returned: %s", data)
-#     if not data:
-#         return jsonify({"message": "Failed to scrape"}), 500
-
-#     # popula buffer global para agent_ai
-#     userData.clear(); userData.extend(data)
-
-#     # ----------------------------------------------------------------
-#     # IA – separa letra / acordes / TABs PRESERVANDO formatação
-#     # ----------------------------------------------------------------
-#     try:
-#         s = data[0]
-#         logging.info("Calling agent for %s – %s", s["artist_name"], s["song_title"])
-#         res = agent(
-#             user_email=user_email,
-#             song_title=s["song_title"],
-#             artist_name=s["artist_name"],
-#             instrument=instrument,
-#             song_cifra=s["song_cifra"],
-#         )
-#         logging.info("Agent response OK")
-
-#         # inclui campos derivados – já com espaços preservados
-#         s.update({
-#             "song_cifra_lyrics": res.song_cifra_lyrics,
-#             "song_chords":       res.song_chords,
-#             "song_cifra_tab":    res.song_cifra_tab,
-#         })
-#     except Exception:
-#         logging.exception("agent error – continuing with raw scrape data")
-
-#     # ----------------------------------------------------------------
-#     # Persistência em Mongo + forward para API Node
-#     # ----------------------------------------------------------------
-#     try:
-#         store_in_mongo(
-#             song_data=data,
-#             inst=instrument,
-#             email=user_email,
-#             prog=int(payload.get("instrument_progressbar", 0) or 0),
-#             link=link,
-#         )
-#     except Exception as exc:
-#         logging.exception("Mongo error")
-#         return jsonify({"message": f"Mongo error: {exc}"}), 500
-
-#     return jsonify({"message": "OK"}), 201
-
-# # ─────────────────────────────────────────────────────────────────
-# # Mongo helpers
-# # ----------------------------------------------------------------
-
-# def _inst_block(c: dict, active: bool, progress: int, link: str) -> dict:
-#     today = datetime.today().strftime("%Y-%m-%d")
-#     return {
-#         "active":       active,
-#         "capo":         "",
-#         "tuning":       "",
-#         "lastPlay":     today,
-#         "songCifra":    c.get("song_cifra", ""),
-#         "songLyrics":   c.get("song_cifra_lyrics", ""),
-#         "songChords":   c.get("song_chords", ""),
-#         "songTabs":     c.get("song_cifra_tab", ""),
-#         "progress":     progress,
-#         "link":         link,
-#     }
-
-
-# def store_in_mongo(*, song_data: list[dict], inst: str, email: str, prog: int, link: str) -> None:
-#     client = MongoClient(MONGO_URL)
-#     col    = client["liveNloud_"]["data"]
-#     s      = song_data[0]
-
-#     doc = col.find_one({"email": email}) or {"email": email, "userdata": []}
-#     userdata = doc["userdata"]
-
-#     record = next((x for x in userdata if x["artist"] == s["artist_name"] and x["song"] == s["song_title"]), None)
-#     today  = datetime.today().strftime("%Y-%m-%d")
-
-#     if not record:
-#         record = {
-#             "id":          max((x["id"] for x in userdata), default=0) + 1,
-#             "song":        s["song_title"],
-#             "artist":      s["artist_name"],
-#             "progressBar": 0,
-#             "instruments": {k: False for k in ["guitar01", "guitar02", "bass", "keys", "drums", "voice"]},
-#             "guitar01": {}, "guitar02": {}, "bass": {}, "keys": {}, "drums": {}, "voice": {},
-#             "embedVideos": [],
-#             "addedIn":     today,
-#             "updateIn":    today,
-#             "email":       email,
-#         }
-#         userdata.append(record)
-
-#     record["instruments"][inst] = True
-#     record[inst] = _inst_block(s, True, prog, link)
-#     record["updateIn"] = today
-
-#     col.update_one({"email": email}, {"$set": {"userdata": userdata}}, upsert=True)
-#     send_to_node(record)
-
-
-# def send_to_node(e: dict) -> None:
-#     payload = {
-#         "song":        e["song"],
-#         "artist":      e["artist"],
-#         "instruments": e["instruments"],
-#         "guitar01":    e.get("guitar01", {}),
-#         "guitar02":    e.get("guitar02", {}),
-#         "bass":        e.get("bass", {}),
-#         "keys":        e.get("keys", {}),
-#         "drums":       e.get("drums", {}),
-#         "voice":       e.get("voice", {}),
-#         "addedIn":     e.get("addedIn"),
-#         "setlist":     [],
-#     }
-#     try:
-#         requests.post(NODE_API_URL, json=payload, timeout=15).raise_for_status()
-#     except Exception as exc:  # pragma: no cover – log e continua
-#         logging.error("Node API error: %s", exc)
-
-
-# # ─────────────────────────────────────────────────────────────────
-# # MAIN  – run Flask
-# # ----------------------------------------------------------------
-# if __name__ == "__main__":
-#     # Dica: defina host=\"0.0.0.0\" p/ docker, senão localhost
-#     app.run(host="0.0.0.0", port=8000, debug=False)
-
 from __future__ import annotations
 
-# ─── IMPORTS ─────────────────────────────────────────────────────
-from flask import Flask, request, jsonify
-from pymongo import MongoClient
-import requests, sys, html, re
-from bs4 import BeautifulSoup
-from datetime import datetime
-import logging
+# ─────────────────────────  IMPORTS  ──────────────────────────────
+import re
+import sys
+import importlib
+from typing import Optional
 
+from dotenv import load_dotenv # type: ignore
+from pydantic import BaseModel # type: ignore
+
+import logging
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] %(levelname)s - %(message)s',
-    force=True,  # override any previous basicConfig
+    force=True,
 )
 
-# ─── Buffer global visível ao agent_ai ───────────────────────────
-userData: list = []
+# LangChain
+from langchain_openai import ChatOpenAI # type: ignore
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder # type: ignore
+from langchain_core.output_parsers import PydanticOutputParser # type: ignore
+from langchain.agents import create_tool_calling_agent, AgentExecutor # type: ignore
+from langchain.memory import ConversationBufferMemory # type: ignore
+from langchain.tools import Tool # type: ignore
 
-# IMPORTA depois de criar userData → sem ciclo
-from agent_ai import agent
+# carregar variáveis (.env) caso use OPENAI_API_KEY etc.
+load_dotenv()
 
-# ─── CONFIG ──────────────────────────────────────────────────────
-app          = Flask(__name__)
-MONGO_URL    = "mongodb://root:example@db:27017/admin"
-NODE_API_URL = "https://api.live.eloygomes.com.br/api/createMusic"
+# ─────────────────────────  REGEX ÚTEIS  ─────────────────────────
+_CHORD_RE = re.compile(
+    r"(?<!\w)[A-G](?:[#b])?(?:m|min|maj|sus|dim|aug|add)?\d*(?:/[A-G](?:[#b])?)?(?!\w)"
+)
+_TAB_STARTS = ("e|", "B|", "G|", "D|", "A|", "E|", "e:", "B:", "G:", "D:", "A:", "E:")
 
-# ─── HELPERS ─────────────────────────────────────────────────────
-
-def _extract_cifra_html(div_tag: BeautifulSoup) -> str:
-    """Retorna o HTML interno de *div.cifra_cnt* **preservando**:
-    - quebras de linha (`<br>` → `\n`)
-    - espaços múltiplos ( `&nbsp;` → espaço real )
-    - todas as _tags_ de formatação ( `<span>`, `<b>`… )
-    Assim mantemos exatamente a mesma aparência que o site exibe.
+# ───────────────────────  ACESSO LAZy AO userData  ───────────────
+def _get_user_data() -> list:
     """
-    if not div_tag:
-        return ""
+    Busca o buffer global `userData` definido em scrapper.py sem criar
+    import circular. Lida com import dinâmico se scrapper ainda não
+    estiver nos módulos carregados.
+    """
+    scrapper_mod = sys.modules.get("scrapper") or importlib.import_module("scrapper")
+    return getattr(scrapper_mod, "userData", [])
 
-    raw = div_tag.decode_contents()          # HTML puro (sem a div wrapper)
-    raw = raw.replace("&nbsp;", " ")       # mantém recuos/colunas
-    raw = re.sub(r"<br\s*/?>", "\n", raw, flags=re.I)  # quebra de linha
-    return raw
+# ─────────────────────────  TOOL  ────────────────────────────────
+def get_song_cifra(key: str) -> dict:
+    logging.info("[tool] called with key=%s", key)
+    """
+    Retorna {artist_name, song_title, song_cifra} pesquisando no
+    `userData` preenchido por scrapper.py.
 
-# ─── SCRAPER ─────────────────────────────────────────────────────
+    key formatos aceitos:
+      • "<instrument>|<artist>|<song>"
+      • "<instrument>|<email>|<artist>|<song>"
+    """
+    parts = key.split("|")
+    if len(parts) == 4:
+        instrument, email, artist, song = parts
+    elif len(parts) == 3:
+        instrument, artist, song = parts
+        email = None
+    else:
+        return {"error": "Chave inválida."}
 
-def get_cifra(url: str):
-    try:
-        logging.info("Fetching URL %s", url)
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
+    artist = artist.strip().lower()
+    song   = song.strip().lower()
 
-        soup   = BeautifulSoup(resp.text, "html.parser")
-        block  = soup.find("div", class_="g-1 g-fix cifra")
-        if not block:
-            return None
+    for item in _get_user_data():
+        # Só aplica o filtro de e‑mail se o item realmente tiver esse campo
+        if email and item.get("email") and item["email"].lower() != email.lower():
+            continue
+        if (
+            item.get("artist_name", "").lower() == artist
+            and item.get("song_title", "").lower() == song
+        ):
+            return {
+                "artist_name": item["artist_name"],
+                "song_title": item["song_title"],
+                "song_cifra": item["song_cifra"],
+            }
+    return {"error": "Música não encontrada."}
 
-        title  = (block.find("h1", class_="t1") or {}).get_text(strip=True)
-        artist = (block.find("h2", class_="t3") or {}).get_text(strip=True)
-        cifra_div = block.find("div", class_="cifra_cnt")
-        cifra_html = _extract_cifra_html(cifra_div)
+getSongCifra_tool = Tool(
+    name="getSongCifra",
+    func=get_song_cifra,
+    description=(
+        "Retorna {artist_name, song_title, song_cifra} dado "
+        "'<instrument>|<artist>|<song>' ou '<instrument>|<email>|<artist>|<song>'."
+    ),
+)
 
-        return [{
-            "song_title":  title,
-            "artist_name": artist,
-            "song_cifra":  cifra_html,   # ✔ mantém HTML original
-        }]
-    except Exception:
-        logging.exception("scrape error")
-        return None
+TOOLS = [getSongCifra_tool]
 
-# ─── ENDPOINT /scrape ────────────────────────────────────────────
+# ───────────────────────  Pydantic schema  ──────────────────────
+class SongCifraResponse(BaseModel):
+    artist_name: str
+    song_title: str
+    song_cifra: str
+    song_cifra_tab: Optional[str] = ""
+    song_cifra_lyrics: Optional[str] = ""
+    song_chords: Optional[str] = ""
 
-@app.route("/scrape", methods=["POST"])
-def scrape_and_store():
-    d = request.json or {}
-    instrument  = d.get("instrument")
-    user_email  = d.get("email")
-    if not (instrument and user_email):
-        return jsonify({"message":"Missing required fields"}), 400
+parser = PydanticOutputParser(pydantic_object=SongCifraResponse)
 
-    link = (d.get("link") or "").strip()
-    url  = link or f"https://www.cifraclub.com.br/{d.get('artist')}/{d.get('song')}/"
-    data = get_cifra(url)
-    logging.info("Scraper returned: %s", data)
-    if not data:
-        return jsonify({"message":"Failed to scrape"}), 500
+# ─────────────────────────  PROMPT & AGENT  ─────────────────────
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Você é um assistente musical.\n"
+            "⚠️  Sempre chame a ferramenta getSongCifra antes de responder.\n"
+            "Depois devolva APENAS JSON no formato abaixo:\n{format_instructions}"
+        ),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{query}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ]
+).partial(format_instructions=parser.get_format_instructions())
 
-    # preenche buffer global p/ agent_ai
-    global userData
-    userData.clear(); userData.extend(data)
+llm     = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+_agent  = create_tool_calling_agent(llm=llm, prompt=prompt, tools=TOOLS)
+memory  = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+EXECUTOR = AgentExecutor(agent=_agent, tools=TOOLS, memory=memory, return_only_outputs=True)
+# EXECUTOR = AgentExecutor(agent=_agent, tools=TOOLS,  return_only_outputs=True)
 
-    try:
-        s = data[0]
-        logging.info("Calling agent for %s – %s", s["artist_name"], s["song_title"])
-        res = agent(user_email, s["song_title"], s["artist_name"], instrument, s["song_cifra"])
-        logging.info("Agent raw response: %s", res.model_dump())
-
-        # merge sem alterar a formatação original
-        s["song_cifra_lyrics"] = res.song_cifra_lyrics
-        s["song_chords"]       = res.song_chords
-        s["song_cifra_tab"]    = res.song_cifra_tab
-
-    except Exception:
-        logging.exception("agent error")
-
-    try:
-        store_in_mongo(data, instrument, user_email,
-                       int(d.get("instrument_progressbar",0) or 0), link)
-    except Exception as e:
-        logging.exception("Mongo error")
-        return jsonify({"message":f"Mongo error: {e}"}), 500
-
-    return jsonify({"message":"OK"}), 201
-
-# ─── Mongo helpers (inalterados) ─────────────────────────────────
-
-def _inst_block(c, active, p, link):
-    return {
-        "active": active,
-        "capo": "",
-        "tuning": "",
-        "lastPlay": datetime.today().strftime("%Y-%m-%d"),
-        "songCifra": c.get("song_cifra", ""),
-        "songLyrics": c.get("song_cifra_lyrics", ""),
-        "songChords": c.get("song_chords", ""),
-        "songTabs": c.get("song_cifra_tab", ""),
-        "progress": p,
-        "link": link,
-    }
+# ───────────────────  Helpers (fallback local)  ─────────────────
+_META_RE = re.compile(r"^\s*(tom:|capotraste)", re.I)
 
 
-def store_in_mongo(song_data, inst, email, prog, link):
-    client = MongoClient(MONGO_URL)
-    col    = client["liveNloud_"]["data"]
-    s      = song_data[0]
+# ───────────────────────  Helpers (cifras)  ──────────────────────
+# ───────────────────────  _is_chord_only  ──────────────────────
+# Verifica se a linha contém apenas acordes, ou seja,
+# se a linha só tem acordes e nada mais (nem espaços, nem letras).
+# Exemplo: "C G Am F" é um acorde só, mas "C G Am F texto" não é.
+# Também ignora linhas que só têm espaços ou estão vazias
 
-    doc = col.find_one({"email": email}) or {"email": email, "userdata": []}
-    ud  = doc["userdata"]
-    e   = next((x for x in ud if x["artist"] == s["artist_name"] and x["song"] == s["song_title"]), None)
+# _is_chord_only é usado para filtrar linhas que não são
+# apenas acordes, ou seja, linhas que contêm outros caracteres
+# além dos acordes reconhecidos pelo regex _CHORD_RE.
+# Se a linha contiver apenas acordes, espaços ou estiver vazia,
+# ela será considerada como "apenas acordes" e será ignorada
+# na hora de extrair a cifra sem acordes.
 
-    if not e:
-        e = {
-            "id": max([x["id"] for x in ud], default=0) + 1,
-            "song": s["song_title"],
-            "artist": s["artist_name"],
-            "progressBar": 0,
-            "instruments": {k: False for k in ["guitar01", "guitar02", "bass", "keys", "drums", "voice"]},
-            "guitar01": {}, "guitar02": {}, "bass": {}, "keys": {}, "drums": {}, "voice": {},
-            "embedVideos": [],
-            "addedIn": datetime.today().strftime("%Y-%m-%d"),
-            "updateIn": datetime.today().strftime("%Y-%m-%d"),
-            "email": email,
-        }
-        ud.append(e)
+# ORIGINAL EXEMPLO:
+# C                 Am7
+# Todos os dias quando acordo
+# Bm                   Em
+# Não tenho mais o tempo que passou
 
-    e["instruments"][inst] = True
-    e[inst] = _inst_block(s, True, prog, link)
-    e["updateIn"] = datetime.today().strftime("%Y-%m-%d")
+# COMO DEVE FICAR:
+# (espaço em branco onde estavam os acordes)
+# Todos os dias quando acordo
+# (espaço em branco onde estavam os acordes)
+# Não tenho mais o tempo que passou
 
-    col.update_one({"email": email}, {"$set": {"userdata": ud}}, upsert=True)
-    send_to_node(e)
+def _is_chord_only(line: str) -> bool:
+    return _CHORD_RE.sub("", line).strip() == "" and bool(_CHORD_RE.search(line))
 
 
-def send_to_node(e):
-    try:
-        payload = {
-            "song": e["song"],
-            "artist": e["artist"],
-            "instruments": e["instruments"],
-            "guitar01": e.get("guitar01", {}),
-            "guitar02": e.get("guitar02", {}),
-            "bass": e.get("bass", {}),
-            "keys": e.get("keys", {}),
-            "drums": e.get("drums", {}),
-            "voice": e.get("voice", {}),
-            "addedIn": e.get("addedIn"),
-            "setlist": [],
-        }
-        requests.post(NODE_API_URL, json=payload, timeout=15).raise_for_status()
-    except Exception:
-        logging.exception("Node API error")
+# ───────────────────────  LYRICS  ──────────────────────
+# ───────────────────────  _strip_chords  ──────────────────────
+# Extrai a cifra sem os acordes, ou seja,
+# remove as linhas que contêm apenas acordes ou estão vazias.
+# As linhas que contêm acordes mas também têm outros caracteres
+# (como letras ou números) são mantidas.
+def _strip_chords(cifra: str) -> str:
+    return "\n".join(
+        _CHORD_RE.sub("", l)
+        for l in cifra.splitlines()
+        if not _META_RE.match(l) and not _is_chord_only(l)
+    )
 
-# ─── MAIN ────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+# ───────────────────────  CHORDS  ──────────────────────
+# ───────────────────────  _extract_chords  ──────────────────────
+# Extrai os acordes de uma cifra, retornando um texto
+# contendo apenas os acordes encontrados. Cada acorde é separado
+# por um espaço e cada linha de acordes é separada por uma nova linha.
+# Exemplo: "C G Am F" se torna "C G Am F".
+def _extract_chords(cifra: str) -> str:
+    return "\n".join(
+        " ".join(m)
+        for l in cifra.splitlines()
+        if not _META_RE.match(l) and (m := _CHORD_RE.findall(l))
+    )
+
+
+
+# ───────────────────────  TABS  ──────────────────────
+# ───────────────────────  _is_tab_line  ──────────────────────
+# Verifica se a linha parece uma linha de tablatura, ou seja,
+# começa com uma das strings de início de tablatura ou contém
+# pelo menos 5 traços consecutivos.
+def _is_tab_line(line: str) -> bool:
+    """Retorna True se a linha for uma linha de tablatura."""
+    return (
+        line.lstrip().startswith(_TAB_STARTS)
+        or line.count("-") >= 5
+    )
+
+# Extrai blocos de tablatura de uma cifra, retornando
+# um texto contendo apenas as linhas de tablatura.
+# Cada bloco de tablatura é separado por uma linha em branco.
+# Se uma linha não formar um bloco de tablatura, ela é ignorada.
+# Exemplo:
+
+def _extract_tabs(cifra: str) -> str:
+    out: list[str] = []
+    lines = cifra.splitlines()
+    n = len(lines)
+    i = 0
+
+    while i < n:
+        # se a linha atual parece tab...
+        if _is_tab_line(lines[i]):
+            # ...e as próximas duas linhas também parecem tab
+            if i + 2 < n and _is_tab_line(lines[i+1]) and _is_tab_line(lines[i+2]):
+                # então coletamos todo o bloco de tablatura
+                while i < n and _is_tab_line(lines[i]):
+                    out.append(lines[i].rstrip())
+                    i += 1
+                out.append("")  # separador entre blocos
+            else:
+                # se não formar mínimo de 3 linhas, ignora só esta
+                i += 1
+        else:
+            i += 1
+
+    return "\n".join(out)
+
+# ───────────────────────  Função pública  ───────────────────────
+def agent(
+    user_email: str,
+    song_title: str,
+    artist_name: str,
+    instrument: str = "guitar01",
+    song_cifra: str = "",
+) -> SongCifraResponse:
+    logging.info("[agent] start -> %s – %s", artist_name, song_title)
+    key   = f"{instrument}|{user_email}|{artist_name}|{song_title}"
+    raw   = EXECUTOR.invoke({"query": f"Separe letra, acordes e TABs de {key}"})
+    resp  = parser.parse(raw["output"])
+
+    # Se o modelo não retornou a cifra mas recebemos via parâmetro,
+    # usa‑a imediatamente.
+    if not resp.song_cifra and song_cifra:
+        resp.song_cifra = song_cifra
+
+    # ─── Fallback absoluto ──────────────────────────────────────
+    # Se o LLM devolveu JSON com campos vazios, preenchemos
+    # manualmente a partir do userData já em memória.
+    if not resp.song_cifra:
+        for itm in _get_user_data():
+            if (
+                itm.get("artist_name", "").lower() == artist_name.lower()
+                and itm.get("song_title", "").lower() == song_title.lower()
+            ):
+                resp.song_cifra = itm.get("song_cifra", "")
+                break
+
+    # Completa campos derivados se ainda estiverem vazios
+    if not resp.song_cifra_lyrics:
+        resp.song_cifra_lyrics = _strip_chords(resp.song_cifra) # LYRICS
+    if not resp.song_chords:
+        resp.song_chords = _extract_chords(resp.song_cifra) # CHORDS
+    if not resp.song_cifra_tab:
+        resp.song_cifra_tab = _extract_tabs(resp.song_cifra) # TABs
+
+    logging.info("[agent] output -> %s", resp.model_dump())
+    return resp
+
