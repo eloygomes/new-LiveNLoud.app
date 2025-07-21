@@ -72,20 +72,94 @@ def _extract_chords(cifra: str) -> str:
 # (3) Lyrics: anything that’s not tabs, not chords, and not blank
 
 
+
+# def _extract_lyrics(cifra: str) -> str:
+#     chord_re = re.compile(
+#         r'(?:(?<=^)|(?<=\s)|(?<=\())'
+#         r'[A-G][#b]?'
+#         r'(?:(?:maj|min|m)?\d*|\d+M|sus\d*|aug|dim|º|°|\+|\-)?'
+#         r'(?:\([^)]*\))?'
+#         r'(?:/[A-G][#b]?)?'
+#         r'(?=$|(?=\s)|(?=\)))'
+#     )
+#     result = chord_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', cifra)
+#     par_re = re.compile(r'\(\s*([\d/]+)\s*\)')
+#     result = par_re.sub(lambda m: f'(<span style="display:none">{m.group(1)}</span>)', result)
+#     stray_re = re.compile(r'(?:(?<=^)|(?<=\s))(?:[#º°])(?=$|(?=\s))')
+#     result = stray_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+#     tab_line_re = re.compile(r'(?m)^[ \t]*[eEBGDA]\|.*$')
+#     result = tab_line_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+#     tab_header_re = re.compile(r'(?m)^\[Tab[^\]]*\]$')
+#     result = tab_header_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+#     section_re = re.compile(
+#         r'(?im)^[ \t]*'
+#         r'(?:'
+#           r'tom:'
+#           r'|\[Intro\]'
+#           r'|\[Solo Intro\]'
+#           r'|\[Primeira Parte\]'
+#           r'|\[Segunda Parte\]'
+#           r'|\[Terceira Parte\]'
+#           r'|\[Solo\]'
+#           r'|\[Solo Principal\]'
+#           r'|\[Final\]'
+#           r'|Parte\s*\d+\s*(?:De|de)\s*\d+'
+#           r'|Pate\s*\d+\s*de\s*\d+'
+#           r'|H\.N'
+#           r'|\(\s*\)'
+#         r')'
+#         r'[ \t]*,?[ \t]*$'
+#     )
+#     result = section_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+#     empty_par_re = re.compile(r'(?m)^\(\s*\)\s*$')
+#     result = empty_par_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+
+#     # collapse more than 3 consecutive blank lines into exactly 3
+#     blank_re = re.compile(r'(?:\n[ \t]*){4,}')
+#     result = blank_re.sub('\n\n\n', result)
+
+#     return result
+
+
+
 def _extract_lyrics(cifra: str) -> str:
     chord_re = re.compile(
-        r'(?:(?<=^)|(?<=\s))'
+        r'(?:(?<=^)|(?<=\s)|(?<=\())'
         r'[A-G][#b]?'
-        r'(?:(?:maj|min|m)?\d*|sus\d*|aug|dim|º|°|\+|\-)?'
+        r'(?:(?:maj|min|m)?\d*|\d+M|sus\d*|aug|dim|º|°|\+|\-)?'
         r'(?:\([^)]*\))?'
         r'(?:/[A-G][#b]?)?'
-        r'(?=$|(?=\s))'
+        r'(?=$|(?=\s)|(?=\)))'
     )
     result = chord_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', cifra)
+
     par_re = re.compile(r'\(\s*([\d/]+)\s*\)')
     result = par_re.sub(lambda m: f'(<span style="display:none">{m.group(1)}</span>)', result)
+
     stray_re = re.compile(r'(?:(?<=^)|(?<=\s))(?:[#º°])(?=$|(?=\s))')
-    return stray_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+    result = stray_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+
+    tab_line_re = re.compile(r'(?m)^[ \t]*[eEBGDA]\|.*\n?')
+    result = tab_line_re.sub('', result)
+
+    tab_header_re = re.compile(r'(?m)^\[Tab[^\]]*\]\s*\n?')
+    result = tab_header_re.sub('', result)
+
+    section_re = re.compile(
+        r'(?im)^[ \t]*'
+        r'(?:tom:|\[Intro\]|\[Solo Intro\]|\[Primeira Parte\]|\[Segunda Parte\]|\[Terceira Parte\]|\[Solo\]|\[Solo Principal\]|\[Final\]|Parte\s*\d+\s*(?:De|de)\s*\d+|Pate\s*\d+\s*de\s*\d+|H\.N|\(\s*\))'
+        r'\s*,?\s*\n?'
+    )
+    result = section_re.sub('', result)
+
+    empty_par_re = re.compile(r'(?m)^\(\s*\)\s*\n?')
+    result = empty_par_re.sub('', result)
+
+    blank_re = re.compile(r'(?:\n[ \t]*){4,}')
+    result = blank_re.sub('\n\n\n', result)
+
+    return result
+
 
 
 # ————————————— song_cifra_treatment —————————————
