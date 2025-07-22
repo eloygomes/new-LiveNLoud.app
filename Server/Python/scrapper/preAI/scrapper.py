@@ -37,124 +37,135 @@ def _extract_tabs(cifra: str) -> str:
     return "\n".join(out).strip()
 
 # (2) Chord lines: detect if a line contains ≥2 standalone chords
-_CHORD_RE = re.compile(
-    r"""(?x)               # verbose
-    \b                     # word boundary
-    [A-G]                  # chord root
-    (?:[#b]?              # optional accidental
-        (?:m(?:aj)?\d*)?   # optional minor/major with number
-     |sus\d?              # optional sus
-     |aug|dim|\+|\-       # other extensions
-    )?                     # all optional
-    (?:/[A-G][#b]?)?       # optional bass note
-    \b
-    """
+# _CHORD_RE = re.compile(r"""
+#     (?<=^|\s|\()             # 1) precedido de início de linha, espaço ou '('
+#     [A-G]                    # 2) nota raiz A–G
+#     [#b]?                    # 3) opcional sustenido ou bemol
+#     (?:
+#         (?:maj|min|m)?\d+M?  # 4a) opcional "maj"/"min"/"m" + número + "M" opcional (Cmaj7, Cm7, C7M, Eb7M)
+#       | sus\d*               # 4b) suspensos: sus2, sus4, etc.
+#       | aug                  # 4c) aumentados
+#       | dim                  # 4d) diminutos
+#       | [º°+\-]              # 4e) símbolos: º, °, +, –
+#     )?
+#     (?:\([^)]*\))?           # 5) extensões em parênteses: (4), (4/9), (add9)
+#     (?:/[A-G][#b]?)?         # 6) baixo alternativo: C/E, F#/A#
+#     (?=$|\s|\))              # 7) seguido de fim de string, espaço ou ')'
+# """, re.VERBOSE)
+
+CHORD_PATTERN = (
+    r'^[A-G]'              
+    r'[#b]?'               
+    r'(?:(?:maj|min|m)?\d+M?'  
+    r'|sus\d*'             
+    r'|aug'                
+    r'|dim'                
+    r'|[º°+\-])?'          
+    r'(?:\([^)]*\))?'      
+    r'(?:/[A-G][#b]?)?'    
+    r'$'
 )
+_CHORD_RE = re.compile(CHORD_PATTERN)
+
+
 def _is_chord_line(line: str) -> bool:
     tokens = line.strip().split()
     matches = sum(1 for t in tokens if _CHORD_RE.fullmatch(t))
     return matches >= 2
 
 
+
+import re
+
 def _extract_chords(cifra: str) -> str:
-    out, buffer = [], []
-    for line in cifra.splitlines():
+    """
+    1) Remove linhas de tablatura
+    2) Mantém linhas de acordes intactas
+    3) Oculta todas as demais linhas (letras) com display:none
+    4) Limita a no máximo 3 linhas em branco consecutivas
+    """
+    lines = cifra.splitlines(keepends=True)
+    out = []
+
+    for line in lines:
+        # ——— 1) Descarta linhas de tablatura ——————————————————————————
+        # Se a linha for identificada como tab, pula ela
+        if _is_tab_line(line):
+            continue
+
+        # ——— 2) Mantém linhas de acordes intactas ————————————————————
+        # Se a linha contiver ≥2 acordes, adiciona sem alteração
         if _is_chord_line(line):
-            buffer.append(line.strip())
-        else:
-            if buffer:
-                out.append("  ".join(buffer))
-                buffer = []
-    if buffer:
-        out.append("  ".join(buffer))
-    return "\n\n".join(out).strip()
+            out.append(line)
+            continue
+
+        # ——— 3) Preserva linhas em branco —————————————————————————
+        # Mantém as linhas vazias (serão colapsadas no final)
+        if re.match(r'^[ \t]*\n$', line):
+            out.append(line)
+            continue
+
+        # ——— 4) Oculta linhas de letra ——————————————————————————————
+        # Tudo que restou é letra: envolve em span com display:none,
+        # mantendo a indentação original
+        content = line.rstrip('\n')
+        out.append(f'<span style="color:lightgrey">{content}</span>\n')
+
+    # ——— 5) Colapsa 4+ quebras de linha em exatamente 3 ——————————
+    blank_re = re.compile(r'(?:\n){4,}')  # quatro ou mais '\n' seguidos
+    result = blank_re.sub('\n\n\n', ''.join(out))
+
+    return result
+
+
+
+
 
 # (3) Lyrics: anything that’s not tabs, not chords, and not blank
 
-
-
-# def _extract_lyrics(cifra: str) -> str:
-#     chord_re = re.compile(
-#         r'(?:(?<=^)|(?<=\s)|(?<=\())'
-#         r'[A-G][#b]?'
-#         r'(?:(?:maj|min|m)?\d*|\d+M|sus\d*|aug|dim|º|°|\+|\-)?'
-#         r'(?:\([^)]*\))?'
-#         r'(?:/[A-G][#b]?)?'
-#         r'(?=$|(?=\s)|(?=\)))'
-#     )
-#     result = chord_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', cifra)
-#     par_re = re.compile(r'\(\s*([\d/]+)\s*\)')
-#     result = par_re.sub(lambda m: f'(<span style="display:none">{m.group(1)}</span>)', result)
-#     stray_re = re.compile(r'(?:(?<=^)|(?<=\s))(?:[#º°])(?=$|(?=\s))')
-#     result = stray_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
-#     tab_line_re = re.compile(r'(?m)^[ \t]*[eEBGDA]\|.*$')
-#     result = tab_line_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
-#     tab_header_re = re.compile(r'(?m)^\[Tab[^\]]*\]$')
-#     result = tab_header_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
-#     section_re = re.compile(
-#         r'(?im)^[ \t]*'
-#         r'(?:'
-#           r'tom:'
-#           r'|\[Intro\]'
-#           r'|\[Solo Intro\]'
-#           r'|\[Primeira Parte\]'
-#           r'|\[Segunda Parte\]'
-#           r'|\[Terceira Parte\]'
-#           r'|\[Solo\]'
-#           r'|\[Solo Principal\]'
-#           r'|\[Final\]'
-#           r'|Parte\s*\d+\s*(?:De|de)\s*\d+'
-#           r'|Pate\s*\d+\s*de\s*\d+'
-#           r'|H\.N'
-#           r'|\(\s*\)'
-#         r')'
-#         r'[ \t]*,?[ \t]*$'
-#     )
-#     result = section_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
-#     empty_par_re = re.compile(r'(?m)^\(\s*\)\s*$')
-#     result = empty_par_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
-
-#     # collapse more than 3 consecutive blank lines into exactly 3
-#     blank_re = re.compile(r'(?:\n[ \t]*){4,}')
-#     result = blank_re.sub('\n\n\n', result)
-
-#     return result
-
-
-
 def _extract_lyrics(cifra: str) -> str:
-    chord_re = re.compile(
-        r'(?:(?<=^)|(?<=\s)|(?<=\())'
-        r'[A-G][#b]?'
-        r'(?:(?:maj|min|m)?\d*|\d+M|sus\d*|aug|dim|º|°|\+|\-)?'
-        r'(?:\([^)]*\))?'
-        r'(?:/[A-G][#b]?)?'
-        r'(?=$|(?=\s)|(?=\)))'
-    )
-    result = chord_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', cifra)
-
-    par_re = re.compile(r'\(\s*([\d/]+)\s*\)')
-    result = par_re.sub(lambda m: f'(<span style="display:none">{m.group(1)}</span>)', result)
-
-    stray_re = re.compile(r'(?:(?<=^)|(?<=\s))(?:[#º°])(?=$|(?=\s))')
-    result = stray_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
-
-    tab_line_re = re.compile(r'(?m)^[ \t]*[eEBGDA]\|.*\n?')
-    result = tab_line_re.sub('', result)
-
-    tab_header_re = re.compile(r'(?m)^\[Tab[^\]]*\]\s*\n?')
-    result = tab_header_re.sub('', result)
-
+    # 1) remover linhas de seção (inclui H.N, 'tom:', cabeçalhos e partes)
     section_re = re.compile(
         r'(?im)^[ \t]*'
-        r'(?:tom:|\[Intro\]|\[Solo Intro\]|\[Primeira Parte\]|\[Segunda Parte\]|\[Terceira Parte\]|\[Solo\]|\[Solo Principal\]|\[Final\]|Parte\s*\d+\s*(?:De|de)\s*\d+|Pate\s*\d+\s*de\s*\d+|H\.N|\(\s*\))'
-        r'\s*,?\s*\n?'
+        r'(?:'
+          r'tom:'
+          r'|\[Intro\]'
+          r'|\[Solo Intro\]'
+          r'|H\.N'
+          r'|\[Primeira Parte\]'
+          r'|\[Segunda Parte\]'
+          r'|\[Terceira Parte\]'
+          r'|\[Solo\]'
+          r'|\[Solo Principal\]'
+          r'|\[Final\]'
+          r'|Parte\s*\d+\s*(?:De|de)\s*\d+'
+          r'|Pate\s*\d+\s*de\s*\d+'
+        r')'
+        r'.*\n?',
+        flags=re.MULTILINE
     )
-    result = section_re.sub('', result)
+    result = section_re.sub('', cifra)
 
+    # 2) remover linhas de tablatura e cabeçalhos "[Tab ...]"
+    tab_line_re   = re.compile(r'(?m)^[ \t]*[eEBGDA]\|.*\n?')
+    tab_header_re = re.compile(r'(?m)^\[Tab[^\]]*\].*\n?')
+    result = tab_line_re.sub('', result)
+    result = tab_header_re.sub('', result)
+
+    # 3) esconder qualquer linha que contenha um acorde, envolvendo toda a linha em display:none
+    chord_body = (
+        r'[A-G][#b]?'
+        r'(?:(?:maj|min|m)?\d*|\d+M|sus\d*|aug|dim|º|°|\+|\-)?'
+        r'(?:/[A-G][#b]?)?'
+    )
+    chord_line_re = re.compile(rf'(?m)^[ \t]*.*\b{chord_body}\b.*\n?')
+    result = chord_line_re.sub(lambda m: f'<span style="display:none">{m.group(0)}</span>', result)
+
+    # 4) remover parênteses vazios e linhas só com "( )"
     empty_par_re = re.compile(r'(?m)^\(\s*\)\s*\n?')
     result = empty_par_re.sub('', result)
 
+    # 5) colapsar mais de 3 linhas em branco consecutivas para exatamente 3
     blank_re = re.compile(r'(?:\n[ \t]*){4,}')
     result = blank_re.sub('\n\n\n', result)
 
