@@ -1,90 +1,57 @@
 import { useState } from "react";
 import ChordInput from "./ChordInput";
-import { PersonalChordLibrary } from "./PersonalChordLibrary";
+import ChordShapeData from "./ChordShapeData.json";
 import ChordDisplay from "./ChordDisplay";
 
-// Extraímos as opções únicas de cada parte dos acordes da biblioteca.
-const roots = [...new Set(PersonalChordLibrary.map((chord) => chord.root))];
-const qualities = [
-  ...new Set(PersonalChordLibrary.map((chord) => chord.quality)),
-];
-const tensions = [
-  ...new Set(PersonalChordLibrary.map((chord) => chord.tension)),
-];
-const basses = [...new Set(PersonalChordLibrary.map((chord) => chord.bass))];
+// Opções derivadas do ChordShapeData (React Native parity)
+const chordNames = [...new Set(ChordShapeData.map((item) => item.chordName))];
+const chordTypes = [...new Set(ChordShapeData.map((item) => item.chordType))];
 
 function ChordLibrary() {
-  // Estados para armazenar as seleções do usuário
-  const [selectedRoot, setSelectedRoot] = useState("");
-  const [selectedQuality, setSelectedQuality] = useState("");
-  const [selectedTension, setSelectedTension] = useState("");
-  const [selectedBass, setSelectedBass] = useState("");
+  // Estados principais (paridade com RN)
+  const [chordName, setChordName] = useState(chordNames[0] || "");
+  const [chordType, setChordType] = useState(chordTypes[0] || "");
+  const [variationIndex, setVariationIndex] = useState(0);
 
-  // Estados para pegar o nome do acorde
-  const [stringsToDisplay, setStringsToDisplay] = useState("");
-  const [fingeringToDisplay, setFingeringToDisplay] = useState("");
-  const [chordNameToDisplay, setChordNameToDisplay] = useState("");
+  // Localiza o bloco do acorde selecionado
+  const chord = ChordShapeData.find(
+    (c) => c.chordName === chordName && c.chordType === chordType
+  );
 
-  // Função para concatenar as seleções e formar o nome do acorde
-  const getChordName = () => {
-    // return `${selectedRoot}${selectedQuality ? `/${selectedQuality}` : ""}${
-    //   selectedTension ? ` ${selectedTension}` : ""
-    // }${selectedBass ? `/${selectedBass}` : ""}`;
-    return `${selectedRoot || ""}${
-      selectedQuality ? `,${selectedQuality}` : ","
-    }${selectedTension ? `,${selectedTension}` : ","}${
-      selectedBass ? `,${selectedBass}` : ""
-    }`;
+  const variations = chord?.results || [];
+
+  const handleNextVariation = () => {
+    if (!variations.length) return;
+    const nextIndex = (variationIndex + 1) % variations.length;
+    setVariationIndex(nextIndex);
   };
 
-  const getChordNameClean = () => {
-    return `${selectedRoot}${selectedQuality ? `/${selectedQuality}` : ""}${
-      selectedTension ? ` ${selectedTension}` : ""
-    }${selectedBass ? `/${selectedBass}` : ""}`;
-  };
+  // Constrói o objeto fingering { frets, fingers } esperado pelo renderer
+  const fingering = (() => {
+    if (!variations[variationIndex]) return null;
+    const strings = variations[variationIndex].strings; // 6 entradas
 
-  const getChord = () => {
-    const selectedChord = getChordName().trim();
-    console.log("selectedChord", selectedChord);
-
-    // Separar o nome base (root + quality + tension) e o bass
-    const [baseName, bassName] = selectedChord.split("/");
-
-    const chord = PersonalChordLibrary.find((chord) => {
-      // Comparar root ignorando diferenças de grafia
-      const rootMatch =
-        chord.root.toLowerCase() === baseName.split(",")[0].toLowerCase();
-
-      // Comparar quality, tension, e bass ignorando diferenças de grafia
-      const qualityMatch = selectedQuality
-        ? chord.quality.toLowerCase() === selectedQuality.toLowerCase()
-        : !chord.quality;
-
-      const tensionMatch = selectedTension
-        ? chord.tension.toLowerCase() === selectedTension.toLowerCase()
-        : !chord.tension;
-
-      const bassMatch = bassName
-        ? chord.bass.toLowerCase() === bassName.toLowerCase()
-        : !chord.bass;
-
-      return rootMatch && qualityMatch && tensionMatch && bassMatch;
+    const frets = strings.map((s) => {
+      if (Array.isArray(s) && s.length > 0) {
+        const it = s[0];
+        // Muted -> -1, Solta -> 0, Número -> próprio número
+        if (it.isMuted) return -1;
+        return typeof it.fretNo === "number" ? it.fretNo : 0;
+      }
+      return 0;
     });
 
-    if (chord) {
-      console.log("Chord found:", chord);
-      setStringsToDisplay(chord.strings);
-      setFingeringToDisplay(chord.fingering);
-      setChordNameToDisplay(chord.chordName);
-    } else {
-      console.log("No chord found for", selectedChord);
-    }
-  };
-  // console.log(PersonalChordLibrary[0].strings); //X 3 2 0 1 0
-  // console.log(PersonalChordLibrary[0].fingering);
+    const fingers = strings.map((s) => {
+      if (Array.isArray(s) && s.length > 0) {
+        const sym = s[0].symbol;
+        if (typeof sym === "string" && /^\d$/.test(sym))
+          return parseInt(sym, 10);
+      }
+      return 0;
+    });
 
-  // console.log("ChordLibrary", PersonalChordLibrary);
-  console.log(getChordName());
+    return { frets, fingers };
+  })();
 
   return (
     <div className="flex justify-center h-screen pt-20">
@@ -101,50 +68,35 @@ function ChordLibrary() {
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
                 <div className="w-[90%] flex flex-row justify-start">
                   <ChordInput
-                    values={roots}
-                    setSelectedRoot={setSelectedRoot}
+                    values={chordNames}
+                    setSelectedRoot={setChordName}
                     inputLabel="Root"
                   />
                   <ChordInput
-                    values={qualities}
-                    setSelectedQuality={setSelectedQuality}
+                    values={chordTypes}
+                    setSelectedQuality={setChordType}
                     inputLabel="Quality"
-                  />
-                  <ChordInput
-                    values={tensions}
-                    setSelectedTension={setSelectedTension}
-                    inputLabel="Tension"
-                  />
-                  <ChordInput
-                    values={basses}
-                    setSelectedBass={setSelectedBass}
-                    inputLabel="Bass"
                   />
                 </div>
                 <button
                   className="flex items-center justify-center neuphormism-b-btn p-3"
                   type="button"
-                  onClick={() => {
-                    getChord();
-                  }}
+                  onClick={handleNextVariation}
                 >
-                  Search
+                  Next Variation
                 </button>
               </div>
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
                 <h1 className="text-3xl flex-1  text-center mx-auto">
-                  {getChordNameClean() || "Select a chord"}
+                  {`${chordName || ""} ${chordType || ""}`.trim() ||
+                    "Select a chord"}
                 </h1>
               </div>
               <div className="p-10 flex flex-row justify-between w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
                 <div className="flex items-center justify-center mx-auto">
                   <ChordDisplay
-                    // strings={PersonalChordLibrary[0].strings}
-                    strings={stringsToDisplay}
-                    // fingering={PersonalChordLibrary[0].fingering}
-                    fingering={fingeringToDisplay}
-                    // chordName={PersonalChordLibrary[0].chordName}
-                    chordName={chordNameToDisplay}
+                    fingering={fingering}
+                    chordName={`${chordName} ${chordType}`.trim()}
                   />
                 </div>
               </div>
