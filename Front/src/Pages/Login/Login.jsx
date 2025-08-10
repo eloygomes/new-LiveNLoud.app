@@ -8,13 +8,12 @@ import { sendPasswordReset } from "../../authFunctions";
 function Login() {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
-  const navigate = useNavigate(); // Initialize useNavigate at the top level of the component
+  const navigate = useNavigate();
 
-  // Função para lidar com o envio do formulário
   const handleSubmit = async (event) => {
-    event.preventDefault(); // Evita o recarregamento da página
+    event.preventDefault();
     try {
-      await login(userEmail, userPassword); // Aguarda a conclusão do login
+      await login(userEmail, userPassword);
       localStorage.setItem("userEmail", userEmail);
       navigate("/"); // Navigate to the homepage after login
     } catch (error) {

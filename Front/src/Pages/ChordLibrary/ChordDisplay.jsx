@@ -1,105 +1,160 @@
 /* eslint-disable react/prop-types */
 
-function GuitarChordSVG({ strings, fingering, chordName }) {
-  //   console.log("chordName", chordName);
-  //   console.log("fingering", fingering);
-  //   console.log("strings", strings);
+function ChordDiagram({ fingering, chordName }) {
+  const size = 240;
+  const pad = 20; // margem interna
+  const stringGap = (size - pad * 2) / 5; // distância entre cordas
+  const fretGap = (size - pad * 2) / 4; // distância entre trastes
 
-  // Função para obter a posição e os dedos a partir das strings e fingering
-  const getFingerPositions = () => {
-    const stringArray = strings.split(" ");
-    const fingerArray = fingering.split(" ");
+  if (!fingering) {
+    return (
+      <div className="flex justify-center items-center">
+        <svg width={size} height={size}>
+          <text
+            x="50%"
+            y="50%"
+            fontSize="14"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="#666"
+          >
+            Sem digitação
+          </text>
+        </svg>
+      </div>
+    );
+  }
 
-    return stringArray.map((pos, index) => ({
-      fret: pos === "X" ? "X" : parseInt(pos),
-      finger: fingerArray[index],
-      string: index + 1,
-    }));
-  };
-
-  const fingerPositions = getFingerPositions();
-  //   console.log("fingerPositions", fingerPositions);
+  const { frets, fingers = [] } = fingering;
+  const minFret = Math.min(...frets.filter((f) => f > 0));
+  const offset = Number.isFinite(minFret) && minFret > 1 ? minFret - 1 : 0;
 
   return (
     <div className="flex justify-center items-center">
       <svg
-        height="162"
-        version="1.1"
-        width="147"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 147 162"
-        className="overflow-hidden"
-        transform="scale(1, -1)"
+        width={size}
+        height={size}
+        style={{ background: "#fff", borderRadius: 12 }}
       >
-        {/* Linhas verticais para as cordas */}
-        {[20, 47, 74, 101, 128].map((x, i) => (
-          <path key={i} fill="none" stroke="#444444" d={`M${x},36L${x},130`} />
-        ))}
-        {/* Linhas horizontais para os trastes */}
-        {[36, 54.8, 73.6, 92.4, 111.2, 130].map((y, i) => (
-          <path key={i} fill="none" stroke="#444444" d={`M20,${y}L128,${y}`} />
-        ))}
-        {/* Retângulo que representa o nut (capo) */}
-        <rect x="16" y="36" width="4" height="94" fill="#444444" />
-        {/* Adicionar círculos para cada posição dos dedos */}
-        {fingerPositions.map((pos, index) => {
-          //   console.log("pos", pos);
+        {/* moldura */}
+        <rect
+          x={pad - 2}
+          y={pad - 2}
+          width={size - pad * 2 + 4}
+          height={size - pad * 2 + 4}
+          stroke="#000"
+          strokeWidth={2}
+          fill="none"
+        />
 
-          const xPosition = 20 + pos.fret * 27; // Ajuste para posicionar nas cordas
-          const yPosition = pos.fret === "X" ? 0 : 36 + (pos.string - 1) * 18.8;
-          //   console.log(yPosition);
+        {/* cordas (6) */}
+        {Array.from({ length: 6 }).map((_, i) => (
+          <line
+            key={`s${i}`}
+            x1={pad + i * stringGap}
+            y1={pad}
+            x2={pad + i * stringGap}
+            y2={size - pad}
+            stroke="#000"
+            strokeWidth={1}
+          />
+        ))}
 
-          return pos.fret !== "X" ? (
-            <g
-              key={index}
-              transform={`translate(0, ${2 * yPosition}) scale(1, -1)`} // Inverte verticalmente
-            >
-              <circle cx={xPosition} cy={yPosition} r="8" fill="#444444" />
+        {/* trastes (5) */}
+        {Array.from({ length: 5 }).map((_, i) => (
+          <line
+            key={`f${i}`}
+            x1={pad}
+            y1={pad + i * fretGap}
+            x2={size - pad}
+            y2={pad + i * fretGap}
+            stroke="#000"
+            strokeWidth={i === 0 && offset === 0 ? 6 : 1}
+          />
+        ))}
+
+        {/* marcações por corda */}
+        {frets.map((fret, idx) => {
+          const x = pad + idx * stringGap;
+
+          // X (muda)
+          if (fret === -1) {
+            return (
               <text
-                x={xPosition}
-                y={yPosition}
+                key={`x${idx}`}
+                x={x}
+                y={pad - 6}
+                fontSize={11}
                 textAnchor="middle"
-                fontFamily="Arial"
-                fontSize="10px"
-                fill="#ffffff"
-                dy="3"
               >
-                {pos.finger}
+                x
               </text>
-            </g>
-          ) : (
-            <g key={index}>
+            );
+          }
+          // O (solta)
+          if (fret === 0) {
+            return (
               <text
-                x={xPosition - 10}
-                y={yPosition}
-                fontFamily="Arial"
-                fontSize="10px"
-                fill="#444444"
+                key={`o${idx}`}
+                x={x}
+                y={pad - 6}
+                fontSize={11}
+                textAnchor="middle"
               >
-                X
+                o
               </text>
-            </g>
+            );
+          }
+
+          const y = pad + (fret - 0.5 - offset) * fretGap;
+          return (
+            <circle
+              key={`c${idx}`}
+              cx={x}
+              cy={y}
+              r={stringGap * 0.33}
+              fill="#333"
+            />
           );
         })}
+
+        {/* números dos dedos */}
+        {fingers.map((n, idx) => {
+          const fret = frets[idx];
+          if (!n || fret <= 0) return null;
+          const x = pad + idx * stringGap;
+          const y = pad + (fret - 0.5 - offset) * fretGap;
+          return (
+            <text
+              key={`n${idx}`}
+              x={x}
+              y={y + 4}
+              fontSize={9}
+              fill="#fff"
+              textAnchor="middle"
+            >
+              {n}
+            </text>
+          );
+        })}
+
+        {/* indicação de posição (ex.: 3fr) */}
+        {offset > 0 && (
+          <text x={size - pad + 4} y={pad + fretGap / 2} fontSize={11}>
+            {offset + 1}fr
+          </text>
+        )}
       </svg>
     </div>
   );
 }
 
-function ChordDisplay({ strings, fingering, chordName }) {
-  const chordData = {
-    strings,
-    fingering,
-    chordName,
-  };
-
+export default function ChordDisplay({ fingering, chordName }) {
   return (
     <div className="flex justify-center items-center ">
       <div className="p-5 rounded-lg shadow-lg bg-white">
-        <GuitarChordSVG {...chordData} />
+        <ChordDiagram fingering={fingering} chordName={chordName} />
       </div>
     </div>
   );
 }
-
-export default ChordDisplay;
