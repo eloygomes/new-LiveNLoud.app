@@ -373,10 +373,10 @@ function Metronome() {
             {/* Lado A */}
             <div className="w-[49%] flex flex-col rounded-md neuphormism-b py-5 px-5 gap-6">
               {/* TIMER */}
-              <div className="flex items-center justify-between mt-2 pl-10 pr-10 ">
+              <div className="flex items-center justify-between mt-2 sm:pl-10 sm:pr-10 md:pl-0 md:pr-0 lg:pl-10 lg:pr-10 xl:pl-10 xl:pr-10  ">
                 <button
                   onClick={() => setIsTimerActive((prev) => !prev)}
-                  className={`flex items-center justify-center pl-10 pr-10 py-2 rounded-full text-md  transition button-neumorfismo-pingpong ${
+                  className={`flex items-center justify-center sm:pl-10 sm:pr-10 md:pl-5 md:pr-5 lg:pl-10 lg:pr-10 xl:pl-10 xl:pr-10 py-2 rounded-full text-md  transition button-neumorfismo-pingpong ${
                     isTimerActive
                       ? "bg-black text-[#DAA520]"
                       : "bg-white text-black"
@@ -390,7 +390,8 @@ function Metronome() {
                     onClick={() =>
                       setTimerDuration((prev) => Math.max(prev - 10, 10))
                     }
-                    className="text-3xl w-10 h-10 bg-white text-black rounded-full shadow"
+                    // className="text-3xl w-10 h-10 bg-white text-black rounded-full shadow"
+                    className="px-5 rounded-full flex items-center justify-center bg-white text-black text-2xl shadow transition-all duration-100 active:scale-95 hover:bg-gray-100"
                   >
                     -
                   </button>
@@ -401,7 +402,7 @@ function Metronome() {
                   </span>
                   <button
                     onClick={() => setTimerDuration((prev) => prev + 10)}
-                    className="text-3xl w-10 h-10 bg-white text-black rounded-full shadow"
+                    className="px-5 rounded-full flex items-center justify-center bg-white text-black text-2xl shadow transition-all duration-100 active:scale-95 hover:bg-gray-100"
                   >
                     +
                   </button>
@@ -418,7 +419,7 @@ function Metronome() {
                 </div>
               </div>
               {/* Linha de controle BPM */}
-              <div className="flex items-center justify-between pl-10 pr-10 ">
+              <div className="flex items-center justify-between sm:pl-10 sm:pr-10 md:pl-0 md:pr-0 lg:pl-10 lg:pr-10 xl:pl-10 xl:pr-10  ">
                 <button
                   onClick={() => setBpm((prev) => Math.max(prev - 1, 1))}
                   className="px-5 rounded-full flex items-center justify-center bg-white text-black text-2xl shadow transition-all duration-100 active:scale-95 hover:bg-gray-100"
@@ -444,7 +445,7 @@ function Metronome() {
               </div>
 
               {/* Volume slider */}
-              <div className="flex items-center gap-4 pl-10 pr-10 ">
+              <div className="flex items-center gap-4 sm:pl-10 sm:pr-10 md:pl-2 md:pr-2 lg:pl-10 lg:pr-10 xl:pl-10 xl:pr-10  ">
                 <input
                   type="range"
                   min={0}
@@ -464,7 +465,7 @@ function Metronome() {
               </div>
 
               {/* Botões: Play + Tap */}
-              <div className="flex justify-between gap-4 pl-10 pr-10 py-2">
+              <div className="flex justify-between gap-4 sm:pl-10 sm:pr-10 md:pl-0 md:pr-0 lg:pl-10 lg:pr-10 xl:pl-10 xl:pr-10  py-2">
                 <button
                   onClick={handlePlayClick}
                   className="flex-1 pl-10 pr-10 rounded-full   neuphormism-b-se bg-white text-black text-md"
