@@ -157,7 +157,7 @@ export default function TollBoxAcoord({
       </Accordion>
 
       {/* Accordion para Navegação */}
-      <Accordion
+      {/* <Accordion
         expanded={expanded === "panel3"}
         onChange={handleAccordionChange("panel3")}
         className="my-2"
@@ -189,7 +189,7 @@ export default function TollBoxAcoord({
             </li>
           </ul>
         </AccordionDetails>
-      </Accordion>
+      </Accordion> */}
 
       {/* Accordion para Highlight */}
       <Accordion
