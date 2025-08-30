@@ -1,110 +1,162 @@
-// Tuner.jsx — front-only, pronto para o seu backend Node + Python
+// Tuner.jsx — FRONT exibindo dados do backend, sem afinação manual
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { TuningPresets } from "./TuningPresets";
 
 /* ------------------------------------------------------------------
-   🔧 AJUSTES FINOS
+   🔌 SOCKET
    ------------------------------------------------------------------ */
 const SOCKET_URL = "https://api.live.eloygomes.com.br";
 const SOCKET_PATH = "/socket.io";
 
-/** ===================== GRAVES & ESTABILIDADE ====================== */
-// [AJUSTE] Gate mais sensível para não cortar cordas graves/fracas
-const RMS_GATE = 0.0015; // (antes 0.003)
-
-// [AJUSTE] Acúmulo de amostras MAIOR p/ graves (janela ~0.74s @ 44.1k)
-const BUFFER_SIZE = 4096; // (antes 2048)
-const SEND_BLOCK_SIZE = 32768; // (antes 8192)
-
-// [AJUSTE] Suavização e confirmação de nota
-const EMA_ALPHA = 0.25; // suavização (0.2–0.35)
-const MEDIAN_WINDOW = 7; // mediana (5–9)
-const FRAMES_TO_CONFIRM_NOTE = 2; // troca mais rápida
-
-// [NOVO] Se o pitch ficar muito longe do alvo atual por alguns frames, força troca
-const DEV_CENTS_TO_FORCE_SWITCH = 120; // ~ 1 tom
-const DEV_FRAMES_TO_FORCE_SWITCH = 2;
-
-// [NOVO] Se ficar em silêncio alguns frames, reseta suavização e alvo estável
-const SILENCE_FRAMES_TO_RESET = 6;
-/** ================================================================= */
-
-const MIN_F_GLOBAL = 40;
-const MAX_F_GLOBAL = 1200;
-const MAX_PENDING_BUFFERS = 60;
-
-// [AJUSTE] Filtros FIXOS: HP mais baixo e LP mais baixo para atenuar harmônicos
-const LOWCUT_HZ = 20; // (antes 50)
-const HIGHCUT_HZ = 900; // (antes 1200)
-
-// Para não “spammar” o servidor
-const SEND_THROTTLE_MS = 35;
-
-// [AJUSTE] Correção de sample-rate (desativada por padrão)
-// Se seu backend SEMPRE calcula frequência assumindo 44.1kHz,
-// mas o navegador estiver em 48kHz, troque para true.
-const APPLY_SR_CORRECTION = false;
-
-const DEBUG = false;
+/* ------------------------------------------------------------------
+   🎼 FAIXA C0..C8 PARA EXIBIÇÃO NA UI
+   ------------------------------------------------------------------ */
+const NOTE_FREQS = {
+  C0: 16.35,
+  "C#0/Db0": 17.32,
+  D0: 18.35,
+  "D#0/Eb0": 19.45,
+  E0: 20.6,
+  F0: 21.83,
+  "F#0/Gb0": 23.12,
+  G0: 24.5,
+  "G#0/Ab0": 25.96,
+  A0: 27.5,
+  "A#0/Bb0": 29.14,
+  B0: 30.87,
+  C1: 32.7,
+  "C#1/Db1": 34.65,
+  D1: 36.71,
+  "D#1/Eb1": 38.89,
+  E1: 41.2,
+  F1: 43.65,
+  "F#1/Gb1": 46.25,
+  G1: 49.0,
+  "G#1/Ab1": 51.91,
+  A1: 55.0,
+  "A#1/Bb1": 58.27,
+  B1: 61.74,
+  C2: 65.41,
+  "C#2/Db2": 69.3,
+  D2: 73.42,
+  "D#2/Eb2": 77.78,
+  E2: 82.41,
+  F2: 87.31,
+  "F#2/Gb2": 92.5,
+  G2: 98.0,
+  "G#2/Ab2": 103.83,
+  A2: 110.0,
+  "A#2/Bb2": 116.54,
+  B2: 123.47,
+  C3: 130.81,
+  "C#3/Db3": 138.59,
+  D3: 146.83,
+  "D#3/Eb3": 155.56,
+  E3: 164.81,
+  F3: 174.61,
+  "F#3/Gb3": 185.0,
+  G3: 196.0,
+  "G#3/Ab3": 207.65,
+  A3: 220.0,
+  "A#3/Bb3": 233.08,
+  B3: 246.94,
+  C4: 261.63,
+  "C#4/Db4": 277.18,
+  D4: 293.66,
+  "D#4/Eb4": 311.13,
+  E4: 329.63,
+  F4: 349.23,
+  "F#4/Gb4": 369.99,
+  G4: 392.0,
+  "G#4/Ab4": 415.3,
+  A4: 440.0,
+  "A#4/Bb4": 466.16,
+  B4: 493.88,
+  C5: 523.25,
+  "C#5/Db5": 554.37,
+  D5: 587.33,
+  "D#5/Eb5": 622.25,
+  E5: 659.25,
+  F5: 698.46,
+  "F#5/Gb5": 739.99,
+  G5: 783.99,
+  "G#5/Ab5": 830.61,
+  A5: 880.0,
+  "A#5/Bb5": 932.33,
+  B5: 987.77,
+  C6: 1046.5,
+  "C#6/Db6": 1108.73,
+  D6: 1174.66,
+  "D#6/Eb6": 1244.51,
+  E6: 1318.51,
+  F6: 1396.91,
+  "F#6/Gb6": 1479.98,
+  G6: 1567.98,
+  "G#6/Ab6": 1661.22,
+  A6: 1760.0,
+  "A#6/Bb6": 1864.66,
+  B6: 1975.53,
+  C7: 2093.0,
+  "C#7/Db7": 2217.46,
+  D7: 2349.32,
+  "D#7/Eb7": 2489.02,
+  E7: 2637.02,
+  F7: 2793.83,
+  "F#7/Gb7": 2959.96,
+  G7: 3135.96,
+  "G#7/Ab7": 3322.44,
+  A7: 3520.0,
+  "A#7/Bb7": 3729.31,
+  B7: 3951.07,
+  C8: 4186.01,
+};
+const MIN_UI_FREQ = 16.35; // C0
+const MAX_UI_FREQ = 4186.01; // C8
 
 /* ------------------------------------------------------------------
-   🔢 HELPERS
+   ⚙️ CAPTURA / ENVIO — parâmetros ajustados p/ agudos + menos latência
    ------------------------------------------------------------------ */
-const TUNING_PRESETS = TuningPresets;
-const DEFAULT_PRESET = "Standard (E A D G B E)";
-
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-const log2 = (x) => Math.log(x) / Math.log(2);
-const centsBetween = (f, fRef) => 1200 * log2(f / fRef);
-
-const median = (arr) => {
-  if (!arr.length) return null;
-  const s = [...arr].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+const DEFAULT_CFG = {
+  RMS_GATE: 0.0012,
+  BUFFER_SIZE: 2048,
+  SEND_BLOCK_SIZE: 16384,
+  SEND_THROTTLE_MS: 20,
+  MIN_F_GLOBAL: 16.35,
+  MAX_F_GLOBAL: 5000,
+  LOWCUT_HZ: 20,
+  HIGHCUT_HZ: 5000, // não “mata” agudos
+  MAX_PENDING_BUFFERS: 60,
 };
 
-const normalizeToRefOctave = (f, fRef) => {
-  if (!f || !fRef) return f;
-  while (f < fRef / 2) f *= 2;
-  while (f > fRef * 2) f /= 2;
-  if (Math.abs(f * 2 - fRef) < Math.abs(f - fRef)) f *= 2;
-  if (Math.abs(f / 2 - fRef) < Math.abs(f - fRef)) f /= 2;
-  return f;
+/* ------------------------------------------------------------------
+   🧪 LOGS (enxutos)
+   ------------------------------------------------------------------ */
+let LOGS_ENABLED = true;
+const log = (...a) => {
+  if (LOGS_ENABLED) console.log("%c[Tuner]", "color:#9b59b6", ...a);
+};
+const warn = (...a) => {
+  if (LOGS_ENABLED) console.warn("%c[Tuner]", "color:#e67e22", ...a);
+};
+const info = (...a) => {
+  if (LOGS_ENABLED) console.info("%c[Tuner]", "color:#2ecc71", ...a);
 };
 
-const nearestStringWithOctave = (f, strings) => {
-  let best = strings[0];
-  let bestDelta = Infinity;
-  for (const s of strings) {
-    const fAdj = normalizeToRefOctave(f, s.freq);
-    const d = Math.abs(fAdj - s.freq);
-    if (d < bestDelta) {
-      bestDelta = d;
-      best = s;
-    }
-  }
-  return best;
-};
-
-// Concatena Float32Arrays
+/* ------------------------------------------------------------------
+   🔧 HELPERS
+   ------------------------------------------------------------------ */
 function f32Concat(a, b) {
   const out = new Float32Array(a.length + b.length);
   out.set(a, 0);
   out.set(b, a.length);
   return out;
 }
-
-// Gate de RMS
-function passRmsGate(float32, gate = RMS_GATE) {
+function passRmsGate(float32, gate) {
   let sum = 0;
   for (let i = 0; i < float32.length; i++) sum += float32[i] * float32[i];
   const rms = Math.sqrt(sum / float32.length);
-  return rms >= gate;
+  return { pass: rms >= gate, rms };
 }
-
-// Converte Float32 -> Int16 (ArrayBuffer independente)
 const float32ToInt16ArrayBuffer = (bufferFloat32) => {
   const out = new Int16Array(bufferFloat32.length);
   for (let i = 0; i < bufferFloat32.length; i++) {
@@ -120,22 +172,15 @@ const float32ToInt16ArrayBuffer = (bufferFloat32) => {
    🎛️ COMPONENTE
    ------------------------------------------------------------------ */
 export default function Tuner() {
-  // Preset / modo
-  const [presetName, setPresetName] = useState(DEFAULT_PRESET);
-  const strings = useMemo(() => TUNING_PRESETS[presetName], [presetName]);
-  const [mode, setMode] = useState("auto"); // "auto" | "manual"
-  const [manualTarget, setManualTarget] = useState(strings[0].name);
-
   // Execução
   const [isTuning, setIsTuning] = useState(false);
 
-  // UI
+  // UI (sempre dados do backend)
   const [displayNote, setDisplayNote] = useState("");
-  const [displayBar, setDisplayBar] = useState("");
   const [liveFreq, setLiveFreq] = useState(null);
   const [cents, setCents] = useState(0);
 
-  // Áudio / socket
+  // Refs principais
   const socketRef = useRef(null);
   const mediaRef = useRef({
     stream: null,
@@ -144,48 +189,37 @@ export default function Tuner() {
     processor: null,
   });
   const sampleRateRef = useRef(44100);
+  const configRef = useRef({ ...DEFAULT_CFG });
 
-  // Suavização e troca de nota
-  const emaRef = useRef(null);
-  const medianBufRef = useRef([]);
-  const stableRefNoteRef = useRef(null);
-  const pendingNoteRef = useRef(null);
-  const pendingCountRef = useRef(0);
-
-  // fila de buffers enquanto conecta
+  // Fila de envio enquanto desconectado
   const pendingAudioQueueRef = useRef([]);
 
-  // filtros fixos e acumulador de envio
+  // filtros e envio
   const filtersRef = useRef({ hp: null, lp: null });
   const sendAccumRef = useRef(new Float32Array(0));
   const lastSendTsRef = useRef(0);
 
-  // contagem de silêncio para reset
-  const silenceFramesRef = useRef(0);
+  // estabilidade por tempo: 2s na mesma nota
+  // const MIN_STABLE_MS = 2000;
+  const MIN_STABLE_MS = 1000;
+  const candidateRef = useRef({ name: null, since: 0 });
+  const committedRef = useRef({ name: null });
 
-  // refs dinâmicos
-  const modeRef = useRef(mode);
-  const manualTargetRef = useRef(manualTarget);
-  const stringsRef = useRef(strings);
-
-  useEffect(() => {
-    modeRef.current = mode;
-  }, [mode]);
-  useEffect(() => {
-    manualTargetRef.current = manualTarget;
-  }, [manualTarget]);
-  useEffect(() => {
-    stringsRef.current = strings;
-  }, [strings]);
+  // status server
+  const serverOnlineRef = useRef(false);
+  const serverHeartbeatRef = useRef(null);
 
   // Email no handshake
   const userEmail = useMemo(() => localStorage.getItem("userEmail") || "", []);
 
-  // Ajusta alvo quando muda preset
+  // expor toggle de logs no console
   useEffect(() => {
-    setManualTarget(TuningPresets[presetName][0].name);
-    resetSmoothing();
-  }, [presetName]);
+    window.tunerLogs = (on) => {
+      LOGS_ENABLED = !!on;
+      console.log("[Tuner] logs:", LOGS_ENABLED ? "ON" : "OFF");
+    };
+    return () => delete window.tunerLogs;
+  }, []);
 
   /* ------------------------ SOCKET.IO ------------------------ */
   useEffect(() => {
@@ -197,6 +231,7 @@ export default function Tuner() {
       socketRef.current = null;
     }
 
+    info("criando conexão socket…", { SOCKET_URL, SOCKET_PATH, userEmail });
     const sock = io(SOCKET_URL, {
       path: SOCKET_PATH,
       transports: ["polling", "websocket"],
@@ -209,120 +244,103 @@ export default function Tuner() {
       timeout: 20000,
       query: { email: userEmail },
     });
-
     socketRef.current = sock;
 
+    // heartbeat de status a cada 5s (sem spam)
+    serverHeartbeatRef.current = setInterval(() => {
+      const isOnline = !!socketRef.current?.connected;
+      if (isOnline !== serverOnlineRef.current) {
+        serverOnlineRef.current = isOnline;
+        info("SERVER STATUS:", isOnline ? "ONLINE ✅" : "OFFLINE ❌");
+      }
+    }, 5000);
+
     sock.on("connect", () => {
-      DEBUG && console.log("[socket] connected:", sock.id);
-      // drenar fila de buffers pendentes
+      serverOnlineRef.current = true;
+      info("socket conectado:", sock.id);
+
+      // drenar fila pendente
       if (pendingAudioQueueRef.current.length) {
+        info(
+          "enviando fila pendente:",
+          pendingAudioQueueRef.current.length,
+          "blocos"
+        );
         pendingAudioQueueRef.current.forEach((buf) => {
-          sock.emit("messageToServer", { audioData: buf });
+          sock.emit("messageToServer", {
+            audioData: buf,
+            sampleRate: sampleRateRef.current || 44100,
+          });
         });
         pendingAudioQueueRef.current = [];
       }
+
+      // reset de estabilidade ao reconectar
+      candidateRef.current = { name: null, since: 0 };
+      committedRef.current = { name: null };
     });
 
     sock.on("connect_error", (e) => {
-      DEBUG && console.warn("[socket] connect_error:", e?.message);
+      serverOnlineRef.current = false;
+      warn("connect_error:", e?.message || e);
     });
 
     sock.on("disconnect", (r) => {
-      DEBUG && console.warn("[socket] disconnected:", r);
+      serverOnlineRef.current = false;
+      warn("disconnect:", r);
     });
 
-    // Frequência processada (vinda do Python via Node)
+    // Frequência + nota vindas do backend
     const onFreq = (data) => {
       if (!data) return;
 
-      let f = Number(data.frequency ?? data.freq);
-      if (!f || isNaN(f)) return;
+      // pegar frequency/note/cents do backend
+      const freq = Number(data.frequency ?? data.freq);
+      const noteName = typeof data.note === "string" ? data.note : "";
+      const centsFromServer = Number.isFinite(data.cents)
+        ? Number(data.cents)
+        : null;
 
-      // [AJUSTE] Correção de sample-rate (opcional)
-      const sr = sampleRateRef.current || 44100;
-      if (APPLY_SR_CORRECTION) {
-        // corrige resultado supondo que o backend calculou com 44.1k
-        f = f * (sr / 44100);
+      if (!Number.isFinite(freq) || freq <= 0) return;
+
+      // filtro de faixa para exibição (C0..C8)
+      if (freq < MIN_UI_FREQ || freq > MAX_UI_FREQ) {
+        // não zera a UI; apenas ignora atualização
+        return;
       }
 
-      if (f < MIN_F_GLOBAL || f > MAX_F_GLOBAL) return;
+      const nowTs = performance.now();
 
-      // Suavização
-      const prev = emaRef.current;
-      const ema = prev == null ? f : (1 - EMA_ALPHA) * prev + EMA_ALPHA * f;
-      emaRef.current = ema;
-
-      const buf = medianBufRef.current;
-      buf.push(ema);
-      if (buf.length > MEDIAN_WINDOW) buf.shift();
-      const fSmooth = median(buf);
-      if (!fSmooth) return;
-
-      // Determina alvo (auto/manual)
-      const curMode = modeRef.current;
-      const curStrings = stringsRef.current;
-      const curManual = manualTargetRef.current;
-
-      const target =
-        curMode === "manual"
-          ? curStrings.find((s) => s.name === curManual) || curStrings[0]
-          : nearestStringWithOctave(fSmooth, curStrings);
-
-      // --------------- LÓGICA DE TROCA DE NOTA ----------------
-      // 1) Confirmação normal (histerese leve)
-      if (!stableRefNoteRef.current) {
-        stableRefNoteRef.current = target;
-      } else if (stableRefNoteRef.current.name !== target.name) {
-        if (pendingNoteRef.current !== target.name) {
-          pendingNoteRef.current = target.name;
-          pendingCountRef.current = 1;
-        } else {
-          pendingCountRef.current += 1;
-        }
-        if (pendingCountRef.current >= FRAMES_TO_CONFIRM_NOTE) {
-          stableRefNoteRef.current = target;
-          pendingNoteRef.current = null;
-          pendingCountRef.current = 0;
-        }
-      } else {
-        pendingNoteRef.current = null;
-        pendingCountRef.current = 0;
+      // gating de estabilidade por nota (2s)
+      if (candidateRef.current.name !== noteName) {
+        candidateRef.current = { name: noteName, since: nowTs };
+        log("nova nota candidata:", noteName);
       }
 
-      // 2) Forçar troca se o desvio ficar muito grande por alguns frames
-      const refNow = stableRefNoteRef.current || target;
-      const fAdjForRef = normalizeToRefOctave(fSmooth, refNow.freq);
-      const devCents = Math.abs(centsBetween(fAdjForRef, refNow.freq));
-      if (devCents > DEV_CENTS_TO_FORCE_SWITCH) {
-        if (pendingNoteRef.current !== target.name) {
-          pendingNoteRef.current = target.name;
-          pendingCountRef.current = 1;
-        } else {
-          pendingCountRef.current += 1;
+      const elapsed = nowTs - candidateRef.current.since;
+      if (elapsed >= MIN_STABLE_MS) {
+        if (committedRef.current.name !== noteName) {
+          committedRef.current.name = noteName;
+          info("nota estabilizada (2s):", noteName);
         }
-        if (pendingCountRef.current >= DEV_FRAMES_TO_FORCE_SWITCH) {
-          stableRefNoteRef.current = target; // força troca
-          pendingNoteRef.current = null;
-          pendingCountRef.current = 0;
-        }
+        // Atualiza UI SOMENTE após estabilidade
+        setDisplayNote(noteName || "—");
+        setLiveFreq(freq);
+        const c =
+          centsFromServer == null
+            ? 0
+            : Math.max(-50, Math.min(50, centsFromServer));
+        setCents(c);
       }
-
-      const ref = stableRefNoteRef.current || target;
-
-      // Cents em relação ao alvo (apenas para UI)
-      const fAdj = normalizeToRefOctave(fSmooth, ref.freq);
-      const c = clamp(centsBetween(fAdj, ref.freq), -50, 50);
-
-      // UI
-      setLiveFreq(fSmooth);
-      setDisplayNote(target.name);
-      setCents(c);
     };
 
     sock.on("messageFromServer", onFreq);
 
     return () => {
       try {
+        if (serverHeartbeatRef.current)
+          clearInterval(serverHeartbeatRef.current);
+        serverHeartbeatRef.current = null;
         if (!socketRef.current) return;
         socketRef.current.off("messageFromServer", onFreq);
         socketRef.current.removeAllListeners();
@@ -335,99 +353,129 @@ export default function Tuner() {
 
   /* ------------------------ ÁUDIO ------------------------ */
   const startRecording = async () => {
+    const {
+      BUFFER_SIZE,
+      LOWCUT_HZ,
+      HIGHCUT_HZ,
+      RMS_GATE,
+      SEND_BLOCK_SIZE,
+      SEND_THROTTLE_MS,
+      MAX_PENDING_BUFFERS,
+    } = configRef.current;
+
     if (!navigator.mediaDevices?.getUserMedia) {
       alert("Seu navegador não suporta captura de áudio.");
       return;
     }
+
     try {
+      info("solicitando microfone…");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
           channelCount: 1,
-          sampleRate: 44100, // hint (o navegador pode ignorar)
+          sampleRate: 44100,
         },
       });
 
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       sampleRateRef.current = ctx.sampleRate;
+      info("AudioContext sampleRate:", sampleRateRef.current);
 
       const source = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
 
-      // Filtros FIXOS (sem depender de modo/manual)
+      // Filtros FIXOS
       const hp = ctx.createBiquadFilter();
       hp.type = "highpass";
-      hp.frequency.value = LOWCUT_HZ; // 20 Hz
+      hp.frequency.value = LOWCUT_HZ;
       hp.Q.value = 0.707;
 
       const lp = ctx.createBiquadFilter();
       lp.type = "lowpass";
-      lp.frequency.value = HIGHCUT_HZ; // 900 Hz (ajuda o backend a achar o fundamental)
+      lp.frequency.value = HIGHCUT_HZ;
       lp.Q.value = 0.707;
 
-      // Encadeia: source -> hp -> lp -> processor
+      // Encadeia
       source.connect(hp);
       hp.connect(lp);
       lp.connect(processor);
 
       filtersRef.current = { hp, lp };
+      info("filtros configurados:", { LOWCUT_HZ, HIGHCUT_HZ });
+      info("captura iniciada:", {
+        BUFFER_SIZE,
+        SEND_BLOCK_SIZE,
+        RMS_GATE,
+        SEND_THROTTLE_MS,
+      });
 
       const safeEmit = (buf) => {
         const sock = socketRef.current;
         if (sock && sock.connected) {
-          sock.emit("messageToServer", { audioData: buf });
+          sock.emit("messageToServer", {
+            audioData: buf,
+            sampleRate: sampleRateRef.current || 44100,
+          });
         } else {
           if (pendingAudioQueueRef.current.length >= MAX_PENDING_BUFFERS) {
             pendingAudioQueueRef.current.shift();
           }
           pendingAudioQueueRef.current.push(buf);
+          // log enxuto quando offline
+          warn(
+            "socket OFF — bloco enfileirado (fila:",
+            pendingAudioQueueRef.current.length,
+            ")"
+          );
         }
       };
 
       processor.onaudioprocess = (ev) => {
         try {
+          const {
+            RMS_GATE: gRms,
+            SEND_BLOCK_SIZE: blk,
+            SEND_THROTTLE_MS: thr,
+          } = configRef.current;
+
           const float32 = ev.inputBuffer.getChannelData(0);
 
-          // Gate RMS
-          if (!passRmsGate(float32, RMS_GATE)) {
-            // acumula silêncio; se persistir, reset para captar nova nota
-            if (++silenceFramesRef.current >= SILENCE_FRAMES_TO_RESET) {
-              resetSmoothing();
-              silenceFramesRef.current = 0;
-            }
-            return;
-          }
-          // Voltou sinal: zera contador de silêncio
-          silenceFramesRef.current = 0;
+          // Gate RMS — sem spam
+          const { pass } = passRmsGate(float32, gRms);
+          if (!pass) return;
 
-          // Acumula até SEND_BLOCK_SIZE para janela maior (graves)
+          // Acumula e envia em blocos — sem logs por frame
           sendAccumRef.current = f32Concat(sendAccumRef.current, float32);
-          if (sendAccumRef.current.length < SEND_BLOCK_SIZE) return;
+          if (sendAccumRef.current.length < blk) return;
 
-          // Throttle
           const now = performance.now();
-          if (now - lastSendTsRef.current < SEND_THROTTLE_MS) return;
+          if (now - lastSendTsRef.current < thr) return;
           lastSendTsRef.current = now;
 
-          // Corta bloco exato e mantém resto no acumulador
-          const block = sendAccumRef.current.slice(0, SEND_BLOCK_SIZE);
-          sendAccumRef.current = sendAccumRef.current.slice(SEND_BLOCK_SIZE);
+          const block = sendAccumRef.current.slice(0, blk);
+          sendAccumRef.current = sendAccumRef.current.slice(blk);
 
-          // Converte p/ Int16 e envia
           const audioBuffer = float32ToInt16ArrayBuffer(block);
           safeEmit(audioBuffer);
         } catch (e) {
-          DEBUG && console.warn("onaudioprocess error:", e);
+          warn("onaudioprocess error:", e);
         }
       };
 
-      // Mantém o processor ligado (volume ínfimo)
+      // mantém graph vivo
       processor.connect(ctx.destination);
 
       mediaRef.current = { stream, audioContext: ctx, source, processor };
       setIsTuning(true);
+      // reset de estabilidade ao iniciar
+      candidateRef.current = { name: null, since: 0 };
+      committedRef.current = { name: null };
+      setDisplayNote("");
+      setLiveFreq(null);
+      setCents(0);
     } catch (err) {
       console.error("Erro ao acessar o microfone:", err);
     }
@@ -440,10 +488,9 @@ export default function Tuner() {
       if (source) source.disconnect();
       if (audioContext && audioContext.state !== "closed") audioContext.close();
       if (stream) stream.getTracks().forEach((t) => t.stop());
-      // Limpeza
       sendAccumRef.current = new Float32Array(0);
       lastSendTsRef.current = 0;
-      silenceFramesRef.current = 0;
+      info("captura parada.");
     } catch {}
     mediaRef.current = {
       stream: null,
@@ -454,41 +501,10 @@ export default function Tuner() {
     setIsTuning(false);
     setLiveFreq(null);
     setDisplayNote("");
-    setDisplayBar("");
     setCents(0);
-    resetSmoothing();
-  };
-
-  const resetSmoothing = () => {
-    emaRef.current = null;
-    medianBufRef.current = [];
-    stableRefNoteRef.current = null;
-    pendingNoteRef.current = null;
-    pendingCountRef.current = 0;
-  };
-
-  /* ------------------------ TONE DE REFERÊNCIA ------------------------ */
-  const refAudioCtx = useRef(null);
-  const playReference = (hz) => {
-    if (!refAudioCtx.current) {
-      refAudioCtx.current = new (window.AudioContext ||
-        window.webkitAudioContext)();
-    }
-    const ctx = refAudioCtx.current;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "triangle";
-    gain.gain.value = 0;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const now = ctx.currentTime;
-    const attack = 0.01;
-    const decay = 1.2;
-    osc.frequency.setValueAtTime(hz, now);
-    gain.gain.linearRampToValueAtTime(0.7, now + attack);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
-    osc.start(now);
-    osc.stop(now + decay + 0.05);
+    // limpa estabilidade
+    candidateRef.current = { name: null, since: 0 };
+    committedRef.current = { name: null };
   };
 
   /* ------------------------ RENDER ------------------------ */
@@ -501,29 +517,7 @@ export default function Tuner() {
           {/* Header */}
           <div className="flex flex-row my-5 neuphormism-b p-5">
             <h1 className="text-4xl font-bold">Tuner</h1>
-
             <div className="ml-auto flex items-center gap-3">
-              {/* Modo */}
-              <div className="flex items-center gap-2">
-                <button
-                  className={`neuphormism-b-se px-3 py-2 ${
-                    mode === "auto" ? "font-bold" : ""
-                  }`}
-                  onClick={() => setMode("auto")}
-                >
-                  Auto
-                </button>
-                <button
-                  className={`neuphormism-b-se px-3 py-2 ${
-                    mode === "manual" ? "font-bold" : ""
-                  }`}
-                  onClick={() => setMode("manual")}
-                >
-                  Manual
-                </button>
-              </div>
-
-              {/* Start/Stop */}
               <button
                 className="neuphormism-b-se px-4 py-2"
                 onClick={() => {
@@ -536,63 +530,12 @@ export default function Tuner() {
             </div>
           </div>
 
-          {/* Controles Manual + dica */}
+          {/* DISPLAY */}
           <div className="flex flex-row my-5 neuphormism-b p-5">
             <div className="flex flex-col justify-start w-[90%] mx-auto rounded-md mb-2">
-              <div>
-                {mode === "manual" && (
-                  <div className="p-2 flex flex-col gap-4 w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
-                    <div className="flex flex-wrap items-center pt-2 gap-2 flex-row justify-around">
-                      {strings.map((s) => (
-                        <button
-                          key={s.name}
-                          className={`neuphormism-b-se px-3 py-2 ${
-                            manualTarget === s.name ? "font-bold" : ""
-                          }`}
-                          onClick={() => {
-                            setManualTarget(s.name);
-                            playReference(s.freq);
-                          }}
-                          title={`Alvo: ${s.name} (${s.freq.toFixed(2)} Hz)`}
-                        >
-                          {s.name}
-                        </button>
-                      ))}
-                    </div>
-                    <span className="p-2 text-xs opacity-60 ml-2">
-                      Clique para selecionar e ouvir a referência
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="p-6 flex flex-col gap-4 w-[90%] mx-auto mb-5 rounded-md neuphormism-b">
-                <div className="p-0 mb-5 w-full flex flex-col">
-                  {/* Preset */}
-                  <select
-                    className="neuphormism-b-se px-3 py-2 text-sm"
-                    value={presetName}
-                    onChange={(e) => setPresetName(e.target.value)}
-                    title="Afinação"
-                  >
-                    {Object.keys(TUNING_PRESETS).map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="text-xs opacity-60">
-                  Use uma nota por vez e deixe soar. Para graves (B3 e abaixo),
-                  aproxime o microfone e mantenha a nota contínua; a janela
-                  maior e o low-pass em 900 Hz ajudam a extrair o fundamental.
-                </div>
-              </div>
-
-              {/* DISPLAY */}
               <div className="p-10 w-[90%] mx-auto rounded-md mb-2 neuphormism-b">
                 <div className="flex flex-col items-center justify-center select-none">
-                  {/* Linha superior */}
+                  {/* Linha superior (indicativa) */}
                   <div className="flex items-end gap-6 mb-2 text-gray-500">
                     <span className="text-3xl opacity-40">A#</span>
                     <span className="text-4xl opacity-60">B</span>
@@ -603,18 +546,9 @@ export default function Tuner() {
                     <span className="text-3xl opacity-40">D</span>
                   </div>
 
-                  {/* Frequência (auto) ou alvo (manual) */}
+                  {/* Frequência do backend */}
                   <div className="text-lg mb-6 opacity-80">
-                    {mode === "auto"
-                      ? liveFreq
-                        ? `${liveFreq.toFixed(1)} Hz`
-                        : "—"
-                      : (() => {
-                          const s = strings.find(
-                            (x) => x.name === manualTarget
-                          );
-                          return s ? `${s.freq.toFixed(1)} Hz` : "—";
-                        })()}
+                    {liveFreq ? `${liveFreq.toFixed(1)} Hz` : "—"}
                   </div>
 
                   {/* Gauge */}
@@ -626,7 +560,7 @@ export default function Tuner() {
                           return (
                             <div
                               key={i}
-                              className="absolute w-[2px] h-5  origin-bottom left-1/2"
+                              className="absolute w-[2px] h-5 origin-bottom left-1/2"
                               style={{
                                 bottom: -2,
                                 transform: `translateX(-50%) rotate(${
@@ -637,7 +571,7 @@ export default function Tuner() {
                             />
                           );
                         })}
-                        <div className="absolute left-2 top-2 text-gray-500 ">
+                        <div className="absolute left-2 top-2 text-gray-500">
                           ♭
                         </div>
                         <div className="absolute right-2 top-2 text-gray-500">
@@ -652,26 +586,18 @@ export default function Tuner() {
                     <div
                       className="absolute left-1/2 bottom-[10px] w-1 h-[135px] origin-bottom"
                       style={{
-                        transform: `translateX(-50%) rotate(${
-                          (cents / 50) * 50
-                        }deg)`,
+                        transform: `translateX(-50%) rotate(${needleDeg}deg)`,
                       }}
                     >
                       <div className="w-[2px] h-full bg-red-500" />
-                      {/* <div className="w-4 h-4 rounded-full border border-gray-500 bg-transparent absolute -bottom-2 left-1/2 -translate-x-1/2" /> */}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Rodapé: cordas do preset */}
+              {/* Rodapé simples C0–C8 (informativo) */}
               <div className="w-[90%] mx-auto text-center text-sm opacity-60">
-                {strings.map((s, i) => (
-                  <span key={s.name} className="mx-2">
-                    {s.name}: {s.freq.toFixed(2)} Hz
-                    {i < strings.length - 1 ? " •" : ""}
-                  </span>
-                ))}
+                Faixa exibida: C0 (16.35 Hz) até C8 (4186.01 Hz)
               </div>
             </div>
           </div>
