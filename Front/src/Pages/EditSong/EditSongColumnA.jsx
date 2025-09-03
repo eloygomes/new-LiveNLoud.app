@@ -6,6 +6,7 @@ import EditSongSongData from "./EditSongSongData";
 import { deleteOneSong, updateSongData } from "../../Tools/Controllers"; // Sua função que salva/atualiza no backend
 import { useNavigate } from "react-router-dom";
 import EditSongSetlist from "./EditSongSetlist";
+import { getAllUserSetlists } from "../../Tools/Controllers";
 
 function EditSongColumnA({
   dataFromAPI,
@@ -106,6 +107,21 @@ function EditSongColumnA({
       )
     );
   }, [progGuitar01, progGuitar02, progBass, progKey, progDrums, progVoice]);
+
+  useEffect(() => {
+    async function fetchSetlists() {
+      try {
+        const userEmail = localStorage.getItem("userEmail");
+        const options = await getAllUserSetlists(userEmail);
+        console.log("Fetched setlist options:", options);
+        setSetListOptions(options || []);
+      } catch (error) {
+        console.error("Erro ao buscar setlists do usuário:", error);
+      }
+    }
+
+    fetchSetlists();
+  }, []);
 
   // Quando dataFromAPI chega, parse e preenche
   useEffect(() => {

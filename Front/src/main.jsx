@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Router
 import {
@@ -24,26 +25,12 @@ import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 
 // Firebase Authentication
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase"; // Certifique-se de que o caminho para o arquivo firebase.js está correto
 
 // Componente para proteger rotas
 const ProtectedRoute = ({ element: Component, ...rest }) => {
-  const [currentUser, setCurrentUser] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
+  const token = localStorage.getItem("token");
 
-  React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  if (loading) return <div>Loading...</div>; // Ou qualquer componente de carregamento que você preferir
-
-  return currentUser ? <Component {...rest} /> : <Navigate to="/login" />;
+  return token ? <Component {...rest} /> : <Navigate to="/login" />;
 };
 
 // Configuração das rotas
@@ -83,6 +70,8 @@ const router = createBrowserRouter(
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 );

@@ -44,7 +44,9 @@ export default function DashboardOptions({
           `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
         );
         const data = await response.json();
-        const allSetlists = data.flatMap((song) => song.setlist || []);
+        const allSetlists = (data.userdata || []).flatMap(
+          (song) => song.setlist || []
+        );
         const distinctSetlists = [...new Set(allSetlists)];
         setSetlists(distinctSetlists);
       } catch (error) {
