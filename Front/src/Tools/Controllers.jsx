@@ -191,32 +191,28 @@ export const deleteUserAccountOnDb = async () => {
   }
 };
 
-export const getAllUserSetlists = async () => {
-  // const url = `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`;
-
-  // try {
-  //   const response = await axios.get(url);
-  //   const data = response.data;
-
-  //   // Extrair setlists únicos de todas as músicas
-  //   const allSetlists = data.flatMap((song) => song.setlist || []);
-  //   const distinctSetlists = [...new Set(allSetlists)];
-
-  //   return distinctSetlists;
-  // } catch (error) {
-  //   console.error("Erro ao buscar setlists do usuário:", error);
-  //   throw error;
-  // }
+export async function getAllUserSetlists() {
+  const userEmail = localStorage.getItem("userEmail");
 
   try {
-    const response = await fetch(
+    const res = await fetch(
       `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
     );
-    const data = await response.json();
-    const allSetlists = data.flatMap((song) => song.setlist || []);
-    const distinctSetlists = [...new Set(allSetlists)];
-    return distinctSetlists;
+    const data = await res.json();
+
+    const allTags = new Set();
+
+    if (Array.isArray(data.userdata)) {
+      data.userdata.forEach((songEntry) => {
+        if (Array.isArray(songEntry.setlist)) {
+          songEntry.setlist.forEach((tag) => allTags.add(tag));
+        }
+      });
+    }
+
+    return Array.from(allTags);
   } catch (error) {
-    console.error("Erro ao buscar setlists:", error);
+    console.error("Erro ao carregar setlists:", error);
+    return [];
   }
-};
+}

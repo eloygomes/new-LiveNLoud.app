@@ -16,7 +16,8 @@ function EditSongSetlist({
   useEffect(() => {
     (async () => {
       try {
-        const lists = await getAllUserSetlists();
+        const userEmail = localStorage.getItem("userEmail");
+        const lists = await getAllUserSetlists(userEmail);
         setSetListOptions(lists);
       } catch (err) {
         console.error("Erro ao buscar setlists:", err);

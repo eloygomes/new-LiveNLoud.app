@@ -64,6 +64,7 @@ function UserDropdownMenu({
           </Link>
         </div>
       )}
+      {/* DESKTOP */}
       {window.innerWidth >= 926 && (
         <div
           className={`${

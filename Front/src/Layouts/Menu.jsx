@@ -136,7 +136,7 @@ export default function RootLayouts() {
                         <span className="absolute -inset-1.5"></span>
                         <span className="sr-only">Open user menu</span>
                         {/* SE O USUARIO NAO TIVER FOTO O SRC SERÁ: userIcon */}
-                        <UserProfileAvatar src={userPerfil} size={8} />
+                        <UserProfileAvatar src={userPerfil} size={40} />
                       </button>
                     </div>
                     <UserDropdownMenu

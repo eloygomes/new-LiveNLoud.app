@@ -14,19 +14,31 @@ function DashList2() {
   useEffect(() => {
     async function fetchSongs() {
       const userEmail = localStorage.getItem("userEmail");
+      console.log("EMAIL DO USUÁRIO:", userEmail); // <- MOVA ISSO PRA CIMA
+
       try {
         const response = await fetch(
           `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
         );
+        console.log("STATUS:", response.status);
+
         const data = await response.json();
-        const songsData = Array.isArray(data) ? data : [];
+        console.log("DATA RECEBIDA:", data);
+
+        const songsData = (data.userdata || []).filter(
+          (item) =>
+            item.song?.trim() !== "" &&
+            item.artist?.trim() !== "" &&
+            item.progressBar !== undefined
+        );
+
         setSongs(songsData);
         setFilteredSongs(songsData);
-        // console.log("songsData", songsData);
       } catch (error) {
         console.error("Erro ao buscar músicas:", error);
       }
     }
+
     fetchSongs();
   }, []);
 
