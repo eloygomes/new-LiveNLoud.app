@@ -86,7 +86,7 @@ export default function DashboardOptions({
   // console.log("optStatus", optStatus);
   return (
     <div
-      className={`flex flex-col top-[67px] sticky justify-between neuphormism-b bg-white z-30 h-[150px] ${
+      className={`flex flex-col top-[67px] sticky justify-between  bg-white h-[150px] ${
         optStatus ? "" : "hidden"
       }`}
     >

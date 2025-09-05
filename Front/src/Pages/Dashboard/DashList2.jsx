@@ -144,7 +144,7 @@ function DashList2() {
             {/* Botão para mostrar/ocultar painel de filtros */}
             {!optStatus && (
               <div
-                className={`flex flex-col top-[67px] sticky justify-around neuphormism-b bg-white z-30 ${
+                className={`flex flex-col top-[67px] sticky justify-around neuphormism-b bg-white  ${
                   optStatus ? "hidden" : "flex"
                 }`}
               >

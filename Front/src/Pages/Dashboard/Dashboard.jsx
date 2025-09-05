@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DashList2 from "./DashList2";
 import FloatingActionButtons from "./FloatingActionButtons";
 import Rotate from "../../assets/userPerfil.jpg";
+import SoftVersion from "./SoftVersion";
 
 function Dashboard() {
   // Estado para armazenar se a tela é mobile (largura <= 426px)
@@ -70,6 +71,7 @@ function Dashboard() {
           <div className="container mx-auto desktop">
             <DashList2 />
             <FloatingActionButtons />
+            <SoftVersion />
           </div>
         </>
       ) : null}
