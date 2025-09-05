@@ -3,18 +3,17 @@ import { useState } from "react";
 // IMG
 import logoProv from "../assets/logo-provisorio.svg";
 // import userIcon from "../assets/user-logo.svg";
-import userPerfil from "../assets/userPerfil.jpg";
+
 // CSS
 import "../index.css";
-import UserDropdownMenu from "./UserDropdownMenu";
+
 import NavMenuItems from "./NavMenuItems";
 
-import UserProfileAvatar from "./UserProfileAvatar";
 import { useNavigate } from "react-router-dom";
 import MenuMobileFull from "./MenuMobileFull";
+import UserProfileModal from "../Tools/modal/UserProfileModal";
 
 export default function RootLayouts() {
-  const [userDropdownMenuStatus, setUserDropdownMenuStatus] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigate = useNavigate(); // Initialize navigate here
@@ -122,27 +121,7 @@ export default function RootLayouts() {
                 <div className="absolute inset-y-0 right-20 top-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
                   {/* <!-- Profile dropdown --> */}
                   <div className="relative ml-3">
-                    <div>
-                      <button
-                        type="button"
-                        className="relative flex rounded-full  text-sm "
-                        id="user-menu-button"
-                        aria-expanded="false"
-                        aria-haspopup="true"
-                        onClick={() =>
-                          setUserDropdownMenuStatus(!userDropdownMenuStatus)
-                        }
-                      >
-                        <span className="absolute -inset-1.5"></span>
-                        <span className="sr-only">Open user menu</span>
-                        {/* SE O USUARIO NAO TIVER FOTO O SRC SERÁ: userIcon */}
-                        <UserProfileAvatar src={userPerfil} size={40} />
-                      </button>
-                    </div>
-                    <UserDropdownMenu
-                      userDropdownMenuStatus={userDropdownMenuStatus}
-                      setUserDropdownMenuStatus={setUserDropdownMenuStatus}
-                    />
+                    <UserProfileModal />
                   </div>
                 </div>
               </div>
