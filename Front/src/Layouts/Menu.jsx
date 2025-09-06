@@ -12,6 +12,7 @@ import NavMenuItems from "./NavMenuItems";
 import { useNavigate } from "react-router-dom";
 import MenuMobileFull from "./MenuMobileFull";
 import UserProfileModal from "../Tools/modal/UserProfileModal";
+import SoftVersion from "../Pages/Dashboard/SoftVersion";
 
 export default function RootLayouts() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,6 +21,7 @@ export default function RootLayouts() {
 
   return (
     <>
+      <SoftVersion />
       <header>
         {/* {window.innerWidth <= 926 && window.innerWidth > 426 && ( */}
         {window.innerWidth <= 768 && (
