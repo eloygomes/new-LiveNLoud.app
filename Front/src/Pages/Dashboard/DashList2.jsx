@@ -14,7 +14,7 @@ function DashList2() {
   useEffect(() => {
     async function fetchSongs() {
       const userEmail = localStorage.getItem("userEmail");
-      console.log("EMAIL DO USUÁRIO:", userEmail); // <- MOVA ISSO PRA CIMA
+      // console.log("EMAIL DO USUÁRIO:", userEmail); // <- MOVA ISSO PRA CIMA
 
       try {
         const response = await fetch(
@@ -34,6 +34,9 @@ function DashList2() {
 
         setSongs(songsData);
         setFilteredSongs(songsData);
+
+        localStorage.setItem("fullName", data.userdata[0]?.fullName || "");
+        localStorage.setItem("username", data.userdata[0]?.username || "");
       } catch (error) {
         console.error("Erro ao buscar músicas:", error);
       }

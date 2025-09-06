@@ -71,7 +71,7 @@ function Dashboard() {
           <div className="container mx-auto desktop">
             <DashList2 />
             <FloatingActionButtons />
-            <SoftVersion />
+            {/* <SoftVersion /> */}
           </div>
         </>
       ) : null}
