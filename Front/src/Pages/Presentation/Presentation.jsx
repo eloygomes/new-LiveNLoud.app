@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
 import { allDataFromOneSong, updateLastPlayed } from "../../Tools/Controllers";
+import { useRef } from "react";
 
 import { processSongCifra } from "./ProcessSongCifra";
 
@@ -20,11 +21,10 @@ function Presentation() {
   const [hideTabs, setHideTabs] = useState(false); // Estado para controlar a visibilidade das tabs
   const [hideChords, setHideChords] = useState(false); // Estado para controlar a visibilidade dos acordes
 
-  const [songCifraData, setSongCifraData] = useState("Loading...");
-
-  const [songLyrics, setSongLyrics] = useState("Loading...");
-  const [songChords, setSongChords] = useState("Loading...");
-  const [songTabs, setSongTabs] = useState("Loading...");
+  const [songCifraData, setSongCifraData] = useState("");
+  const [songLyrics, setSongLyrics] = useState("");
+  const [songChords, setSongChords] = useState("");
+  const [songTabs, setSongTabs] = useState("");
 
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
 
@@ -46,14 +46,18 @@ function Presentation() {
 
   const handleDataFromAPI = (data, instrumentSelected) => {
     if (data && data[instrumentSelected]) {
-      setSongCifraData(data[instrumentSelected].songCifra);
-      setSongLyrics(data[instrumentSelected].songLyrics);
-      setSongChords(data[instrumentSelected].songChords);
-      setSongTabs(data[instrumentSelected].songTabs);
-
+      setSongCifraData(data[instrumentSelected].songCifra || "");
+      setSongLyrics(data[instrumentSelected].songLyrics || "");
+      setSongChords(data[instrumentSelected].songChords || "");
+      setSongTabs(data[instrumentSelected].songTabs || "");
       return data[instrumentSelected];
     } else {
       console.log("Instrumento não encontrado ou data é undefined");
+      // zera pra evitar 'Loading...' cair no parser
+      setSongCifraData("");
+      setSongLyrics("");
+      setSongChords("");
+      setSongTabs("");
       return null;
     }
   };
@@ -66,13 +70,29 @@ function Presentation() {
   // const { htmlBlocks } = processSongCifra(songLyrics);
   // const { htmlBlocks } = processSongCifra(songTabs);
 
-  const { htmlBlocks } = processSongCifra(contentSelected);
+  // const { htmlBlocks } = processSongCifra(contentSelected);
+  const isParsableString =
+    typeof contentSelected === "string" &&
+    contentSelected.trim() !== "" &&
+    contentSelected !== "Loading...";
 
-  console.log("songLyrics", songLyrics);
-  console.log("songChords", songChords);
-  console.log("songTabs", songTabs);
+  let htmlBlocks = [];
+  if (isParsableString) {
+    try {
+      htmlBlocks = processSongCifra(contentSelected).htmlBlocks || [];
+    } catch (e) {
+      console.warn("processSongCifra falhou, usando fallback vazio:", e);
+      htmlBlocks = [];
+    }
+  } else {
+    htmlBlocks = []; // ainda carregando ou sem conteúdo válido
+  }
 
-  console.log("htmlBlocks", htmlBlocks);
+  // console.log("songLyrics", songLyrics);
+  // console.log("songChords", songChords);
+  // console.log("songTabs", songTabs);
+
+  // console.log("htmlBlocks", htmlBlocks);
   // console.log("htmlBlocks", typeof htmlBlocks); // objeto
 
   // console.log("songCifraData", songCifraData);
@@ -80,18 +100,19 @@ function Presentation() {
 
   // console.log("htmlBlocks", htmlBlocks);
 
+  const didPingRef = useRef(false);
+
   useEffect(() => {
-    const userEmail = localStorage.getItem("userEmail");
+    if (!artistFromURL || !songFromURL || !instrumentSelected) return;
 
-    const artistFromURL = localStorage.getItem("artist");
-    const songFromURL = localStorage.getItem("song");
+    // evita chamada dupla no StrictMode (dev)
+    if (didPingRef.current) return;
+    didPingRef.current = true;
 
-    // console.log("userEmail", userEmail);
-    // console.log("artistFromURL", artistFromURL);
-    // console.log("songFromURL", songFromURL);
-
-    updateLastPlayed(songFromURL, artistFromURL, instrumentSelected);
-  }, []);
+    updateLastPlayed(songFromURL, artistFromURL, instrumentSelected).catch(
+      (e) => console.error("updateLastPlayed error:", e)
+    );
+  }, [artistFromURL, songFromURL, instrumentSelected]);
 
   useEffect(() => {
     const fetchData = async () => {

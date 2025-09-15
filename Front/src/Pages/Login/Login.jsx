@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { sendPasswordReset } from "../../authFunctions";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+
 import { useAuth } from "../../contexts/AuthContext";
+import { login as loginApi } from "../../Tools/Controllers"; // ✅ renomeia p/ evitar colisão
 
 function Login() {
   const [userEmail, setUserEmail] = useState("");
@@ -12,34 +13,27 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { login } = useAuth();
+  const { login: loginContext } = useAuth(); // ✅ renomeia o do contexto
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "https://api.live.eloygomes.com.br/api/auth/login",
-        {
-          email: userEmail,
-          password: userPassword,
-        }
-      );
+      const accessToken = await loginApi(userEmail, userPassword); // ✅ usa Controllers
+      if (!accessToken) {
+        // Controllers já mostra alert em caso de erro
+        return;
+      }
 
-      // Corrigido aqui: extraindo accessToken corretamente
-      const { accessToken } = response.data;
-
-      login(accessToken, userEmail);
-
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("userEmail", userEmail);
+      // Atualiza o estado global de auth (se o seu contexto usa isso)
+      loginContext(accessToken, userEmail);
 
       navigate("/");
     } catch (err) {
       console.error("Login failed:", err);
       alert("Login inválido. Verifique e-mail e senha.");
-      setUserPassword(""); // limpa campo senha
+      setUserPassword("");
     } finally {
       setLoading(false);
     }

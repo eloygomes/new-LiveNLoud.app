@@ -1,84 +1,69 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import userProfPic from "../../assets/userPerfil.jpg";
+import { getProfileImageObjectURL } from "../../Tools/Controllers";
 
 /* eslint-disable react/prop-types */
 export default function UserProfileAvatarBig({
   src,
   size = 200,
   alt = "User Avatar",
-  imageUpdated = 0, // novo: força recarregar quando muda
+  imageUpdated = 0,
 }) {
   const [imageSrc, setImageSrc] = useState(src || userProfPic);
   const objectUrlRef = useRef(null);
-  const userEmail =
-    typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
+
   const cacheKey =
     (typeof window !== "undefined" &&
       localStorage.getItem("avatarUpdatedAt")) ||
     "0";
 
   useEffect(() => {
-    async function fetchProfileImage() {
-      // Se o componente recebeu um src explícito, usa ele.
+    async function loadImage() {
+      // se veio src explícito, usa ele
       if (src) {
         setImageSrc(src);
         return;
       }
 
-      if (!userEmail) {
-        setImageSrc(userProfPic);
-        return;
-      }
+      // busca do backend com cache-buster
+      const objUrl = await getProfileImageObjectURL(
+        `${cacheKey}-${imageUpdated}`
+      );
 
-      try {
-        // Adiciona cache-buster na URL para evitar cache do navegador
-        const url = `https://api.live.eloygomes.com.br/api/profileImage/${encodeURIComponent(
-          userEmail
-        )}?_v=${cacheKey}-${imageUpdated}`;
-
-        const imageResponse = await axios.get(url, {
-          responseType: "blob",
-          // header extra para desencorajar cache em alguns proxies
-          headers: { "Cache-Control": "no-cache" },
-        });
-
-        // Revoga URL antigo (se houver) antes de criar um novo
+      if (objUrl) {
+        // limpa URL anterior
         if (objectUrlRef.current) {
           URL.revokeObjectURL(objectUrlRef.current);
           objectUrlRef.current = null;
         }
-
-        const imageBlob = imageResponse.data;
-        const imageObjectURL = URL.createObjectURL(imageBlob);
-        objectUrlRef.current = imageObjectURL;
-        setImageSrc(imageObjectURL);
-      } catch (error) {
+        objectUrlRef.current = objUrl;
+        setImageSrc(objUrl);
+      } else {
         setImageSrc(userProfPic);
-        console.error("Erro ao buscar a imagem de perfil:", error);
       }
     }
 
-    fetchProfileImage();
+    loadImage();
 
-    // Cleanup ao desmontar
+    // cleanup ao desmontar/trocar key
     return () => {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
       }
     };
-    // Reexecuta quando trocar src, e-mail, versão de cache ou imageUpdated
-  }, [src, userEmail, cacheKey, imageUpdated]);
+  }, [src, cacheKey, imageUpdated]); // não precisa do userEmail aqui
 
   return (
-    <div className="flex items-center space-x-2 my-5">
+    <div
+      className="w-[200px] aspect-square rounded-full overflow-hidden"
+      style={{ width: `${size}px` }}
+    >
       <img
-        key={`${cacheKey}-${imageUpdated}`} // força remount da imagem quando cacheKey muda
-        className="object-cover neuphormism-b-avatar rounded-full"
+        key={`${cacheKey}-${imageUpdated}`}
+        className="w-full h-full object-cover"
         alt={alt}
         src={imageSrc}
-        style={{ width: `${size}px`, height: `${size}px` }}
         draggable={false}
       />
     </div>

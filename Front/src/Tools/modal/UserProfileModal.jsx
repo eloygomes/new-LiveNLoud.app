@@ -80,7 +80,7 @@ export default function UserProfileModal() {
                 <ul>
                   <h1 className="text-xl font-bold">MENU</h1>
                   <li
-                    className={`my-5 cursor-pointer ${
+                    className={`my-5 text-xs cursor-pointer ${
                       modalOptionChoosen === "USER INFO"
                         ? "neuphormism-b-btn-desactivated "
                         : "neuphormism-b-btn"
@@ -90,7 +90,7 @@ export default function UserProfileModal() {
                     USER INFO
                   </li>
                   <li
-                    className={`my-5 cursor-pointer ${
+                    className={`my-5  text-xs cursor-pointer ${
                       modalOptionChoosen === "USER DATA"
                         ? "neuphormism-b-btn-desactivated "
                         : "neuphormism-b-btn"
@@ -100,7 +100,7 @@ export default function UserProfileModal() {
                     USER DATA
                   </li>
                   <li
-                    className={`my-5 cursor-pointer ${
+                    className={`my-5  text-xs cursor-pointer ${
                       modalOptionChoosen === "SETTINGS"
                         ? "neuphormism-b-btn-desactivated "
                         : "neuphormism-b-btn"
@@ -110,7 +110,7 @@ export default function UserProfileModal() {
                     SETTINGS
                   </li>
                   <li
-                    className={`my-5 cursor-pointer ${
+                    className={`my-5  text-xs cursor-pointer ${
                       modalOptionChoosen === "LOGS"
                         ? "neuphormism-b-btn-desactivated "
                         : "neuphormism-b-btn"
@@ -121,7 +121,7 @@ export default function UserProfileModal() {
                   </li>
                 </ul>
                 <button
-                  className="py-2 neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
+                  className="py-2  text-xs neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
                   onClick={() => signOut()}
                   aria-label="Sign Out"
                 >

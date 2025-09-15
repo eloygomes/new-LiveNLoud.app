@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import DashList2Items from "./DashList2Items";
 import DashboardOptions from "./DashboardOptions";
+import { fetchUserSongs } from "../../Tools/Controllers";
 
 function DashList2() {
   const [isMobile, setIsMobile] = useState(false);
@@ -10,39 +11,18 @@ function DashList2() {
   const [songs, setSongs] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
 
-  // Carrega as músicas da API
+  // Carrega as músicas da API (extraído para Controllers)
   useEffect(() => {
-    async function fetchSongs() {
-      const userEmail = localStorage.getItem("userEmail");
-      // console.log("EMAIL DO USUÁRIO:", userEmail); // <- MOVA ISSO PRA CIMA
+    (async () => {
+      const { songs, fullName, username } = await fetchUserSongs();
 
-      try {
-        const response = await fetch(
-          `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
-        );
-        console.log("STATUS:", response.status);
+      setSongs(songs);
+      setFilteredSongs(songs);
 
-        const data = await response.json();
-        console.log("DATA RECEBIDA:", data);
-
-        const songsData = (data.userdata || []).filter(
-          (item) =>
-            item.song?.trim() !== "" &&
-            item.artist?.trim() !== "" &&
-            item.progressBar !== undefined
-        );
-
-        setSongs(songsData);
-        setFilteredSongs(songsData);
-
-        localStorage.setItem("fullName", data.userdata[0]?.fullName || "");
-        localStorage.setItem("username", data.userdata[0]?.username || "");
-      } catch (error) {
-        console.error("Erro ao buscar músicas:", error);
-      }
-    }
-
-    fetchSongs();
+      // persiste infos básicas do usuário
+      localStorage.setItem("fullName", fullName);
+      localStorage.setItem("username", username);
+    })();
   }, []);
 
   // Detecta se é mobile
@@ -55,7 +35,6 @@ function DashList2() {
     (filters) => {
       const trimmedFilters = filters.map((f) => f.trim().toLowerCase());
       if (trimmedFilters.length === 0) {
-        // Sem filtros => mostra tudo
         setFilteredSongs(songs);
       } else {
         const filtered = songs.filter((song) => {
@@ -82,7 +61,6 @@ function DashList2() {
 
   return (
     <div className="w-full h-full">
-      {/* Monta SEMPRE o DashboardOptions (mesmo se optStatus === false) */}
       <DashboardOptions
         optStatus={optStatus}
         setOptStatus={setOptStatus}
@@ -94,7 +72,6 @@ function DashList2() {
         // ----- MODO MOBILE -----
         <div>
           <div className="flex flex-col mt-0">
-            {/* Cabeçalho fixo mobile */}
             <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-40 sm:mt-0 md:mt-14 lg:mt-14 xl:mt-14 2xl:mt-14">
               <div
                 className="w-[10%] text-center px-1 cursor-pointer"
@@ -144,14 +121,12 @@ function DashList2() {
         // ----- MODO DESKTOP -----
         <div className="container mx-auto">
           <div className="flex flex-col mt-0 h-[97vh]">
-            {/* Botão para mostrar/ocultar painel de filtros */}
             {!optStatus && (
               <div
                 className={`flex flex-col top-[67px] sticky justify-around neuphormism-b bg-white  ${
                   optStatus ? "hidden" : "flex"
                 }`}
               >
-                {/* <div className="flex flex-col top-[67px] sticky justify-around neuphormism-b bg-white z-30"> */}
                 <div className="flex flex-row p-3 rounded-t-md">
                   <div
                     className="w-[10%] text-center px-5 cursor-pointer"

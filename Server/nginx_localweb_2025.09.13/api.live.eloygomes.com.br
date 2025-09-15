@@ -1,0 +1,71 @@
+# Map para lidar com o cabeçalho de upgrade do WebSocket
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 443 ssl;
+    server_name api.live.eloygomes.com.br;
+
+    ssl_certificate /etc/letsencrypt/live/eloygomes.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/eloygomes.com.br/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Configuração para Socket.IO WebSockets
+    location /socket.io/ {
+        proxy_pass http://localhost:3000/socket.io/;  # Corrigido para a porta 3000
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+
+        # Cabeçalhos adicionais
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeouts para manter a conexão WebSocket
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+
+        # Desativar o buffer para WebSockets
+        proxy_buffering off;
+    }
+
+    # Configuração para servir arquivos estáticos de uploads
+    location /uploads/ {
+        alias /home/liveNloud/uploads/profileImages/;  # Caminho absoluto no host
+        access_log off;
+        expires 30d;
+        try_files $uri $uri/ =404;
+    }
+
+    # Configuração para outras rotas da API
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+
+        # Cabeçalhos adicionais
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Bypass de cache para atualizações
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# Redirecionar tráfego HTTP para HTTPS
+server {
+    listen 80;
+    server_name api.live.eloygomes.com.br;
+
+    return 301 https://$host$request_uri;
+}

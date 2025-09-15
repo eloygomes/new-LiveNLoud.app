@@ -1,6 +1,17 @@
-export const processSongCifra = (songCifra) => {
-  if (typeof songCifra !== "string" || songCifra.trim() === "") {
-    throw new Error("Cifra inválida ou vazia");
+// fallback seguro + modo estrito opcional
+export const processSongCifra = (songCifra, { strict = false } = {}) => {
+  const isInvalid =
+    typeof songCifra !== "string" ||
+    songCifra.trim() === "" ||
+    songCifra === "Loading...";
+
+  if (isInvalid) {
+    if (strict) {
+      // comportamento antigo (quebra)
+      throw new Error("Cifra inválida ou vazia");
+    }
+    // fallback seguro (não quebra a UI)
+    return { htmlBlocks: [], meta: { empty: true } };
   }
 
   const lines = songCifra.split("\n");
@@ -183,20 +194,13 @@ export const processSongCifra = (songCifra) => {
 
     while (j < totalLines) {
       const trimmed = lines[j].trim();
-      // se encontramos outro rótulo, ou blank line isolada, paramos
       if (parseSectionLabel(trimmed)) break;
-      // se for blank line, ainda podemos querer incluí-la no verse
-      // mas se preferir que blank line quebre o verso, faça outro if aqui
-      // Exemplo:
-      // if (isBlankLine(trimmed)) break;
 
-      // processa a linha
       const { html, nextIndex } = processSingleLine(j);
       linesGroup.push(html);
       j = nextIndex + 1;
     }
 
-    // Montamos o container do verso
     const blockHtml = `<div class="verse" id="auto-verse-${startIndex}">
 ${linesGroup.join("\n")}
 </div>`;
@@ -209,14 +213,12 @@ ${linesGroup.join("\n")}
     const labelObj = parseSectionLabel(trimmed);
 
     if (labelObj) {
-      // Se encontramos algo como [Intro], [Refrão], etc.
       const { sectionName, restOfLine } = labelObj;
       const sectionClass = getSectionClass(sectionName);
 
       let groupHTML = [];
       let j = i;
 
-      // Se a mesma linha tiver acordes (restOfLine), trata como chord line
       if (restOfLine.trim()) {
         const combined = `[${sectionName}]` + restOfLine;
         const chordLine = addClassToChords(combined);
@@ -224,21 +226,17 @@ ${linesGroup.join("\n")}
           `<pre id="section-label-${i}" class="mt-1 ${sectionClass}">${chordLine}</pre>`
         );
       } else {
-        // Se não há acordes adicionais
         groupHTML.push(
           `<pre id="section-label-${i}" class="mt-1 ${sectionClass}">[${sectionName}]</pre>`
         );
       }
 
       j++;
-      // Agora, coletamos as linhas subsequentes até acharmos outro label / blank
       const subsection = [];
       while (j < totalLines) {
         const subLine = lines[j].trim();
         if (parseSectionLabel(subLine)) break;
-        // se quiser que blank line encerre, cheque aqui
         if (isBlankLine(subLine)) {
-          // vamos inserir a blank line e depois encerrar
           const { html } = processSingleLine(j);
           subsection.push(html);
           j++;
@@ -249,7 +247,6 @@ ${linesGroup.join("\n")}
         j = nextIndex + 1;
       }
 
-      // “Fecha” o container
       const containerHTML = `<div class="${sectionClass}" id="section-${sectionName}-${i}">
 ${groupHTML.join("\n")}
 ${subsection.join("\n")}
@@ -258,14 +255,11 @@ ${subsection.join("\n")}
 
       i = j;
     } else {
-      // Se não é label, tentamos agrupar como verse
       if (isBlankLine(trimmed)) {
-        // processa single
         const { html, nextIndex } = processSingleLine(i);
         htmlBlocks.push(html);
         i = nextIndex + 1;
       } else {
-        // aqui chamamos a processVerseBlock
         const { blockHtml, nextIndex } = processVerseBlock(i);
         htmlBlocks.push(blockHtml);
         i = nextIndex + 1;
