@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import NewSongColumnA from "./NewSongColumnA";
 import NewSongColumnB from "./NewSongColumnB";
 import SnackBar from "../../Tools/SnackBar";
+import { requestData } from "../../Tools/Controllers"; // ⬅️ importa do Controllers
 
 function NewSong() {
   // Column A
@@ -36,7 +36,8 @@ function NewSong() {
 
   const [dataFromUrl, setDataFromUrl] = useState("");
 
-  const userEmail = localStorage.getItem("userEmail");
+  const userEmail =
+    typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
 
   // SnackBar
   const [showSnackBar, setShowSnackBar] = useState(false);
@@ -45,21 +46,22 @@ function NewSong() {
     message: "",
   });
 
+  // ⬇️ agora usa Controllers.requestData
   const gettingSongData = async () => {
+    if (!userEmail) return;
     try {
-      const response = await axios.get(
-        `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
-      );
-      const dataFromUrlNAKED = JSON.stringify(response.data);
-      setDataFromUrl(dataFromUrlNAKED);
-    } catch (error) {
+      const serialized = await requestData(userEmail);
+      if (serialized) setDataFromUrl(serialized);
+    } catch {
       // erro silencioso
     }
   };
 
   useEffect(() => {
-    if (guitar01 || guitar02 || bass || key || drums || voice)
+    if (guitar01 || guitar02 || bass || key || drums || voice) {
       gettingSongData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guitar01, guitar02, bass, key, drums, voice]);
 
   return (
@@ -129,7 +131,7 @@ function NewSong() {
                   setProgBarVoice={setProgBarVoice}
                   setArtistExtractedFromUrl={setArtistExtractedFromUrl}
                   setSongExtractedFromUrl={setSongExtractedFromUrl}
-                  gettingSongData={gettingSongData}
+                  gettingSongData={gettingSongData} // mantém prop
                   setShowSnackBar={setShowSnackBar}
                   setSnackbarMessage={setSnackbarMessage}
                   cifraExiste={cifraExiste}
@@ -213,7 +215,7 @@ function NewSong() {
                     setProgBarVoice={setProgBarVoice}
                     setArtistExtractedFromUrl={setArtistExtractedFromUrl}
                     setSongExtractedFromUrl={setSongExtractedFromUrl}
-                    gettingSongData={gettingSongData}
+                    gettingSongData={gettingSongData} // mantém prop
                     setShowSnackBar={setShowSnackBar}
                     setSnackbarMessage={setSnackbarMessage}
                     dataFromUrl={dataFromUrl}

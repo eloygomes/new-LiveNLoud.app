@@ -4,10 +4,13 @@ import { useEffect, useState, useRef } from "react";
 import NewSongEmbed from "./NewSongEmbed";
 import GeralProgressBar from "./GeralProgressBar";
 import NewSongSongData from "./NewSongSongData";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { deleteOneSong, getAllUserSetlists } from "../../Tools/Controllers";
 import NewSongSetlist from "./NewSongSetlist";
+import {
+  deleteOneSong,
+  getAllUserSetlists,
+  createNewSongOnServer,
+} from "../../Tools/Controllers";
 
 function NewSongColumnA({
   dataFromUrl,
@@ -61,10 +64,9 @@ function NewSongColumnA({
   const [setlist, setSetlist] = useState([]);
 
   const navigate = useNavigate();
-  const hasSaved = useRef(false); // Track if the song has been saved
-  const addedSongName = useRef(null); // Track the song that was added
+  const hasSaved = useRef(false);
+  const addedSongName = useRef(null);
 
-  // Detectar qual instrumento foi passado (guitar01, guitar02 etc.)
   useEffect(() => {
     // 1) Limpa estados antigos
     setSongName("");
@@ -123,11 +125,10 @@ function NewSongColumnA({
       }
     }
 
-    // Carrega as opções de setlist de forma assíncrona
+    // Carrega as opções de setlist
     (async () => {
       try {
         const lists = await getAllUserSetlists();
-        // console.log("allSetlists", lists);
         setSetListOptions(lists);
       } catch (err) {
         console.error("Erro ao buscar setlists:", err);
@@ -135,17 +136,14 @@ function NewSongColumnA({
     })();
 
     const handlePercentage = () => {
-      setGeralPercentage(
-        parseInt(
-          (progBarG01 ||
-            0 + progBarG02 ||
-            0 + progBarBass ||
-            0 + progBarKey ||
-            0 + progBarDrums ||
-            0 + progBarVoice ||
-            0) / 6
-        )
-      );
+      const total =
+        (progBarG01 || 0) +
+        (progBarG02 || 0) +
+        (progBarBass || 0) +
+        (progBarKey || 0) +
+        (progBarDrums || 0) +
+        (progBarVoice || 0);
+      setGeralPercentage(parseInt(total / 6));
     };
 
     // Se parse deu certo, preenche estados
@@ -156,11 +154,9 @@ function NewSongColumnA({
       setTomData(actualSongData.tom);
       setTunerData(actualSongData.tuning);
       setAddedInDATE(actualSongData.addedIn);
-      // setGeralPercentage(actualSongData.progressBar);
       handlePercentage();
       setEmbedLink(actualSongData.embed || []);
 
-      // Exemplo para guitar01; repita lógica para outros instrumentos
       if (instrumentName === "guitar01" && actualSongData.guitar01?.active) {
         setSongCifra(actualSongData.guitar01.songCifra);
         setInstrActiveStatus(true);
@@ -169,10 +165,6 @@ function NewSongColumnA({
         setInstLastPlayed(actualSongData.guitar01.lastPlay);
         setInstLink(actualSongData.guitar01.link);
         setInstProgressBar(actualSongData.guitar01.progress);
-        // setGeralPercentage(
-        //   actualSongData.guitar01.progress || parseInt(progBarG01 / 6) || 0
-        // );
-        // setGeralPercentage(parseInt(progBarG01 / 6) || 0);
         handlePercentage();
       }
 
@@ -234,7 +226,6 @@ function NewSongColumnA({
       addedSongName.current = actualSongData.song;
     }
 
-    // Finaliza loading em todo caso
     setIsLoadingData(false);
   }, [
     dataFromUrl,
@@ -255,7 +246,6 @@ function NewSongColumnA({
     cifraExiste,
   ]);
 
-  // Sincroniza extração de link para estados
   useEffect(() => {
     if (artistExtractedFromUrl) setArtistName(artistExtractedFromUrl);
     if (songExtractedFromUrl) setSongName(songExtractedFromUrl);
@@ -266,62 +256,34 @@ function NewSongColumnA({
     geralPercentage,
     setlist,
   }) => {
-    const userEmail = localStorage.getItem("userEmail");
-    if (songName && artistName) {
-      try {
-        const userdata = {
-          song: songName,
-          artist: artistName,
-          progressBar: geralPercentage || 0,
-          setlist,
-          instruments: {
-            guitar01: instrumentName === "guitar01",
-            guitar02: instrumentName === "guitar02",
-            bass: instrumentName === "bass",
-            keys: instrumentName === "keys",
-            drums: instrumentName === "drums",
-            voice: instrumentName === "voice",
-          },
-          guitar01: {
-            active: `${instrumentName === "guitar01" ? instrActiveStatus : ""}`,
-            capo: `${instrumentName === "guitar01" ? instCapo : ""}`,
-            lastPlay: `${instrumentName === "guitar01" ? instLastPlayed : ""}`,
-            link: `${instrumentName === "guitar01" ? instLink : ""}`,
-            progress: `${instrumentName === "guitar01" ? instProgressBar : ""}`,
-            songCifra: `${instrumentName === "guitar01" ? songCifra : ""}`,
-            tuning: `${instrumentName === "guitar01" ? instTuning : ""}`,
-          },
-          // ... idem para guitar02, bass, keys, drums, voice
-          embedVideos: embedLink || [],
-          addedIn: new Date().toISOString().split("T")[0],
-          updateIn: new Date().toISOString().split("T")[0],
-          email: userEmail,
-          username: "",
-          fullName: "",
-        };
+    try {
+      await createNewSongOnServer({
+        songName,
+        artistName,
+        instrumentName,
+        geralPercentage,
+        setlist,
+        embedLink,
+        instrumentFields: {
+          active: instrActiveStatus,
+          capo: instCapo,
+          lastPlay: instLastPlayed,
+          link: instLink,
+          progress: instProgressBar,
+          songCifra,
+          tuning: instTuning,
+        },
+      });
 
-        const payload = JSON.stringify({
-          databaseComing: "liveNloud_",
-          collectionComing: "data",
-          userdata,
-        });
-
-        await axios.post(
-          `https://api.live.eloygomes.com.br/api/newsong`,
-          payload,
-          { headers: { "Content-Type": "application/json" } }
-        );
-
-        hasSaved.current = true;
-        addedSongName.current = null;
-        setSongName("");
-        setArtistName("");
-        setGeralPercentage(0);
-        setSetlist([]);
-        navigate("/");
-      } catch (error) {
-        console.error("Error saving data:", error);
-      }
+      hasSaved.current = true;
+      addedSongName.current = null;
+      setSongName("");
+      setArtistName("");
+      setGeralPercentage(0);
+      setSetlist([]);
+      navigate("/");
+    } catch (error) {
+      console.error("Error saving data:", error);
     }
   };
 
@@ -352,14 +314,11 @@ function NewSongColumnA({
           className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green"
           onClick={() => {
             createNewSong({ instrumentName, geralPercentage, setlist });
-
             setShowSnackBar(true);
             setSnackbarMessage({
               title: "Success",
               message: `Song "${songName}" by ${artistName} saved successfully!`,
             });
-
-            console.log("Saving song:", { songName, artistName });
           }}
         >
           Save

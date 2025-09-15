@@ -3,7 +3,11 @@ import { useState, useEffect } from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { IoClose } from "react-icons/io5";
 
-const LOCAL_STORAGE_KEY = "mySelectedSetlists";
+import {
+  loadSelectedSetlists,
+  saveSelectedSetlists,
+  fetchDistinctSetlists,
+} from "../../Tools/Controllers";
 
 export default function DashboardOptions({
   optStatus,
@@ -13,56 +17,27 @@ export default function DashboardOptions({
   const [setlists, setSetlists] = useState([]);
   const [selectedSetlists, setSelectedSetlists] = useState(null);
 
-  // 1) Carregar do localStorage na montagem (apenas se selectedSetlists ainda === null)
+  // 1) Carregar setlists selecionadas do localStorage na montagem
   useEffect(() => {
     if (selectedSetlists === null) {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setSelectedSetlists(parsed);
-          } else {
-            setSelectedSetlists([]);
-          }
-        } catch (err) {
-          console.error("Erro ao ler do localStorage:", err);
-          setSelectedSetlists([]);
-        }
-      } else {
-        setSelectedSetlists([]);
-      }
+      const initial = loadSelectedSetlists();
+      setSelectedSetlists(initial);
     }
   }, [selectedSetlists]);
 
-  // 2) Buscar setlists no backend
+  // 2) Buscar setlists distintas no backend
   useEffect(() => {
-    async function fetchSetlists() {
-      const userEmail = localStorage.getItem("userEmail");
-      try {
-        const response = await fetch(
-          `https://api.live.eloygomes.com.br/api/alldata/${userEmail}`
-        );
-        const data = await response.json();
-        const allSetlists = (data.userdata || []).flatMap(
-          (song) => song.setlist || []
-        );
-        const distinctSetlists = [...new Set(allSetlists)];
-        setSetlists(distinctSetlists);
-      } catch (error) {
-        console.error("Erro ao buscar setlists:", error);
-      }
-    }
-    fetchSetlists();
+    (async () => {
+      const distinct = await fetchDistinctSetlists();
+      setSetlists(distinct);
+    })();
   }, []);
 
-  // 3) Sempre que selectedSetlists mudar (ou seja, o usuário clicou em algo), salva e emite callback
+  // 3) Sempre que selectedSetlists mudar, persistir e emitir callback
   useEffect(() => {
     if (selectedSetlists !== null) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(selectedSetlists));
-      if (onFilterChange) {
-        onFilterChange(selectedSetlists);
-      }
+      saveSelectedSetlists(selectedSetlists);
+      onFilterChange?.(selectedSetlists);
     }
   }, [selectedSetlists, onFilterChange]);
 
@@ -78,15 +53,15 @@ export default function DashboardOptions({
     );
   };
 
-  // Excluir completamente a tag
+  // Excluir completamente a tag da lista disponível e das selecionadas
   const handleDeleteSetlist = (tag) => {
     setSetlists((prev) => prev.filter((item) => item !== tag));
     setSelectedSetlists((prev) => prev.filter((item) => item !== tag));
   };
-  // console.log("optStatus", optStatus);
+
   return (
     <div
-      className={`flex flex-col top-[67px] sticky justify-between  bg-white h-[150px] ${
+      className={`flex flex-col top-[67px] sticky justify-between bg-white h-[150px] ${
         optStatus ? "" : "hidden"
       }`}
     >
@@ -109,7 +84,7 @@ export default function DashboardOptions({
                 const isActive = selectedSetlists.includes(tag);
                 return (
                   <div
-                    key={index}
+                    key={`${tag}-${index}`}
                     className="flex items-center gap-1"
                     style={{
                       display: "inline-flex",

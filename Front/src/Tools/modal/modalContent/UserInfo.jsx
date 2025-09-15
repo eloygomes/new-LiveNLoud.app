@@ -135,23 +135,19 @@ export default function UserInfo() {
                 <label
                   htmlFor="profileImage"
                   className="
-                            block
-                            w-[200px] h-[200px]
-                            rounded-full overflow-hidden
-                            ring-2 ring-blue-300/60 hover:ring-blue-400
-                            cursor-pointer
-                            relative
-                            "
+                          block
+                          w-[200px] aspect-square          
+                          rounded-full overflow-hidden
+                          cursor-pointer relative
+                        "
                   aria-label="Selecionar imagem de perfil"
                   title="Selecionar imagem de perfil"
                 >
-                  {/* avatar renderiza preenchendo o círculo */}
                   <UserProfileAvatarBig
-                    size={200}
                     imageUpdated={imageUpdated}
+                    fillParent /* <= novo prop, ver abaixo */
                   />
 
-                  {/* overlay opcional durante upload */}
                   {uploading && (
                     <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center">
                       <span className="text-white text-sm mb-2">
@@ -206,9 +202,6 @@ export default function UserInfo() {
           </div>
         </div>
 
-        {/* Seção de dados do usuário */}
-        <h2 className="text-md font-bold my-2 p-2">User Data</h2>
-
         <div className="flex flex-col">
           <div className="text-sm mt-2 pt-2 pl-2">user name</div>
           <div className="flex flex-row justify-between py-3">
@@ -223,7 +216,7 @@ export default function UserInfo() {
           </div>
         </div>
 
-        <div className="text-sm mt-2 pt-2 pl-2">user name</div>
+        <div className="text-sm mt-2 pt-2 pl-2">nickname</div>
         <div className="flex flex-row justify-between py-3">
           <div className="text-md pb-2 pl-2">
             @{localStorage.getItem("username")}
