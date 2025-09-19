@@ -38,6 +38,10 @@ function NewSongColumnB({
   setCifraExiste,
   setCifraFROMDB,
   cifraFROMDB,
+  artistName,
+  setArtistName,
+  songName,
+  setSongName,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -61,6 +65,10 @@ function NewSongColumnB({
           setCifraExiste={setCifraExiste}
           setCifraFROMDB={setCifraFROMDB}
           cifraFROMDB={cifraFROMDB}
+          artistName={artistName}
+          setArtistName={setArtistName}
+          songName={songName}
+          setSongName={setSongName}
         />
         <NewSongInputLinkBox
           instrumentName="guitar02"
@@ -80,6 +88,10 @@ function NewSongColumnB({
           setCifraExiste={setCifraExiste}
           setCifraFROMDB={setCifraFROMDB}
           cifraFROMDB={cifraFROMDB}
+          artistName={artistName}
+          setArtistName={setArtistName}
+          songName={songName}
+          setSongName={setSongName}
         />
         <NewSongInputLinkBox
           instrumentName="bass"
@@ -99,6 +111,10 @@ function NewSongColumnB({
           setCifraExiste={setCifraExiste}
           setCifraFROMDB={setCifraFROMDB}
           cifraFROMDB={cifraFROMDB}
+          artistName={artistName}
+          setArtistName={setArtistName}
+          songName={songName}
+          setSongName={setSongName}
         />
         <NewSongInputLinkBox
           instrumentName="keys"
@@ -118,6 +134,10 @@ function NewSongColumnB({
           setCifraExiste={setCifraExiste}
           setCifraFROMDB={setCifraFROMDB}
           cifraFROMDB={cifraFROMDB}
+          artistName={artistName}
+          setArtistName={setArtistName}
+          songName={songName}
+          setSongName={setSongName}
         />
         <NewSongInputLinkBox
           instrumentName="drums"
@@ -137,6 +157,10 @@ function NewSongColumnB({
           setCifraExiste={setCifraExiste}
           setCifraFROMDB={setCifraFROMDB}
           cifraFROMDB={cifraFROMDB}
+          artistName={artistName}
+          setArtistName={setArtistName}
+          songName={songName}
+          setSongName={setSongName}
         />
         <NewSongInputLinkBox
           instrumentName="voice"
@@ -156,6 +180,10 @@ function NewSongColumnB({
           setCifraExiste={setCifraExiste}
           setCifraFROMDB={setCifraFROMDB}
           cifraFROMDB={cifraFROMDB}
+          artistName={artistName}
+          setArtistName={setArtistName}
+          songName={songName}
+          setSongName={setSongName}
         />
       </div>
     </div>

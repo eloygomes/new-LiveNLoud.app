@@ -61,7 +61,7 @@ export default function DashboardOptions({
 
   return (
     <div
-      className={`flex flex-col top-[67px] sticky justify-between bg-white h-[150px] ${
+      className={`flex flex-col top-[67px] sticky justify-between  h-[150px] ${
         optStatus ? "" : "hidden"
       }`}
     >
@@ -74,12 +74,12 @@ export default function DashboardOptions({
       </div>
 
       {/* Corpo principal */}
-      <div className="flex flex-row justify-between px-5">
-        <div className="w-full pr-2">
+      <div className="flex flex-row justify-between px-5 ">
+        <div className="w-full pr-2 ">
           {setlists.length === 0 ? (
             <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 ">
               {setlists.map((tag, index) => {
                 const isActive = selectedSetlists.includes(tag);
                 return (

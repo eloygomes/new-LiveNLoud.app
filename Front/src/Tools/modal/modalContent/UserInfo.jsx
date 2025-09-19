@@ -1,9 +1,11 @@
 // src/components/User/UserInfo.jsx
 import { useState } from "react";
-import axios from "axios";
 import UserProfileAvatarBig from "../../../Pages/UserProfile/UserProfileAvatarBig";
 import { FaEdit } from "react-icons/fa";
 import userPerfil from "../../../assets/userPerfil.jpg";
+
+// >>> importe a função do controllers <<<
+import { uploadProfileImage } from "../../Controllers";
 
 export default function UserInfo() {
   const [imageUpdated, setImageUpdated] = useState(0);
@@ -62,28 +64,19 @@ export default function UserInfo() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("profileImage", file);
-    formData.append("email", userEmail);
-
     try {
       setUploading(true);
       setUploadError("");
       setStatusMsg("Enviando...");
       setUploadProgress(0);
 
-      const resp = await axios.post(
-        "https://api.live.eloygomes.com.br/api/uploadProfileImage",
-        formData,
-        {
-          onUploadProgress: (e) => {
-            if (!e.total) return;
-            const percent = Math.round((e.loaded * 100) / e.total);
-            setUploadProgress(percent);
-            setStatusMsg(`Enviando... ${percent}%`);
-          },
-        }
-      );
+      // >>> usamos a função do controllers, com callback de progresso
+      const resp = await uploadProfileImage(file, {
+        onProgress: (percent) => {
+          setUploadProgress(percent);
+          setStatusMsg(`Enviando... ${percent}%`);
+        },
+      });
 
       if (resp.status === 200) {
         // Marca versão nova e força re-render sem fechar o modal
@@ -100,7 +93,9 @@ export default function UserInfo() {
     } catch (err) {
       console.error("Erro no upload:", err);
       setUploadError(
-        err?.response?.data?.message || "Erro ao enviar a imagem."
+        err?.response?.data?.message ||
+          err?.message ||
+          "Erro ao enviar a imagem."
       );
       setStatusMsg("");
     } finally {
@@ -114,7 +109,6 @@ export default function UserInfo() {
   return (
     <>
       <div className="flex flex-col justify-between p-2">
-        {/* Seção de imagem de perfil */}
         {/* Seção de imagem de perfil */}
         <div className="flex flex-row">
           <div className="flex flex-row w-full">
@@ -135,17 +129,17 @@ export default function UserInfo() {
                 <label
                   htmlFor="profileImage"
                   className="
-                          block
-                          w-[200px] aspect-square          
-                          rounded-full overflow-hidden
-                          cursor-pointer relative
-                        "
+                    block
+                    w-[200px] aspect-square
+                    rounded-full overflow-hidden
+                    cursor-pointer relative
+                  "
                   aria-label="Selecionar imagem de perfil"
                   title="Selecionar imagem de perfil"
                 >
                   <UserProfileAvatarBig
                     imageUpdated={imageUpdated}
-                    fillParent /* <= novo prop, ver abaixo */
+                    fillParent /* <= mantém compatível */
                   />
 
                   {uploading && (
@@ -202,6 +196,7 @@ export default function UserInfo() {
           </div>
         </div>
 
+        {/* user name */}
         <div className="flex flex-col">
           <div className="text-sm mt-2 pt-2 pl-2">user name</div>
           <div className="flex flex-row justify-between py-3">
@@ -216,6 +211,7 @@ export default function UserInfo() {
           </div>
         </div>
 
+        {/* nickname */}
         <div className="text-sm mt-2 pt-2 pl-2">nickname</div>
         <div className="flex flex-row justify-between py-3">
           <div className="text-md pb-2 pl-2">
@@ -228,6 +224,7 @@ export default function UserInfo() {
           </div>
         </div>
 
+        {/* email */}
         <div className="text-sm flex flex-col">
           <div className="mt-2 pt-2 pl-2">user email</div>
           <div className="flex flex-row justify-between py-3">
@@ -237,6 +234,7 @@ export default function UserInfo() {
           </div>
         </div>
 
+        {/* password */}
         <div className="text-sm flex flex-col">
           <div className="mt-2 pt-2 pl-2">password</div>
           <div className="flex flex-row justify-between py-3">
