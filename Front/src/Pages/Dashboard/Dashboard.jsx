@@ -13,6 +13,9 @@ function Dashboard() {
     localStorage.setItem("cifraFROMDB", "");
     localStorage.setItem("fromWHERE", "");
 
+    localStorage.setItem("artist", "");
+    localStorage.setItem("song", "");
+
     const handleResize = () => {
       if (window.innerWidth <= 426) {
         setIsMobile(1);

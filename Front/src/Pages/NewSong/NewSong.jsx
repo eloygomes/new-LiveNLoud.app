@@ -13,6 +13,9 @@ function NewSong() {
   const [songScrapado, setSongScrapado] = useState("");
   const [cifraExiste, setCifraExiste] = useState("");
 
+  const [artistName, setArtistName] = useState("");
+  const [songName, setSongName] = useState("");
+
   const [cifraFROMDB, setCifraFROMDB] = useState(null);
 
   // Column B
@@ -101,6 +104,10 @@ function NewSong() {
                   cifraFROMDB={cifraFROMDB}
                   setShowSnackBar={setShowSnackBar}
                   setSnackbarMessage={setSnackbarMessage}
+                  artistName={artistName}
+                  setArtistName={setArtistName}
+                  songName={songName}
+                  setSongName={setSongName}
                 />
               </div>
               <div className="right-column w-1/2">
@@ -138,6 +145,10 @@ function NewSong() {
                   setCifraExiste={setCifraExiste}
                   setCifraFROMDB={setCifraFROMDB}
                   cifraFROMDB={cifraFROMDB}
+                  artistName={artistName}
+                  setArtistName={setArtistName}
+                  songName={songName}
+                  setSongName={setSongName}
                 />
               </div>
             </div>
@@ -185,6 +196,10 @@ function NewSong() {
                     cifraFROMDB={cifraFROMDB}
                     setShowSnackBar={setShowSnackBar}
                     setSnackbarMessage={setSnackbarMessage}
+                    artistName={artistName}
+                    setArtistName={setArtistName}
+                    songName={songName}
+                    setSongName={setSongName}
                   />
                 </div>
                 <div className="right-column w-1/2">
@@ -223,6 +238,10 @@ function NewSong() {
                     songScrapado={songScrapado}
                     setArtistScrapado={setArtistScrapado}
                     artistScrapado={artistScrapado}
+                    artistName={artistName}
+                    setArtistName={setArtistName}
+                    songName={songName}
+                    setSongName={setSongName}
                   />
                 </div>
               </div>
