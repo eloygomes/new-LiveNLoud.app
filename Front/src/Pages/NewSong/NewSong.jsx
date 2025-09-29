@@ -104,10 +104,6 @@ function NewSong() {
                   cifraFROMDB={cifraFROMDB}
                   setShowSnackBar={setShowSnackBar}
                   setSnackbarMessage={setSnackbarMessage}
-                  artistName={artistName}
-                  setArtistName={setArtistName}
-                  songName={songName}
-                  setSongName={setSongName}
                 />
               </div>
               <div className="right-column w-1/2">
@@ -196,10 +192,6 @@ function NewSong() {
                     cifraFROMDB={cifraFROMDB}
                     setShowSnackBar={setShowSnackBar}
                     setSnackbarMessage={setSnackbarMessage}
-                    artistName={artistName}
-                    setArtistName={setArtistName}
-                    songName={songName}
-                    setSongName={setSongName}
                   />
                 </div>
                 <div className="right-column w-1/2">
