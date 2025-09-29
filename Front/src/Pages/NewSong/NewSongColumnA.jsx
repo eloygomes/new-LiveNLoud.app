@@ -455,8 +455,8 @@ function NewSongColumnA({
   ]);
 
   useEffect(() => {
-    console.log("progBarG01", progBarG01);
-    console.log("geralPercentage", geralPercentage);
+    // console.log("progBarG01", progBarG01);
+    // console.log("geralPercentage", geralPercentage);
     // 1) Limpa estados antigos
     // setSongName("");
     // setArtistName("");

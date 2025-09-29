@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import UserProfileAvatar from "../../Layouts/UserProfileAvatar";
 import userPerfil from "../../assets/userPerfil.jpg";
 
+// import UserInfo from "./modalContent/UserInfo";
 import UserInfo from "./modalContent/UserInfo";
 import UserData from "./modalContent/UserData";
 import Settings from "./modalContent/Settings";
@@ -56,10 +57,10 @@ export default function UserProfileModal() {
           onClick={handleClose}
         >
           <div
-            className="w-2/3 relative flex flex-col p-4 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg cursor-pointer"
+            className="w-5/6 h-5/6 relative flex flex-col p-4 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-row my-2 neuphormism-b py-2 px-5 justify-between">
+            <div className="flex flex-row my-4 neuphormism-b py-2 px-5 justify-between">
               <div className="flex flex-col">
                 <h1 className="text-4xl font-bold">USER HUB</h1>
                 <h4 className="mr-auto mt-auto text-sm">Hello @{username}</h4>
@@ -74,9 +75,9 @@ export default function UserProfileModal() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-row justify-between ">
+            <div className="flex flex-row justify-between h-[90%] overflow-y-scroll">
               {/* menu */}
-              <div className="w-[20%] flex flex-col justify-between  my-2 neuphormism-b py-2 px-5">
+              <div className="w-[20%] h-auto  flex flex-col justify-between  my-2 neuphormism-b py-2 px-5">
                 <ul>
                   <h1 className="text-xl font-bold">MENU</h1>
                   <li
@@ -121,14 +122,14 @@ export default function UserProfileModal() {
                   </li>
                 </ul>
                 <button
-                  className="py-2  text-xs neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
+                  className="py-2   text-xs neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
                   onClick={() => signOut()}
                   aria-label="Sign Out"
                 >
                   Sign Out
                 </button>
               </div>
-              <div className="w-[78%] h-[28rem] flex flex-col  my-2 neuphormism-b py-2 px-5 overflow-y-scroll">
+              <div className="w-[78%]   flex flex-col  my-2 neuphormism-b py-2 px-5 ">
                 {modalOptionChoosen === "USER INFO" ? (
                   <UserInfo />
                 ) : modalOptionChoosen === "USER DATA" ? (

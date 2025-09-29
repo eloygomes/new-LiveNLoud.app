@@ -56,12 +56,12 @@ export default function UserProfileAvatarBig({
 
   return (
     <div
-      className="w-[200px] aspect-square rounded-full overflow-hidden"
+      className="w-[200px] aspect-square rounded-full overflow-hidden neuphormism-b"
       style={{ width: `${size}px` }}
     >
       <img
         key={`${cacheKey}-${imageUpdated}`}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover "
         alt={alt}
         src={imageSrc}
         draggable={false}

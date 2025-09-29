@@ -294,7 +294,7 @@ function NewSongInputLinkBox({
   );
 
   return (
-    <div className="flex flex-col mt-3 w-full neuphormism-b-btn px-5 py-3">
+    <div className="flex flex-col mt-3 w-full neuphormism-b px-5 py-3">
       {/* Header */}
       <div className="flex justify-between">
         <span className="text-sm font-bold">
@@ -321,7 +321,7 @@ function NewSongInputLinkBox({
           setInstrument(pasted);
           primeArtistSongFromLink(pasted);
           setTimeout(() => handleSubmit(pasted), 0);
-          console.log("[onPaste] link colado =>", pasted);
+          // console.log("[onPaste] link colado =>", pasted);
         }}
         onBlur={() => {
           if (blurTimer.current) clearTimeout(blurTimer.current);

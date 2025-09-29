@@ -994,7 +994,9 @@ export async function getProfileImageObjectURL(cacheKey = "0") {
 export function revokeObjectURLSafe(objectUrl) {
   try {
     if (objectUrl) URL.revokeObjectURL(objectUrl);
-  } catch {}
+  } catch {
+    // intentionally empty: safe to ignore errors here
+  }
 }
 
 /* =========================
@@ -1016,7 +1018,9 @@ export function loadSelectedSetlists() {
 export function saveSelectedSetlists(arr) {
   try {
     localStorage.setItem(SETLISTS_LS_KEY, JSON.stringify(arr || []));
-  } catch {}
+  } catch {
+    // intentionally empty: safe to ignore errors here
+  }
 }
 
 export async function fetchDistinctSetlists() {
@@ -1309,4 +1313,32 @@ export async function saveToGeneralCifra({
     console.error("[saveToGeneralCifra]", status, msg, err?.response?.data);
     throw err;
   }
+}
+
+// ✅ 1) Exportar um alias compatível com o que o componente espera
+export { updateUserName as updateUsername };
+
+// ✅ 2) Implementar updatePassword e exportar
+/**
+ * Atualiza a senha do usuário.
+ * Ajuste a URL conforme o seu backend:
+ *   - comum:  /api/updatePassword
+ *   - ou:     /api/auth/updatePassword
+ */
+export async function updatePassword({ email, currentPassword, newPassword }) {
+  if (!email) {
+    // lê do localStorage se não vier por parâmetro
+    email =
+      (typeof window !== "undefined" && localStorage.getItem("userEmail")) ||
+      null;
+  }
+  if (!email) throw new Error("Email do usuário não encontrado.");
+
+  const payload = { email, currentPassword, newPassword };
+
+  // 👉 Se sua rota for /api/updatePassword, troque abaixo:
+  const url = "/api/auth/updatePassword";
+
+  const { data } = await axiosApi.put(url, payload);
+  return data;
 }

@@ -35,16 +35,12 @@ export default function RootLayouts() {
               <div className="flex justify-between items-center">
                 {/* Logo à esquerda */}
                 <div className="flex flex-row">
-                  <img
-                    className="h-8 w-auto"
-                    src={logoProv}
-                    alt="Live N Loud"
-                  />
+                  <img className="h-8 w-auto" src={logoProv} alt="SUSTENIDO" />
                   <h1
                     className="ml-2 font-bold mr-5 p-1"
                     onClick={() => navigate("/")}
                   >
-                    Live N Loud
+                    SUSTENIDO
                   </h1>
                 </div>
 
@@ -115,7 +111,7 @@ export default function RootLayouts() {
                       className="ml-2 font-bold mr-5"
                       onClick={() => navigate("/")}
                     >
-                      Live N Loud
+                      SUSTENIDO
                     </h1>
                   </div>
                   <NavMenuItems />
