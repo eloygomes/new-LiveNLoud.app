@@ -129,7 +129,7 @@ export default function UserProfileModal() {
                   Sign Out
                 </button>
               </div>
-              <div className="w-[78%]   flex flex-col  my-2 neuphormism-b py-2 px-5 ">
+              <div className="w-[78%]   flex flex-col  my-2 neuphormism-b py-2 px-5 cursor-pointer">
                 {modalOptionChoosen === "USER INFO" ? (
                   <UserInfo />
                 ) : modalOptionChoosen === "USER DATA" ? (

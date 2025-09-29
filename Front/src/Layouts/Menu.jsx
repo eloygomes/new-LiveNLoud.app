@@ -35,9 +35,10 @@ export default function RootLayouts() {
               <div className="flex justify-between items-center">
                 {/* Logo à esquerda */}
                 <div className="flex flex-row">
-                  <img className="h-8 w-auto" src={logoProv} alt="SUSTENIDO" />
+                  {/* <img className="h-8 w-auto" src={logoProv} alt="SUSTENIDO" /> */}
+                  <h1 className="font-bold text-3xl">#</h1>
                   <h1
-                    className="ml-2 font-bold mr-5 p-1"
+                    className="ml-2 font-bold italic mr-5"
                     onClick={() => navigate("/")}
                   >
                     SUSTENIDO
@@ -102,13 +103,14 @@ export default function RootLayouts() {
               <div className="relative flex h-16 items-center justify-between">
                 <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                   <div className="flex flex-row flex-shrink-0 items-center">
-                    <img
+                    {/* <img
                       className="h-8 w-auto"
                       src={logoProv}
                       alt="Your Company"
-                    />
+                    /> */}
+                    <h1 className="font-bold text-3xl">#</h1>
                     <h1
-                      className="ml-2 font-bold mr-5"
+                      className="ml-2 font-bold italic mr-5"
                       onClick={() => navigate("/")}
                     >
                       SUSTENIDO
