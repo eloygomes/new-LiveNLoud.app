@@ -381,8 +381,6 @@ export default function UserInfo() {
         <div className="flex flex-row">
           <div className="flex flex-row w-full">
             <div className="flex flex-col justify-center w-full">
-              <h2 className="text-md font-bold">Select your profile image</h2>
-
               <div className="mt-2 flex items-center gap-6 neuphormism-b p-5">
                 {/* Input oculto */}
                 <input
@@ -429,6 +427,9 @@ export default function UserInfo() {
                 {/* Painel de mensagens à direita */}
                 <div className="flex-1 min-w-[200px]">
                   <div className="flex flex-col justify-center h-[200px]">
+                    <h2 className="text-md font-bold my-5">
+                      Select your profile image
+                    </h2>
                     <p className="text-sm text-gray-700">
                       {uploading
                         ? statusMsg || "Enviando..."
@@ -462,8 +463,8 @@ export default function UserInfo() {
         </div>
 
         {/* nickname */}
-        <div className="bg-red-300 mt-5 mb-2.5 neuphormism-b flex flex-row justify-between items-center rounded-lg">
-          <div className="flex flex-col">
+        <div className="bg-red-300 mt-5 mb-2.5 px-5 neuphormism-b flex flex-row justify-between items-center rounded-lg">
+          <div className="flex flex-col ">
             <div className="text-sm mt-2 pt-1 pl-2 font-semibold">nickname</div>
             <div className="flex flex-row justify-between py-3">
               <div className="text-md pb-1 pl-2">
@@ -484,7 +485,7 @@ export default function UserInfo() {
         </div>
 
         {/* email */}
-        <div className="bg-red-300  my-2.5 neuphormism-b flex flex-row justify-between items-center rounded-lg">
+        <div className="bg-red-300  my-2.5 px-5 neuphormism-b flex flex-row justify-between items-center rounded-lg">
           <div className="flex flex-col">
             <div className="text-sm mt-2 pt-2 pl-2 font-semibold">
               user email
@@ -499,7 +500,7 @@ export default function UserInfo() {
 
         {/* password */}
 
-        <div className="bg-red-300  my-2.5 neuphormism-b flex flex-row justify-between items-center rounded-lg">
+        <div className="bg-red-300  my-2.5 px-5 neuphormism-b flex flex-row justify-between items-center rounded-lg">
           <div className="flex flex-col">
             <div className="text-sm mt-2 pt-1 pl-2 font-semibold">password</div>
             <div className="flex flex-row justify-between py-3">
