@@ -123,7 +123,7 @@ function DashList2() {
           <div className="flex flex-col mt-0 h-[97vh]">
             {!optStatus && (
               <div
-                className={`flex flex-col top-[67px] sticky justify-around neuphormism-b bg-white  ${
+                className={`flex flex-col top-[10px] sticky justify-around neuphormism-b bg-white  ${
                   optStatus ? "hidden" : "flex"
                 }`}
               >
@@ -173,7 +173,7 @@ function DashList2() {
               </div>
             )}
 
-            <ul className="overflow-auto h-screen mt-16 pb-60">
+            <ul className="overflow-auto h-screen mt-4 pb-60">
               <DashList2Items
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}

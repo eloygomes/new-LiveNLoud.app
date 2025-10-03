@@ -61,7 +61,7 @@ export default function DashboardOptions({
 
   return (
     <div
-      className={`flex flex-col top-[67px] sticky justify-between  h-[150px] ${
+      className={`flex flex-col top-[10px] sticky justify-between  h-[150px] bg-[#9da3af14] ${
         optStatus ? "" : "hidden"
       }`}
     >

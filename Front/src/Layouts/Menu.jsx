@@ -1,14 +1,145 @@
+// import { Outlet } from "react-router-dom";
+// import { useState } from "react";
+// // IMG
+// import logoProv from "../assets/logo-provisorio.svg";
+// // import userIcon from "../assets/user-logo.svg";
+
+// // CSS
+// import "../index.css";
+
+// import NavMenuItems from "./NavMenuItems";
+
+// import { useNavigate } from "react-router-dom";
+// import MenuMobileFull from "./MenuMobileFull";
+// import UserProfileModal from "../Tools/modal/UserProfileModal";
+// import SoftVersion from "../Pages/Dashboard/SoftVersion";
+
+// export default function RootLayouts() {
+//   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+//   const navigate = useNavigate(); // Initialize navigate here
+
+//   return (
+//     <>
+//       <SoftVersion />
+//       <header>
+//         {/* {window.innerWidth <= 926 && window.innerWidth > 426 && ( */}
+//         {window.innerWidth <= 768 && (
+//           <>
+//             {mobileMenuOpen && (
+//               <div className="absolute w-screen h-screen neuphormism-b  z-50">
+//                 <MenuMobileFull setMobileMenuOpen={setMobileMenuOpen} />
+//               </div>
+//             )}
+//             <nav className=" p-4  ">
+//               <div className="flex justify-between items-center">
+//                 {/* Logo à esquerda */}
+//                 <div className="flex flex-row">
+//                   {/* <img className="h-8 w-auto" src={logoProv} alt="SUSTENIDO" /> */}
+//                   <h1 className="font-bold text-3xl">#</h1>
+//                   <h1
+//                     className="ml-2 font-bold italic mr-5"
+//                     onClick={() => navigate("/")}
+//                   >
+//                     SUSTENIDO
+//                   </h1>
+//                 </div>
+
+//                 {/* Botão do menu hamburguer à direita */}
+//                 <div className="flex items-center">
+//                   <button
+//                     type="button"
+//                     className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+//                     aria-controls="mobile-menu"
+//                     aria-expanded={mobileMenuOpen}
+//                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+//                   >
+//                     <span className="sr-only">Open main menu</span>
+//                     {mobileMenuOpen ? (
+//                       <svg
+//                         className="block h-6 w-6"
+//                         xmlns="http://www.w3.org/2000/svg"
+//                         fill="none"
+//                         viewBox="0 0 24 24"
+//                         stroke="currentColor"
+//                         aria-hidden="true"
+//                       >
+//                         <path
+//                           strokeLinecap="round"
+//                           strokeLinejoin="round"
+//                           strokeWidth="2"
+//                           d="M6 18L18 6M6 6l12 12"
+//                         />
+//                       </svg>
+//                     ) : (
+//                       <svg
+//                         className="block h-6 w-6"
+//                         xmlns="http://www.w3.org/2000/svg"
+//                         fill="none"
+//                         viewBox="0 0 24 24"
+//                         stroke="currentColor"
+//                         aria-hidden="true"
+//                       >
+//                         <path
+//                           strokeLinecap="round"
+//                           strokeLinejoin="round"
+//                           strokeWidth="2"
+//                           d="M3 6h18M3 12h18m-18 6h18"
+//                         />
+//                       </svg>
+//                     )}
+//                   </button>
+//                 </div>
+//               </div>
+
+//               {/* Menu móvel */}
+//             </nav>
+//           </>
+//         )}
+//         {/* Desktop  */}
+//         {window.innerWidth >= 769 && (
+//           <nav className="neuphormism-b fixed w-full z-20">
+//             <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+//               <div className="relative flex h-16 items-center justify-between">
+//                 <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
+//                   <div className="flex flex-row flex-shrink-0 items-center">
+//                     {/* <img
+//                       className="h-8 w-auto"
+//                       src={logoProv}
+//                       alt="Your Company"
+//                     /> */}
+//                     <h1 className="font-bold text-3xl">#</h1>
+//                     <h1
+//                       className="ml-2 font-bold italic mr-5"
+//                       onClick={() => navigate("/")}
+//                     >
+//                       SUSTENIDO
+//                     </h1>
+//                   </div>
+//                   <NavMenuItems />
+//                 </div>
+//                 <div className="absolute inset-y-0 right-20 top-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+//                   {/* <!-- Profile dropdown --> */}
+//                   <div className="relative ml-3">
+//                     <UserProfileModal />
+//                   </div>
+//                 </div>
+//               </div>
+//             </div>
+//           </nav>
+//         )}
+//       </header>
+//       <main>
+//         <Outlet />
+//       </main>
+//     </>
+//   );
+// }
+
 import { Outlet } from "react-router-dom";
 import { useState } from "react";
-// IMG
-import logoProv from "../assets/logo-provisorio.svg";
-// import userIcon from "../assets/user-logo.svg";
-
-// CSS
 import "../index.css";
-
 import NavMenuItems from "./NavMenuItems";
-
 import { useNavigate } from "react-router-dom";
 import MenuMobileFull from "./MenuMobileFull";
 import UserProfileModal from "../Tools/modal/UserProfileModal";
@@ -16,26 +147,25 @@ import SoftVersion from "../Pages/Dashboard/SoftVersion";
 
 export default function RootLayouts() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const navigate = useNavigate(); // Initialize navigate here
+  const navigate = useNavigate();
 
   return (
     <>
       <SoftVersion />
+
+      {/* HEADER */}
       <header>
-        {/* {window.innerWidth <= 926 && window.innerWidth > 426 && ( */}
+        {/* Mobile */}
         {window.innerWidth <= 768 && (
           <>
             {mobileMenuOpen && (
-              <div className="absolute w-screen h-screen neuphormism-b  z-50">
+              <div className="absolute w-screen h-screen neuphormism-b z-50">
                 <MenuMobileFull setMobileMenuOpen={setMobileMenuOpen} />
               </div>
             )}
-            <nav className=" p-4  ">
+            <nav className="p-4">
               <div className="flex justify-between items-center">
-                {/* Logo à esquerda */}
                 <div className="flex flex-row">
-                  {/* <img className="h-8 w-auto" src={logoProv} alt="SUSTENIDO" /> */}
                   <h1 className="font-bold text-3xl">#</h1>
                   <h1
                     className="ml-2 font-bold italic mr-5"
@@ -44,8 +174,6 @@ export default function RootLayouts() {
                     SUSTENIDO
                   </h1>
                 </div>
-
-                {/* Botão do menu hamburguer à direita */}
                 <div className="flex items-center">
                   <button
                     type="button"
@@ -58,11 +186,9 @@ export default function RootLayouts() {
                     {mobileMenuOpen ? (
                       <svg
                         className="block h-6 w-6"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
                         viewBox="0 0 24 24"
+                        fill="none"
                         stroke="currentColor"
-                        aria-hidden="true"
                       >
                         <path
                           strokeLinecap="round"
@@ -74,11 +200,9 @@ export default function RootLayouts() {
                     ) : (
                       <svg
                         className="block h-6 w-6"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
                         viewBox="0 0 24 24"
+                        fill="none"
                         stroke="currentColor"
-                        aria-hidden="true"
                       >
                         <path
                           strokeLinecap="round"
@@ -91,23 +215,17 @@ export default function RootLayouts() {
                   </button>
                 </div>
               </div>
-
-              {/* Menu móvel */}
             </nav>
           </>
         )}
-        {/* Desktop  */}
+
+        {/* Desktop */}
         {window.innerWidth >= 769 && (
           <nav className="neuphormism-b fixed w-full z-20">
             <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
               <div className="relative flex h-16 items-center justify-between">
                 <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                   <div className="flex flex-row flex-shrink-0 items-center">
-                    {/* <img
-                      className="h-8 w-auto"
-                      src={logoProv}
-                      alt="Your Company"
-                    /> */}
                     <h1 className="font-bold text-3xl">#</h1>
                     <h1
                       className="ml-2 font-bold italic mr-5"
@@ -119,7 +237,6 @@ export default function RootLayouts() {
                   <NavMenuItems />
                 </div>
                 <div className="absolute inset-y-0 right-20 top-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                  {/* <!-- Profile dropdown --> */}
                   <div className="relative ml-3">
                     <UserProfileModal />
                   </div>
@@ -129,8 +246,17 @@ export default function RootLayouts() {
           </nav>
         )}
       </header>
-      <main>
-        <Outlet />
+
+      {/* ===================== CONTEÚDO (SCROLL ROOT) ===================== */}
+      {/* ⇨ ADIÇÃO: container que SEMPRE rola, marcado com data-scroll-root="true" */}
+      <main className="min-h-screen">
+        <div
+          data-scroll-root="true" // ⇨ ADIÇÃO: BluetoothContext vai achar este cara
+          className="flex-1 overflow-auto pt-0 md:pt-16" // ⇨ ADIÇÃO: overflow + offset do header fixo
+          style={{ maxHeight: "100vh" }} // ajuda mobile a manter o scroll dentro da viewport
+        >
+          <Outlet />
+        </div>
       </main>
     </>
   );
