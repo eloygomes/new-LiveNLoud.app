@@ -9,6 +9,7 @@ import UserInfo from "./modalContent/UserInfo";
 import UserData from "./modalContent/UserData";
 import Settings from "./modalContent/Settings";
 import Logs from "./modalContent/Logs";
+import Bluetooth from "./modalContent/bluetooth/Bluetooth";
 
 export default function UserProfileModal() {
   const [open, setOpen] = useState(false);
@@ -135,9 +136,11 @@ export default function UserProfileModal() {
                 ) : modalOptionChoosen === "USER DATA" ? (
                   <UserData />
                 ) : modalOptionChoosen === "SETTINGS" ? (
-                  <Settings />
+                  <Settings setModalOptionChoose={setModalOptionChoose} />
                 ) : modalOptionChoosen === "LOGS" ? (
                   <Logs />
+                ) : modalOptionChoosen === "BLUETOOTH" ? (
+                  <Bluetooth />
                 ) : null}
               </div>
             </div>
