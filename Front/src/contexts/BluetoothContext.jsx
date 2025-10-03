@@ -528,6 +528,41 @@ export function BluetoothProvider({ children }) {
     bleConnected,
   };
 
+  async function restoreBleIfPermitted() {
+    if (!support.bt || !navigator.bluetooth.getDevices) return;
+    try {
+      const permitted = await navigator.bluetooth.getDevices();
+      if (!permitted || permitted.length === 0) return;
+
+      if (bleDeviceRef.current?.gatt?.connected) return;
+
+      for (const dev of permitted) {
+        try {
+          await setupBLE(dev);
+          log("BLE restaurado via getDevices():", dev.name || dev.id);
+          break;
+        } catch (e) {
+          log("Falha restore:", e?.message || e);
+        }
+      }
+    } catch (e) {
+      log("navigator.bluetooth.getDevices falhou:", e?.message || e);
+    }
+  }
+
+  useEffect(() => {
+    restoreBleIfPermitted();
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        restoreBleIfPermitted();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
   return (
     <BluetoothContext.Provider value={value}>
       {children}
