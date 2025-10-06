@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useState, useEffect } from "react";
 
 import UserProfileAvatar from "../../Layouts/UserProfileAvatar";
@@ -10,6 +9,7 @@ import UserData from "./modalContent/UserData";
 import Settings from "./modalContent/Settings";
 import Logs from "./modalContent/Logs";
 import Bluetooth from "./modalContent/bluetooth/Bluetooth";
+import SoftVersion from "../../Pages/Dashboard/SoftVersion";
 
 export default function UserProfileModal() {
   const [open, setOpen] = useState(false);
@@ -122,13 +122,16 @@ export default function UserProfileModal() {
                     LOGS
                   </li>
                 </ul>
-                <button
-                  className="py-2   text-xs neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
-                  onClick={() => signOut()}
-                  aria-label="Sign Out"
-                >
-                  Sign Out
-                </button>
+                <div className="flex flex-col">
+                  <SoftVersion />
+                  <button
+                    className="py-2   text-xs neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
+                    onClick={() => signOut()}
+                    aria-label="Sign Out"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
               <div className="w-[78%]   flex flex-col  my-2 neuphormism-b py-2 px-5 cursor-pointer">
                 {modalOptionChoosen === "USER INFO" ? (
