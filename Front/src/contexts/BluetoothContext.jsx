@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useEffect,
@@ -111,6 +111,7 @@ export function useBluetooth() {
   return useContext(BluetoothContext);
 }
 
+// eslint-disable-next-line react/prop-types
 export function BluetoothProvider({ children }) {
   /* Suporte do navegador */
   const support = useMemo(
