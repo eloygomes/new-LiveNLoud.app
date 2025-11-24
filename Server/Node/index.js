@@ -1,6 +1,8 @@
+require("dotenv").config(); // <--- ADICIONE ISSO
+
 const express = require("express");
 const axios = require("axios");
-const { MongoClient, Binary } = require("mongodb");
+const { MongoClient, Binary, ObjectId } = require("mongodb");
 const multer = require("multer");
 const path = require("path");
 const sharp = require("sharp"); // Importar sharp
@@ -35,14 +37,33 @@ connectToDatabase();
 // Crie o servidor HTTP a partir do Express
 const server = http.createServer(app);
 
+// const io = new Server(server, {
+//   path: '/socket.io',
+//   cors: {
+//     origin: ["https://www.live.eloygomes.com.br", "https://api.live.eloygomes.com.br"],
+//     methods: ["GET", "POST"],
+//     credentials: true,
+//   },
+// });
+
 const io = new Server(server, {
   path: "/socket.io",
   cors: {
-    origin: [
-      "https://www.live.eloygomes.com.br",
-      "https://api.live.eloygomes.com.br",
-    ],
+    origin: (origin, callback) => {
+      const allowed = [
+        "https://www.live.eloygomes.com.br",
+        "https://api.live.eloygomes.com.br",
+        "https://www.live.eloygomes.com",
+        "https://api.live.eloygomes.com",
+        "https://live.eloygomes.com",
+        "http://localhost:5173", // <-- habilita dev
+      ];
+      // Sem origin (apps nativos) ou na lista => libera
+      if (!origin || allowed.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
     methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
     credentials: true,
   },
 });
@@ -70,11 +91,21 @@ clientNamespace.on("connection", (socket) => {
   }
 
   // Escutar eventos do cliente
-  socket.on("messageToServer", (data) => {
-    console.log("Recebido do cliente:", data);
+  socket.on("messageToServer", ({ audioData, sampleRate }) => {
+    console.log("Audio chunk:", {
+      bytes: audioData?.length || audioData?.byteLength,
+      sampleRate,
+      id: socket.id,
+    });
+    pythonNamespace.emit("processData", {
+      clientId: socket.id,
+      audioData,
+      sampleRate,
+    });
+  });
 
-    // Emitir evento 'processData' para o script Python com os dados e o ID do cliente
-    pythonNamespace.emit("processData", { ...data, clientId: socket.id });
+  socket.on("health", (data, cb) => {
+    cb && cb({ ok: true, ts: Date.now() });
   });
 
   socket.on("disconnect", () => {
@@ -115,9 +146,24 @@ pythonNamespace.on("connection", (socket) => {
 //   })
 // );
 
+// app.use(
+//   cors({
+//     // Permite todas as origens durante o desenvolvimento
+//     origin: "*",
+//     credentials: true,
+//   })
+// );
+
 app.use(
   cors({
-    origin: "*", // Permite todas as origens durante o desenvolvimento
+    origin: [
+      "https://www.live.eloygomes.com.br",
+      "https://api.live.eloygomes.com.br",
+      "https://www.live.eloygomes.com",
+      "https://api.live.eloygomes.com",
+      "https://live.eloygomes.com",
+      "http://localhost:5173",
+    ],
     credentials: true,
   })
 );
@@ -257,18 +303,22 @@ app.get("/api/profileImage/:email", async (req, res) => {
   try {
     const { email } = req.params;
 
+    // Validar email (opcional mas recomendado)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Email inválido." });
+    }
+
     const database = client.db("liveNloud_");
     const collection = database.collection("profileImages");
 
-    // Buscar a imagem pelo email
-    const imageDocument = await collection.findOne({ email: email });
+    const imageDocument = await collection.findOne({ email });
 
-    if (!imageDocument) {
+    if (!imageDocument || !imageDocument.image || !imageDocument.image.buffer) {
       return res.status(404).json({ message: "Imagem não encontrada." });
     }
 
-    // Enviar os dados binários da imagem
-    res.set("Content-Type", "image/jpeg");
+    res.set("Content-Type", imageDocument.image.contentType || "image/jpeg");
     res.send(imageDocument.image.buffer);
   } catch (err) {
     console.error("Erro ao buscar a imagem:", err);
@@ -277,43 +327,164 @@ app.get("/api/profileImage/:email", async (req, res) => {
 });
 
 // Rota para chamar o serviço Python e realizar o scrape
+// ---------- helpers p/ normalização ----------
+// (você já tem normalizeInstrument e normalizeLink definidos mais acima)
+// vou reaproveitá-los aqui sem duplicar
+
+/** Aguarda N ms */
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Busca o doc no banco geral usando (instrument, link) e fallbacks. */
+async function findGeneralCifraDoc({ instrument, link, artist, song }) {
+  const database = client.db("generalCifras");
+  const collection = database.collection("Documents");
+
+  const inst = normalizeInstrument(instrument);
+  if (!inst) return null;
+
+  const linkNorm = normalizeLink(link);
+
+  // 1) preferencial: flag do instrumento + linkNorm no subdoc
+  const byNorm = {
+    $and: [
+      {
+        $or: [
+          { [`instruments.${inst}`]: true },
+          { [`instruments.${inst}`]: "true" },
+        ],
+      },
+      { [`${inst}.linkNorm`]: linkNorm },
+    ],
+  };
+
+  // 2) fallback: flag do instrumento + link "cru" (com/sem barra)
+  const rawNoSlash = String(link).replace(/\/+$/, "");
+  const rawWithSlash = rawNoSlash.endsWith("/") ? rawNoSlash : `${rawNoSlash}/`;
+  const byRaw = {
+    $and: [
+      {
+        $or: [
+          { [`instruments.${inst}`]: true },
+          { [`instruments.${inst}`]: "true" },
+        ],
+      },
+      {
+        $or: [
+          { [`${inst}.link`]: link },
+          { [`${inst}.link`]: rawNoSlash },
+          { [`${inst}.link`]: rawWithSlash },
+        ],
+      },
+    ],
+  };
+
+  // 3) último recurso: artist + song (pode haver múltiplos; pegamos o mais recente)
+  const byTitle = { artist, song };
+
+  let doc = await collection.findOne(byNorm);
+  if (!doc) doc = await collection.findOne(byRaw);
+  if (!doc) doc = await collection.findOne(byTitle);
+
+  return doc || null;
+}
+
+/** Tenta encontrar o doc por algumas tentativas (para dar tempo do Python gravar). */
+async function waitForGeneralCifraDoc(
+  { instrument, link, artist, song },
+  { retries = 10, intervalMs = 300 } = {}
+) {
+  for (let i = 0; i < retries; i++) {
+    const found = await findGeneralCifraDoc({ instrument, link, artist, song });
+    if (found) return found;
+    await delay(intervalMs);
+  }
+  return null;
+}
+
+// Rota para chamar o serviço Python e realizar o scrape
 app.post("/api/scrape", async (req, res) => {
-  console.log("scrape called");
+  console.log("[SCRAPE] called", { body: req.body });
+
   try {
     const { artist, song, instrument, email, instrument_progressbar, link } =
       req.body;
 
-    const response = await axios.post(`${pythonApiUrl}/scrape`, {
+    if (!artist || !song || !instrument || !link) {
+      return res
+        .status(400)
+        .json({ message: "artist, song, instrument e link são obrigatórios." });
+    }
+
+    // 1) dispara o scraper Python
+    const pyPayload = {
       artist,
       song,
       instrument,
       email,
       instrument_progressbar,
       link,
+    };
+    console.time("[SCRAPE] python request");
+    const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload);
+    console.timeEnd("[SCRAPE] python request");
+    console.log("[SCRAPE] python resp:", response.status, response.data);
+
+    // 2) se Python respondeu sucesso, aguardamos o doc aparecer no Mongo
+    if (response.status >= 200 && response.status < 300) {
+      console.time("[SCRAPE] waitForGeneralCifraDoc");
+      const doc = await waitForGeneralCifraDoc(
+        { instrument, link, artist, song },
+        { retries: 25, intervalMs: 400 } // ~10 segundos
+      );
+      console.timeEnd("[SCRAPE] waitForGeneralCifraDoc");
+
+      if (doc) {
+        console.log("[SCRAPE] returning stored document:", {
+          _id: doc._id,
+          artist: doc.artist,
+          song: doc.song,
+        });
+        // 200 com o documento salvo
+        return res.status(200).json({
+          message: "Data stored successfully",
+          document: doc,
+        });
+      }
+
+      // Não achou após as tentativas: devolve o payload original do Python (fallback)
+      console.warn(
+        "[SCRAPE] Document not found after waiting. Returning python response only."
+      );
+      return res.status(202).json({
+        message:
+          "Stored, but document not yet visible. Try fetching again shortly.",
+        python: response.data,
+      });
+    }
+
+    // Python respondeu algo diferente de 2xx
+    return res.status(response.status).json({
+      message: "Erro ao chamar a API Python",
+      python: response.data,
     });
-
-    res.status(response.status).json(response.data);
   } catch (error) {
-    console.error("Erro ao chamar a API Python:", error.message);
-
-    // Adicionar mais detalhes sobre o erro
+    console.error("[SCRAPE] error:", error?.message);
     if (error.response) {
-      console.error("Resposta da API Python:", error.response.data);
-      res.status(error.response.status).json({
+      console.error("[SCRAPE] python response data:", error.response.data);
+      return res.status(error.response.status).json({
         message: "Erro ao chamar a API Python",
         error: error.response.data,
       });
     } else if (error.request) {
-      console.error("Nenhuma resposta recebida da API Python");
-      res
+      return res
         .status(500)
         .json({ message: "Nenhuma resposta recebida da API Python" });
-    } else {
-      console.error("Erro na configuração da requisição para a API Python");
-      res.status(500).json({
+    }
+    return res
+      .status(500)
+      .json({
         message: "Erro na configuração da requisição para a API Python",
       });
-    }
   }
 });
 
@@ -378,12 +549,24 @@ app.post("/api/newsong", async (req, res) => {
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
 
+    // deixa artista/música em um formato comparável (slug)
+    const normalizeName = (s = "") =>
+      String(s)
+        .trim()
+        .toLowerCase()
+        .normalize("NFD") // remove acentos
+        .replace(/[\u0300-\u036f]/g, "") // remove marcas diacríticas
+        .replace(/[^a-z0-9]+/g, "-") // troca tudo que não for alfanumérico por "-"
+        .replace(/-+/g, "-") // evita "--"
+        .replace(/^-|-$/g, ""); // remove hífen do começo/fim
+
     if (existingUser) {
       if (existingUser.userdata && Array.isArray(existingUser.userdata)) {
         // Verificar se já existe um registro com o mesmo artista e música
         let songIndex = existingUser.userdata.findIndex(
           (song) =>
-            song.artist === userdata.artist && song.song === userdata.song
+            normalizeName(song.artist) === normalizeName(userdata.artist) &&
+            normalizeName(song.song) === normalizeName(userdata.song)
         );
 
         if (songIndex !== -1) {
@@ -567,20 +750,19 @@ app.post("/api/deleteonesong", async (req, res) => {
 // Rota para obter todas as músicas de um usuário
 app.get("/api/alldata/:email", async (req, res) => {
   try {
-    const { email } = req.params; // Obtém o email dos parâmetros da URL
+    const { email } = req.params;
     console.log(email);
     const database = client.db("liveNloud_");
     const collection = database.collection("data");
 
-    // Busca o documento pelo email
     const user = await collection.findOne({ email: email });
 
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
 
-    // Retorna todos os dados de músicas do usuário
-    res.status(200).json(user.userdata);
+    // ✅ Retorna o documento inteiro (com userdata dentro)
+    res.status(200).json(user);
   } catch (error) {
     console.error("Erro ao buscar as músicas:", error);
     res.status(500).json({ message: "Erro ao buscar as músicas." });
@@ -645,48 +827,96 @@ app.put("/api/lastPlay", async (req, res) => {
   try {
     const { email, song, artist, instrument } = req.body;
 
-    // Verificação de dados obrigatórios
     if (!email || !song || !artist || !instrument) {
-      return res
-        .status(400)
-        .json({
-          message: "Email, música, artista e instrumento são obrigatórios.",
-        });
+      return res.status(400).json({
+        message: "Email, música, artista e instrumento são obrigatórios.",
+      });
     }
 
     const database = client.db("liveNloud_");
     const collection = database.collection("data");
 
-    // Primeiro, converte lastPlay para array se ainda não for
+    // 0) Garante que o documento/entrada existe
+    const userDoc = await collection.findOne({ email });
+    if (!userDoc) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+    const hasEntry = (userDoc.userdata || []).some(
+      (u) => u.song === song && u.artist === artist
+    );
+    if (!hasEntry) {
+      return res
+        .status(404)
+        .json({ message: "Música/Artista não encontrados." });
+    }
+
+    // 1) Cria o subdocumento do instrumento se NÃO existir
     await collection.updateOne(
       {
-        email: email,
+        email,
+        "userdata.song": song,
+        "userdata.artist": artist,
+        [`userdata.${instrument}`]: { $exists: false },
+      },
+      {
+        $set: { [`userdata.$[elem].${instrument}`]: {} },
+      },
+      { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
+    );
+
+    // 2) Se lastPlay for Date, converte para array com aquele date
+    await collection.updateOne(
+      {
+        email,
         "userdata.song": song,
         "userdata.artist": artist,
         [`userdata.${instrument}.lastPlay`]: { $type: "date" },
       },
       {
-        $set: { [`userdata.$[elem].${instrument}.lastPlay`]: [new Date()] },
+        $set: { [`userdata.$[elem].${instrument}.lastPlay`]: [] },
       },
       { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
     );
 
-    // Em seguida, adiciona a nova data ao array lastPlay
+    // 3) Se lastPlay for String, zera para array
+    await collection.updateOne(
+      {
+        email,
+        "userdata.song": song,
+        "userdata.artist": artist,
+        [`userdata.${instrument}.lastPlay`]: { $type: "string" },
+      },
+      {
+        $set: { [`userdata.$[elem].${instrument}.lastPlay`]: [] },
+      },
+      { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
+    );
+
+    // 4) Se lastPlay não existir, cria array vazio
+    await collection.updateOne(
+      {
+        email,
+        "userdata.song": song,
+        "userdata.artist": artist,
+        $or: [
+          { [`userdata.${instrument}.lastPlay`]: { $exists: false } },
+          { [`userdata.${instrument}.lastPlay`]: null },
+        ],
+      },
+      {
+        $set: { [`userdata.$[elem].${instrument}.lastPlay`]: [] },
+      },
+      { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
+    );
+
+    // 5) Agora sim, dá o push com segurança
     const updateResult = await collection.updateOne(
-      { email: email, "userdata.song": song, "userdata.artist": artist },
+      { email, "userdata.song": song, "userdata.artist": artist },
       {
         $push: { [`userdata.$[elem].${instrument}.lastPlay`]: new Date() },
       },
       { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] }
     );
-
-    if (updateResult.matchedCount === 0) {
-      return res
-        .status(404)
-        .json({ message: "Usuário ou música/artista não encontrados." });
-    }
-
-    console.log("Campo lastPlay atualizado com sucesso:", updateResult);
 
     return res.status(200).json({
       message: "Campo lastPlay atualizado com sucesso!",
@@ -826,7 +1056,6 @@ app.post("/api/deleteUserAccount", async (req, res) => {
     const deleteResult = await collection.deleteOne({ email: email });
 
     console.log("Resultado da operação de deletar:", deleteResult);
-    ``;
 
     if (deleteResult.deletedCount === 0) {
       console.log(`Nenhum usuário encontrado com o email: ${email}`);
@@ -874,33 +1103,6 @@ app.post("/api/deleteUserAccount", async (req, res) => {
 //     return res.status(500).json({ message: "Erro ao tentar localizar cifra no banco geral." });
 //   }
 // });
-app.post("/api/generalCifra", async (req, res) => {
-  try {
-    const { instrument, link } = req.body;
-
-    const database = client.db("generalCifras");
-    const collection = database.collection("Documents");
-
-    // Filtro baseado somente no instrumento e no link específico
-    const filter = {
-      [`instruments.${instrument}`]: true,
-      [`${instrument}.link`]: link,
-    };
-
-    const document = await collection.findOne(filter);
-    if (!document) {
-      return res.status(404).json({ message: "Documento não encontrado" });
-    }
-
-    // Retorna o documento completo
-    return res.status(200).json(document);
-  } catch (error) {
-    console.error("Erro ao tentar localizar cifra no banco geral:", error);
-    return res
-      .status(500)
-      .json({ message: "Erro ao tentar localizar cifra no banco geral." });
-  }
-});
 
 app.post("/api/createMusic", async (req, res) => {
   try {
@@ -959,7 +1161,7 @@ app.post("/api/createMusic", async (req, res) => {
         ...incoming.instruments,
       };
 
-      // Helper para mesclar sub‑documento de instrumento
+      // Helper para mesclar sub-documento de instrumento
       const mergeInstrument = (inst) => {
         if (!incoming[inst]) return existing[inst]; // nada novo
         const oldDoc = existing[inst] || {};
@@ -1010,6 +1212,259 @@ app.post("/api/createMusic", async (req, res) => {
     }
     console.error("Erro ao criar/atualizar música:", error);
     return res.status(500).json({ message: "Erro ao criar/atualizar música." });
+  }
+});
+
+// ======================= JWT LOGIN START ============================
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+
+// Modelo AuthUser (usando o próprio MongoClient, sem mongoose)
+const authDatabase = client.db("liveNloud_");
+const authCollection = authDatabase.collection("authUsers");
+
+// Helpers
+const genAccessToken = (id) =>
+  jwt.sign({ userId: id }, process.env.ACCESS_SECRET, { expiresIn: "15m" });
+const genRefreshToken = (id) =>
+  jwt.sign({ userId: id }, process.env.REFRESH_SECRET, { expiresIn: "7d" });
+
+// Rota de cadastro
+app.post("/api/auth/signup", async (req, res) => {
+  const { email, password } = req.body;
+  const hash = await bcrypt.hash(password, 10);
+
+  try {
+    const existing = await authCollection.findOne({ email });
+
+    if (existing) return res.status(400).json({ error: "Email já registrado" });
+
+    await authCollection.insertOne({
+      email,
+      passwordHash: hash,
+      userdata: " ",
+    });
+
+    res.status(201).json({ message: "Usuário criado com sucesso!" });
+  } catch (err) {
+    console.error("Erro ao cadastrar:", err);
+    res.status(500).json({ error: "Erro interno" });
+  }
+});
+
+// Rota de login
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await authCollection.findOne({ email });
+    if (!user) {
+      console.log("Usuário não encontrado:", email);
+      return res.status(401).json({ error: "Credenciais inválidas" });
+    }
+
+    console.log("Usuário encontrado:", user);
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      console.log("Senha inválida para:", email);
+      return res.status(401).json({ error: "Credenciais inválidas" });
+    }
+
+    const accessToken = genAccessToken(user._id.toString());
+    const refreshToken = genRefreshToken(user._id.toString());
+
+    await authCollection.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken } }
+    );
+
+    res.json({ accessToken, refreshToken });
+  } catch (err) {
+    console.error("Erro ao logar:", err); // <-- log detalhado
+    res.status(500).json({ error: "Erro interno" });
+  }
+});
+
+// Rota de refresh token
+app.post("/api/auth/refresh", async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.sendStatus(401);
+
+  try {
+    const payload = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+    const user = await authCollection.findOne({
+      _id: new ObjectId(payload.userId),
+    });
+
+    if (!user || user.refreshToken !== refreshToken) return res.sendStatus(403);
+
+    const newAccessToken = genAccessToken(user._id.toString());
+    res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    res.sendStatus(403);
+  }
+});
+
+// Middleware de proteção
+function authenticateJWT(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.ACCESS_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Rota protegida de teste
+app.get("/api/protected", authenticateJWT, (req, res) => {
+  res.json({
+    message: "Você acessou uma rota protegida!",
+    userId: req.user.userId,
+  });
+});
+// ======================= JWT LOGIN END ============================
+
+// Endpoint de healthcheck HTTP (fora de qualquer handler de conexão)
+app.get("/health", (req, res) => {
+  res.json({ ok: true, ts: Date.now() });
+});
+
+// ---------- helpers p/ normalização ----------
+const INSTRUMENT_ALLOWED = [
+  "guitar01",
+  "guitar02",
+  "bass",
+  "keys",
+  "drums",
+  "voice",
+];
+const INSTRUMENT_MAP = { keyboard: "keys", key: "keys" };
+
+function normalizeInstrument(i) {
+  const norm = (INSTRUMENT_MAP[i] || i || "").toLowerCase();
+  return INSTRUMENT_ALLOWED.includes(norm) ? norm : null;
+}
+
+/** Normaliza link para comparação estável (sem http/https, sem www, minúsculo, sem barra final) */
+function normalizeLink(u) {
+  try {
+    const url = new URL(u);
+    const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+    const path = url.pathname.replace(/\/+$/, ""); // remove barra final
+    return `${host}${path}`;
+  } catch {
+    return String(u)
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .replace(/\/+$/, "")
+      .toLowerCase();
+  }
+}
+
+/** Remove `progress` se vier no subdoc do instrumento (p/ não poluir o banco geral) */
+function stripProgress(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const { progress, ...rest } = obj;
+  return rest;
+}
+
+/** Garante que, se o subdoc tiver `link`, também ganhe `linkNorm` */
+function withLinkNorm(subdoc = {}) {
+  if (subdoc && subdoc.link) {
+    return { ...subdoc, linkNorm: normalizeLink(subdoc.link) };
+  }
+  return subdoc;
+}
+
+(async () => {
+  const database = client.db("generalCifras");
+  const collection = database.collection("Documents");
+
+  // ajuda buscas por artista/música (não-único, pois pode repetir em diferentes versões)
+  await collection.createIndex({ artist: 1, song: 1 });
+
+  // acelera buscas por link normalizado em cada instrumento (crie os que usar)
+  await collection.createIndex({ "guitar01.linkNorm": 1 });
+  await collection.createIndex({ "guitar02.linkNorm": 1 });
+  await collection.createIndex({ "bass.linkNorm": 1 });
+  await collection.createIndex({ "keys.linkNorm": 1 });
+  await collection.createIndex({ "drums.linkNorm": 1 });
+  await collection.createIndex({ "voice.linkNorm": 1 });
+
+  // flags
+  await collection.createIndex({ "instruments.guitar01": 1 });
+  await collection.createIndex({ "instruments.guitar02": 1 });
+  await collection.createIndex({ "instruments.bass": 1 });
+  await collection.createIndex({ "instruments.keys": 1 });
+  await collection.createIndex({ "instruments.drums": 1 });
+  await collection.createIndex({ "instruments.voice": 1 });
+})();
+
+app.get("/api/generalCifra", async (req, res) => {
+  try {
+    let { instrument, link } = req.query || {};
+    if (!instrument || !link) {
+      return res
+        .status(400)
+        .json({ message: "Parâmetros obrigatórios: instrument, link" });
+    }
+
+    instrument = normalizeInstrument(instrument);
+    if (!instrument) {
+      return res.status(400).json({ message: `Instrumento inválido.` });
+    }
+
+    const linkNorm = normalizeLink(link);
+
+    const database = client.db("generalCifras");
+    const collection = database.collection("Documents");
+
+    // Busca preferencialmente por link normalizado no subdoc do instrumento
+    const filter = {
+      $or: [
+        { [`instruments.${instrument}`]: true },
+        { [`instruments.${instrument}`]: "true" },
+      ],
+      [`${instrument}.linkNorm`]: linkNorm,
+    };
+
+    // Fallback: tentar bater pelo campo link "cru" também (com e sem barra)
+    // Fallback: tenta casar pelo link "cru" (com/sem barra) E exige a flag do instrumento
+    const fallback = {
+      $and: [
+        {
+          $or: [
+            { [`instruments.${instrument}`]: true },
+            { [`instruments.${instrument}`]: "true" },
+          ],
+        },
+        {
+          $or: [
+            { [`${instrument}.link`]: link },
+            { [`${instrument}.link`]: link.replace(/\/+$/, "") },
+            {
+              [`${instrument}.link`]: link.endsWith("/")
+                ? link.slice(0, -1)
+                : `${link}/`,
+            },
+          ],
+        },
+      ],
+    };
+
+    let doc = await collection.findOne(filter);
+    if (!doc) doc = await collection.findOne(fallback);
+
+    if (!doc)
+      return res.status(404).json({ message: "Documento não encontrado" });
+
+    return res.status(200).json(doc);
+  } catch (error) {
+    console.error("GET /api/generalCifra error:", error);
+    return res.status(500).json({ message: "Erro interno." });
   }
 });
 
