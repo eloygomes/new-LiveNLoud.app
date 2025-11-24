@@ -504,7 +504,7 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
 
 def send_to_generalCifras(entry, instrument, instrument_progressbar):
     try:
-        node_api_url = "https://api.live.eloygomes.com.br/api/createMusic"
+        node_api_url = "https://api.live.eloygomes.com/api/createMusic"
         payload = {
             "song":        entry["song"],
             "artist":      entry["artist"],
