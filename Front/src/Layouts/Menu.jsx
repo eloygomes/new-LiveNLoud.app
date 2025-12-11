@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "../index.css";
 import NavMenuItems from "./NavMenuItems";
 import MenuMobileFull from "./MenuMobileFull";
@@ -9,10 +9,7 @@ export default function RootLayouts() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ===== ESTADO DA BUSCA (navbar) =====
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const searchInputRef = useRef(null);
-  const searchWrapperRef = useRef(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,36 +17,6 @@ export default function RootLayouts() {
     .toLowerCase()
     .includes("dashboard");
 
-  const toggleSearch = () => {
-    setIsSearchOpen((prev) => !prev);
-  };
-
-  useEffect(() => {
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isSearchOpen]);
-
-  useEffect(() => {
-    if (!isSearchOpen) return;
-
-    function handleClickOutside(event) {
-      if (
-        searchWrapperRef.current &&
-        !searchWrapperRef.current.contains(event.target)
-      ) {
-        setIsSearchOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isSearchOpen]);
 
   return (
     <>
@@ -138,46 +105,7 @@ export default function RootLayouts() {
                 </div>
 
                 {/* ====== Botão + input de busca ====== */}
-                <div
-                  ref={searchWrapperRef}
-                  className="absolute inset-y-0 right-4 top-0 flex items-center gap-4 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0"
-                >
-                  <div className="flex items-center gap-2">
-                    {/* botão da lupa */}
-                    <button
-                      type="button"
-                      onClick={toggleSearch}
-                      className="p-2 rounded-full hover:bg-gray-200/60 transition-colors"
-                      aria-label="Buscar músicas"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-gray-700"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="11" cy="11" r="7" />
-                        <line x1="16.5" y1="16.5" x2="21" y2="21" />
-                      </svg>
-                    </button>
-
-                    {/* campo de busca */}
-                    {isSearchOpen && (
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Buscar música ou artista..."
-                        className="hidden md:block w-64 rounded-md border border-gray-300 bg-white/80 px-3 py-1 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                    )}
-                  </div>
-
+                <div className="absolute inset-y-0 right-4 top-0 flex items-center gap-4 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
                   <div className="relative ml-3">
                     <UserProfileModal />
                   </div>
@@ -197,8 +125,8 @@ export default function RootLayouts() {
           } pt-0 md:pt-16`}
           style={{ maxHeight: "100vh" }}
         >
-          {/* aqui a magia: passamos searchTerm para as rotas filhas */}
-          <Outlet context={{ searchTerm }} />
+          {/* aqui a magia: passamos searchTerm e setter para as rotas filhas */}
+          <Outlet context={{ searchTerm, setSearchTerm }} />
         </div>
       </main>
     </>
