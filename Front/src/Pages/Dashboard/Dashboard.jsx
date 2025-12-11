@@ -9,7 +9,8 @@ function Dashboard() {
   const [isMobile, setIsMobile] = useState("");
 
   // pega o searchTerm vindo do RootLayouts (via Outlet context)
-  const { searchTerm = "" } = useOutletContext() || {};
+  const { searchTerm = "", setSearchTerm = () => {} } =
+    useOutletContext() || {};
 
   useEffect(() => {
     localStorage.setItem("cifraFROMDB", "");
@@ -69,12 +70,12 @@ function Dashboard() {
         </div>
       ) : isMobile === 2 ? (
         <div className="w-full mobile ">
-          <DashList2 searchTerm={searchTerm} />
+          <DashList2 searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <FloatingActionButtons />
         </div>
       ) : isMobile === 3 ? (
         <div className="container mx-auto desktop">
-          <DashList2 searchTerm={searchTerm} />
+          <DashList2 searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <FloatingActionButtons />
           <SoftVersion />
         </div>

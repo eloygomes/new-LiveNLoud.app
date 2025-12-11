@@ -3,7 +3,7 @@ import DashList2Items from "./DashList2Items";
 import DashboardOptions from "./DashboardOptions";
 import { fetchUserSongs } from "../../Tools/Controllers";
 
-function DashList2({ searchTerm = "" }) {
+function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
   const [isMobile, setIsMobile] = useState(false);
   const [sortColumn, setSortColumn] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -78,6 +78,8 @@ function DashList2({ searchTerm = "" }) {
         optStatus={optStatus}
         setOptStatus={setOptStatus}
         onFilterChange={handleFilterChange}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
         style={{ display: optStatus ? "block" : "none" }}
       />
 
