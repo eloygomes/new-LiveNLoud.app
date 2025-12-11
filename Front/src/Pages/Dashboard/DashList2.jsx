@@ -80,6 +80,7 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
         onFilterChange={handleFilterChange}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        visibleSongs={displaySongs}
         style={{ display: optStatus ? "block" : "none" }}
       />
 
