@@ -16,6 +16,10 @@ body {
   background: linear-gradient(145deg, #efefef, #f0f0f0);
 }
 
+main{
+  overflow-y: hidden;
+}
+
 @keyframes blink {
   50% {
     opacity: 0;

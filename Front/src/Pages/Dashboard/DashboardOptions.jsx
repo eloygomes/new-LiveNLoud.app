@@ -61,67 +61,76 @@ export default function DashboardOptions({
 
   return (
     <div
-      className={`flex flex-col top-[10px] sticky justify-between  h-[150px] bg-[#9da3af14] ${
+      className={`flex flex-col top-[10px] sticky justify-between   bg-[#9da3af14] overflow-y-hidden ${
         optStatus ? "" : "hidden"
       }`}
     >
       {/* Cabeçalho */}
-      <div className="flex flex-row py-1 justify-between rounded-t-md bg-black/10">
-        <h1 className="px-5 font-bold text-md">Setlists disponíveis:</h1>
+      <div className="flex flex-row py-1 justify-between rounded-t-lg bg-black/10">
+        <h1 className="px-5 font-bold text-md">OPTIONS</h1>
         <div className="px-5" onClick={() => setOptStatus(false)}>
           <IoClose className="w-6 h-6 cursor-pointer" />
         </div>
       </div>
 
-      {/* Corpo principal */}
-      <div className="flex flex-row justify-between px-5 ">
-        <div className="w-full pr-2 ">
-          {setlists.length === 0 ? (
-            <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2 ">
-              {setlists.map((tag, index) => {
-                const isActive = selectedSetlists.includes(tag);
-                return (
-                  <div
-                    key={`${tag}-${index}`}
-                    className="flex items-center gap-1"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "6px 10px",
-                      borderRadius: "10px",
-                      margin: "2px",
-                      cursor: "pointer",
-                      fontSize: "12px",
-                      backgroundColor: isActive ? "goldenrod" : "#9ca3af",
-                      color: "#fff",
-                      userSelect: "none",
-                    }}
-                  >
-                    <span
-                      onClick={() => toggleTag(tag)}
-                      title={
-                        isActive
-                          ? "Clique para remover este filtro"
-                          : "Clique para adicionar este filtro"
-                      }
-                    >
-                      {tag}
-                    </span>
-                    <RiDeleteBin6Line
-                      className="w-4 h-4 ml-1"
-                      title="Remover setlist do sistema"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSetlist(tag);
-                      }}
-                    />
-                  </div>
-                );
-              })}
+      <div className="flex flex-row py-2">
+        <div className="flex flex-col w-1/2">
+          <h1 className="px-5 py-2">TAGS</h1>
+          {/* Corpo principal */}
+          <div className="flex flex-row justify-between px-5 ">
+            <div className="w-full pr-2 ">
+              {setlists.length === 0 ? (
+                <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 ">
+                  {setlists.map((tag, index) => {
+                    const isActive = selectedSetlists.includes(tag);
+                    return (
+                      <div
+                        key={`${tag}-${index}`}
+                        className="flex items-center gap-1"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "6px 10px",
+                          borderRadius: "10px",
+                          margin: "2px",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          backgroundColor: isActive ? "goldenrod" : "#9ca3af",
+                          color: "#fff",
+                          userSelect: "none",
+                        }}
+                      >
+                        <span
+                          onClick={() => toggleTag(tag)}
+                          title={
+                            isActive
+                              ? "Clique para remover este filtro"
+                              : "Clique para adicionar este filtro"
+                          }
+                        >
+                          {tag}
+                        </span>
+                        <RiDeleteBin6Line
+                          className="w-4 h-4 ml-1"
+                          title="Remover setlist do sistema"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSetlist(tag);
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        </div>
+        <div className="flex flex-col w-1/2">
+          <div>SEARCH BAR</div>
+          <div>EXPORT</div>
         </div>
       </div>
 
