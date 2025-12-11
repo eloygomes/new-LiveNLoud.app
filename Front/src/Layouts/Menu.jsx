@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import "../index.css";
 import NavMenuItems from "./NavMenuItems";
@@ -15,6 +15,10 @@ export default function RootLayouts() {
   const searchWrapperRef = useRef(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDashboardRoute = location.pathname
+    .toLowerCase()
+    .includes("dashboard");
 
   const toggleSearch = () => {
     setIsSearchOpen((prev) => !prev);
@@ -188,7 +192,9 @@ export default function RootLayouts() {
       <main className="min-h-screen">
         <div
           data-scroll-root="true"
-          className="flex-1 overflow-auto pt-0 md:pt-16"
+          className={`flex-1 ${
+            isDashboardRoute ? "overflow-y-hidden" : "overflow-y-auto"
+          } pt-0 md:pt-16`}
           style={{ maxHeight: "100vh" }}
         >
           {/* aqui a magia: passamos searchTerm para as rotas filhas */}
