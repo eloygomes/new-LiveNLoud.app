@@ -24,6 +24,7 @@ import Presentation from "./Pages/Presentation/Presentation";
 import Login from "./Pages/Login/Login";
 import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
+import SpotifyCallback from "./Pages/Dashboard/SpotifyCallback";
 
 // Firebase Authentication
 
@@ -38,8 +39,14 @@ const ProtectedRoute = ({ element: Component, ...rest }) => {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
+      {/* Rotas públicas */}
       <Route path="/login" element={<Login />} />
       <Route path="/userregistration" element={<UserRegistration />} />
+
+      {/* 🔑 Callback do Spotify (NÃO protegido) */}
+      <Route path="/auth/spotify/callback" element={<SpotifyCallback />} />
+
+      {/* Rotas com menu / protegidas */}
       <Route element={<Menu />}>
         <Route
           path="/chordlibrary"
