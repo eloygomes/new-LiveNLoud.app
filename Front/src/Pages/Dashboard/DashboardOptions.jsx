@@ -10,6 +10,10 @@ import {
   saveSelectedSetlists,
   fetchDistinctSetlists,
 } from "../../Tools/Controllers";
+import PlaylistExport from "./PlaylistExport";
+import SetlistExport from "./SetlistExport";
+import Insights from "./Insights";
+import SearchBox from "./SearchBox/SearchBox";
 
 const instrumentLabels = [
   { key: "guitar01", label: "G1" },
@@ -158,178 +162,93 @@ export default function DashboardOptions({
 
       <div className="flex flex-row py-2 px-5 gap-3">
         <div className="flex flex-col w-1/2">
-          <div className="neuphormism-b m-2 pb-5 pt-3 h-auto">
-            <h1 className="px-5 pb-2 text-sm">Insights</h1>
-            <div className="px-5">
-              <div className="grid gap-3 sm:grid-cols-2 text-[11px]">
-                <div className="neuphormism-b rounded-xl p-4 shadow-sm">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">
-                    Progress ratio
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {dashboardMetrics.averageProgress}%
-                  </p>
-                  <div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#DAA520] transition-all duration-300"
-                      style={{
-                        width: `${dashboardMetrics.averageProgress}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="mt-2 text-[11px] text-gray-600">
-                    {dashboardMetrics.totalSongs} song
-                    {dashboardMetrics.totalSongs === 1 ? "" : "s"} filtradas
-                  </p>
-                </div>
-
-                <div className="neuphormism-b rounded-2xl p-4 shadow-sm">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-500">
-                    Songs by instrument
-                  </p>
-                  <div className="grid grid-cols-6 gap-2 mt-3 text-center">
-                    {dashboardMetrics.instrumentCounts.map((instrument) => (
-                      <div
-                        key={instrument.key}
-                        className="rounded-xl border border-gray-200 py-2 flex flex-col items-center justify-center"
-                      >
-                        <span className="text-xs font-semibold">
-                          {instrument.label}
-                        </span>
-                        <span className="text-base font-bold text-gray-900">
-                          {instrument.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="neuphormism-b m-2 pb-5">
+            <SearchBox searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           </div>
-          <div className="neuphormism-b m-2 py-5 h-auto">
-            <h1 className="px-5 pb-2 text-sm">Tags</h1>
-            {/* Corpo principal */}
-            <div className="flex flex-row justify-between px-5 ">
-              <div className="w-full pr-2 ">
-                {setlists.length === 0 ? (
-                  <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2 ">
-                    {setlists.map((tag, index) => {
-                      const isActive = selectedSetlists.includes(tag);
-                      return (
-                        <div
-                          key={`${tag}-${index}`}
-                          className="flex items-center gap-1 shadow-sm "
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            padding: "6px 10px",
-                            borderRadius: "7px",
-                            margin: "2px",
-                            cursor: "pointer",
-                            fontSize: "12px",
-                            backgroundColor: isActive ? "goldenrod" : "#9ca3af",
-                            color: "#fff",
-                            userSelect: "none",
-                          }}
-                        >
-                          <span
-                            onClick={() => toggleTag(tag)}
-                            title={
-                              isActive
-                                ? "Clique para remover este filtro"
-                                : "Clique para adicionar este filtro"
-                            }
-                          >
-                            {tag}
-                          </span>
-                          <RiDeleteBin6Line
-                            className="w-4 h-4 ml-1"
-                            title="Remover setlist do sistema"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteSetlist(tag);
+
+          <div className="neuphormism-b m-2  h-auto">
+            <Insights dashboardMetrics={dashboardMetrics} />
+          </div>
+          <div className="neuphormism-b m-2  pb-4">
+            <div className="neuphormism-b m-2  h-full">
+              <h1 className="px-5 pb-2 text-sm pb-2 pt-3">Tags</h1>
+              {/* Corpo principal */}
+              <div className="flex flex-row justify-between px-5 ">
+                <div className="w-full pr-2 ">
+                  {setlists.length === 0 ? (
+                    <p className="italic text-sm">
+                      Nenhuma setlist cadastrada.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 ">
+                      {setlists.map((tag, index) => {
+                        const isActive = selectedSetlists.includes(tag);
+                        return (
+                          <div
+                            key={`${tag}-${index}`}
+                            className="flex items-center gap-1 shadow-sm "
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              padding: "6px 10px",
+                              borderRadius: "7px",
+                              margin: "2px",
+                              cursor: "pointer",
+                              fontSize: "12px",
+                              backgroundColor: isActive
+                                ? "goldenrod"
+                                : "#9ca3af",
+                              color: "#fff",
+                              userSelect: "none",
                             }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                          >
+                            <span
+                              onClick={() => toggleTag(tag)}
+                              title={
+                                isActive
+                                  ? "Clique para remover este filtro"
+                                  : "Clique para adicionar este filtro"
+                              }
+                            >
+                              {tag}
+                            </span>
+                            <RiDeleteBin6Line
+                              className="w-4 h-4 ml-1"
+                              title="Remover setlist do sistema"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSetlist(tag);
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div className="flex flex-col w-1/2">
-          <div className="neuphormism-b m-2 pb-5">
-            <h1 className="px-5 my-4 text-sm">Search</h1>
-            <div className="px-5">
-              <div className="flex items-center gap-2">
-                <div className="relative w-full">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="11" cy="11" r="7" />
-                      <line x1="16.5" y1="16.5" x2="21" y2="21" />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar música ou artista..."
-                    className="w-full rounded-md border border-gray-300 bg-white/80 pl-10 pr-3 py-2 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 "
-                  />
-                </div>
-              </div>
-            </div>
+          <div className="neuphormism-b m-2 ">
+            <SetlistExport
+              handleExportText={handleExportText}
+              visibleSongs={visibleSongs}
+              FiFileText={FiFileText}
+              handleExportJson={handleExportJson}
+              VscJson={VscJson}
+            />
           </div>
 
           <div className="neuphormism-b m-2 ">
-            <div className="px-5 my-4 flex flex-col">
-              <h1 className="text-sm pb-2">Export</h1>
-              <p className=" text-[11px] pb-3">
-                Use os botões de exportação para baixar a lista de músicas
-                visíveis em formato TXT ou JSON.
-              </p>
-              <div className="flex flex-row">
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={handleExportText}
-                    disabled={!visibleSongs.length}
-                    className={`flex items-center gap-2 px-5 py-5 rounded-md text-sm font-semibold text-[9ca3af] transition-transform ${
-                      visibleSongs.length
-                        ? " border  border-[#9ca3af] hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
-                        : "bg-red-400 cursor-not-allowed"
-                    }`}
-                  >
-                    <FiFileText /> TXT
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExportJson}
-                    disabled={!visibleSongs.length}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-[9ca3af] transition-transform ${
-                      visibleSongs.length
-                        ? " border  border-[#9ca3af] hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
-                        : "bg-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    <VscJson /> JSON
-                  </button>
-                </div>
-              </div>
-            </div>
+            <PlaylistExport
+              visibleSongs={visibleSongs}
+              onCreateSpotifyPlaylist={(songs) => {
+                console.log("Criar playlist Spotify com:", songs);
+                // Depois a gente troca isso pela chamada real (auth + criar playlist)
+              }}
+            />
           </div>
         </div>
       </div>
