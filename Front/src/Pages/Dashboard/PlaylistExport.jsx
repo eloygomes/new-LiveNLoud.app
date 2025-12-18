@@ -1,7 +1,13 @@
 /* eslint-disable react/prop-types */
 import { useMemo, useState } from "react";
-import { FaSpotify, FaApple } from "react-icons/fa";
+import { FaSpotify, FaYoutube } from "react-icons/fa";
 import { startSpotifyLogin } from "./spotifyAuth";
+import { startYouTubeTokenFlow } from "./youtubeAuth";
+import {
+  youtubeCreatePlaylist,
+  youtubeSearchVideoId,
+  youtubeAddVideoToPlaylist,
+} from "./youtubeApi";
 
 export default function PlaylistExport({ visibleSongs = [] }) {
   const disabled = !visibleSongs?.length;
@@ -13,37 +19,111 @@ export default function PlaylistExport({ visibleSongs = [] }) {
   }, [visibleSongs]);
 
   // idle -> mostra botões
-  // naming -> mostra input e ações
-  // working -> feedback enquanto redireciona
+  // naming -> mostra input e ações (provider selecionado)
+  // working -> feedback enquanto executa
   const [mode, setMode] = useState("idle");
+  const [provider, setProvider] = useState(null); // "spotify" | "youtube"
   const [playlistName, setPlaylistName] = useState(defaultName);
+  const [statusLine, setStatusLine] = useState("");
 
-  function goToNaming() {
+  function goToNaming(nextProvider) {
+    setProvider(nextProvider);
     setPlaylistName(defaultName);
+    setStatusLine("");
     setMode("naming");
   }
 
   function cancelNaming() {
+    setProvider(null);
+    setStatusLine("");
     setMode("idle");
   }
 
-  function confirmAndStart() {
+  async function confirmAndStart() {
     const name = String(playlistName || "").trim();
     if (!name) return;
 
-    // 1) salva o nome escolhido
-    sessionStorage.setItem("spotify_playlist_name", name);
-
-    // 2) salva as músicas visíveis (o callback vai ler isso)
-    sessionStorage.setItem(
-      "spotify_playlist_songs",
-      JSON.stringify(visibleSongs || [])
-    );
-
-    // 3) feedback e inicia login
     setMode("working");
-    startSpotifyLogin();
+    setStatusLine("");
+
+    if (provider === "spotify") {
+      sessionStorage.setItem("spotify_playlist_name", name);
+      sessionStorage.setItem(
+        "spotify_playlist_songs",
+        JSON.stringify(visibleSongs || [])
+      );
+      startSpotifyLogin();
+      return;
+    }
+
+    if (provider === "youtube") {
+      try {
+        // 1) autentica (SEM client_secret)
+        setStatusLine("Conectando ao Google/YouTube…");
+        await startYouTubeTokenFlow({
+          scope: "https://www.googleapis.com/auth/youtube",
+        });
+
+        // 2) cria playlist
+        setStatusLine("Criando playlist no YouTube…");
+        const created = await youtubeCreatePlaylist({
+          title: name,
+          description: "Playlist criada automaticamente pelo LiveNLoud",
+          privacyStatus: "public",
+        });
+
+        const playlistId = created?.id;
+        if (!playlistId)
+          throw new Error("Não consegui obter o ID da playlist criada.");
+
+        // 3) adiciona músicas (busca vídeo por título/artista)
+        const songs = Array.isArray(visibleSongs) ? visibleSongs : [];
+        let added = 0;
+        let notFound = 0;
+
+        for (let i = 0; i < songs.length; i++) {
+          const s = songs[i] || {};
+          const song = s.song || s.title || s.name || "";
+          const artist = s.artist || s.band || "";
+          const q = [song, artist].filter(Boolean).join(" ").trim();
+
+          setStatusLine(`Buscando e adicionando… (${i + 1}/${songs.length})`);
+
+          if (!q) {
+            notFound++;
+            continue;
+          }
+
+          const videoId = await youtubeSearchVideoId(q);
+          if (!videoId) {
+            notFound++;
+            continue;
+          }
+
+          await youtubeAddVideoToPlaylist({ playlistId, videoId });
+          added++;
+        }
+
+        setStatusLine(
+          `✅ Pronto! Adicionadas: ${added} • Não encontradas: ${notFound}`
+        );
+        setTimeout(() => {
+          setProvider(null);
+          setMode("idle");
+          setStatusLine("");
+        }, 1200);
+      } catch (e) {
+        setStatusLine(`Falhou: ${e?.message || String(e)}`);
+      }
+    }
   }
+
+  const providerLabel =
+    provider === "spotify"
+      ? "Spotify"
+      : provider === "youtube"
+      ? "YouTube"
+      : "";
 
   return (
     <div className="neuphormism-b m-2">
@@ -61,7 +141,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
               {/* Spotify */}
               <button
                 type="button"
-                onClick={goToNaming}
+                onClick={() => goToNaming("spotify")}
                 disabled={disabled}
                 title={
                   disabled
@@ -79,21 +159,31 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 Spotify
               </button>
 
-              {/* Apple Music (somente layout por enquanto) */}
+              {/* YouTube */}
               <button
                 type="button"
-                disabled
-                title="Em breve"
-                className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-gray-400 cursor-not-allowed text-white"
+                onClick={() => goToNaming("youtube")}
+                disabled={disabled}
+                title={
+                  disabled
+                    ? "Nenhuma música visível para exportar"
+                    : "Conectar ao YouTube para criar a playlist"
+                }
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
+                  ${
+                    disabled
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "border border-[#9ca3af] hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
+                  }`}
               >
-                <FaApple className="text-lg" />
-                Apple Music
+                <FaYoutube className="text-lg" />
+                YouTube
               </button>
             </div>
 
             <div className="pt-3 text-[10px] text-gray-600">
-              * Spotify: vai abrir autenticação e, depois, criaremos a playlist
-              com as músicas visíveis.
+              * Spotify: autentica e cria playlist no Spotify. <br />* YouTube:
+              autentica via Google (sem callback) e cria playlist no YouTube.
             </div>
           </>
         )}
@@ -101,9 +191,13 @@ export default function PlaylistExport({ visibleSongs = [] }) {
         {mode === "naming" && (
           <>
             <div className="flex items-center gap-2 mb-2">
-              <FaSpotify className="text-lg text-gray-500" />
+              {provider === "spotify" ? (
+                <FaSpotify className="text-lg text-gray-500" />
+              ) : (
+                <FaYoutube className="text-lg text-gray-500" />
+              )}
               <h2 className="text-gray-500 font-bold text-sm">
-                Nome da playlist (Spotify)
+                Nome da playlist ({providerLabel})
               </h2>
             </div>
 
@@ -112,7 +206,6 @@ export default function PlaylistExport({ visibleSongs = [] }) {
               visíveis.
             </p>
 
-            {/* <label className="text-gray-400 text-[10px]">Nome</label> */}
             <input
               autoFocus
               value={playlistName}
@@ -141,12 +234,19 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 className={`flex items-center justify-center gap-2 w-32 h-10 rounded-md font-semibold transition-transform text-sm 
                   ${
                     String(playlistName || "").trim()
-                      ? "bg-[#1DB954] hover:bg-[goldenrod] text-black active:scale-95"
+                      ? "bg-[goldenrod] text-black active:scale-95"
                       : "bg-gray-500 text-white cursor-not-allowed"
                   }`}
               >
-                <FaSpotify className="text-lg" />
-                Criar
+                {provider === "spotify" ? (
+                  <>
+                    <FaSpotify className="text-lg" /> Criar
+                  </>
+                ) : (
+                  <>
+                    <FaYoutube className="text-lg" /> Criar
+                  </>
+                )}
               </button>
             </div>
 
@@ -159,14 +259,17 @@ export default function PlaylistExport({ visibleSongs = [] }) {
         {mode === "working" && (
           <>
             <div className="flex items-center gap-2 mb-2">
-              <FaSpotify className="text-lg text-[#9ca3af]" />
-              <h2 className="text-gray-600 font-bold text-sm">
-                Conectando ao Spotify…
-              </h2>
+              {provider === "spotify" ? (
+                <FaSpotify className="text-lg text-[#9ca3af]" />
+              ) : (
+                <FaYoutube className="text-lg text-[#9ca3af]" />
+              )}
+              <h2 className="text-gray-600 font-bold text-sm">Processando…</h2>
             </div>
+
             <p className="text-gray-600 text-[11px]">
-              Abrindo autenticação. Se nada acontecer, verifique se o navegador
-              bloqueou pop-up/redirecionamento.
+              {statusLine ||
+                "Abrindo autenticação. Se nada acontecer, verifique se o navegador bloqueou pop-up."}
             </p>
 
             <div className="pt-3 text-[10px] text-gray-600">

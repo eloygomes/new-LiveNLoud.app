@@ -25,6 +25,7 @@ import Login from "./Pages/Login/Login";
 import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 import SpotifyCallback from "./Pages/Dashboard/SpotifyCallback";
+import YouTubeCallback from "./Pages/Dashboard/YouTubeCallback";
 
 // Firebase Authentication
 
@@ -45,6 +46,7 @@ const router = createBrowserRouter(
 
       {/* 🔑 Callback do Spotify (NÃO protegido) */}
       <Route path="/auth/spotify/callback" element={<SpotifyCallback />} />
+      <Route path="/auth/youtube/callback" element={<YouTubeCallback />} />
 
       {/* Rotas com menu / protegidas */}
       <Route element={<Menu />}>
