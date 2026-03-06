@@ -1,10 +1,35 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
-import { allDataFromOneSong, updateLastPlayed } from "../../Tools/Controllers";
+import {
+  allDataFromOneSong,
+  updateLastPlayed,
+  updateSongEntry,
+} from "../../Tools/Controllers";
 import { useRef } from "react";
 
 import { processSongCifra } from "./ProcessSongCifra";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import ChordSheetJS from "chordsheetjs";
+
+const escapeHtml = (value = "") =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const plainTextToHtml = (text = "") =>
+  text
+    .split("\n")
+    .map((line) => {
+      if (!line.length) {
+        return "<p>&nbsp;</p>";
+      }
+      const preservedSpaces = escapeHtml(line)
+        .replace(/ /g, "&nbsp;")
+        .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+      return `<p>${preservedSpaces}</p>`;
+    })
+    .join("");
 
 const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
@@ -27,6 +52,48 @@ function Presentation() {
   const [songTabs, setSongTabs] = useState("");
 
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftCifra, setDraftCifra] = useState("");
+  const [isSavingCifra, setIsSavingCifra] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const chordHelpers = useMemo(() => {
+    const moduleRef =
+      (ChordSheetJS && ChordSheetJS.ChordSheetJS) || ChordSheetJS || {};
+    const ParserCtor = moduleRef.ChordProParser;
+    const FormatterCtor = moduleRef.ChordProFormatter;
+
+    return {
+      parser: ParserCtor ? new ParserCtor() : null,
+      formatter: FormatterCtor ? new FormatterCtor() : null,
+    };
+  }, []);
+
+  const normalizeCifra = useCallback(
+    (value = "") => {
+      if (!value || typeof value !== "string") return "";
+      try {
+        if (!chordHelpers.parser || !chordHelpers.formatter) return value;
+        const parsed = chordHelpers.parser.parse(value);
+        return chordHelpers.formatter.format(parsed);
+      } catch (error) {
+        console.warn("ChordSheetJS parse/format falhou:", error);
+        return value;
+      }
+    },
+    [chordHelpers],
+  );
+
+  const normalizedSongCifra = useMemo(
+    () => normalizeCifra(songCifraData),
+    [songCifraData, normalizeCifra],
+  );
+
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftCifra(normalizedSongCifra);
+    }
+  }, [normalizedSongCifra, isEditing]);
 
   // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
   const contentSelected = useMemo(() => {
@@ -38,11 +105,17 @@ function Presentation() {
       case "lyrics":
         return songLyrics;
       case "full":
-        return songCifraData; // Retorna a cifra completa
+        return normalizedSongCifra; // Retorna a cifra completa
       default:
-        return songCifraData; // mostra cifra completa no primeiro carregamento
+        return normalizedSongCifra; // mostra cifra completa no primeiro carregamento
     }
-  }, [selectContenttoShow, songCifraData, songLyrics, songChords, songTabs]);
+  }, [
+    selectContenttoShow,
+    normalizedSongCifra,
+    songLyrics,
+    songChords,
+    songTabs,
+  ]);
 
   const handleDataFromAPI = (data, instrumentSelected) => {
     if (data && data[instrumentSelected]) {
@@ -61,6 +134,63 @@ function Presentation() {
       return null;
     }
   };
+
+  const currentInstrumentData = useMemo(() => {
+    if (!songDataFetched || !instrumentSelected) return {};
+    return songDataFetched[instrumentSelected] || {};
+  }, [songDataFetched, instrumentSelected]);
+
+  const startEditingCifra = () => {
+    setSaveError("");
+    setIsEditing(true);
+    setDraftCifra(normalizedSongCifra);
+  };
+
+  const handleDiscardDraft = () => {
+    setDraftCifra(normalizedSongCifra);
+    setIsEditing(false);
+    setSaveError("");
+  };
+
+  const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
+
+  const handleSaveCifra = async () => {
+    if (!instrumentSelected || !songDataFetched) {
+      setSaveError("Sem dados da música carregados para salvar.");
+      return;
+    }
+    setIsSavingCifra(true);
+    setSaveError("");
+
+    const updatedBlock = {
+      ...currentInstrumentData,
+      songCifra: draftCifra,
+    };
+
+    const nextSongData = {
+      ...(songDataFetched || {}),
+      [instrumentSelected]: updatedBlock,
+      updateIn: new Date().toISOString().split("T")[0],
+    };
+
+    try {
+      await updateSongEntry(nextSongData);
+
+      setSongCifraData(draftCifra);
+      setSongDataFetched((prev) => ({
+        ...nextSongData,
+      }));
+      setIsEditing(false);
+      setLastSaveTimestamp(new Date().toLocaleTimeString());
+    } catch (error) {
+      setSaveError("Não foi possível salvar a cifra. Tente novamente.");
+      console.error("Erro ao salvar cifra:", error);
+    } finally {
+      setIsSavingCifra(false);
+    }
+  };
+
+  const hasDraftChanges = (normalizedSongCifra || "") !== (draftCifra || "");
 
   // Processar o songCifraData usando o algoritmo fornecido
   // console.log("htmlBlocks", htmlBlocks);
@@ -110,7 +240,7 @@ function Presentation() {
     didPingRef.current = true;
 
     updateLastPlayed(songFromURL, artistFromURL, instrumentSelected).catch(
-      (e) => console.error("updateLastPlayed error:", e)
+      (e) => console.error("updateLastPlayed error:", e),
     );
   }, [artistFromURL, songFromURL, instrumentSelected]);
 
@@ -129,14 +259,16 @@ function Presentation() {
         const urlSong = partes[partes.length - 2];
         const urlSongwithSpace = decodeURIComponent(urlSong);
         setSongFromURL(urlSongwithSpace);
+        localStorage.setItem("song", urlSongwithSpace);
 
         const urlBand = partes[partes.length - 3];
         const urlBandwithSpace = decodeURIComponent(urlBand);
         setArtistFromURL(urlBandwithSpace);
+        localStorage.setItem("artist", urlBandwithSpace);
 
         const dataFromSong = await allDataFromOneSong(
           urlBandwithSpace,
-          urlSongwithSpace
+          urlSongwithSpace,
         );
         const dataFromSongparsedResult = JSON.parse(dataFromSong);
         setSongDataFetched(dataFromSongparsedResult);
@@ -151,6 +283,29 @@ function Presentation() {
 
     fetchData();
   }, []);
+
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({ codeBlock: false }),
+        Placeholder.configure({
+          placeholder: "Edite a cifra aqui...",
+        }),
+      ],
+      content: plainTextToHtml(draftCifra || ""),
+      editable: isEditing,
+      editorProps: {
+        attributes: {
+          class:
+            "min-h-[60vh] w-full whitespace-pre-wrap font-mono text-base leading-6 focus:outline-none",
+        },
+      },
+      onUpdate: ({ editor }) => {
+        setDraftCifra(editor.getText({ blockSeparator: "\n" }));
+      },
+    },
+    [isEditing],
+  );
 
   // Função para alternar a visibilidade das tabs
   const toggleTabsVisibility = () => {
@@ -180,50 +335,89 @@ function Presentation() {
               <h1 className="text-4xl font-bold">{songFromURL}</h1>
               <h1 className="text-4xl font-bold">{artistFromURL}</h1>
             </div>
-            <div
-              className="flex neuphormism-b-btn p-6"
-              onClick={() =>
-                toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
-              }
-            >
-              <FaGear className="w-8 h-8" />
+            <div className="flex flex-row items-center gap-3">
+              {isEditing ? (
+                <>
+                  <button
+                    className="rounded-md bg-emerald-600 px-4 py-2 text-white disabled:opacity-50"
+                    onClick={handleSaveCifra}
+                    disabled={isSavingCifra || !hasDraftChanges}
+                  >
+                    {isSavingCifra ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    className="rounded-md bg-gray-200 px-4 py-2 text-gray-800 disabled:opacity-50"
+                    onClick={handleDiscardDraft}
+                    disabled={isSavingCifra}
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="rounded-md bg-indigo-600 px-4 py-2 text-white disabled:opacity-50"
+                  onClick={startEditingCifra}
+                  disabled={!songCifraData}
+                >
+                  Edit
+                </button>
+              )}
+              <div
+                className="flex neuphormism-b-btn p-6"
+                onClick={() =>
+                  toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
+                }
+              >
+                <FaGear className="w-8 h-8" />
+              </div>
             </div>
           </div>
+          {saveError && <p className="text-sm text-red-500">{saveError}</p>}
+          {!saveError && lastSaveTimestamp && (
+            <p className="text-xs text-emerald-600">
+              Último salvamento às {lastSaveTimestamp}
+            </p>
+          )}
 
           <div
             className={`flex flex-col neuphormism-b p-5 ${
               hideChords ? "hide-chords" : ""
             }`}
           >
-            {htmlBlocks.map((block, index) => {
-              // Extrair as classes do bloco
-              const classMatch = block.match(/class="([^"]*)"/);
-              const classes = classMatch ? classMatch[1].split(" ") : [];
+            {isEditing ? (
+              editor ? (
+                <EditorContent editor={editor} />
+              ) : (
+                <p>Carregando editor...</p>
+              )
+            ) : (
+              htmlBlocks.map((block, index) => {
+                const classMatch = block.match(/class="([^"]*)"/);
+                const classes = classMatch ? classMatch[1].split(" ") : [];
 
-              // Determinar se o bloco deve ser renderizado
-              let shouldRender = true;
+                let shouldRender = true;
 
-              // Se hideTabs estiver ativo e o bloco tiver as classes que queremos esconder, não renderiza
-              if (
-                hideTabs &&
-                (classes.includes("presentation-combined-tab-chords") ||
-                  classes.includes("presentation-tab") ||
-                  classes.includes("presentation-tab-section"))
-              ) {
-                shouldRender = false;
-              }
+                if (
+                  hideTabs &&
+                  (classes.includes("presentation-combined-tab-chords") ||
+                    classes.includes("presentation-tab") ||
+                    classes.includes("presentation-tab-section"))
+                ) {
+                  shouldRender = false;
+                }
 
-              if (shouldRender) {
-                return (
-                  <div
-                    key={index}
-                    dangerouslySetInnerHTML={{ __html: block }}
-                  />
-                );
-              } else {
-                return null;
-              }
-            })}
+                if (shouldRender) {
+                  return (
+                    <div
+                      key={index}
+                      dangerouslySetInnerHTML={{ __html: block }}
+                    />
+                  );
+                } else {
+                  return null;
+                }
+              })
+            )}
           </div>
         </div>
       </div>

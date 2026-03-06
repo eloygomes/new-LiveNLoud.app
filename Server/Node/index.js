@@ -549,17 +549,6 @@ app.post("/api/newsong", async (req, res) => {
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
 
-    // deixa artista/música em um formato comparável (slug)
-    const normalizeName = (s = "") =>
-      String(s)
-        .trim()
-        .toLowerCase()
-        .normalize("NFD") // remove acentos
-        .replace(/[\u0300-\u036f]/g, "") // remove marcas diacríticas
-        .replace(/[^a-z0-9]+/g, "-") // troca tudo que não for alfanumérico por "-"
-        .replace(/-+/g, "-") // evita "--"
-        .replace(/^-|-$/g, ""); // remove hífen do começo/fim
-
     if (existingUser) {
       if (existingUser.userdata && Array.isArray(existingUser.userdata)) {
         // Verificar se já existe um registro com o mesmo artista e música
@@ -672,6 +661,86 @@ app.post("/api/newsong", async (req, res) => {
   } catch (error) {
     console.error("Erro ao criar ou atualizar o usuário:", error);
     res.status(500).json({ message: "Erro ao criar ou atualizar o usuário." });
+  }
+});
+
+app.put("/api/song/updateExact", async (req, res) => {
+  try {
+    const { email, updatedSong } = req.body;
+
+    if (!email || !updatedSong || !updatedSong.artist || !updatedSong.song) {
+      return res.status(400).json({
+        message:
+          "Parâmetros obrigatórios ausentes: email, artist, song e payload atualizado.",
+      });
+    }
+
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    const userDoc = await collection.findOne({ email });
+    if (!userDoc || !Array.isArray(userDoc.userdata)) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const songIndex = userDoc.userdata.findIndex(
+      (entry) =>
+        normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
+        normalizeName(entry.song) === normalizeName(updatedSong.song),
+    );
+
+    if (songIndex === -1) {
+      return res
+        .status(404)
+        .json({ message: "Música não encontrada para este usuário." });
+    }
+
+    const instrumentKeys = [
+      "guitar01",
+      "guitar02",
+      "bass",
+      "keys",
+      "drums",
+      "voice",
+    ];
+
+    const mergedEntry = {
+      ...userDoc.userdata[songIndex],
+      ...updatedSong,
+      instruments: {
+        ...(userDoc.userdata[songIndex].instruments || {}),
+        ...(updatedSong.instruments || {}),
+      },
+      updateIn:
+        updatedSong.updateIn ||
+        userDoc.userdata[songIndex].updateIn ||
+        new Date().toISOString().split("T")[0],
+    };
+
+    instrumentKeys.forEach((key) => {
+      if (updatedSong[key]) {
+        mergedEntry[key] = {
+          ...(userDoc.userdata[songIndex][key] || {}),
+          ...updatedSong[key],
+        };
+      }
+    });
+
+    userDoc.userdata[songIndex] = mergedEntry;
+
+    await collection.updateOne(
+      { email },
+      { $set: { userdata: userDoc.userdata } },
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Música atualizada com sucesso!", song: mergedEntry });
+  } catch (error) {
+    console.error("Erro ao atualizar música:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao atualizar música.", error: error?.message });
   }
 });
 
@@ -1401,6 +1470,17 @@ const INSTRUMENT_MAP = { keyboard: "keys", key: "keys" };
 function normalizeInstrument(i) {
   const norm = (INSTRUMENT_MAP[i] || i || "").toLowerCase();
   return INSTRUMENT_ALLOWED.includes(norm) ? norm : null;
+}
+
+function normalizeName(s = "") {
+  return String(s)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 /** Normaliza link para comparação estável (sem http/https, sem www, minúsculo, sem barra final) */

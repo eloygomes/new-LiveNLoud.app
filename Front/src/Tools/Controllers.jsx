@@ -143,6 +143,27 @@ export const updateSongData = async (updatedData) => {
   }
 };
 
+export const updateSongEntry = async (updatedSong = {}) => {
+  const email = getUserEmail();
+  if (!email) {
+    throw new Error("Usuário não autenticado (sem userEmail no localStorage).");
+  }
+  if (!updatedSong.artist || !updatedSong.song) {
+    throw new Error("updatedSong precisa conter artist e song.");
+  }
+
+  try {
+    const { data } = await axiosApi.put("/api/song/updateExact", {
+      email,
+      updatedSong,
+    });
+    return data;
+  } catch (error) {
+    console.error("Error updating exact song record:", error);
+    throw error;
+  }
+};
+
 export const updateUserName = async (newName) => {
   const payload = {
     email: getUserEmail(),
