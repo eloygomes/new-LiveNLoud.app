@@ -238,6 +238,15 @@ main{
   cursor: pointer;
 }
 
+.neuphormism-b-btn-red-cancel {
+  border-radius: 5px;
+  border: 1px solid #db4e4e;
+  background: linear-gradient(145deg, #f7b6b6, #db4e4e);
+  color: white;
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
 
 
 .tab{

@@ -1,7 +1,10 @@
+/* eslint-disable react/prop-types */
 function SearchBox({ searchTerm, setSearchTerm }) {
   return (
     <div className="neuphormism-b m-2 pb-5">
-      <h1 className="px-5 my-4 text-sm">Search</h1>
+      <h1 className="px-5 pb-2 text-sm pt-3 font-bold text-md uppercase">
+        Search
+      </h1>
       <div className="px-5">
         <div className="flex items-center gap-2">
           <div className="relative w-full">
