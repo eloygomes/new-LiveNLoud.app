@@ -1,13 +1,20 @@
 /* eslint-disable react/prop-types */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaSpotify, FaYoutube } from "react-icons/fa";
+
+import { pickJwtToken, startYouTubeLoginPopup } from "./youtubeAuth";
 import { startSpotifyLogin } from "./spotifyAuth";
-import { startYouTubeTokenFlow } from "./youtubeAuth";
-import {
-  youtubeCreatePlaylist,
-  youtubeSearchVideoId,
-  youtubeAddVideoToPlaylist,
-} from "./youtubeApi";
+
+function normalizeSongsForExport(list = []) {
+  // Backend expects: [{ song, artist }]
+  // Robust: only require `song`; allow missing `artist`.
+  return (list || [])
+    .map((s) => ({
+      song: String(s?.song || s?.title || s?.name || "").trim(),
+      artist: String(s?.artist || "").trim(),
+    }))
+    .filter((s) => s.song);
+}
 
 export default function PlaylistExport({ visibleSongs = [] }) {
   const disabled = !visibleSongs?.length;
@@ -18,11 +25,8 @@ export default function PlaylistExport({ visibleSongs = [] }) {
     return `Sustenido • ${count} músicas • ${date}`;
   }, [visibleSongs]);
 
-  // idle -> mostra botões
-  // naming -> mostra input e ações (provider selecionado)
-  // working -> feedback enquanto executa
-  const [mode, setMode] = useState("idle");
-  const [provider, setProvider] = useState(null); // "spotify" | "youtube"
+  const [mode, setMode] = useState("idle"); // idle | naming | working
+  const [provider, setProvider] = useState(null); // spotify | youtube | null
   const [playlistName, setPlaylistName] = useState(defaultName);
   const [statusLine, setStatusLine] = useState("");
 
@@ -43,87 +47,321 @@ export default function PlaylistExport({ visibleSongs = [] }) {
     const name = String(playlistName || "").trim();
     if (!name) return;
 
+    console.log("[PLAYLIST_EXPORT] start", {
+      provider,
+      songs: visibleSongs?.length || 0,
+      name,
+    });
+    console.log("[PLAYLIST_EXPORT] current location", {
+      href: window.location.href,
+      pathname: window.location.pathname,
+      search: window.location.search,
+    });
+
     setMode("working");
     setStatusLine("");
 
+    // ======================
+    // SPOTIFY (já existente)
+    // ======================
     if (provider === "spotify") {
       sessionStorage.setItem("spotify_playlist_name", name);
       sessionStorage.setItem(
         "spotify_playlist_songs",
-        JSON.stringify(visibleSongs || [])
+        JSON.stringify(visibleSongs || []),
       );
+
+      setStatusLine("Redirecionando para o Spotify…");
       startSpotifyLogin();
       return;
     }
 
+    // ======================
+    // YOUTUBE (NOVO: backend)
+    // ======================
     if (provider === "youtube") {
+      console.group("[YT EXPORT] pre-redirect snapshot");
+      console.log("songs visible", {
+        count: (visibleSongs || []).length,
+        sample: (visibleSongs || []).slice(0, 1),
+      });
+      console.log("defaultName", defaultName);
+      console.log("playlistName", name);
+      console.log("token keys", {
+        accessToken: !!localStorage.getItem("accessToken"),
+        access_token: !!localStorage.getItem("access_token"),
+        jwt: !!localStorage.getItem("jwt"),
+        token: !!localStorage.getItem("token"),
+      });
+      console.groupEnd();
+
+      // ✅ salva igual ao Spotify (pra sobreviver ao redirect OAuth)
+      sessionStorage.setItem("youtube_playlist_name", name);
+      sessionStorage.setItem(
+        "youtube_playlist_songs",
+        JSON.stringify(visibleSongs || []),
+      );
+
+      setStatusLine("Abrindo login do YouTube (popup)…");
+
       try {
-        // 1) autentica (SEM client_secret)
-        setStatusLine("Conectando ao Google/YouTube…");
-        await startYouTubeTokenFlow({
-          scope: "https://www.googleapis.com/auth/youtube",
+        await startYouTubeLoginPopup({
+          // IMPORTANT: return to a page that mounts this component in the popup.
+          // Now using dedicated /yt/done route for popup completion.
+          returnTo: "/yt/done",
         });
 
-        // 2) cria playlist
-        setStatusLine("Criando playlist no YouTube…");
-        const created = await youtubeCreatePlaylist({
-          title: name,
-          description: "Playlist criada automaticamente pelo LiveNLoud",
-          privacyStatus: "public",
-        });
-
-        const playlistId = created?.id;
-        if (!playlistId)
-          throw new Error("Não consegui obter o ID da playlist criada.");
-
-        // 3) adiciona músicas (busca vídeo por título/artista)
-        const songs = Array.isArray(visibleSongs) ? visibleSongs : [];
-        let added = 0;
-        let notFound = 0;
-
-        for (let i = 0; i < songs.length; i++) {
-          const s = songs[i] || {};
-          const song = s.song || s.title || s.name || "";
-          const artist = s.artist || s.band || "";
-          const q = [song, artist].filter(Boolean).join(" ").trim();
-
-          setStatusLine(`Buscando e adicionando… (${i + 1}/${songs.length})`);
-
-          if (!q) {
-            notFound++;
-            continue;
-          }
-
-          const videoId = await youtubeSearchVideoId(q);
-          if (!videoId) {
-            notFound++;
-            continue;
-          }
-
-          await youtubeAddVideoToPlaylist({ playlistId, videoId });
-          added++;
-        }
-
-        setStatusLine(
-          `✅ Pronto! Adicionadas: ${added} • Não encontradas: ${notFound}`
+        // After popup success, trigger export directly from current page.
+        setStatusLine("Conectado. Iniciando exportação…");
+        window.postMessage(
+          { type: "YT_OAUTH_OK", from: "self" },
+          window.location.origin,
         );
-        setTimeout(() => {
-          setProvider(null);
-          setMode("idle");
-          setStatusLine("");
-        }, 1200);
       } catch (e) {
-        setStatusLine(`Falhou: ${e?.message || String(e)}`);
+        console.error("[YT EXPORT] popup auth failed", e);
+        setMode("idle");
+        setStatusLine(`❌ Falha no login do YouTube: ${e?.message || "erro"}`);
       }
+      return;
     }
   }
+
+  // ✅ Quando voltar do OAuth: ?yt=ok&returnTo=...
+  useEffect(() => {
+    console.group("[YT EXPORT] callback effect mounted");
+    console.log("location", {
+      href: window.location.href,
+      pathname: window.location.pathname,
+      search: window.location.search,
+    });
+
+    // If this page is running inside the popup AND we have yt=ok, report back to opener and close.
+    // Note: embedding Google in an iframe/modal is blocked; popup is the supported approach.
+    const isPopup = !!window.opener && window.opener !== window;
+
+    const params = new URLSearchParams(window.location.search);
+    const yt = params.get("yt");
+
+    const hasStoredSongs = !!sessionStorage.getItem("youtube_playlist_songs");
+    const attempted = sessionStorage.getItem("yt_export_attempted") === "1";
+
+    // Trigger if yt=ok OR we have stored payload (fallback), but never retry endlessly
+    const shouldTrigger = yt === "ok" || hasStoredSongs;
+    console.log("trigger check", {
+      yt,
+      hasStoredSongs,
+      attempted,
+      shouldTrigger,
+      storedName: sessionStorage.getItem("youtube_playlist_name"),
+      rawSongsLen: (sessionStorage.getItem("youtube_playlist_songs") || "")
+        .length,
+    });
+
+    function runExportFromStorage() {
+      let cancelled = false;
+
+      async function runExportFromStorageInner() {
+        const storedName =
+          sessionStorage.getItem("youtube_playlist_name") || "";
+        const rawSongs =
+          sessionStorage.getItem("youtube_playlist_songs") || "[]";
+
+        const name = String(storedName).trim();
+        let songs = [];
+        try {
+          songs = JSON.parse(rawSongs);
+        } catch {
+          songs = [];
+        }
+
+        const payloadSongs = normalizeSongsForExport(songs);
+        console.log("[YT EXPORT] payload build", {
+          name,
+          parsedSongsCount: (songs || []).length,
+          payloadSongsCount: (payloadSongs || []).length,
+          payloadSample: (payloadSongs || []).slice(0, 3),
+        });
+
+        if (!name || !payloadSongs.length) {
+          setProvider("youtube");
+          setMode("idle");
+          setStatusLine(
+            "Nada para exportar (nome ou músicas vazias no sessionStorage).",
+          );
+          sessionStorage.removeItem("yt_export_attempted");
+          console.groupEnd();
+          try {
+            window.history.replaceState({}, "", window.location.pathname);
+          } catch {
+            // ignore
+          }
+          return;
+        }
+
+        const token = pickJwtToken();
+        console.log("[YT EXPORT] token", {
+          ok: !!token,
+          length: token ? token.length : 0,
+          preview: token ? token.slice(0, 12) + "…" : "",
+        });
+
+        if (!token) {
+          setProvider("youtube");
+          setMode("idle");
+          setStatusLine(
+            "Você conectou no YouTube, mas não achei seu JWT (faça login de novo no app).",
+          );
+          sessionStorage.removeItem("yt_export_attempted");
+          console.groupEnd();
+          return;
+        }
+
+        async function runExport() {
+          try {
+            setProvider("youtube");
+            setMode("working");
+            setStatusLine("Criando playlist no YouTube…");
+
+            console.log("[YT EXPORT] POST /api/youtube/export", {
+              playlistName: name,
+              songs: payloadSongs.length,
+              privacyStatus: "public",
+            });
+
+            const resp = await fetch("/api/youtube/export", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                playlistName: name,
+                songs: payloadSongs,
+                privacyStatus: "public",
+              }),
+            });
+
+            const respText = await resp.text().catch(() => "");
+            console.log("[YT EXPORT] response", {
+              ok: resp.ok,
+              status: resp.status,
+              textPreview: respText.slice(0, 400),
+            });
+
+            let data = {};
+            try {
+              data = respText ? JSON.parse(respText) : {};
+            } catch {
+              data = { raw: respText };
+            }
+
+            if (!resp.ok) {
+              const msg =
+                data?.message || data?.error || `Erro HTTP ${resp.status}`;
+              throw new Error(msg);
+            }
+
+            if (cancelled) return;
+
+            setStatusLine(
+              `✅ Playlist criada! Itens adicionados: ${
+                data?.added ?? "?"
+              } • Não encontrados: ${data?.notFound?.length ?? 0}`,
+            );
+
+            sessionStorage.removeItem("youtube_playlist_name");
+            sessionStorage.removeItem("youtube_playlist_songs");
+            sessionStorage.removeItem("yt_export_attempted");
+            console.groupEnd();
+            try {
+              window.history.replaceState({}, "", window.location.pathname);
+            } catch {
+              // ignore
+            }
+          } catch (err) {
+            console.error("[YT EXPORT] failed:", err);
+            if (cancelled) return;
+
+            setMode("idle");
+            setStatusLine(
+              `❌ Falha ao exportar no YouTube: ${err?.message || "erro"}`,
+            );
+
+            sessionStorage.removeItem("yt_export_attempted");
+            console.groupEnd();
+            try {
+              window.history.replaceState({}, "", window.location.pathname);
+            } catch {
+              // ignore
+            }
+          }
+        }
+
+        await runExport();
+      }
+
+      // Keep reference for the message handler
+      // eslint-disable-next-line no-inner-declarations
+      async function runExportFromStorageWrapper() {
+        return runExportFromStorageInner();
+      }
+
+      // Expose to onMessage via closure
+      // (do not attach to window)
+      return runExportFromStorageWrapper();
+    }
+
+    function onMessage(ev) {
+      if (ev.origin !== window.location.origin) return;
+      const data = ev.data;
+      if (!data || typeof data !== "object") return;
+      if (data.type !== "YT_OAUTH_OK") return;
+
+      console.log("[YT EXPORT] received YT_OAUTH_OK message", data);
+
+      // Force trigger using stored payload even if URL does not have yt=ok (popup flow)
+      if (attempted) {
+        console.log("[YT EXPORT] already attempted, ignoring message");
+        return;
+      }
+
+      // Mark attempt and run the same flow below by faking the conditions.
+      sessionStorage.setItem("yt_export_attempted", "1");
+      console.log("[YT EXPORT] marked attempted (via message)");
+
+      // Re-run the export logic by calling runExportFromStorage()
+      runExportFromStorage();
+    }
+
+    window.addEventListener("message", onMessage);
+
+    // If URL indicates completion, run immediately
+    if (yt === "ok") {
+      // Mark attempt early to avoid loops
+      sessionStorage.setItem("yt_export_attempted", "1");
+      console.log("[YT EXPORT] marked attempted (via url)");
+      runExportFromStorage();
+    }
+
+    if (!shouldTrigger || attempted) {
+      console.log("[YT EXPORT] not triggering", { shouldTrigger, attempted });
+      console.groupEnd();
+      return () => {
+        window.removeEventListener("message", onMessage);
+      };
+    }
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+    };
+  }, []);
 
   const providerLabel =
     provider === "spotify"
       ? "Spotify"
       : provider === "youtube"
-      ? "YouTube"
-      : "";
+        ? "YouTube"
+        : "";
 
   return (
     <div className="neuphormism-b m-2">
@@ -137,17 +375,15 @@ export default function PlaylistExport({ visibleSongs = [] }) {
               sua conta.
             </p>
 
+            {!!statusLine && (
+              <p className="text-[11px] pb-3 text-gray-500">{statusLine}</p>
+            )}
+
             <div className="flex flex-row flex-wrap gap-3">
-              {/* Spotify */}
               <button
                 type="button"
                 onClick={() => goToNaming("spotify")}
                 disabled={disabled}
-                title={
-                  disabled
-                    ? "Nenhuma música visível para exportar"
-                    : "Conectar ao Spotify para criar a playlist"
-                }
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
                   ${
                     disabled
@@ -159,16 +395,10 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 Spotify
               </button>
 
-              {/* YouTube */}
               <button
                 type="button"
                 onClick={() => goToNaming("youtube")}
                 disabled={disabled}
-                title={
-                  disabled
-                    ? "Nenhuma música visível para exportar"
-                    : "Conectar ao YouTube para criar a playlist"
-                }
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
                   ${
                     disabled
@@ -179,11 +409,6 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 <FaYoutube className="text-lg" />
                 YouTube
               </button>
-            </div>
-
-            <div className="pt-3 text-[10px] text-gray-600">
-              * Spotify: autentica e cria playlist no Spotify. <br />* YouTube:
-              autentica via Google (sem callback) e cria playlist no YouTube.
             </div>
           </>
         )}
@@ -201,11 +426,6 @@ export default function PlaylistExport({ visibleSongs = [] }) {
               </h2>
             </div>
 
-            <p className="text-gray-600 text-[11px] mb-3">
-              Escolha um nome para a playlist que será criada com as músicas
-              visíveis.
-            </p>
-
             <input
               autoFocus
               value={playlistName}
@@ -214,7 +434,6 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 if (e.key === "Escape") cancelNaming();
                 if (e.key === "Enter") confirmAndStart();
               }}
-              placeholder="Ex: Sustenido • Treino de hoje"
               className="w-full mt-1 mb-3 px-3 py-1 text-sm rounded-md bg-transparent border border-gray-500 text-gray-500 outline-none focus:border-[goldenrod]"
             />
 
@@ -249,10 +468,6 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 )}
               </button>
             </div>
-
-            <div className="pt-3 text-[10px] text-gray-600">
-              Dica: Enter confirma • Esc cancela
-            </div>
           </>
         )}
 
@@ -268,8 +483,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
             </div>
 
             <p className="text-gray-600 text-[11px]">
-              {statusLine ||
-                "Abrindo autenticação. Se nada acontecer, verifique se o navegador bloqueou pop-up."}
+              {statusLine || "Executando… veja o console para detalhes."}
             </p>
 
             <div className="pt-3 text-[10px] text-gray-600">

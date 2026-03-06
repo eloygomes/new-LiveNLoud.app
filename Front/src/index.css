@@ -229,6 +229,17 @@ main{
 }
 
 
+.neuphormism-b-btn-green-save {
+  border-radius: 5px;
+  border: 1px solid rgb(0, 77, 0);
+  background: linear-gradient(145deg, green, rgb(0, 77, 0));
+  color: white;
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+}
+
+
+
 .tab{
   /* display: none; */
 }
