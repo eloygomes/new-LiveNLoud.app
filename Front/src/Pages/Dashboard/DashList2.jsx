@@ -38,14 +38,14 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
       } else {
         const filtered = songs.filter((song) => {
           const songSetlists = (song.setlist || []).map((s) =>
-            s.trim().toLowerCase()
+            s.trim().toLowerCase(),
           );
           return trimmedFilters.some((filter) => songSetlists.includes(filter));
         });
         setFilteredSongs(filtered);
       }
     },
-    [songs]
+    [songs],
   );
 
   // ===== NOVO: aplica busca em cima de filteredSongs =====
@@ -139,7 +139,7 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
           <div className="flex flex-col mt-0 h-[100vh] pb-20">
             {!optStatus && (
               <div
-                className={`fixed left-1/2 top-[80px] w-[91%] -translate-x-1/2 transform pointer-events-none z-50 ${
+                className={`fixed left-1/2 top-[80px] w-[91%] -translate-x-1/2 transform pointer-events-none z-10 ${
                   optStatus ? "hidden" : "block"
                 }`}
               >

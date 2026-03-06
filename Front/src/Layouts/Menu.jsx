@@ -17,7 +17,6 @@ export default function RootLayouts() {
     .toLowerCase()
     .includes("dashboard");
 
-
   return (
     <>
       {/* HEADER */}
@@ -35,7 +34,7 @@ export default function RootLayouts() {
                 <div className="flex flex-row">
                   <h1 className="font-bold text-3xl">#</h1>
                   <h1
-                    className="ml-2 font-bold italic mr-5"
+                    className="ml-2 font-bold italic mr-5 "
                     onClick={() => navigate("/")}
                   >
                     SUSTENIDO
@@ -95,7 +94,7 @@ export default function RootLayouts() {
                   <div className="flex flex-row flex-shrink-0 items-center">
                     <h1 className="font-bold text-3xl">#</h1>
                     <h1
-                      className="ml-2 font-bold italic mr-5 cursor-pointer"
+                      className="ml-2 font-bold italic mr-5 text-xl cursor-pointer"
                       onClick={() => navigate("/")}
                     >
                       SUSTENIDO
