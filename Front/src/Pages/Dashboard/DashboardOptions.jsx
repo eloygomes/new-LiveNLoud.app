@@ -9,11 +9,13 @@ import {
   loadSelectedSetlists,
   saveSelectedSetlists,
   fetchDistinctSetlists,
+  updateUserSetlists,
 } from "../../Tools/Controllers";
 import PlaylistExport from "./PlaylistExport";
 import SetlistExport from "./SetlistExport";
 import Insights from "./Insights";
 import SearchBox from "./SearchBox/SearchBox";
+import Tags from "./Tags";
 
 const instrumentLabels = [
   { key: "guitar01", label: "G1" },
@@ -103,7 +105,7 @@ export default function DashboardOptions({
     const totalSongs = visibleSongs.length;
     const totalProgress = visibleSongs.reduce(
       (sum, song) => sum + Number(song.progressBar || 0),
-      0
+      0,
     );
     const countsMap = instrumentLabels.reduce((acc, label) => {
       acc[label.key] = 0;
@@ -136,14 +138,25 @@ export default function DashboardOptions({
   // Alternar inclusão/remoção da tag
   const toggleTag = (tag) => {
     setSelectedSetlists((prev) =>
-      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
     );
   };
 
   // Excluir completamente a tag da lista disponível e das selecionadas
-  const handleDeleteSetlist = (tag) => {
-    setSetlists((prev) => prev.filter((item) => item !== tag));
+  const handleDeleteSetlist = async (tag) => {
+    const updatedList = setlists.filter((item) => item !== tag);
+
+    setSetlists(updatedList);
     setSelectedSetlists((prev) => prev.filter((item) => item !== tag));
+
+    try {
+      await updateUserSetlists(updatedList);
+    } catch (error) {
+      console.error("Erro ao atualizar setlists no servidor:", error);
+      // Em caso de erro, recarrega lista do backend para evitar estado inconsistente.
+      const distinct = await fetchDistinctSetlists();
+      setSetlists(distinct);
+    }
   };
 
   return (
@@ -169,65 +182,15 @@ export default function DashboardOptions({
           <div className="neuphormism-b m-2  h-auto">
             <Insights dashboardMetrics={dashboardMetrics} />
           </div>
+
           <div className="neuphormism-b m-2  pb-4">
-            <div className="neuphormism-b m-2  h-full">
-              <h1 className="px-5 pb-2 text-sm pb-2 pt-3">Tags</h1>
-              {/* Corpo principal */}
-              <div className="flex flex-row justify-between px-5 ">
-                <div className="w-full pr-2 ">
-                  {setlists.length === 0 ? (
-                    <p className="italic text-sm">
-                      Nenhuma setlist cadastrada.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2 ">
-                      {setlists.map((tag, index) => {
-                        const isActive = selectedSetlists.includes(tag);
-                        return (
-                          <div
-                            key={`${tag}-${index}`}
-                            className="flex items-center gap-1 shadow-sm "
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "6px 10px",
-                              borderRadius: "7px",
-                              margin: "2px",
-                              cursor: "pointer",
-                              fontSize: "12px",
-                              backgroundColor: isActive
-                                ? "goldenrod"
-                                : "#9ca3af",
-                              color: "#fff",
-                              userSelect: "none",
-                            }}
-                          >
-                            <span
-                              onClick={() => toggleTag(tag)}
-                              title={
-                                isActive
-                                  ? "Clique para remover este filtro"
-                                  : "Clique para adicionar este filtro"
-                              }
-                            >
-                              {tag}
-                            </span>
-                            <RiDeleteBin6Line
-                              className="w-4 h-4 ml-1"
-                              title="Remover setlist do sistema"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSetlist(tag);
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <Tags
+              setlists={setlists}
+              selectedSetlists={selectedSetlists}
+              toggleTag={toggleTag}
+              handleDeleteSetlist={handleDeleteSetlist}
+              RiDeleteBin6Line={RiDeleteBin6Line}
+            />
           </div>
         </div>
         <div className="flex flex-col w-1/2">

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { getAllUserSetlists } from "../../Tools/Controllers";
+import { useState, useEffect, useMemo } from "react";
+import { getAllUserSetlists, updateUserSetlists } from "../../Tools/Controllers";
 import { MdAddCircle } from "react-icons/md";
 import { RiDeleteBin6Line } from "react-icons/ri";
 
@@ -11,6 +11,19 @@ function EditSongSetlist({
   setSetListOptions,
 }) {
   const [newSetlistName, setNewSetlistName] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [pendingRemovals, setPendingRemovals] = useState([]);
+
+  const tagAnimationStyle = useMemo(
+    () =>
+      isEditing
+        ? {
+            animation: "tag-shake 0.45s ease-in-out infinite",
+            transformOrigin: "center",
+          }
+        : {},
+    [isEditing],
+  );
 
   // Carrega as opções existentes do usuário na primeira renderização
   useEffect(() => {
@@ -27,6 +40,7 @@ function EditSongSetlist({
 
   // Alterna a seleção da tag: se já está selecionada, remove; se não, adiciona
   const toggleTag = (tag) => {
+    if (isEditing) return;
     if (setlist.includes(tag)) {
       setSetlist(setlist.filter((item) => item !== tag));
     } else {
@@ -47,10 +61,47 @@ function EditSongSetlist({
     setNewSetlistName("");
   };
 
-  // Remove totalmente um setlist
-  const handleDeleteSetlist = (tag) => {
-    setSetListOptions((prev) => prev.filter((t) => t !== tag));
-    setSetlist((prev) => prev.filter((t) => t !== tag));
+  const togglePendingRemoval = (tag) => {
+    setPendingRemovals((prev) =>
+      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
+    );
+  };
+
+  const cancelEditing = () => {
+    setPendingRemovals([]);
+    setIsEditing(false);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!pendingRemovals.length) {
+      setIsEditing(false);
+      return;
+    }
+    const nextOptions = setlistOptions.filter((tag) => !pendingRemovals.includes(tag));
+    const nextSetlist = setlist.filter((tag) => !pendingRemovals.includes(tag));
+
+    setSetListOptions(nextOptions);
+    setSetlist(nextSetlist);
+
+    try {
+      await updateUserSetlists(nextOptions);
+    } catch (error) {
+      console.error("Erro ao sincronizar setlists:", error);
+      try {
+        const refreshed = await getAllUserSetlists();
+        setSetListOptions(refreshed);
+      } catch (reloadErr) {
+        console.error("Erro ao recarregar setlists:", reloadErr);
+      }
+    }
+
+    setPendingRemovals([]);
+    setIsEditing(false);
+  };
+
+  const startEditing = () => {
+    setPendingRemovals([]);
+    setIsEditing(true);
   };
 
   return (
@@ -119,7 +170,38 @@ function EditSongSetlist({
     // </div>
 
     <div className="my-4 p-3 border rounded   neuphormism-b p-5 my-5 mr-5">
-      <h2 className="text-lg font-bold mb-2">Setlists</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold mb-2">Setlists</h2>
+        <div className="flex gap-2">
+          {!isEditing ? (
+            <button
+              type="button"
+              onClick={startEditing}
+              className="text-sm px-4 py-2 rounded-full border transition-colors neuphormism-b-btn"
+            >
+              Edit
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="text-sm px-4 py-2 rounded-full border transition-colors bg-white text-gray-700 border-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveChanges}
+                className="text-sm px-4 py-2 rounded-full border transition-colors bg-emerald-500 text-white border-emerald-500 disabled:opacity-60"
+                disabled={pendingRemovals.length === 0}
+              >
+                Save
+              </button>
+            </>
+          )}
+        </div>
+      </div>
 
       <div className="mt-4">
         <label htmlFor="newSetlistName" className="block mb-1 font-semibold">
@@ -148,21 +230,31 @@ function EditSongSetlist({
             <div className="flex flex-wrap gap-2">
               {setlistOptions.map((tag, index) => {
                 const isActive = setlist.includes(tag);
+                const willRemove = pendingRemovals.includes(tag);
+                const backgroundColor = willRemove
+                  ? "#dc2626"
+                  : isActive
+                    ? "goldenrod"
+                    : "#9ca3af";
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-1"
+                    className={`flex items-center gap-1 ${
+                      willRemove ? "opacity-60 ring-2 ring-red-400" : ""
+                    } ${isEditing ? "cursor-default" : ""}`}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
                       padding: "6px 10px",
                       borderRadius: "10px",
                       margin: "2px",
-                      cursor: "pointer",
+                      cursor: isEditing ? "default" : "pointer",
                       fontSize: "12px",
-                      backgroundColor: isActive ? "goldenrod" : "#9ca3af",
+                      backgroundColor,
+                      border: willRemove ? "1px solid #dc2626" : "1px solid transparent",
                       color: "#fff",
                       userSelect: "none",
+                      ...tagAnimationStyle,
                     }}
                   >
                     <span
@@ -175,14 +267,20 @@ function EditSongSetlist({
                     >
                       {tag}
                     </span>
-                    <RiDeleteBin6Line
-                      className="w-4 h-4 ml-1"
-                      title="Remover setlist do sistema"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteSetlist(tag);
-                      }}
-                    />
+                    {isEditing && (
+                      <RiDeleteBin6Line
+                        className={`w-4 h-4 ml-1 ${willRemove ? "text-red-500" : ""}`}
+                        title={
+                          willRemove
+                            ? "Clique para desfazer a remoção"
+                            : "Remover setlist do sistema"
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePendingRemoval(tag);
+                        }}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -191,7 +289,15 @@ function EditSongSetlist({
         </div>
       </div>
 
-      {/* Formulário para criar um novo setlist (e já ativar) */}
+      <style>{`
+        @keyframes tag-shake {
+          0% { transform: rotate(-2deg) scale(0.98); }
+          25% { transform: rotate(2deg) scale(1.02); }
+          50% { transform: rotate(-3deg) scale(0.99); }
+          75% { transform: rotate(3deg) scale(1.01); }
+          100% { transform: rotate(-2deg) scale(1); }
+        }
+      `}</style>
     </div>
   );
 }

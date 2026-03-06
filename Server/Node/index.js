@@ -747,6 +747,62 @@ app.post("/api/deleteonesong", async (req, res) => {
   }
 });
 
+app.put("/api/updateSetlists", async (req, res) => {
+  try {
+    const { email, setlists } = req.body;
+
+    if (!email || !Array.isArray(setlists)) {
+      return res
+        .status(400)
+        .json({ message: "Email e um array de setlists são obrigatórios." });
+    }
+
+    const sanitizedSetlists = Array.from(
+      new Set(
+        setlists
+          .map((tag) => String(tag || "").trim())
+          .filter((tag) => tag.length > 0),
+      ),
+    );
+
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+
+    const userDoc = await collection.findOne({ email });
+    if (!userDoc) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const allowedSet = new Set(sanitizedSetlists);
+    const updatedUserdata = (userDoc.userdata || []).map((entry) => {
+      const currentSetlist = Array.isArray(entry.setlist) ? entry.setlist : [];
+      const filteredTags = currentSetlist.filter((tag) => allowedSet.has(tag));
+      return { ...entry, setlist: filteredTags };
+    });
+
+    const updateResult = await collection.updateOne(
+      { email },
+      {
+        $set: {
+          userdata: updatedUserdata,
+          availableSetlists: sanitizedSetlists,
+        },
+      },
+    );
+
+    return res.status(200).json({
+      message: "Setlists atualizadas e sincronizadas com as músicas.",
+      modifiedCount: updateResult.modifiedCount,
+      availableSetlists: sanitizedSetlists,
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar setlists:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao atualizar setlists do usuário." });
+  }
+});
+
 // Rota para obter todas as músicas de um usuário
 app.get("/api/alldata/:email", async (req, res) => {
   try {
