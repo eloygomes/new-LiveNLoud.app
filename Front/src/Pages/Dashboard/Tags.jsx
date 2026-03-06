@@ -60,8 +60,8 @@ export default function Tags({
     <>
       <div>
         <div className="neuphormism-b m-2  p-2 ">
-          <div className="flex justify-around items-center">
-            <div className="w-1/2">
+          <div className="flex justify-around items-center ">
+            <div className="w-1/2 ">
               <h1 className="px-5 pb-2 text-sm pt-3 font-bold text-md uppercase">
                 Tags
               </h1>
@@ -80,7 +80,7 @@ export default function Tags({
                   <button
                     type="button"
                     onClick={cancelEditing}
-                    className="text-sm px-4 py-2 rounded-full border transition-colors bg-white text-gray-700 border-gray-300  neuphormism-b-btn-green"
+                    className="text-sm px-4 py-2 rounded-full border transition-colors bg-white text-gray-700 border-gray-300  neuphormism-b-btn-red-cancel"
                   >
                     Cancel
                   </button>

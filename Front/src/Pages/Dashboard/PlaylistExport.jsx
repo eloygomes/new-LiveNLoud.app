@@ -365,8 +365,10 @@ export default function PlaylistExport({ visibleSongs = [] }) {
 
   return (
     <div className="neuphormism-b m-2">
-      <div className="px-5 py-4 flex flex-col">
-        <h1 className="text-sm pb-2">Playlists</h1>
+      <div className="px-5 py-4 flex flex-col neuphormism-b m-2">
+        <h1 className=" pb-2 text-sm pt-3 font-bold text-md uppercase">
+          Playlists
+        </h1>
 
         {mode === "idle" && (
           <>
@@ -384,11 +386,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("spotify")}
                 disabled={disabled}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
+                className={`neuphormism-b-btn flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "border border-[#9ca3af] hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
+                      : "border  hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
                   }`}
               >
                 <FaSpotify className="text-lg" />
@@ -399,11 +401,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("youtube")}
                 disabled={disabled}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
+                className={`neuphormism-b-btn flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "border border-[#9ca3af] hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
+                      : "border  hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
                   }`}
               >
                 <FaYoutube className="text-lg" />

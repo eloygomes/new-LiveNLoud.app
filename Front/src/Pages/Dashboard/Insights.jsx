@@ -8,7 +8,9 @@ function Insights({ dashboardMetrics }) {
 
   return (
     <div className="neuphormism-b m-2 pb-4">
-      <h1 className="px-5 pb-2 text-sm">Insights</h1>
+      <h1 className="px-5 pb-2 text-sm pt-3 font-bold text-md uppercase">
+        Insights
+      </h1>
       <div className="px-5">
         <div className="grid gap-3 sm:grid-cols-2 text-[11px]">
           <div className="neuphormism-b rounded-xl p-4 shadow-sm">
