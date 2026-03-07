@@ -103,6 +103,13 @@ function ToolBox({
   hideChords,
   setHideChords,
   setSelectContenttoShow,
+  isEditing,
+  isSavingCifra,
+  hasDraftChanges,
+  songCifraData,
+  handleSaveCifra,
+  handleDiscardDraft,
+  startEditingCifra,
 }) {
   const [linktoplay, setLinktoplay] = useState("");
   const [videoModalStatus, setVideoModalStatus] = useState(false);
@@ -169,6 +176,13 @@ function ToolBox({
               hideChords={hideChords}
               setHideChords={setHideChords}
               setSelectContenttoShow={setSelectContenttoShow}
+              isEditing={isEditing}
+              isSavingCifra={isSavingCifra}
+              hasDraftChanges={hasDraftChanges}
+              songCifraData={songCifraData}
+              handleSaveCifra={handleSaveCifra}
+              handleDiscardDraft={handleDiscardDraft}
+              startEditingCifra={startEditingCifra}
             />
 
             <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">
