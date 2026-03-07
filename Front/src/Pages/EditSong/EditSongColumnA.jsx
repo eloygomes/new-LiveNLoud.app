@@ -16,6 +16,7 @@ function EditSongColumnA({
   progKey,
   progDrums,
   progVoice,
+  registerInstrumentUpdaters,
 }) {
   // Dados principais da música
   const [songName, setSongName] = useState("");
@@ -90,6 +91,49 @@ function EditSongColumnA({
   const [instLastPlayedvoice, setInstLastPlayedvoice] = useState("");
   const [instLinkvoice, setInstLinkvoice] = useState("");
   const [instProgressBarvoice, setInstProgressBarvoice] = useState(0);
+
+  useEffect(() => {
+    if (!registerInstrumentUpdaters) return;
+
+    registerInstrumentUpdaters("guitar01", {
+      setLink: setInstLinkguitar01,
+      setProgress: setInstProgressBarguitar01,
+    });
+    registerInstrumentUpdaters("guitar02", {
+      setLink: setInstLinkguitar02,
+      setProgress: setInstProgressBarguitar02,
+    });
+    registerInstrumentUpdaters("bass", {
+      setLink: setInstLinkbass,
+      setProgress: setInstProgressBarbass,
+    });
+    registerInstrumentUpdaters("keys", {
+      setLink: setInstLinkkeyboard,
+      setProgress: setInstProgressBarkeyboard,
+    });
+    registerInstrumentUpdaters("drums", {
+      setLink: setInstLinkdrums,
+      setProgress: setInstProgressBardrums,
+    });
+    registerInstrumentUpdaters("voice", {
+      setLink: setInstLinkvoice,
+      setProgress: setInstProgressBarvoice,
+    });
+  }, [
+    registerInstrumentUpdaters,
+    setInstLinkguitar01,
+    setInstProgressBarguitar01,
+    setInstLinkguitar02,
+    setInstProgressBarguitar02,
+    setInstLinkbass,
+    setInstProgressBarbass,
+    setInstLinkkeyboard,
+    setInstProgressBarkeyboard,
+    setInstLinkdrums,
+    setInstProgressBardrums,
+    setInstLinkvoice,
+    setInstProgressBarvoice,
+  ]);
 
   const navigate = useNavigate();
 

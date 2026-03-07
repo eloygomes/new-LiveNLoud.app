@@ -16,6 +16,7 @@ function EditSongColumnB({
   setProgDrums,
   progVoice,
   setProgVoice,
+  instrumentUpdatersRef,
 }) {
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
@@ -103,6 +104,24 @@ function EditSongColumnB({
     }
   }, [dataFromAPI]);
 
+  const notifyInstrument = (instrumentName, payload) => {
+    if (!instrumentUpdatersRef?.current) return;
+    const updater = instrumentUpdatersRef.current[instrumentName];
+    if (!updater) return;
+    if (
+      Object.prototype.hasOwnProperty.call(payload, "link") &&
+      typeof updater.setLink === "function"
+    ) {
+      updater.setLink(payload.link);
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(payload, "progress") &&
+      typeof updater.setProgress === "function"
+    ) {
+      updater.setProgress(payload.progress);
+    }
+  };
+
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
       <div className="flex flex-col w-full">
@@ -113,6 +132,12 @@ function EditSongColumnB({
           setInstrument={setGuitar01}
           progress={progGuitar01}
           setProgress={setProgGuitar01}
+          onLinkChange={(value) =>
+            notifyInstrument("guitar01", { link: value })
+          }
+          onProgressChange={(value) =>
+            notifyInstrument("guitar01", { progress: value })
+          }
         />
         <EditSongInputLinkBox
           instrumentName="guitar02"
@@ -120,6 +145,12 @@ function EditSongColumnB({
           setInstrument={setGuitar02}
           progress={progGuitar02}
           setProgress={setProgGuitar02}
+          onLinkChange={(value) =>
+            notifyInstrument("guitar02", { link: value })
+          }
+          onProgressChange={(value) =>
+            notifyInstrument("guitar02", { progress: value })
+          }
         />
         <EditSongInputLinkBox
           instrumentName="bass"
@@ -127,6 +158,10 @@ function EditSongColumnB({
           setInstrument={setBass}
           progress={progBass}
           setProgress={setProgBass}
+          onLinkChange={(value) => notifyInstrument("bass", { link: value })}
+          onProgressChange={(value) =>
+            notifyInstrument("bass", { progress: value })
+          }
         />
         <EditSongInputLinkBox
           instrumentName="keys"
@@ -134,6 +169,10 @@ function EditSongColumnB({
           setInstrument={setKey}
           progress={progKey}
           setProgress={setProgKey}
+          onLinkChange={(value) => notifyInstrument("keys", { link: value })}
+          onProgressChange={(value) =>
+            notifyInstrument("keys", { progress: value })
+          }
         />
         <EditSongInputLinkBox
           instrumentName="drums"
@@ -141,6 +180,12 @@ function EditSongColumnB({
           setInstrument={setDrums}
           progress={progDrums}
           setProgress={setProgDrums}
+          onLinkChange={(value) =>
+            notifyInstrument("drums", { link: value })
+          }
+          onProgressChange={(value) =>
+            notifyInstrument("drums", { progress: value })
+          }
         />
         <EditSongInputLinkBox
           instrumentName="voice"
@@ -148,6 +193,10 @@ function EditSongColumnB({
           setInstrument={setVoice}
           progress={progVoice}
           setProgress={setProgVoice}
+          onLinkChange={(value) => notifyInstrument("voice", { link: value })}
+          onProgressChange={(value) =>
+            notifyInstrument("voice", { progress: value })
+          }
         />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import EditSongColumnA from "./EditSongColumnA";
 import EditSongColumnB from "./EditSongColumnB";
 import { fetchAllSongData } from "../../Tools/Controllers";
@@ -13,6 +13,12 @@ function EditSong() {
   const [progKey, setProgKey] = useState(0);
   const [progDrums, setProgDrums] = useState(0);
   const [progVoice, setProgVoice] = useState(0);
+
+  const instrumentUpdatersRef = useRef({});
+  const registerInstrumentUpdaters = useCallback((instrument, handlers) => {
+    if (!instrument) return;
+    instrumentUpdatersRef.current[instrument] = handlers;
+  }, []);
 
   // LocalStorage user email
   const userEmail = localStorage.getItem("userEmail");
@@ -55,6 +61,7 @@ function EditSong() {
                 progKey={progKey}
                 progDrums={progDrums}
                 progVoice={progVoice}
+                registerInstrumentUpdaters={registerInstrumentUpdaters}
               />
             </div>
             <div className="right-column w-1/2">
@@ -72,6 +79,7 @@ function EditSong() {
                 setProgDrums={setProgDrums}
                 progVoice={progVoice}
                 setProgVoice={setProgVoice}
+                instrumentUpdatersRef={instrumentUpdatersRef}
               />
             </div>
           </div>

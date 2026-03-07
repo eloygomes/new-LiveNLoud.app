@@ -9,7 +9,7 @@ function Tuner() {
   useEffect(() => {
     if (isTuning) {
       // Establish WebSocket connection only when tuning starts
-      const newSocket = io("https://www.api.live.eloygomes.com.br", {
+      const newSocket = io("https://api.live.eloygomes.com", {
         path: "/socket.io", // default path for socket.io
         transports: ["websocket"], // specify websocket transport
       });

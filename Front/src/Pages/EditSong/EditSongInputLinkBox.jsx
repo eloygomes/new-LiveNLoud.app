@@ -1,5 +1,5 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
+import { api as axiosApi } from "../../Tools/Controllers";
 
 /* eslint-disable react/prop-types */
 function EditSongInputLinkBox({
@@ -9,6 +9,8 @@ function EditSongInputLinkBox({
   progress,
   setProgress,
   dataFromAPI,
+  onLinkChange,
+  onProgressChange,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
 
@@ -63,7 +65,7 @@ function EditSongInputLinkBox({
 
     try {
       // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
-      await axios.post("https://api.live.eloygomes.com.br/api/scrape", {
+      await axiosApi.post("/api/scrape", {
         artist: artist,
         song: song,
         email: userEmail,
@@ -110,7 +112,11 @@ function EditSongInputLinkBox({
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-sm text-sm"
           value={link}
-          onChange={(e) => setInstrument(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setInstrument(value);
+            onLinkChange?.(value);
+          }}
           onBlur={() => {
             handledata();
             // console.log(`instrumentName: ${instrumentName}`);
@@ -126,7 +132,11 @@ function EditSongInputLinkBox({
             min="0"
             max="100"
             value={progress}
-            onChange={(e) => setProgress(Number(parseInt(e.target.value, 10)))}
+            onChange={(e) => {
+              const value = Number(parseInt(e.target.value, 10));
+              setProgress(value);
+              onProgressChange?.(value);
+            }}
             className="w-1/2"
           />
         </div>
