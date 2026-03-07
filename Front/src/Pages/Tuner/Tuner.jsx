@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 /* ------------------------------------------------------------------
    🔌 SOCKET
    ------------------------------------------------------------------ */
-const SOCKET_URL = "https://api.live.eloygomes.com.br";
+const SOCKET_URL = "https://api.live.eloygomes.com";
 const SOCKET_PATH = "/socket.io";
 
 /* ------------------------------------------------------------------

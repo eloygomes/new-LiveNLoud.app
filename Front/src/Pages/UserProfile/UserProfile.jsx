@@ -82,7 +82,7 @@ function UserProfile() {
     try {
       const userEmail = localStorage.getItem("userEmail");
       await axios.put(
-        "https://www.api.live.eloygomes.com.br/api/updateUsername",
+        "https://api.live.eloygomes.com/api/updateUsername",
         {
           email: userEmail,
           newUsername,
@@ -166,7 +166,7 @@ function UserProfile() {
       setUploadError("");
 
       const response = await axios.post(
-        "https://api.live.eloygomes.com.br/api/uploadProfileImage",
+        "https://api.live.eloygomes.com/api/uploadProfileImage",
         formData,
         {
           headers: {

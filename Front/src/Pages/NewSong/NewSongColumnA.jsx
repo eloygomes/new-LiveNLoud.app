@@ -654,28 +654,50 @@ function NewSongColumnA({
     if (songExtractedFromUrl) setSongName(slugToTitle(songExtractedFromUrl));
   }, [artistExtractedFromUrl, songExtractedFromUrl]);
 
-  const createNewSong = async ({
-    instrumentName,
-    geralPercentage,
-    setlist,
-  }) => {
+  const createNewSong = async ({ geralPercentage, setlist }) => {
     try {
-      await createNewSongOnServer({
-        songName,
-        artistName,
-        instrumentName,
-        geralPercentage,
-        setlist,
-        embedLink,
-        instrumentFields: {
-          active: instrActiveStatus,
-          capo: instCapo,
-          lastPlay: instLastPlayed,
-          link: instLink,
-          progress: instProgressBar,
-          songCifra,
-          tuning: instTuning,
-        },
+      const savedSongName = songName;
+      const savedArtistName = artistName;
+
+      const instrumentsToSave = [
+        { key: "guitar01", link: guitar01, progress: progBarG01 },
+        { key: "guitar02", link: guitar02, progress: progBarG02 },
+        { key: "bass", link: bass, progress: progBarBass },
+        { key: "keys", link: keyboard, progress: progBarKey },
+        { key: "drums", link: drums, progress: progBarDrums },
+        { key: "voice", link: voice, progress: progBarVoice },
+      ].filter((entry) => entry.link && entry.link.trim());
+
+      if (!instrumentsToSave.length) {
+        setShowSnackBar?.(true);
+        setSnackbarMessage?.({
+          title: "Error",
+          message: "Adicione pelo menos um link antes de salvar.",
+        });
+        return;
+      }
+
+      for (let index = 0; index < instrumentsToSave.length; index += 1) {
+        const { key, link, progress } = instrumentsToSave[index];
+        await createNewSongOnServer({
+          songName,
+          artistName,
+          instrumentName: key,
+          geralPercentage,
+          setlist,
+          embedLink: index === 0 ? embedLink : [],
+          instrumentFields: {
+            active: true,
+            link: link.trim(),
+            progress: progress ?? 0,
+          },
+        });
+      }
+
+      setShowSnackBar?.(true);
+      setSnackbarMessage?.({
+        title: "Success",
+        message: `Song "${savedSongName}" by ${savedArtistName} saved successfully!`,
       });
 
       hasSaved.current = true;
@@ -687,6 +709,11 @@ function NewSongColumnA({
       navigate("/");
     } catch (error) {
       console.error("Error saving data:", error);
+      setShowSnackBar?.(true);
+      setSnackbarMessage?.({
+        title: "Error",
+        message: "Falha ao salvar a música. Tente novamente.",
+      });
     }
   };
 
@@ -716,12 +743,7 @@ function NewSongColumnA({
         <button
           className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green"
           onClick={() => {
-            createNewSong({ instrumentName, geralPercentage, setlist });
-            setShowSnackBar(true);
-            setSnackbarMessage({
-              title: "Success",
-              message: `Song "${songName}" by ${artistName} saved successfully!`,
-            });
+            createNewSong({ geralPercentage, setlist });
           }}
         >
           Save

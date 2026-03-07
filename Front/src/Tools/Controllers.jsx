@@ -5,7 +5,18 @@ import axios from "axios";
    Config & HTTP client
    ========================= */
 
-const API_BASE = "https://api.live.eloygomes.com";
+const ENV_BASE =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+  (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
+  null;
+
+const LOCAL_API_BASE =
+  typeof window !== "undefined" &&
+  /localhost|127\.0\.0\.1/i.test(window.location.hostname)
+    ? "http://localhost:3000"
+    : null;
+
+const API_BASE = ENV_BASE || LOCAL_API_BASE || "https://api.live.eloygomes.com";
 
 const axiosApi = axios.create({
   baseURL: API_BASE,
