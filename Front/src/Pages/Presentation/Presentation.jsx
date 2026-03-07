@@ -327,6 +327,13 @@ function Presentation() {
         hideChords={hideChords}
         setHideChords={setHideChords}
         setSelectContenttoShow={setSelectContenttoShow}
+        isEditing={isEditing}
+        isSavingCifra={isSavingCifra}
+        hasDraftChanges={hasDraftChanges}
+        songCifraData={songCifraData}
+        handleSaveCifra={handleSaveCifra}
+        handleDiscardDraft={handleDiscardDraft}
+        startEditingCifra={startEditingCifra}
       />
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
@@ -336,32 +343,6 @@ function Presentation() {
               <h1 className="text-4xl font-bold">{artistFromURL}</h1>
             </div>
             <div className="flex flex-row items-center gap-3">
-              {isEditing ? (
-                <>
-                  <button
-                    className="rounded-md bg-emerald-600 px-4 py-2 text-white disabled:opacity-50"
-                    onClick={handleSaveCifra}
-                    disabled={isSavingCifra || !hasDraftChanges}
-                  >
-                    {isSavingCifra ? "Saving..." : "Save"}
-                  </button>
-                  <button
-                    className="rounded-md bg-gray-200 px-4 py-2 text-gray-800 disabled:opacity-50"
-                    onClick={handleDiscardDraft}
-                    disabled={isSavingCifra}
-                  >
-                    Delete
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="rounded-md bg-indigo-600 px-4 py-2 text-white disabled:opacity-50"
-                  onClick={startEditingCifra}
-                  disabled={!songCifraData}
-                >
-                  Edit
-                </button>
-              )}
               <div
                 className="flex neuphormism-b-btn p-6"
                 onClick={() =>

@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import FloatingBtns from "./FloatingBtns";
 import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
 import ToolBoxMini from "./ToolBoxMini";
+import ToolBoxEditControls from "./ToolBoxEditControls";
 
 // Uma lista de instrumentos, igual ao que você usa em DashList2Items
 const instrumentLabels = [
@@ -42,6 +43,13 @@ export default function TollBoxAcoord({
   hideChords,
   setHideChords,
   setSelectContenttoShow,
+  isEditing,
+  isSavingCifra,
+  hasDraftChanges,
+  songCifraData,
+  handleSaveCifra,
+  handleDiscardDraft,
+  startEditingCifra,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
@@ -77,6 +85,32 @@ export default function TollBoxAcoord({
 
   return (
     <div>
+      <Accordion
+        expanded={expanded === "panel-editor"}
+        onChange={handleAccordionChange("panel-editor")}
+        className="mb-2"
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel-editor-content"
+          id="panel-editor-header"
+          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
+        >
+          Editor
+        </AccordionSummary>
+        <AccordionDetails className="neuphormism-b text-sm font-semibold">
+          <ToolBoxEditControls
+            isEditing={isEditing}
+            isSavingCifra={isSavingCifra}
+            hasDraftChanges={hasDraftChanges}
+            songCifraData={songCifraData}
+            handleSaveCifra={handleSaveCifra}
+            handleDiscardDraft={handleDiscardDraft}
+            startEditingCifra={startEditingCifra}
+          />
+        </AccordionDetails>
+      </Accordion>
+
       {/* Accordion para Instruments */}
       <Accordion
         expanded={expanded === "panel1"}
