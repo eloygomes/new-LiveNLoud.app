@@ -7,6 +7,7 @@ import {
   updateSongEntry,
 } from "../../Tools/Controllers";
 import { useRef } from "react";
+import SnackBar from "../../Tools/SnackBar";
 
 import { processSongCifra } from "./ProcessSongCifra";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -56,6 +57,16 @@ function Presentation() {
   const [draftCifra, setDraftCifra] = useState("");
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [showSnackBar, setShowSnackBar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState({
+    title: "",
+    message: "",
+  });
+
+  const pushSnackbarMessage = useCallback((title, message) => {
+    setShowSnackBar(true);
+    setSnackbarMessage({ title, message });
+  }, []);
 
   const chordHelpers = useMemo(() => {
     const moduleRef =
@@ -157,6 +168,7 @@ function Presentation() {
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
       setSaveError("Sem dados da música carregados para salvar.");
+      pushSnackbarMessage("Erro", "Sem dados da música carregados para salvar.");
       return;
     }
     setIsSavingCifra(true);
@@ -181,9 +193,15 @@ function Presentation() {
         ...nextSongData,
       }));
       setIsEditing(false);
-      setLastSaveTimestamp(new Date().toLocaleTimeString());
+      const timestamp = new Date().toLocaleTimeString();
+      setLastSaveTimestamp(timestamp);
+      pushSnackbarMessage("Salvo", `Último salvamento às ${timestamp}`);
     } catch (error) {
       setSaveError("Não foi possível salvar a cifra. Tente novamente.");
+      pushSnackbarMessage(
+        "Erro",
+        "Não foi possível salvar a cifra. Tente novamente.",
+      );
       console.error("Erro ao salvar cifra:", error);
     } finally {
       setIsSavingCifra(false);
@@ -314,6 +332,9 @@ function Presentation() {
 
   return (
     <div className="flex justify-center h-screen pt-20">
+      <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
+        <SnackBar snackbarMessage={snackbarMessage} />
+      </div>
       <ToolBox
         toolBoxBtnStatus={toolBoxBtnStatus}
         setToolBoxBtnStatus={setToolBoxBtnStatus}
@@ -354,11 +375,6 @@ function Presentation() {
             </div>
           </div>
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
-          {!saveError && lastSaveTimestamp && (
-            <p className="text-xs text-emerald-600">
-              Último salvamento às {lastSaveTimestamp}
-            </p>
-          )}
 
           <div
             className={`flex flex-col neuphormism-b p-5 ${
