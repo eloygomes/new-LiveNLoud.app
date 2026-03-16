@@ -264,7 +264,7 @@ export default function Tuner() {
         info(
           "enviando fila pendente:",
           pendingAudioQueueRef.current.length,
-          "blocos"
+          "blocos",
         );
         pendingAudioQueueRef.current.forEach((buf) => {
           sock.emit("messageToServer", {
@@ -428,7 +428,7 @@ export default function Tuner() {
           warn(
             "socket OFF — bloco enfileirado (fila:",
             pendingAudioQueueRef.current.length,
-            ")"
+            ")",
           );
         }
       };
@@ -511,7 +511,7 @@ export default function Tuner() {
   const needleDeg = useMemo(() => (cents / 50) * 50, [cents]);
 
   return (
-    <div className="flex justify-center h-screen pt-20">
+    <div className="flex justify-center h-screen ">
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
           {/* Header */}

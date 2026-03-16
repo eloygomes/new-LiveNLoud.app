@@ -15,7 +15,7 @@ function ChordLibrary() {
 
   // Localiza o bloco do acorde selecionado
   const chord = ChordShapeData.find(
-    (c) => c.chordName === chordName && c.chordType === chordType
+    (c) => c.chordName === chordName && c.chordType === chordType,
   );
 
   const variations = chord?.results || [];
@@ -54,7 +54,7 @@ function ChordLibrary() {
   })();
 
   return (
-    <div className="flex justify-center h-screen pt-20">
+    <div className="flex justify-center h-screen ">
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
           <div className="flex flex-row my-5 neuphormism-b p-5">
