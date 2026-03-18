@@ -47,16 +47,16 @@ export default function PlaylistExport({ visibleSongs = [] }) {
     const name = String(playlistName || "").trim();
     if (!name) return;
 
-    console.log("[PLAYLIST_EXPORT] start", {
-      provider,
-      songs: visibleSongs?.length || 0,
-      name,
-    });
-    console.log("[PLAYLIST_EXPORT] current location", {
-      href: window.location.href,
-      pathname: window.location.pathname,
-      search: window.location.search,
-    });
+    // console.log("[PLAYLIST_EXPORT] start", {
+    //   provider,
+    //   songs: visibleSongs?.length || 0,
+    //   name,
+    // });
+    // console.log("[PLAYLIST_EXPORT] current location", {
+    //   href: window.location.href,
+    //   pathname: window.location.pathname,
+    //   search: window.location.search,
+    // });
 
     setMode("working");
     setStatusLine("");
@@ -81,18 +81,18 @@ export default function PlaylistExport({ visibleSongs = [] }) {
     // ======================
     if (provider === "youtube") {
       console.group("[YT EXPORT] pre-redirect snapshot");
-      console.log("songs visible", {
-        count: (visibleSongs || []).length,
-        sample: (visibleSongs || []).slice(0, 1),
-      });
-      console.log("defaultName", defaultName);
-      console.log("playlistName", name);
-      console.log("token keys", {
-        accessToken: !!localStorage.getItem("accessToken"),
-        access_token: !!localStorage.getItem("access_token"),
-        jwt: !!localStorage.getItem("jwt"),
-        token: !!localStorage.getItem("token"),
-      });
+      // console.log("songs visible", {
+      //   count: (visibleSongs || []).length,
+      //   sample: (visibleSongs || []).slice(0, 1),
+      // });
+      // console.log("defaultName", defaultName);
+      // console.log("playlistName", name);
+      // console.log("token keys", {
+      //   accessToken: !!localStorage.getItem("accessToken"),
+      //   access_token: !!localStorage.getItem("access_token"),
+      //   jwt: !!localStorage.getItem("jwt"),
+      //   token: !!localStorage.getItem("token"),
+      // });
       console.groupEnd();
 
       // ✅ salva igual ao Spotify (pra sobreviver ao redirect OAuth)
@@ -129,11 +129,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
   // ✅ Quando voltar do OAuth: ?yt=ok&returnTo=...
   useEffect(() => {
     console.group("[YT EXPORT] callback effect mounted");
-    console.log("location", {
-      href: window.location.href,
-      pathname: window.location.pathname,
-      search: window.location.search,
-    });
+    // console.log("location", {
+    //   href: window.location.href,
+    //   pathname: window.location.pathname,
+    //   search: window.location.search,
+    // });
 
     // If this page is running inside the popup AND we have yt=ok, report back to opener and close.
     // Note: embedding Google in an iframe/modal is blocked; popup is the supported approach.
@@ -147,15 +147,15 @@ export default function PlaylistExport({ visibleSongs = [] }) {
 
     // Trigger if yt=ok OR we have stored payload (fallback), but never retry endlessly
     const shouldTrigger = yt === "ok" || hasStoredSongs;
-    console.log("trigger check", {
-      yt,
-      hasStoredSongs,
-      attempted,
-      shouldTrigger,
-      storedName: sessionStorage.getItem("youtube_playlist_name"),
-      rawSongsLen: (sessionStorage.getItem("youtube_playlist_songs") || "")
-        .length,
-    });
+    // console.log("trigger check", {
+    //   yt,
+    //   hasStoredSongs,
+    //   attempted,
+    //   shouldTrigger,
+    //   storedName: sessionStorage.getItem("youtube_playlist_name"),
+    //   rawSongsLen: (sessionStorage.getItem("youtube_playlist_songs") || "")
+    //     .length,
+    // });
 
     function runExportFromStorage() {
       let cancelled = false;
@@ -175,12 +175,12 @@ export default function PlaylistExport({ visibleSongs = [] }) {
         }
 
         const payloadSongs = normalizeSongsForExport(songs);
-        console.log("[YT EXPORT] payload build", {
-          name,
-          parsedSongsCount: (songs || []).length,
-          payloadSongsCount: (payloadSongs || []).length,
-          payloadSample: (payloadSongs || []).slice(0, 3),
-        });
+        // console.log("[YT EXPORT] payload build", {
+        //   name,
+        //   parsedSongsCount: (songs || []).length,
+        //   payloadSongsCount: (payloadSongs || []).length,
+        //   payloadSample: (payloadSongs || []).slice(0, 3),
+        // });
 
         if (!name || !payloadSongs.length) {
           setProvider("youtube");
@@ -199,11 +199,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
         }
 
         const token = pickJwtToken();
-        console.log("[YT EXPORT] token", {
-          ok: !!token,
-          length: token ? token.length : 0,
-          preview: token ? token.slice(0, 12) + "…" : "",
-        });
+        // console.log("[YT EXPORT] token", {
+        //   ok: !!token,
+        //   length: token ? token.length : 0,
+        //   preview: token ? token.slice(0, 12) + "…" : "",
+        // });
 
         if (!token) {
           setProvider("youtube");
@@ -222,11 +222,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
             setMode("working");
             setStatusLine("Criando playlist no YouTube…");
 
-            console.log("[YT EXPORT] POST /api/youtube/export", {
-              playlistName: name,
-              songs: payloadSongs.length,
-              privacyStatus: "public",
-            });
+            // console.log("[YT EXPORT] POST /api/youtube/export", {
+            //   playlistName: name,
+            //   songs: payloadSongs.length,
+            //   privacyStatus: "public",
+            // });
 
             const resp = await fetch("/api/youtube/export", {
               method: "POST",
@@ -242,11 +242,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
             });
 
             const respText = await resp.text().catch(() => "");
-            console.log("[YT EXPORT] response", {
-              ok: resp.ok,
-              status: resp.status,
-              textPreview: respText.slice(0, 400),
-            });
+            // console.log("[YT EXPORT] response", {
+            //   ok: resp.ok,
+            //   status: resp.status,
+            //   textPreview: respText.slice(0, 400),
+            // });
 
             let data = {};
             try {
@@ -317,17 +317,17 @@ export default function PlaylistExport({ visibleSongs = [] }) {
       if (!data || typeof data !== "object") return;
       if (data.type !== "YT_OAUTH_OK") return;
 
-      console.log("[YT EXPORT] received YT_OAUTH_OK message", data);
+      // console.log("[YT EXPORT] received YT_OAUTH_OK message", data);
 
       // Force trigger using stored payload even if URL does not have yt=ok (popup flow)
       if (attempted) {
-        console.log("[YT EXPORT] already attempted, ignoring message");
+        // console.log("[YT EXPORT] already attempted, ignoring message");
         return;
       }
 
       // Mark attempt and run the same flow below by faking the conditions.
       sessionStorage.setItem("yt_export_attempted", "1");
-      console.log("[YT EXPORT] marked attempted (via message)");
+      // console.log("[YT EXPORT] marked attempted (via message)");
 
       // Re-run the export logic by calling runExportFromStorage()
       runExportFromStorage();
@@ -339,12 +339,12 @@ export default function PlaylistExport({ visibleSongs = [] }) {
     if (yt === "ok") {
       // Mark attempt early to avoid loops
       sessionStorage.setItem("yt_export_attempted", "1");
-      console.log("[YT EXPORT] marked attempted (via url)");
+      // console.log("[YT EXPORT] marked attempted (via url)");
       runExportFromStorage();
     }
 
     if (!shouldTrigger || attempted) {
-      console.log("[YT EXPORT] not triggering", { shouldTrigger, attempted });
+      // console.log("[YT EXPORT] not triggering", { shouldTrigger, attempted });
       console.groupEnd();
       return () => {
         window.removeEventListener("message", onMessage);

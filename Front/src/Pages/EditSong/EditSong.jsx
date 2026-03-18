@@ -5,6 +5,7 @@ import { fetchAllSongData } from "../../Tools/Controllers";
 
 function EditSong() {
   const [dataFromAPI, setDataFromAPI] = useState([]);
+  const [isDirty, setIsDirty] = useState(false);
 
   // Column B
   const [progGuitar01, setProgGuitar01] = useState(0);
@@ -31,6 +32,7 @@ function EditSong() {
       if (data) {
         // console.log("Data fetched from API:", data); // Para verificar o que está sendo retornado
         setDataFromAPI(data);
+        setIsDirty(false);
       } else {
         console.warn("No data returned from API");
       }
@@ -62,6 +64,7 @@ function EditSong() {
                 progDrums={progDrums}
                 progVoice={progVoice}
                 registerInstrumentUpdaters={registerInstrumentUpdaters}
+                isDirty={isDirty}
               />
             </div>
             <div className="right-column w-1/2">
@@ -80,6 +83,7 @@ function EditSong() {
                 progVoice={progVoice}
                 setProgVoice={setProgVoice}
                 instrumentUpdatersRef={instrumentUpdatersRef}
+                setIsDirty={setIsDirty}
               />
             </div>
           </div>

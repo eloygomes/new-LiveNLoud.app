@@ -17,6 +17,7 @@ function EditSongColumnB({
   progVoice,
   setProgVoice,
   instrumentUpdatersRef,
+  setIsDirty,
 }) {
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
@@ -113,12 +114,14 @@ function EditSongColumnB({
       typeof updater.setLink === "function"
     ) {
       updater.setLink(payload.link);
+      setIsDirty?.(true);
     }
     if (
       Object.prototype.hasOwnProperty.call(payload, "progress") &&
       typeof updater.setProgress === "function"
     ) {
       updater.setProgress(payload.progress);
+      setIsDirty?.(true);
     }
   };
 
@@ -138,6 +141,7 @@ function EditSongColumnB({
           onProgressChange={(value) =>
             notifyInstrument("guitar01", { progress: value })
           }
+          setIsDirty={setIsDirty}
         />
         <EditSongInputLinkBox
           instrumentName="guitar02"
@@ -151,6 +155,7 @@ function EditSongColumnB({
           onProgressChange={(value) =>
             notifyInstrument("guitar02", { progress: value })
           }
+          setIsDirty={setIsDirty}
         />
         <EditSongInputLinkBox
           instrumentName="bass"
@@ -162,6 +167,7 @@ function EditSongColumnB({
           onProgressChange={(value) =>
             notifyInstrument("bass", { progress: value })
           }
+          setIsDirty={setIsDirty}
         />
         <EditSongInputLinkBox
           instrumentName="keys"
@@ -173,6 +179,7 @@ function EditSongColumnB({
           onProgressChange={(value) =>
             notifyInstrument("keys", { progress: value })
           }
+          setIsDirty={setIsDirty}
         />
         <EditSongInputLinkBox
           instrumentName="drums"
@@ -186,6 +193,7 @@ function EditSongColumnB({
           onProgressChange={(value) =>
             notifyInstrument("drums", { progress: value })
           }
+          setIsDirty={setIsDirty}
         />
         <EditSongInputLinkBox
           instrumentName="voice"
@@ -197,6 +205,7 @@ function EditSongColumnB({
           onProgressChange={(value) =>
             notifyInstrument("voice", { progress: value })
           }
+          setIsDirty={setIsDirty}
         />
       </div>
     </div>

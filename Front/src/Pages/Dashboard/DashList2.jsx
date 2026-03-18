@@ -136,10 +136,10 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
       ) : (
         // ----- MODO DESKTOP -----
         <div className="container mx-auto ">
-          <div className="flex flex-col mt-0 h-[100vh] pb-20">
+          <div className="flex flex-col mt-0 h-[100vh] ">
             {!optStatus && (
               <div
-                className={`fixed left-1/2 top-[80px] w-[91%] -translate-x-1/2 transform pointer-events-none z-10 ${
+                className={`fixed left-1/2 top-[80px] w-[91%] -translate-x-1/2 transform pointer-events-none z-40 ${
                   optStatus ? "hidden" : "block"
                 }`}
               >
@@ -192,8 +192,8 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
             )}
 
             <ul
-              className={`overflow-auto h-screen   pb-60 ${
-                optStatus ? "mt-2" : "mt-20"
+              className={`overflow-auto h-screen pb-60 z-0 ${
+                optStatus ? "mt-[43rem]" : "mt-20"
               }`}
             >
               <DashList2Items

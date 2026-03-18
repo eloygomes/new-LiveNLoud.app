@@ -397,6 +397,7 @@ function NewSongColumnA({
   cifraExiste,
   setShowSnackBar,
   setSnackbarMessage,
+  scrapeStatus = {},
 }) {
   const [songName, setSongName] = useState(null);
   const [artistName, setArtistName] = useState(null);
@@ -430,6 +431,7 @@ function NewSongColumnA({
   const navigate = useNavigate();
   const hasSaved = useRef(false);
   const addedSongName = useRef(null);
+  const canSaveSong = Object.values(scrapeStatus || {}).some(Boolean);
 
   // Adicione este useEffect (fora do outro useEffect grandão)
   useEffect(() => {
@@ -685,6 +687,9 @@ function NewSongColumnA({
           instrumentName: key,
           geralPercentage,
           setlist,
+          capo: capoData || "",
+          tom: tomData || "",
+          tuning: tunerData || "",
           embedLink: index === 0 ? embedLink : [],
           instrumentFields: {
             active: true,
@@ -741,10 +746,11 @@ function NewSongColumnA({
 
       <div className="flex flex-row neuphormism-b-btn-flat p-5 my-5 mr-5 justify-start">
         <button
-          className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green"
+          className="bg-green-500 hover:bg-green-700 active:bg-green-900 text-white font-bold py-2 px-4 neuphormism-b-btn-green disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => {
             createNewSong({ geralPercentage, setlist });
           }}
+          disabled={!canSaveSong}
         >
           Save
         </button>

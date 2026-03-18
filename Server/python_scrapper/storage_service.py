@@ -80,8 +80,8 @@ def _build_instrument_block(
 
         return {
             "active": active,
-            "capo": "",
-            "tuning": "",
+            "capo": get_val("capo", ""),
+            "tuning": get_val("tuning", ""),
             "lastPlay": last_play,
             "songCifra": get_val("song_cifra", ""),
             "songTabs": get_val("songTabs", ""),
@@ -146,6 +146,9 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
 
                 # Apenas marca o instrumento atual como True (mantendo os outros)
                 song_entry["instruments"][instrument] = True
+                song_entry["capo"] = first_song_info.get("capo", "")
+                song_entry["tom"] = first_song_info.get("tom", "")
+                song_entry["tuning"] = first_song_info.get("tuning", "")
 
                 # Mantemos o comportamento original:
                 #   progress = instrument_progressbar (sem int())
@@ -176,6 +179,9 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                     'id': new_id,
                     'song': first_song_info['song_title'],
                     'artist': first_song_info['artist_name'],
+                    'capo': first_song_info.get('capo', ''),
+                    'tom': first_song_info.get('tom', ''),
+                    'tuning': first_song_info.get('tuning', ''),
                     'progressBar': '',  # exatamente como no código original
                     'instruments': _build_instruments_dict(instrument),
                     'embedVideos': [],
@@ -214,6 +220,9 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                     'id': new_id,
                     'song': song_info['song_title'],
                     'artist': song_info['artist_name'],
+                    'capo': song_info.get('capo', ''),
+                    'tom': song_info.get('tom', ''),
+                    'tuning': song_info.get('tuning', ''),
                     'progressBar': 0,  # exatamente como no código original
                     'instruments': _build_instruments_dict(instrument),
                     'embedVideos': [],
@@ -256,6 +265,9 @@ def send_to_generalCifras(entry, instrument, instrument_progressbar):
         payload = {
             "song":        entry["song"],
             "artist":      entry["artist"],
+            "capo":        entry.get("capo", ""),
+            "tom":         entry.get("tom", ""),
+            "tuning":      entry.get("tuning", ""),
             "instruments": entry["instruments"],
             "guitar01":    entry.get("guitar01", {}),
             "guitar02":    entry.get("guitar02", {}),

@@ -42,6 +42,7 @@ function NewSongColumnB({
   setArtistName,
   songName,
   setSongName,
+  setScrapeStatus,
 }) {
   return (
     <div className="flex flex-row p-5 my-5  neuphormism-b">
@@ -69,6 +70,7 @@ function NewSongColumnB({
           setArtistName={setArtistName}
           songName={songName}
           setSongName={setSongName}
+          setScrapeStatus={setScrapeStatus}
         />
         <NewSongInputLinkBox
           instrumentName="guitar02"
@@ -92,6 +94,7 @@ function NewSongColumnB({
           setArtistName={setArtistName}
           songName={songName}
           setSongName={setSongName}
+          setScrapeStatus={setScrapeStatus}
         />
         <NewSongInputLinkBox
           instrumentName="bass"
@@ -115,6 +118,7 @@ function NewSongColumnB({
           setArtistName={setArtistName}
           songName={songName}
           setSongName={setSongName}
+          setScrapeStatus={setScrapeStatus}
         />
         <NewSongInputLinkBox
           instrumentName="keys"
@@ -138,6 +142,7 @@ function NewSongColumnB({
           setArtistName={setArtistName}
           songName={songName}
           setSongName={setSongName}
+          setScrapeStatus={setScrapeStatus}
         />
         <NewSongInputLinkBox
           instrumentName="drums"
@@ -161,6 +166,7 @@ function NewSongColumnB({
           setArtistName={setArtistName}
           songName={songName}
           setSongName={setSongName}
+          setScrapeStatus={setScrapeStatus}
         />
         <NewSongInputLinkBox
           instrumentName="voice"
@@ -184,6 +190,7 @@ function NewSongColumnB({
           setArtistName={setArtistName}
           songName={songName}
           setSongName={setSongName}
+          setScrapeStatus={setScrapeStatus}
         />
       </div>
     </div>

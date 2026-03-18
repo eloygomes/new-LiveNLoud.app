@@ -49,6 +49,21 @@ function parseArtistSongFromUrl(raw) {
   try {
     const u = new URL(raw);
     const parts = u.pathname.split("/").filter(Boolean);
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+
+    if (host === "tabs.ultimate-guitar.com") {
+      const artist = parts[1] || "";
+      const song = (parts[2] || "")
+        .replace(/-(chords|tabs|tab|bass|ukulele|drums|pro|official)-\d+$/i, "")
+        .replace(/\/+$/g, "");
+      return { artist, song };
+    }
+
+    if (host === "letras.mus.br") {
+      const artist = parts[0] || "";
+      return { artist, song: "" };
+    }
+
     const artist = parts.at(-2) || "";
     const song = (parts.at(-1) || "").replace(/\/+$/g, "");
     return { artist, song };
@@ -77,15 +92,52 @@ function NewSongInputLinkBox({
   setArtistScrapado,
   setCifraExiste,
   setCifraFROMDB,
+  setScrapeStatus,
 }) {
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
   const inFlightRef = useRef(false);
   const blurTimer = useRef(null);
+  const isLocked = Boolean(instrument?.trim());
+
+  const buildUserErrorMessage = useCallback((err) => {
+    const source = err?.response?.data?.source;
+    const details = String(err?.response?.data?.details || "").toLowerCase();
+
+    if (source === "ultimate_guitar") {
+      if (details.includes("disabled")) {
+        return "A importacao do Ultimate Guitar esta desativada no momento.";
+      }
+      if (details.includes("403") || details.includes("forbidden")) {
+        return "O Ultimate Guitar bloqueou a importacao automatica no momento.";
+      }
+      if (details.includes("chrome/chromium")) {
+        return "A importacao do Ultimate Guitar esta indisponivel no servidor neste momento.";
+      }
+      return "Nao foi possivel importar esta cifra do Ultimate Guitar agora.";
+    }
+
+    if (source === "cifraclub") {
+      return "Nao foi possivel importar esta cifra do CifraClub agora.";
+    }
+
+    if (source === "letrasmus") {
+      return "Nao foi possivel importar esta musica do Letras.mus.br agora.";
+    }
+
+    return "Nao foi possivel processar este link agora. Tente novamente em instantes.";
+  }, []);
 
   const notify = (title, message) => {
     setShowSnackBar?.(true);
     setSnackbarMessage?.({ title, message });
   };
+
+  const updateScrapeStatus = useCallback(
+    (status) => {
+      setScrapeStatus?.(instrumentName, status);
+    },
+    [instrumentName, setScrapeStatus]
+  );
 
   const guard = (cond, title, message) => {
     if (!cond) {
@@ -147,13 +199,7 @@ function NewSongInputLinkBox({
         finalSong = finalSong || song;
       }
 
-      if (
-        guard(
-          !!finalArtist && !!finalSong,
-          "Error",
-          "Não foi possível identificar ARTIST e SONG."
-        )
-      ) {
+      if (guard(!!finalArtist, "Error", "Não foi possível identificar ARTIST.")) {
         console.groupEnd();
         return;
       }
@@ -181,6 +227,7 @@ function NewSongInputLinkBox({
             setSongName?.(existsRes.data.song);
 
           notify("Info", "Essa cifra já está na sua biblioteca.");
+          updateScrapeStatus(true);
           const fresh = await gettingSongData?.();
           console.log("[gettingSongData()] (DB-hit) =>", fresh);
           console.groupEnd();
@@ -261,12 +308,17 @@ function NewSongInputLinkBox({
 
         notify("Success", "Cifra adicionada com sucesso!");
         setCifraExiste?.(false);
+        updateScrapeStatus(true);
       } catch (err) {
         console.error(`[${instrumentName}] handleSubmit error`, err);
-        const msg =
+        console.error(`[${instrumentName}] handleSubmit full response`, err?.response?.data);
+        const baseMsg =
           err?.response?.data?.message ||
           "Ocorreu um erro ao processar a requisição.";
+        const msg = buildUserErrorMessage(err);
+        console.error(`[${instrumentName}] user-facing error from:`, baseMsg);
         notify("Error", msg);
+        updateScrapeStatus(false);
       } finally {
         inFlightRef.current = false;
         setLoading(false);
@@ -289,7 +341,10 @@ function NewSongInputLinkBox({
       setCifraExiste,
       setCifraFROMDB,
       setInstrument,
+      setScrapeStatus,
       primeArtistSongFromLink,
+      updateScrapeStatus,
+      buildUserErrorMessage,
     ]
   );
 
@@ -310,25 +365,42 @@ function NewSongInputLinkBox({
       </div>
 
       {/* Link input */}
-      <input
-        type="text"
-        placeholder="Insert your link here"
-        className="w-full p-1 border border-gray-300 rounded-sm text-sm h-6 mt-2"
-        value={instrument}
-        onChange={(e) => setInstrument(e.target.value)}
-        onPaste={(e) => {
-          const pasted = e.clipboardData.getData("text");
-          setInstrument(pasted);
-          primeArtistSongFromLink(pasted);
-          setTimeout(() => handleSubmit(pasted), 0);
-          // console.log("[onPaste] link colado =>", pasted);
-        }}
-        onBlur={() => {
-          if (blurTimer.current) clearTimeout(blurTimer.current);
-          blurTimer.current = setTimeout(() => handleSubmit(), 150);
-        }}
-        // NÃO desabilitamos o input durante o loading
-      />
+      <div className="relative mt-2">
+        <input
+          type="text"
+          placeholder="Insert your link here"
+          className={`w-full p-1 border border-gray-300 rounded-sm text-sm h-6 pr-8 ${
+            isLocked ? "cursor-default" : ""
+          }`}
+          value={instrument}
+          readOnly={isLocked}
+          onChange={(e) => setInstrument(e.target.value)}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pasted = e.clipboardData.getData("text").trim();
+            setInstrument(pasted);
+            primeArtistSongFromLink(pasted);
+            setTimeout(() => handleSubmit(pasted), 0);
+          }}
+          onBlur={() => {
+            if (blurTimer.current) clearTimeout(blurTimer.current);
+            blurTimer.current = setTimeout(() => handleSubmit(), 150);
+          }}
+        />
+        {isLocked && (
+          <button
+            type="button"
+            aria-label={`Remove ${instrumentName} link`}
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-xs leading-none"
+            onClick={() => {
+              setInstrument("");
+              updateScrapeStatus(false);
+            }}
+          >
+            🗑️
+          </button>
+        )}
+      </div>
 
       {/* Slider progress (NÃO BLOQUEAR MESMO EM LOADING) */}
       <div className="flex items-center mt-3">

@@ -38,6 +38,14 @@ function NewSong() {
   const [progBarVoice, setProgBarVoice] = useState(0);
 
   const [dataFromUrl, setDataFromUrl] = useState("");
+  const [scrapeStatus, setScrapeStatus] = useState({
+    guitar01: false,
+    guitar02: false,
+    bass: false,
+    keys: false,
+    drums: false,
+    voice: false,
+  });
 
   const userEmail =
     typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
@@ -66,6 +74,13 @@ function NewSong() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guitar01, guitar02, bass, key, drums, voice]);
+
+  const handleScrapeStatus = (instrumentName, status) => {
+    setScrapeStatus((prev) => ({
+      ...prev,
+      [instrumentName]: status,
+    }));
+  };
 
   return (
     <>
@@ -104,6 +119,7 @@ function NewSong() {
                   cifraFROMDB={cifraFROMDB}
                   setShowSnackBar={setShowSnackBar}
                   setSnackbarMessage={setSnackbarMessage}
+                  scrapeStatus={scrapeStatus}
                 />
               </div>
               <div className="right-column w-1/2">
@@ -145,6 +161,7 @@ function NewSong() {
                   setArtistName={setArtistName}
                   songName={songName}
                   setSongName={setSongName}
+                  setScrapeStatus={handleScrapeStatus}
                 />
               </div>
             </div>
@@ -192,6 +209,7 @@ function NewSong() {
                     cifraFROMDB={cifraFROMDB}
                     setShowSnackBar={setShowSnackBar}
                     setSnackbarMessage={setSnackbarMessage}
+                    scrapeStatus={scrapeStatus}
                   />
                 </div>
                 <div className="right-column w-1/2">
@@ -234,6 +252,7 @@ function NewSong() {
                     setArtistName={setArtistName}
                     songName={songName}
                     setSongName={setSongName}
+                    setScrapeStatus={handleScrapeStatus}
                   />
                 </div>
               </div>

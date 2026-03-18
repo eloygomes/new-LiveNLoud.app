@@ -11,8 +11,10 @@ function EditSongInputLinkBox({
   dataFromAPI,
   onLinkChange,
   onProgressChange,
+  setIsDirty,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
+  const isLocked = Boolean(link?.trim());
 
   useEffect(() => {
     try {
@@ -43,39 +45,21 @@ function EditSongInputLinkBox({
 
   // console.log(progress);
 
-  const handledata = async () => {
+  const handledata = async (linkOverride) => {
     const userEmail = localStorage.getItem("userEmail");
-    const artistFromUrl = localStorage.getItem("artist");
-    const songFromUrl = localStorage.getItem("song");
+    const targetLink = (linkOverride ?? link ?? "").trim();
 
-    // console.log("userEmail", userEmail);
-    // console.log("artistFromUrl", artistFromUrl);
-    // console.log("songFromUrl", songFromUrl);
-    // console.log("instrument", instrumentName);
-    // console.log("instrument_progressbar", progress);
-    // console.log("link", link);
-
-    const url = link;
-    const parts = url.split("/").filter(Boolean); // Filtra partes vazias
-    const artist = parts[parts.length - 2]; // Penúltima parte
-    const song = parts[parts.length - 1]; // Última parte
-
-    // console.log("artist", artist);
-    // console.log("song", song);
+    if (!userEmail || !targetLink) return;
 
     try {
-      // ENVIANDO OS DADOS REGISTRANDO A MÚSICA (POST)
       await axiosApi.post("/api/scrape", {
-        artist: artist,
-        song: song,
+        artist: "",
+        song: "",
         email: userEmail,
         instrument: `${instrumentName}`,
         instrument_progressbar: `${progress}`,
-        link: link,
+        link: targetLink,
       });
-
-      // Após o POST, realiza o GET para atualizar os dados
-      // await gettingSongData();
     } catch (error) {
       console.error(
         "Error registering user in API:",
@@ -106,24 +90,47 @@ function EditSongInputLinkBox({
         </div>
       </div>
 
-      <div className="flex flex-row h-6">
+      <div className="relative flex flex-row h-8">
         <input
           type="text"
           placeholder="Insert your link here"
-          className="w-full p-1 border border-gray-300 rounded-sm text-sm"
+          className={`w-full p-1 pr-8 border border-gray-300 rounded-sm text-sm h-6 ${
+            isLocked ? "cursor-default" : ""
+          }`}
           value={link}
+          readOnly={isLocked}
           onChange={(e) => {
             const value = e.target.value;
             setInstrument(value);
             onLinkChange?.(value);
+            setIsDirty?.(true);
+          }}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pasted = e.clipboardData.getData("text").trim();
+            setInstrument(pasted);
+            onLinkChange?.(pasted);
+            setIsDirty?.(true);
+            setTimeout(() => handledata(pasted), 0);
           }}
           onBlur={() => {
             handledata();
-            // console.log(`instrumentName: ${instrumentName}`);
-            // console.log(`instrument:${instrument}`);
-            // console.log(progress);
           }}
         />
+        {isLocked && (
+          <button
+            type="button"
+            aria-label={`Remove ${instrumentName} link`}
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-xs leading-none"
+            onClick={() => {
+              setInstrument("");
+              onLinkChange?.("");
+              setIsDirty?.(true);
+            }}
+          >
+            🗑️
+          </button>
+        )}
       </div>
       <div className="flex flex-row">
         <div className="flex flex-row items-center mt-1 w-1/2">
@@ -136,6 +143,7 @@ function EditSongInputLinkBox({
               const value = Number(parseInt(e.target.value, 10));
               setProgress(value);
               onProgressChange?.(value);
+              setIsDirty?.(true);
             }}
             className="w-1/2"
           />

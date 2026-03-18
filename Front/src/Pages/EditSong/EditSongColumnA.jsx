@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import EditSongEmbed from "./EditSongEmbed";
 import GeralProgressBar from "./GeralProgressBar";
 import EditSongSongData from "./EditSongSongData";
@@ -17,6 +17,7 @@ function EditSongColumnA({
   progDrums,
   progVoice,
   registerInstrumentUpdaters,
+  isDirty,
 }) {
   // Dados principais da música
   const [songName, setSongName] = useState("");
@@ -136,6 +137,7 @@ function EditSongColumnA({
   ]);
 
   const navigate = useNavigate();
+  const initialSnapshotRef = useRef("");
 
   // Calcula a média de progress das instruments
   useEffect(() => {
@@ -253,6 +255,100 @@ function EditSongColumnA({
       }
     }
   }, [dataFromAPI]);
+
+  const currentSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        songName,
+        artistName,
+        capoData,
+        tomData,
+        tunerData,
+        geralPercentage,
+        embedLink,
+        setlist,
+        guitar01: {
+          active: instrActiveStatusguitar01,
+          link: instLinkguitar01,
+          progress: instProgressBarguitar01,
+          songCifra: songCifraguitar01,
+        },
+        guitar02: {
+          active: instrActiveStatusguitar02,
+          link: instLinkguitar02,
+          progress: instProgressBarguitar02,
+          songCifra: songCifraguitar02,
+        },
+        bass: {
+          active: instrActiveStatusbass,
+          link: instLinkbass,
+          progress: instProgressBarbass,
+          songCifra: songCifrabass,
+        },
+        keys: {
+          active: instrActiveStatuskeyboard,
+          link: instLinkkeyboard,
+          progress: instProgressBarkeyboard,
+          songCifra: songCifrakeyboard,
+        },
+        drums: {
+          active: instrActiveStatusdrums,
+          link: instLinkdrums,
+          progress: instProgressBardrums,
+          songCifra: songCifradrums,
+        },
+        voice: {
+          active: instrActiveStatusvoice,
+          link: instLinkvoice,
+          progress: instProgressBarvoice,
+          songCifra: songCifravoice,
+        },
+      }),
+    [
+      songName,
+      artistName,
+      capoData,
+      tomData,
+      tunerData,
+      geralPercentage,
+      embedLink,
+      setlist,
+      instrActiveStatusguitar01,
+      instLinkguitar01,
+      instProgressBarguitar01,
+      songCifraguitar01,
+      instrActiveStatusguitar02,
+      instLinkguitar02,
+      instProgressBarguitar02,
+      songCifraguitar02,
+      instrActiveStatusbass,
+      instLinkbass,
+      instProgressBarbass,
+      songCifrabass,
+      instrActiveStatuskeyboard,
+      instLinkkeyboard,
+      instProgressBarkeyboard,
+      songCifrakeyboard,
+      instrActiveStatusdrums,
+      instLinkdrums,
+      instProgressBardrums,
+      songCifradrums,
+      instrActiveStatusvoice,
+      instLinkvoice,
+      instProgressBarvoice,
+      songCifravoice,
+    ]
+  );
+
+  useEffect(() => {
+    if (!dataFromAPI || typeof dataFromAPI !== "string") return;
+    if (!initialSnapshotRef.current) {
+      initialSnapshotRef.current = currentSnapshot;
+    }
+  }, [currentSnapshot, dataFromAPI]);
+
+  const hasPendingChanges = Boolean(initialSnapshotRef.current) &&
+    currentSnapshot !== initialSnapshotRef.current;
 
   // Atualiza no banco
   const handleUpdate = async () => {
@@ -389,8 +485,9 @@ function EditSongColumnA({
 
       <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">
         <button
-          className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleUpdate}
+          disabled={isDirty === undefined ? !hasPendingChanges : !isDirty}
         >
           Update
         </button>

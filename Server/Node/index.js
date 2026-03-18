@@ -3261,6 +3261,29 @@ app.get("/api/profileImage/:email", async (req, res) => {
 /** Aguarda N ms */
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function sanitizeScrapeLink(link) {
+  const raw = String(link || "").trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw);
+    const normalized = parsed.toString();
+    const doubled = `${normalized}${normalized}`;
+    if (raw === doubled) {
+      return normalized;
+    }
+  } catch {
+    // ignore invalid URL parsing here; fallback below
+  }
+
+  const half = Math.floor(raw.length / 2);
+  if (half > 0 && raw.length % 2 === 0 && raw.slice(0, half) === raw.slice(half)) {
+    return raw.slice(0, half);
+  }
+
+  return raw;
+}
+
 /** Busca o doc no banco geral usando (instrument, link) e fallbacks. */
 async function findGeneralCifraDoc({ instrument, link, artist, song }) {
   const database = client.db("generalCifras");
@@ -3335,11 +3358,12 @@ app.post("/api/scrape", async (req, res) => {
   try {
     const { artist, song, instrument, email, instrument_progressbar, link } =
       req.body;
+    const cleanLink = sanitizeScrapeLink(link);
 
-    if (!artist || !song || !instrument || !link) {
+    if (!instrument || !cleanLink) {
       return res
         .status(400)
-        .json({ message: "artist, song, instrument e link são obrigatórios." });
+        .json({ message: "instrument e link são obrigatórios." });
     }
 
     // 1) dispara o scraper Python
@@ -3349,22 +3373,20 @@ app.post("/api/scrape", async (req, res) => {
       instrument,
       email,
       instrument_progressbar,
-      link,
+      link: cleanLink,
     };
-    console.log(
-      "[LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK] :",
-      link,
-    );
-    console.time("[SCRAPE] python request");
+    const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
+    console.log("[SCRAPE] normalized link:", cleanLink);
+    console.time(requestLabel);
     const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload);
-    console.timeEnd("[SCRAPE] python request");
+    console.timeEnd(requestLabel);
     console.log("[SCRAPE] python resp:", response.status, response.data);
 
     // 2) se Python respondeu sucesso, aguardamos o doc aparecer no Mongo
     if (response.status >= 200 && response.status < 300) {
       console.time("[SCRAPE] waitForGeneralCifraDoc");
       const doc = await waitForGeneralCifraDoc(
-        { instrument, link, artist, song },
+        { instrument, link: cleanLink, artist, song },
         { retries: 25, intervalMs: 400 }, // ~10 segundos
       );
       console.timeEnd("[SCRAPE] waitForGeneralCifraDoc");
@@ -3402,8 +3424,12 @@ app.post("/api/scrape", async (req, res) => {
     console.error("[SCRAPE] error:", error?.message);
     if (error.response) {
       console.error("[SCRAPE] python response data:", error.response.data);
+      const pyMessage =
+        error.response.data?.message || "Erro ao chamar a API Python";
+      const pyDetails = error.response.data?.details || "";
       return res.status(error.response.status).json({
-        message: "Erro ao chamar a API Python",
+        message: pyMessage,
+        details: pyDetails,
         error: error.response.data,
       });
     } else if (error.request) {

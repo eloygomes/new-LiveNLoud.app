@@ -1,16 +1,29 @@
 from flask import Flask, request, jsonify
 
 from scraping_service import get_song_data
+from source_rules import detect_source
 from storage_service import store_in_mongo
 
 app = Flask(__name__)
+
+
+def sanitize_scrape_link(link: str) -> str:
+    raw = str(link or "").strip()
+    if not raw:
+        return ""
+
+    half = len(raw) // 2
+    if len(raw) % 2 == 0 and half > 0 and raw[:half] == raw[half:]:
+        return raw[:half]
+
+    return raw
 
 
 @app.route('/scrape', methods=['POST'])
 def scrape_and_store():
     data = request.json
 
-    link_url = data.get('link')
+    link_url = sanitize_scrape_link(data.get('link'))
     artist = data.get('artist')
     song = data.get('song')
     instrument = data.get('instrument')
@@ -20,19 +33,32 @@ def scrape_and_store():
     if not userEmail or not instrument:
         return jsonify({"message": "Missing required fields"}), 400
 
-    if link_url:
-        url_to_fetch = link_url.strip()
-    else:
-        if not (artist and song):
-            return jsonify({"message": "Missing artist or song"}), 400
-        url_to_fetch = f'https://www.cifraclub.com.br/{artist}/{song}/'
+    url_to_fetch = (link_url or "").strip()
+    if not url_to_fetch and not (artist and song):
+        return jsonify({"message": "Missing link or artist/song"}), 400
 
-    songData = get_song_data(url_to_fetch)
+    source_name = detect_source(url_to_fetch) if url_to_fetch else "cifraclub"
+    try:
+        songData = get_song_data(url_to_fetch, artist=artist, song=song)
+    except Exception as err:
+        print(f"[SCRAPER] source='{source_name}' error: {err}")
+        return jsonify({
+            "message": f"Could not scrape this link from source '{source_name}'.",
+            "details": str(err),
+            "source": source_name,
+            "link": url_to_fetch,
+        }), 500
+
     if songData:
         store_in_mongo(songData, instrument, userEmail, instrument_progressbar, link_url)
         return jsonify({"message": "Data stored successfully"}), 201
     else:
-        return jsonify({"message": "Failed to scrape data"}), 500
+        return jsonify({
+            "message": f"Could not scrape this link from source '{source_name}'.",
+            "details": "Check if the URL is valid, if the page is public, and review Python scraper logs for selector or request errors.",
+            "source": source_name,
+            "link": url_to_fetch,
+        }), 500
 
 
 if __name__ == '__main__':

@@ -161,7 +161,7 @@ export default function DashboardOptions({
 
   return (
     <div
-      className={`flex flex-col  top-[10px] sticky justify-between   bg-[#9da3af14] overflow-y-hidden ${
+      className={`fixed left-1/2 top-[80px] z-30 flex h-fit w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14] overflow-hidden ${
         optStatus ? "" : "hidden"
       }`}
     >
@@ -173,7 +173,7 @@ export default function DashboardOptions({
         </div>
       </div>
 
-      <div className="flex flex-row py-2 px-5 gap-3">
+      <div className="flex flex-row py-2 px-5 gap-3 overflow-hidden bg-slate-100 rounded-b-lg">
         <div className="flex flex-col w-1/2">
           <div className="neuphormism-b m-2 pb-5">
             <SearchBox searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
@@ -218,7 +218,7 @@ export default function DashboardOptions({
 
       {/* Rodapé */}
       <div
-        className="text-center text-[10px] text-white font-bold rounded-b-md bg-[#000000]/60 cursor-pointer py-0"
+        className="text-center text-[10px] text-white font-bold rounded-b-md bg-black/60 cursor-pointer py-0"
         onClick={() => setOptStatus(!optStatus)}
       >
         HIDE OPTIONS

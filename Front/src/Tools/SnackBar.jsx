@@ -3,10 +3,19 @@ import { useEffect, useState } from "react";
 
 function SnackBar({ snackbarMessage }) {
   const [visible, setVisible] = useState(false);
+  const [side, setSide] = useState("left");
 
   useEffect(() => {
     if (snackbarMessage.title || snackbarMessage.message) {
       setVisible(true);
+
+      const level = String(snackbarMessage.title || "").toLowerCase();
+      const payload = `[SnackBar] ${snackbarMessage.title}: ${snackbarMessage.message}`;
+      if (level === "error") {
+        console.error(payload);
+      } else {
+        console.log(payload);
+      }
 
       // Definir um tempo para ocultar automaticamente após 3 segundos, por exemplo
       const timer = setTimeout(() => {
@@ -17,11 +26,33 @@ function SnackBar({ snackbarMessage }) {
     }
   }, [snackbarMessage]);
 
+  useEffect(() => {
+    if (!visible) return undefined;
+
+    const handleMouseMove = (event) => {
+      const margin = 220;
+      const nearBottom = window.innerHeight - event.clientY < 180;
+      const nearLeft = event.clientX < margin;
+      const nearRight = window.innerWidth - event.clientX < margin;
+
+      if (side === "left" && nearBottom && nearLeft) {
+        setSide("right");
+      } else if (side === "right" && nearBottom && nearRight) {
+        setSide("left");
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [side, visible]);
+
   return (
     <div
       className={`${
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 "
-      } bg-gray-100 border-t-4 border-gray-500 rounded-b text-gray-900 px-4 py-3 shadow-md absolute bottom-10 left-5 transition-all duration-300 ease-in-out neuphormism-b-btn-flat`}
+      } ${
+        side === "left" ? "left-5" : "right-5"
+      } bg-gray-100 border-t-4 border-gray-500 rounded-b text-gray-900 px-4 py-3 shadow-md fixed bottom-10 transition-all duration-300 ease-in-out neuphormism-b-btn-flat z-50`}
       role="alert"
     >
       <div className="flex">

@@ -476,6 +476,9 @@ export async function createNewSongOnServer({
   setlist = [],
   instrumentFields = {},
   embedLink = [],
+  capo = "",
+  tom = "",
+  tuning = "",
 }) {
   const email =
     typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
@@ -510,6 +513,9 @@ export async function createNewSongOnServer({
     song: songName,
     artist: artistName,
     progressBar: geralPercentage || 0,
+    capo,
+    tom,
+    tuning,
     setlist,
     instruments: { ...flags },
     guitar01: block("guitar01"),
