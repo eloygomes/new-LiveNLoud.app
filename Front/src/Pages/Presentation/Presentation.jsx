@@ -168,7 +168,10 @@ function Presentation() {
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
       setSaveError("Sem dados da música carregados para salvar.");
-      pushSnackbarMessage("Erro", "Sem dados da música carregados para salvar.");
+      pushSnackbarMessage(
+        "Erro",
+        "Sem dados da música carregados para salvar.",
+      );
       return;
     }
     setIsSavingCifra(true);
@@ -331,7 +334,7 @@ function Presentation() {
   };
 
   return (
-    <div className="flex justify-center h-screen pt-20">
+    <div className="flex justify-center h-screen ">
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
       </div>

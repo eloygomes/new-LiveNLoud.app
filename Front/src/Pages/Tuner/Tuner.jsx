@@ -516,7 +516,7 @@ export default function Tuner() {
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
           {/* Header */}
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">Tuner</h1>
+            <h1 className="text-4xl font-bold">TUNER</h1>
             <div className="ml-auto flex items-center gap-3">
               <button
                 className="neuphormism-b-se px-4 py-2"

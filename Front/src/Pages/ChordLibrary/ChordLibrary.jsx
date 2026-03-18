@@ -58,7 +58,7 @@ function ChordLibrary() {
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">Chord Library</h1>
+            <h1 className="text-4xl font-bold">CHORD LIBRARY</h1>
             <h4 className="ml-auto mt-auto text-sm">
               Find the correct chord for you here!
             </h4>

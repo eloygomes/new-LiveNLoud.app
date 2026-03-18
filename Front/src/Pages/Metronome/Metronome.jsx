@@ -172,7 +172,7 @@ function Metronome() {
         <div className="w-11/12 2xl:w-9/12 mx-auto">
           {/* Cabeçalho */}
           <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">Metronome</h1>
+            <h1 className="text-4xl font-bold">METRONOME</h1>
             <h4 className="ml-auto mt-auto text-sm">
               Choose your BPM and hit Play!
             </h4>
