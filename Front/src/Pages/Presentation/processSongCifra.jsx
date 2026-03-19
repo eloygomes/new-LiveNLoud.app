@@ -19,6 +19,7 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
 
   const totalLines = lines.length;
   let i = 0;
+  let chordOccurrenceId = 0;
 
   // parseSectionLabel => detectar algo tipo "[Intro]" e capturar resto
   function parseSectionLabel(line) {
@@ -94,7 +95,11 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     return line.replace(chordPattern, (match, p1) => {
       const chord = match.trim();
       if (isChord(chord)) {
-        return p1 + `<span class="notespresentation">${chord}</span>`;
+        const occurrenceId = `chord-${chordOccurrenceId++}`;
+        return (
+          p1 +
+          `<span class="notespresentation" data-chord="${chord}" data-chord-id="${occurrenceId}">${chord}</span>`
+        );
       }
       return match;
     });

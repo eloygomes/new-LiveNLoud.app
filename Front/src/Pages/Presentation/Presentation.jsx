@@ -10,6 +10,9 @@ import { useRef } from "react";
 import SnackBar from "../../Tools/SnackBar";
 
 import { processSongCifra } from "./ProcessSongCifra";
+import PresentationChordTooltip, {
+  findChordTooltipData,
+} from "./PresentationChordTooltip";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -62,6 +65,12 @@ function Presentation() {
     title: "",
     message: "",
   });
+  const [activeChordTooltip, setActiveChordTooltip] = useState(null);
+  const [selectedChordVariations, setSelectedChordVariations] = useState({});
+  const [selectedChordOccurrenceVariations, setSelectedChordOccurrenceVariations] =
+    useState({});
+  const presentationContentRef = useRef(null);
+  const tooltipHideTimeoutRef = useRef(null);
 
   const pushSnackbarMessage = useCallback((title, message) => {
     setShowSnackBar(true);
@@ -253,6 +262,120 @@ function Presentation() {
 
   const didPingRef = useRef(false);
 
+  const clearTooltipHideTimeout = useCallback(() => {
+    if (tooltipHideTimeoutRef.current) {
+      window.clearTimeout(tooltipHideTimeoutRef.current);
+      tooltipHideTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scheduleTooltipHide = useCallback(() => {
+    clearTooltipHideTimeout();
+    tooltipHideTimeoutRef.current = window.setTimeout(() => {
+      setActiveChordTooltip(null);
+      tooltipHideTimeoutRef.current = null;
+    }, 150);
+  }, [clearTooltipHideTimeout]);
+
+  const buildTooltipState = useCallback((chordElement, chordData) => {
+    const rect = chordElement.getBoundingClientRect();
+    const isExpanded = activeChordTooltip?.data?.chordId === chordData.chordId;
+    const tooltipWidth = isExpanded ? 860 : 184;
+    const spacing = 14;
+    const safeLeft = Math.min(
+      Math.max(12, rect.left + rect.width / 2 - tooltipWidth / 2),
+      window.innerWidth - tooltipWidth - 12,
+    );
+
+    return {
+      chord: chordData.chordLabel,
+      data: chordData,
+      position: {
+        x: safeLeft,
+        y: rect.bottom + spacing,
+      },
+    };
+  }, [activeChordTooltip]);
+
+  const updateChordTooltip = useCallback((target) => {
+    clearTooltipHideTimeout();
+
+    if (!(target instanceof HTMLElement)) {
+      setActiveChordTooltip(null);
+      return;
+    }
+
+    const chordElement = target.closest(".notespresentation[data-chord]");
+    if (!chordElement) {
+      setActiveChordTooltip(null);
+      return;
+    }
+
+    const rawChord = chordElement.getAttribute("data-chord") || "";
+    const chordId = chordElement.getAttribute("data-chord-id") || "";
+    const chordData = findChordTooltipData(rawChord);
+
+    if (!chordData) {
+      setActiveChordTooltip(null);
+      return;
+    }
+
+    const nextTooltipData = {
+      ...chordData,
+      chordId,
+    };
+
+    setActiveChordTooltip(buildTooltipState(chordElement, nextTooltipData));
+  }, [buildTooltipState, clearTooltipHideTimeout]);
+
+  const handleApplyChordVariation = useCallback(
+    ({ chordLabel, chordId, variationIndex, applyToAll }) => {
+      if (applyToAll) {
+        setSelectedChordVariations((current) => ({
+          ...current,
+          [chordLabel]: variationIndex,
+        }));
+      } else {
+        setSelectedChordOccurrenceVariations((current) => ({
+          ...current,
+          [chordId]: variationIndex,
+        }));
+      }
+      clearTooltipHideTimeout();
+      setActiveChordTooltip(null);
+    },
+    [clearTooltipHideTimeout],
+  );
+
+  const getSelectedVariationIndex = useCallback(
+    (tooltipData) => {
+      if (!tooltipData) return 0;
+      if (
+        Object.prototype.hasOwnProperty.call(
+          selectedChordOccurrenceVariations,
+          tooltipData.chordId,
+        )
+      ) {
+        return selectedChordOccurrenceVariations[tooltipData.chordId];
+      }
+      return selectedChordVariations[tooltipData.chordLabel] ?? 0;
+    },
+    [selectedChordOccurrenceVariations, selectedChordVariations],
+  );
+
+  const handleTooltipEnter = useCallback(() => {
+    clearTooltipHideTimeout();
+  }, [clearTooltipHideTimeout]);
+
+  const handleTooltipLeave = useCallback(() => {
+    scheduleTooltipHide();
+  }, [scheduleTooltipHide]);
+
+  const handleCloseTooltip = useCallback(() => {
+    clearTooltipHideTimeout();
+    setActiveChordTooltip(null);
+  }, [clearTooltipHideTimeout]);
+
   useEffect(() => {
     if (!artistFromURL || !songFromURL || !instrumentSelected) return;
 
@@ -304,6 +427,57 @@ function Presentation() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const contentNode = presentationContentRef.current;
+    if (!contentNode || isEditing) return undefined;
+
+    const handleMouseEnter = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".notespresentation[data-chord]")) {
+        updateChordTooltip(target);
+      }
+    };
+
+    const handleMouseOut = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.closest(".notespresentation[data-chord]")) return;
+
+      const nextTarget = event.relatedTarget;
+      if (
+        nextTarget instanceof HTMLElement &&
+        (nextTarget.closest(".notespresentation[data-chord]") ||
+          nextTarget.closest(".presentation-chord-tooltip"))
+      ) {
+        return;
+      }
+      scheduleTooltipHide();
+    };
+
+    contentNode.addEventListener("mouseover", handleMouseEnter);
+    contentNode.addEventListener("mouseout", handleMouseOut);
+
+    return () => {
+      contentNode.removeEventListener("mouseover", handleMouseEnter);
+      contentNode.removeEventListener("mouseout", handleMouseOut);
+    };
+  }, [isEditing, scheduleTooltipHide, updateChordTooltip]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setActiveChordTooltip(null);
+      clearTooltipHideTimeout();
+    }
+  }, [clearTooltipHideTimeout, isEditing]);
+
+  useEffect(
+    () => () => {
+      clearTooltipHideTimeout();
+    },
+    [clearTooltipHideTimeout],
+  );
 
   const editor = useEditor(
     {
@@ -380,6 +554,7 @@ function Presentation() {
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
           <div
+            ref={presentationContentRef}
             className={`flex flex-col neuphormism-b p-5 ${
               hideChords ? "hide-chords" : ""
             }`}
@@ -419,6 +594,16 @@ function Presentation() {
               })
             )}
           </div>
+          {!isEditing && (
+            <PresentationChordTooltip
+              tooltip={activeChordTooltip}
+              selectedVariationIndex={getSelectedVariationIndex(activeChordTooltip?.data)}
+              onApplyVariation={handleApplyChordVariation}
+              onTooltipEnter={handleTooltipEnter}
+              onTooltipLeave={handleTooltipLeave}
+              onClose={handleCloseTooltip}
+            />
+          )}
         </div>
       </div>
     </div>
