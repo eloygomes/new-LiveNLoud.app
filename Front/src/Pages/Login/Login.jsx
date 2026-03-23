@@ -1,11 +1,13 @@
 import { TextField, Grid, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
-import { sendPasswordReset } from "../../authFunctions";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../contexts/AuthContext";
-import { login as loginApi } from "../../Tools/Controllers"; // ✅ renomeia p/ evitar colisão
+import {
+  login as loginApi,
+  requestPasswordReset,
+} from "../../Tools/Controllers";
 
 function Login() {
   const [userEmail, setUserEmail] = useState("");
@@ -41,8 +43,14 @@ function Login() {
 
   const handlePasswordReset = async () => {
     if (userEmail) {
-      alert("Password reset email sent");
-      await sendPasswordReset(userEmail);
+      try {
+        await requestPasswordReset(userEmail);
+        alert("If the email exists, the reset link was requested.");
+      } catch (error) {
+        console.error("Password reset request failed:", error);
+        alert("Could not request password reset.");
+      }
+      navigate(`/newpassword?email=${encodeURIComponent(userEmail)}`);
     } else {
       alert("Insert a valid email");
     }
@@ -57,7 +65,7 @@ function Login() {
               <Grid className="w-full sm:w-2/3 md:w-5/12 p-6 shadow-lg mx-auto">
                 <div className="m-5 flex flex-col items-center neuphormism-b p-5">
                   <Typography component="h1" variant="h5">
-                    Live N Loud
+                    # Sustenido
                   </Typography>
                   <Typography className="text-sm">Login</Typography>
 

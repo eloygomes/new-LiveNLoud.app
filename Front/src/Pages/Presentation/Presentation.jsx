@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { FaGear } from "react-icons/fa6";
 import ToolBox from "./ToolBox";
@@ -67,8 +68,10 @@ function Presentation() {
   });
   const [activeChordTooltip, setActiveChordTooltip] = useState(null);
   const [selectedChordVariations, setSelectedChordVariations] = useState({});
-  const [selectedChordOccurrenceVariations, setSelectedChordOccurrenceVariations] =
-    useState({});
+  const [
+    selectedChordOccurrenceVariations,
+    setSelectedChordOccurrenceVariations,
+  ] = useState({});
   const presentationContentRef = useRef(null);
   const tooltipHideTimeoutRef = useRef(null);
 
@@ -277,56 +280,63 @@ function Presentation() {
     }, 150);
   }, [clearTooltipHideTimeout]);
 
-  const buildTooltipState = useCallback((chordElement, chordData) => {
-    const rect = chordElement.getBoundingClientRect();
-    const isExpanded = activeChordTooltip?.data?.chordId === chordData.chordId;
-    const tooltipWidth = isExpanded ? 860 : 184;
-    const spacing = 14;
-    const safeLeft = Math.min(
-      Math.max(12, rect.left + rect.width / 2 - tooltipWidth / 2),
-      window.innerWidth - tooltipWidth - 12,
-    );
+  const buildTooltipState = useCallback(
+    (chordElement, chordData) => {
+      const rect = chordElement.getBoundingClientRect();
+      const isExpanded =
+        activeChordTooltip?.data?.chordId === chordData.chordId;
+      const tooltipWidth = isExpanded ? 860 : 184;
+      const spacing = 14;
+      const safeLeft = Math.min(
+        Math.max(12, rect.left + rect.width / 2 - tooltipWidth / 2),
+        window.innerWidth - tooltipWidth - 12,
+      );
 
-    return {
-      chord: chordData.chordLabel,
-      data: chordData,
-      position: {
-        x: safeLeft,
-        y: rect.bottom + spacing,
-      },
-    };
-  }, [activeChordTooltip]);
+      return {
+        chord: chordData.chordLabel,
+        data: chordData,
+        position: {
+          x: safeLeft,
+          y: rect.bottom + spacing,
+        },
+      };
+    },
+    [activeChordTooltip],
+  );
 
-  const updateChordTooltip = useCallback((target) => {
-    clearTooltipHideTimeout();
+  const updateChordTooltip = useCallback(
+    (target) => {
+      clearTooltipHideTimeout();
 
-    if (!(target instanceof HTMLElement)) {
-      setActiveChordTooltip(null);
-      return;
-    }
+      if (!(target instanceof HTMLElement)) {
+        setActiveChordTooltip(null);
+        return;
+      }
 
-    const chordElement = target.closest(".notespresentation[data-chord]");
-    if (!chordElement) {
-      setActiveChordTooltip(null);
-      return;
-    }
+      const chordElement = target.closest(".notespresentation[data-chord]");
+      if (!chordElement) {
+        setActiveChordTooltip(null);
+        return;
+      }
 
-    const rawChord = chordElement.getAttribute("data-chord") || "";
-    const chordId = chordElement.getAttribute("data-chord-id") || "";
-    const chordData = findChordTooltipData(rawChord);
+      const rawChord = chordElement.getAttribute("data-chord") || "";
+      const chordId = chordElement.getAttribute("data-chord-id") || "";
+      const chordData = findChordTooltipData(rawChord);
 
-    if (!chordData) {
-      setActiveChordTooltip(null);
-      return;
-    }
+      if (!chordData) {
+        setActiveChordTooltip(null);
+        return;
+      }
 
-    const nextTooltipData = {
-      ...chordData,
-      chordId,
-    };
+      const nextTooltipData = {
+        ...chordData,
+        chordId,
+      };
 
-    setActiveChordTooltip(buildTooltipState(chordElement, nextTooltipData));
-  }, [buildTooltipState, clearTooltipHideTimeout]);
+      setActiveChordTooltip(buildTooltipState(chordElement, nextTooltipData));
+    },
+    [buildTooltipState, clearTooltipHideTimeout],
+  );
 
   const handleApplyChordVariation = useCallback(
     ({ chordLabel, chordId, variationIndex, applyToAll }) => {
@@ -597,7 +607,9 @@ function Presentation() {
           {!isEditing && (
             <PresentationChordTooltip
               tooltip={activeChordTooltip}
-              selectedVariationIndex={getSelectedVariationIndex(activeChordTooltip?.data)}
+              selectedVariationIndex={getSelectedVariationIndex(
+                activeChordTooltip?.data,
+              )}
               onApplyVariation={handleApplyChordVariation}
               onTooltipEnter={handleTooltipEnter}
               onTooltipLeave={handleTooltipLeave}

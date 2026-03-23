@@ -259,11 +259,29 @@ export const deleteAllUserSongs = async () => {
   }
 };
 
-export const deleteUserAccountOnDb = async () => {
+export const deleteUserAccountOnDb = async (password) => {
   const url = "/api/deleteUserAccount";
 
   try {
-    const { data } = await axiosApi.post(url, { email: getUserEmail() });
+    const { data } = await axiosApi.post(url, {
+      email: getUserEmail(),
+      password,
+    });
+    return data;
+  } catch (error) {
+    console.error(
+      `Erro ao deletar a conta do usuário:`,
+      error.response?.data?.message || error.message,
+    );
+    throw error;
+  }
+};
+
+export const deleteUserAccount = async ({ password, email = getUserEmail() }) => {
+  const url = "/api/deleteUserAccount";
+
+  try {
+    const { data } = await axiosApi.post(url, { email, password });
     return data;
   } catch (error) {
     console.error(
@@ -730,4 +748,27 @@ export async function updatePassword({ email, currentPassword, newPassword }) {
 
   const { data } = await axiosApi.put(url, payload);
   return data;
+}
+
+export async function requestPasswordReset(email) {
+  const { data } = await axiosApi.post("/api/auth/request-password-reset", {
+    email,
+  });
+  return data;
+}
+
+export async function resetPassword({ email, token, newPassword }) {
+  const { data } = await axiosApi.post("/api/auth/reset-password", {
+    email,
+    token,
+    newPassword,
+  });
+  return data;
+}
+
+export function logoutUser() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("username");
 }

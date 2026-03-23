@@ -1,11 +1,9 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-
-// logout function
-import { logout } from "../authFunctions";
 import { useEffect } from "react";
 import { useState } from "react";
 import UserProfileAvatar from "./UserProfileAvatar";
+import { logoutUser } from "../Tools/Controllers";
 
 import userPerfil from "../assets/userPerfil.jpg";
 
@@ -18,8 +16,7 @@ function UserDropdownMenu({
   const [userName, setUserName] = useState("");
 
   const handleLogout = () => {
-    logout();
-    localStorage.clear();
+    logoutUser();
     navigate("/login");
   };
 

@@ -6,18 +6,14 @@ import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatarBig from "./UserProfileAvatarBig";
 import {
   deleteAllUserSongs,
-  deleteUserAccountOnDb,
+  deleteUserAccount,
   downloadUserData,
   requestData,
+  updatePassword,
+  updateUserName,
+  logoutUser,
 } from "../../Tools/Controllers";
 import PasswordResetModal from "./PasswordResetModal";
-import {
-  sendPasswordReset,
-  reauthenticateUser,
-  changeUserPassword,
-  deleteUserAccount, // Importar a função deleteUserAccount
-  logout, // Importar a função logout, se necessário
-} from "../../authFunctions";
 import UsernameEditModal from "./UsernameEditModal";
 import DeleteAccountModal from "./DeleteAccountModal"; // Importar o novo modal
 
@@ -80,15 +76,9 @@ function UserProfile() {
 
   const handleUsernameSubmit = async (newUsername) => {
     try {
-      const userEmail = localStorage.getItem("userEmail");
-      await axios.put(
-        "https://api.live.eloygomes.com/api/updateUsername",
-        {
-          email: userEmail,
-          newUsername,
-        }
-      );
+      await updateUserName(newUsername);
       setGetUsername(newUsername); // Atualiza o estado com o novo nome de usuário
+      localStorage.setItem("username", newUsername);
       alert("Username atualizado com sucesso!");
       setIsUsernameModalOpen(false);
     } catch (error) {
@@ -99,19 +89,19 @@ function UserProfile() {
 
   const handlePasswordSubmit = async (oldPassword, newPassword) => {
     try {
-      // Verifique se o usuário foi autenticado com a senha antiga
-      await reauthenticateUser(oldPassword);
-      // Atualize a senha para a nova senha
-      await changeUserPassword(newPassword);
+      await updatePassword({
+        email: localStorage.getItem("userEmail"),
+        currentPassword: oldPassword,
+        newPassword,
+      });
       alert("Senha alterada com sucesso!");
       handleCloseModal();
     } catch (error) {
       console.error("Erro ao alterar a senha:", error);
-      if (error.code === "auth/wrong-password") {
-        alert("A senha antiga está incorreta.");
-      } else {
-        alert("Ocorreu um erro ao tentar alterar a senha.");
-      }
+      alert(
+        error?.response?.data?.message ||
+          "Ocorreu um erro ao tentar alterar a senha.",
+      );
     }
   };
 
@@ -223,24 +213,18 @@ function UserProfile() {
 
   const handleDeleteAccount = async (password) => {
     try {
-      await deleteUserAccount(password);
+      await deleteUserAccount({ password });
       alert("Sua conta foi deletada com sucesso.");
-
-      // await deleteUserAccountOnDb();
-
-      // Limpar dados do localStorage
-      localStorage.removeItem("userEmail");
-      localStorage.removeItem("username");
+      logoutUser();
 
       // Redirecionar o usuário para a página de login
       window.location.href = "/login";
     } catch (error) {
       console.error("Erro ao deletar a conta:", error);
-      if (error.code === "auth/wrong-password") {
-        alert("Senha incorreta. Por favor, tente novamente.");
-      } else {
-        alert("Erro ao deletar a conta: " + error.message);
-      }
+      alert(
+        error?.response?.data?.message ||
+          `Erro ao deletar a conta: ${error.message}`,
+      );
     } finally {
       setIsDeleteModalOpen(false);
     }

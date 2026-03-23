@@ -2951,8 +2951,17 @@ const multer = require("multer");
 const path = require("path");
 const sharp = require("sharp"); // Importar sharp
 const fs = require("fs");
+const crypto = require("crypto");
 const youtubeRoutes = require("./youtube/youtube.routes");
 const cookieParser = require("cookie-parser");
+let nodemailer = null;
+try {
+  nodemailer = require("nodemailer");
+} catch (error) {
+  console.warn(
+    "nodemailer não instalado; reset de senha por e-mail ficará desabilitado.",
+  );
+}
 
 // Socket.IO
 const http = require("http");
@@ -3982,29 +3991,37 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
 // Rota para deletar a conta completa do usuário
 app.post("/api/deleteUserAccount", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
     console.log("deleting:", email);
 
     console.log("Recebido pedido para deletar conta do email:", email);
 
-    // Validação: Verificar se o email foi fornecido
-    if (!email) {
+    if (!email || !password) {
       console.log("Email não fornecido no pedido.");
-      return res.status(400).json({ message: "Email é obrigatório." });
+      return res
+        .status(400)
+        .json({ message: "Email e senha são obrigatórios." });
     }
 
-    const database = client.db("liveNloud_"); // Substitua pelo nome do seu banco de dados se for diferente
-    const collection = database.collection("data"); // Substitua pelo nome da sua coleção se for diferente
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+    const profileImages = database.collection("profileImages");
+    const authUser = await authCollection.findOne({ email });
 
-    // Tentar deletar o documento do usuário baseado no email
-    const deleteResult = await collection.deleteOne({ email: email });
-
-    console.log("Resultado da operação de deletar:", deleteResult);
-
-    if (deleteResult.deletedCount === 0) {
-      console.log(`Nenhum usuário encontrado com o email: ${email}`);
+    if (!authUser) {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
+
+    const valid = await bcrypt.compare(password, authUser.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ message: "Senha incorreta." });
+    }
+
+    const deleteResult = await collection.deleteOne({ email: email });
+    await profileImages.deleteOne({ email });
+    await authCollection.deleteOne({ email });
+
+    console.log("Resultado da operação de deletar:", deleteResult);
 
     return res.status(200).json({
       message: "Conta do usuário deletada com sucesso!",
@@ -4135,6 +4152,51 @@ const bcrypt = require("bcrypt");
 // Modelo AuthUser (usando o próprio MongoClient, sem mongoose)
 const authDatabase = client.db("liveNloud_");
 const authCollection = authDatabase.collection("authUsers");
+const FRONTEND_BASE_URL =
+  process.env.FRONTEND_BASE_URL || "https://www.live.eloygomes.com";
+
+async function sendPasswordResetEmail({ email, resetUrl }) {
+  if (!nodemailer) {
+    return { sent: false, reason: "nodemailer_not_installed" };
+  }
+
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM || user;
+
+  if (!host || !user || !pass || !from) {
+    return { sent: false, reason: "smtp_not_configured" };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+
+  await transporter.sendMail({
+    from,
+    to: email,
+    subject: "Redefinição de senha - Live N Loud",
+    text:
+      "Recebemos uma solicitação para redefinir sua senha.\n\n" +
+      `Abra este link: ${resetUrl}\n\n` +
+      "Se você não pediu essa alteração, ignore este e-mail.",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+        <h2>Redefinição de senha</h2>
+        <p>Recebemos uma solicitação para redefinir sua senha.</p>
+        <p><a href="${resetUrl}">Clique aqui para criar uma nova senha</a></p>
+        <p>Se você não pediu essa alteração, ignore este e-mail.</p>
+      </div>
+    `,
+  });
+
+  return { sent: true };
+}
 
 // Helpers
 const genAccessToken = (id) =>
@@ -4195,6 +4257,164 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (err) {
     console.error("Erro ao logar:", err); // <-- log detalhado
     res.status(500).json({ error: "Erro interno" });
+  }
+});
+
+app.put("/api/auth/updatePassword", async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  if (!email || !currentPassword || !newPassword) {
+    return res.status(400).json({
+      message: "Email, senha atual e nova senha são obrigatórios.",
+    });
+  }
+
+  if (String(newPassword).length < 8) {
+    return res.status(400).json({
+      message: "A nova senha deve ter pelo menos 8 caracteres.",
+    });
+  }
+
+  try {
+    const user = await authCollection.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ message: "Senha atual inválida." });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await authCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: { passwordHash },
+        $unset: {
+          refreshToken: "",
+          resetPasswordTokenHash: "",
+          resetPasswordExpiresAt: "",
+        },
+      },
+    );
+
+    res.json({ message: "Senha atualizada com sucesso!" });
+  } catch (err) {
+    console.error("Erro ao atualizar senha:", err);
+    res.status(500).json({ message: "Erro interno ao atualizar senha." });
+  }
+});
+
+app.post("/api/auth/request-password-reset", async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+
+  if (!email) {
+    return res.status(400).json({ message: "Email é obrigatório." });
+  }
+
+  try {
+    const user = await authCollection.findOne({ email });
+    const genericMessage =
+      "Se o email existir, você receberá um link para redefinir a senha.";
+
+    if (!user) {
+      return res.json({ message: genericMessage });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const resetPasswordTokenHash = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const resetPasswordExpiresAt = new Date(Date.now() + 1000 * 60 * 30);
+    const resetUrl =
+      `${FRONTEND_BASE_URL}/newpassword?token=${encodeURIComponent(rawToken)}` +
+      `&email=${encodeURIComponent(email)}`;
+
+    await authCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          resetPasswordTokenHash,
+          resetPasswordExpiresAt,
+        },
+      },
+    );
+
+    const mailResult = await sendPasswordResetEmail({ email, resetUrl });
+    const response = { message: genericMessage };
+
+    if (!mailResult.sent) {
+      response.delivery = mailResult.reason;
+      if (process.env.NODE_ENV !== "production") {
+        response.resetUrl = resetUrl;
+      }
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error("Erro ao solicitar reset de senha:", err);
+    res
+      .status(500)
+      .json({ message: "Erro interno ao solicitar reset de senha." });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const token = String(req.body?.token || "");
+  const newPassword = String(req.body?.newPassword || "");
+
+  if (!email || !token || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Email, token e nova senha são obrigatórios." });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({
+      message: "A nova senha deve ter pelo menos 8 caracteres.",
+    });
+  }
+
+  try {
+    const resetPasswordTokenHash = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await authCollection.findOne({
+      email,
+      resetPasswordTokenHash,
+      resetPasswordExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Link inválido ou expirado. Solicite um novo reset.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await authCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: { passwordHash },
+        $unset: {
+          refreshToken: "",
+          resetPasswordTokenHash: "",
+          resetPasswordExpiresAt: "",
+        },
+      },
+    );
+
+    res.json({ message: "Senha redefinida com sucesso!" });
+  } catch (err) {
+    console.error("Erro ao redefinir senha:", err);
+    res.status(500).json({ message: "Erro interno ao redefinir senha." });
   }
 });
 

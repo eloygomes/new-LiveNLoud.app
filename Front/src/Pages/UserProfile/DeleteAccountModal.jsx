@@ -1,6 +1,4 @@
-// src/components/UserProfile/DeleteAccountModal.js
 import { useState } from "react";
-import { deleteUserAccountOnDb } from "../../Tools/Controllers";
 
 function DeleteAccountModal({ isOpen, onClose, onSubmit }) {
   const [password, setPassword] = useState("");
@@ -8,7 +6,6 @@ function DeleteAccountModal({ isOpen, onClose, onSubmit }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(password);
-    deleteUserAccountOnDb();
   };
 
   if (!isOpen) return null;

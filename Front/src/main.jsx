@@ -23,6 +23,7 @@ import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
 import Tuner from "./Pages/Tuner/Tuner";
 import Presentation from "./Pages/Presentation/Presentation";
 import Login from "./Pages/Login/Login";
+import NewPassword from "./Pages/NewPassword/NewPassword";
 import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 import SpotifyCallback from "./Pages/Dashboard/SpotifyCallback";
@@ -162,6 +163,7 @@ const router = createBrowserRouter(
     <>
       {/* Rotas públicas */}
       <Route path="/login" element={<Login />} />
+      <Route path="/newpassword" element={<NewPassword />} />
       <Route path="/userregistration" element={<UserRegistration />} />
 
       {/* ✅ Callback leve para popup do YouTube (NÃO protegido) */}
