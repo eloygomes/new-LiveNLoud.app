@@ -1,0 +1,9 @@
+
+
+services:
+  static_site_2:
+    image: nginx:alpine
+    volumes:
+      - ./site2:/usr/share/nginx/html:ro
+    ports:
+      - "8081:80"

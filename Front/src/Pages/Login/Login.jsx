@@ -4,10 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../contexts/AuthContext";
-import {
-  login as loginApi,
-  requestPasswordReset,
-} from "../../Tools/Controllers";
+import { login as loginApi } from "../../Tools/Controllers";
 
 function Login() {
   const [userEmail, setUserEmail] = useState("");
@@ -43,13 +40,6 @@ function Login() {
 
   const handlePasswordReset = async () => {
     if (userEmail) {
-      try {
-        await requestPasswordReset(userEmail);
-        alert("If the email exists, the reset link was requested.");
-      } catch (error) {
-        console.error("Password reset request failed:", error);
-        alert("Could not request password reset.");
-      }
       navigate(`/newpassword?email=${encodeURIComponent(userEmail)}`);
     } else {
       alert("Insert a valid email");

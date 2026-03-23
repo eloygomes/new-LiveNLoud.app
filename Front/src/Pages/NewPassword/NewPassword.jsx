@@ -23,6 +23,7 @@ function NewPassword() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   const handleRequestReset = async (event) => {
     event.preventDefault();
@@ -53,6 +54,7 @@ function NewPassword() {
     setLoading(true);
     setStatus("");
     setError("");
+    setSaved(false);
 
     if (newPassword.length < 8) {
       setError("A nova senha deve ter pelo menos 8 caracteres.");
@@ -72,8 +74,8 @@ function NewPassword() {
         token: resetToken,
         newPassword,
       });
-      setStatus("Senha atualizada com sucesso. Você já pode fazer login.");
-      setTimeout(() => navigate("/login"), 1200);
+      setSaved(true);
+      setStatus("Senha atualizada com sucesso. Agora voce pode voltar para o login.");
     } catch (err) {
       setError(
         err?.response?.data?.message ||
@@ -109,7 +111,7 @@ function NewPassword() {
                 </h2>
                 <p className="text-sm text-gray-600 mb-6">
                   {isResetMode
-                    ? "Use the link received by email to define a new password."
+                    ? "Use o link recebido por email para criar uma nova senha para a sua conta."
                     : "Enter your email and we will prepare a reset link for this account."}
                 </p>
 
@@ -155,6 +157,10 @@ function NewPassword() {
                           disabled={loading}
                         />
                       </div>
+
+                      <p className="text-[11px] text-gray-500 leading-snug">
+                        A nova senha precisa ter pelo menos 8 caracteres e nao pode ser igual a senha anterior.
+                      </p>
                     </>
                   )}
 
@@ -163,7 +169,7 @@ function NewPassword() {
 
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || saved}
                     className="neuphormism-b-btn-gold w-full py-3 mt-2"
                   >
                     {loading
@@ -174,8 +180,17 @@ function NewPassword() {
                   </button>
                 </form>
 
-                <div className="text-sm pt-5">
+                <div className="text-sm pt-5 flex items-center justify-between">
                   <Link to="/login">Back to login</Link>
+                  {saved && (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/login")}
+                      className="neuphormism-b-btn px-4 py-2"
+                    >
+                      Go to login
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
