@@ -3380,7 +3380,11 @@ app.post("/api/scrape", async (req, res) => {
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
     console.time(requestLabel);
-    const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload);
+    const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload, {
+      headers: {
+        Host: "python_scraper",
+      },
+    });
     console.timeEnd(requestLabel);
     console.log("[SCRAPE] python resp:", response.status, response.data);
 

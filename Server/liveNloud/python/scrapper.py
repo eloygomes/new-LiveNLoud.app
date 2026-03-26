@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, request, jsonify
 
 from scraping_service import get_song_data
@@ -5,6 +7,14 @@ from source_rules import detect_source
 from storage_service import store_in_mongo
 
 app = Flask(__name__)
+app.config["TRUSTED_HOSTS"] = [
+    host.strip()
+    for host in os.getenv(
+        "TRUSTED_HOSTS",
+        "localhost,127.0.0.1,python_scraper,python_scraper:8000",
+    ).split(",")
+    if host.strip()
+]
 
 
 def sanitize_scrape_link(link: str) -> str:
@@ -62,5 +72,4 @@ def scrape_and_store():
 
 
 if __name__ == '__main__':
-    # continua igual
     app.run(host='0.0.0.0', port=8000)

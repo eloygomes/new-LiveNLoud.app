@@ -88,6 +88,7 @@ services:
     environment:
       MONGO_URI: mongodb://root:example@db:27017/admin
       CHROME_BINARY: /usr/bin/chromium
+      TRUSTED_HOSTS: localhost,127.0.0.1,python_scraper,python_scraper:8000
     depends_on:
       - db
     restart: unless-stopped
