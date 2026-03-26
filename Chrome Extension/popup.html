@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LiveNLoud Quick Add</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">LiveNLoud</p>
+        <h1>Quick Add</h1>
+        <p class="subtitle">Save the current song page into your library.</p>
+      </header>
+
+      <section id="statusCard" class="card status-card">
+        <p id="statusText">Loading extension...</p>
+      </section>
+
+      <section id="loginView" class="card hidden">
+        <h2>Login</h2>
+        <form id="loginForm" class="form-stack">
+          <label class="field">
+            <span>Email</span>
+            <input id="emailInput" type="email" autocomplete="username" required />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="passwordInput" type="password" autocomplete="current-password" required />
+          </label>
+          <button id="loginButton" class="primary-button" type="submit">Login</button>
+        </form>
+      </section>
+
+      <section id="songView" class="card hidden">
+        <div class="section-head">
+          <div>
+            <h2>Song Details</h2>
+            <p id="userBadge" class="muted"></p>
+          </div>
+          <button id="logoutButton" class="ghost-button" type="button">Logout</button>
+        </div>
+
+        <div class="form-grid">
+          <label class="field full">
+            <span>Link</span>
+            <input id="linkInput" type="url" />
+          </label>
+          <label class="field">
+            <span>Song</span>
+            <input id="songInput" type="text" />
+          </label>
+          <label class="field">
+            <span>Artist</span>
+            <input id="artistInput" type="text" />
+          </label>
+          <label class="field">
+            <span>Capo</span>
+            <input id="capoInput" type="text" />
+          </label>
+          <label class="field">
+            <span>Tom</span>
+            <input id="tomInput" type="text" />
+          </label>
+          <label class="field">
+            <span>Tuner</span>
+            <input id="tunerInput" type="text" />
+          </label>
+          <label class="field full">
+            <span>Video links</span>
+            <textarea id="videosInput" rows="4" placeholder="Paste one or more links separated by line breaks, commas, or spaces"></textarea>
+          </label>
+          <label class="field full">
+            <span>Existing setlist</span>
+            <select id="setlistSelect">
+              <option value="">No setlist</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="discardButton" class="ghost-button" type="button">Discard</button>
+          <button id="saveButton" class="primary-button" type="button">Save</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

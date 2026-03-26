@@ -31,6 +31,9 @@ def sanitize_scrape_link(link: str) -> str:
 
 @app.route('/scrape', methods=['POST'])
 def scrape_and_store():
+    print("[SCRAPER DEBUG] request.host =", request.host, flush=True)
+    print("[SCRAPER DEBUG] Host header =", request.headers.get("Host"), flush=True)
+    print("[SCRAPER DEBUG] headers =", dict(request.headers), flush=True)
     data = request.json
 
     link_url = sanitize_scrape_link(data.get('link'))

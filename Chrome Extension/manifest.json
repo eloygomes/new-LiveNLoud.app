@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "LiveNLoud Quick Add",
+  "version": "0.1.0",
+  "description": "Add the current song page to LiveNLoud from the browser toolbar.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://api.live.eloygomes.com/*",
+    "https://www.cifraclub.com.br/*",
+    "https://cifraclub.com.br/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "LiveNLoud Quick Add",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "page-context.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "livenloud-quick-add@eloygomes.com"
+    }
+  }
+}

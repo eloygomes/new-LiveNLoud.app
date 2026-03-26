@@ -3279,7 +3279,11 @@ function sanitizeScrapeLink(link) {
   }
 
   const half = Math.floor(raw.length / 2);
-  if (half > 0 && raw.length % 2 === 0 && raw.slice(0, half) === raw.slice(half)) {
+  if (
+    half > 0 &&
+    raw.length % 2 === 0 &&
+    raw.slice(0, half) === raw.slice(half)
+  ) {
     return raw.slice(0, half);
   }
 
@@ -3382,7 +3386,7 @@ app.post("/api/scrape", async (req, res) => {
     console.time(requestLabel);
     const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload, {
       headers: {
-        Host: "python_scraper",
+        Host: "localhost",
       },
     });
     console.timeEnd(requestLabel);
@@ -4305,12 +4309,16 @@ app.put("/api/auth/updatePassword", async (req, res) => {
     return res.json({ message: "Senha atualizada com sucesso!" });
   } catch (err) {
     console.error("Erro ao atualizar senha:", err);
-    return res.status(500).json({ message: "Erro interno ao atualizar senha." });
+    return res
+      .status(500)
+      .json({ message: "Erro interno ao atualizar senha." });
   }
 });
 
 app.post("/api/auth/request-password-reset", async (req, res) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
+  const email = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
 
   if (!email) {
     return res.status(400).json({ message: "Email e obrigatorio." });
@@ -4365,7 +4373,9 @@ app.post("/api/auth/request-password-reset", async (req, res) => {
 });
 
 app.post("/api/auth/reset-password", async (req, res) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
+  const email = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
   const token = String(req.body?.token || "");
   const newPassword = String(req.body?.newPassword || "");
 
@@ -4423,7 +4433,9 @@ app.post("/api/auth/reset-password", async (req, res) => {
     return res.json({ message: "Senha redefinida com sucesso!" });
   } catch (err) {
     console.error("Erro ao redefinir senha:", err);
-    return res.status(500).json({ message: "Erro interno ao redefinir senha." });
+    return res
+      .status(500)
+      .json({ message: "Erro interno ao redefinir senha." });
   }
 });
 
