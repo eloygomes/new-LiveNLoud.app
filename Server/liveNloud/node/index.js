@@ -2960,7 +2960,7 @@ const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const uri = "REMOVED_MONGO_URI";
+const uri = process.env.MONGO_URI || "mongodb://root:example@db:27017/admin";
 const client = new MongoClient(uri);
 
 const pythonApiUrl = process.env.PYTHON_API_URL || "http://python_scraper:8000";

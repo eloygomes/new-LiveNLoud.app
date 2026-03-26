@@ -1,0 +1,7 @@
+234333==>REMOVED_SMTP_PASS
+troque_este_access_secret==>REMOVED_ACCESS_SECRET
+troque_este_refresh_secret==>REMOVED_REFRESH_SECRET
+mongodb://root:example@db:27017/admin==>REMOVED_MONGO_URI
+root==>REMOVED_MONGO_USER
+example==>REMOVED_MONGO_PASSWORD
+PFesB8KeQGqMzc8==>REMOVED_SMTP_PASS_ROTATED

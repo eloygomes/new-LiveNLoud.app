@@ -8,8 +8,8 @@ services:
       - "27017:27017"
     command: ["mongod", "--bind_ip_all"]
     environment:
-      MONGO_INITDB_ROOT_USERNAME: REMOVED_MONGO_USER
-      MONGO_INITDB_ROOT_PASSWORD: REMOVED_MONGO_PASSWORD
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
     networks:
       - app-network
 
@@ -51,6 +51,7 @@ services:
     environment:
       PYTHON_API_URL: http://python_scraper:8000
       NODE_ENV: production
+      MONGO_URI: mongodb://root:example@db:27017/admin
 
       ACCESS_SECRET: REMOVED_ACCESS_SECRET
       REFRESH_SECRET: REMOVED_REFRESH_SECRET
@@ -85,7 +86,7 @@ services:
       pip install --no-cache-dir -r requirements.txt &&
       python scrapper.py"
     environment:
-      MONGO_URI: REMOVED_MONGO_URI
+      MONGO_URI: mongodb://root:example@db:27017/admin
       CHROME_BINARY: /usr/bin/chromium
     depends_on:
       - db
