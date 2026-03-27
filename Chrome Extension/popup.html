@@ -29,43 +29,70 @@
             <span>Password</span>
             <input id="passwordInput" type="password" autocomplete="current-password" required />
           </label>
+          <label class="checkbox-field">
+            <input id="rememberSessionInput" type="checkbox" />
+            <span>Stay connected</span>
+          </label>
           <button id="loginButton" class="primary-button" type="submit">Login</button>
         </form>
       </section>
 
       <section id="songView" class="card hidden">
-        <div class="section-head">
-          <div>
-            <h2>Song Details</h2>
-            <p id="userBadge" class="muted"></p>
-          </div>
-          <button id="logoutButton" class="ghost-button" type="button">Logout</button>
+        <div class="session-bar">
+          <p id="userBadge" class="muted compact-user"></p>
+          <button id="logoutButton" class="ghost-button compact-button" type="button">Logout</button>
         </div>
 
-        <div class="form-grid">
-          <label class="field full">
-            <span>Link</span>
-            <input id="linkInput" type="url" />
-          </label>
-          <label class="field">
-            <span>Song</span>
-            <input id="songInput" type="text" />
-          </label>
-          <label class="field">
-            <span>Artist</span>
-            <input id="artistInput" type="text" />
-          </label>
-          <label class="field">
-            <span>Capo</span>
-            <input id="capoInput" type="text" />
-          </label>
-          <label class="field">
-            <span>Tom</span>
-            <input id="tomInput" type="text" />
-          </label>
-          <label class="field">
-            <span>Tuner</span>
-            <input id="tunerInput" type="text" />
+        <div id="compatibilityNotice" class="notice hidden"></div>
+
+        <div class="details-stack">
+          <button id="copyLinkButton" class="meta-row meta-row-link meta-row-button" type="button">
+            <div class="meta-row-head">
+              <span class="meta-label">Link</span>
+              <span class="copy-icon" aria-hidden="true">⧉</span>
+            </div>
+            <p id="linkValue" class="meta-value static-link"></p>
+          </button>
+          <div class="field full instrument-field">
+            <span>Instrument</span>
+            <select id="instrumentSelect">
+              <option value="guitar01">Guitar 01</option>
+              <option value="guitar02">Guitar 02</option>
+              <option value="bass">Bass</option>
+              <option value="keys">Keys</option>
+              <option value="drums">Drums</option>
+              <option value="voice">Voice</option>
+            </select>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Song</span>
+            <p id="songValue" class="meta-value"></p>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Artist</span>
+            <p id="artistValue" class="meta-value"></p>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Capo</span>
+            <p id="capoValue" class="meta-value"></p>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Tom</span>
+            <p id="tomValue" class="meta-value"></p>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Tuner</span>
+            <p id="tunerValue" class="meta-value"></p>
+          </div>
+        </div>
+
+        <div class="form-grid compact-grid">
+          <label class="field full progress-field">
+            <div class="progress-head">
+              <span>Conclusion</span>
+              <strong id="progressValue">0%</strong>
+            </div>
+            <input id="progressInput" type="range" min="0" max="100" step="5" value="0" />
           </label>
           <label class="field full">
             <span>Video links</span>
@@ -83,6 +110,8 @@
           <button id="discardButton" class="ghost-button" type="button">Discard</button>
           <button id="saveButton" class="primary-button" type="button">Save</button>
         </div>
+
+        <p id="finalMessage" class="final-message hidden"></p>
       </section>
     </main>
 
