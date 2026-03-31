@@ -8,7 +8,11 @@ SOURCE_RULES = {
         "service_function": "get_cifraclub_data",
     },
     "ultimate_guitar": {
-        "hosts": ("tabs.ultimate-guitar.com",),
+        "hosts": (
+            "tabs.ultimate-guitar.com",
+            "www.ultimate-guitar.com",
+            "ultimate-guitar.com",
+        ),
         "service_module": "scraping_service_ultimate_guitar",
         "service_function": "get_ultimate_guitar_data",
     },
