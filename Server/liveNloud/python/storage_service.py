@@ -159,7 +159,7 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                     instrument_progressbar=instrument_progressbar,
                     link_url=link_url,
                     cast_progress_to_int=False,   # update: valor cru
-                    safe_get=False,               # usa acesso direto como no código original
+                    safe_get=True,                # lyrics-only sources may omit capo/tuning/tab fields
                 )
 
                 collection.update_one({"email": userEmail}, {"$set": {"userdata": userdata}})
@@ -199,7 +199,7 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                         instrument_progressbar=instrument_progressbar,
                         link_url=link_url,
                         cast_progress_to_int=True,   # aqui tinha int(...)
-                        safe_get=False,              # acesso direto como no original
+                        safe_get=True,               # lyrics-only sources may omit capo/tuning/tab fields
                     )
 
                 userdata.append(new_entry)
@@ -255,6 +255,7 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
         print("Data stored in MongoDB.")
     except Exception as e:
         print(f"An error occurred while storing data in MongoDB: {e}")
+        raise
 
 
 def send_to_generalCifras(entry, instrument, instrument_progressbar):

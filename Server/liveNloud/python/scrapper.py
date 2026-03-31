@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 
 from flask import Flask, request, jsonify
 
@@ -29,6 +30,10 @@ def sanitize_scrape_link(link: str) -> str:
     return raw
 
 
+def _normalized_host(url: str) -> str:
+    return urlparse(str(url or "")).netloc.lower().replace("www.", "")
+
+
 @app.route('/scrape', methods=['POST'])
 def scrape_and_store():
     print("[SCRAPER DEBUG] request.host =", request.host, flush=True)
@@ -51,6 +56,20 @@ def scrape_and_store():
         return jsonify({"message": "Missing link or artist/song"}), 400
 
     source_name = detect_source(url_to_fetch) if url_to_fetch else "cifraclub"
+    link_host = _normalized_host(url_to_fetch)
+
+    if source_name == "letrasmus" and instrument != "voice":
+        print("[SCRAPER] letrasmus rejected for non-voice instrument", {
+            "instrument": instrument,
+            "link": url_to_fetch,
+            "host": link_host,
+        })
+        return jsonify({
+            "message": "Esse link deve ser usado no campo Voice",
+            "source": source_name,
+            "link": url_to_fetch,
+        }), 400
+
     try:
         songData = get_song_data(url_to_fetch, artist=artist, song=song)
     except Exception as err:
@@ -64,7 +83,10 @@ def scrape_and_store():
 
     if songData:
         store_in_mongo(songData, instrument, userEmail, instrument_progressbar, link_url)
-        return jsonify({"message": "Data stored successfully"}), 201
+        return jsonify({
+            "message": "Data stored successfully",
+            "songData": songData[0] if songData else None,
+        }), 201
     else:
         return jsonify({
             "message": f"Could not scrape this link from source '{source_name}'.",

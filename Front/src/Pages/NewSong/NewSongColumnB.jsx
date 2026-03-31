@@ -52,6 +52,7 @@ function NewSongColumnB({
           instrumentName="guitar01"
           instrument={guitar01} // Corrigido aqui
           setInstrument={setGuitar01}
+          setVoiceInstrument={setVoice}
           progress={progBarG01} // Corrigido aqui
           setProgress={setProgBarG01}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
@@ -76,6 +77,7 @@ function NewSongColumnB({
           instrumentName="guitar02"
           instrument={guitar02} // Corrigido aqui
           setInstrument={setGuitar02}
+          setVoiceInstrument={setVoice}
           progress={progBarG02} // Corrigido aqui
           setProgress={setProgBarG02}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
@@ -100,6 +102,7 @@ function NewSongColumnB({
           instrumentName="bass"
           instrument={bass} // Corrigido aqui
           setInstrument={setBass}
+          setVoiceInstrument={setVoice}
           progress={progBarBass} // Corrigido aqui
           setProgress={setProgBarBass}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
@@ -124,6 +127,7 @@ function NewSongColumnB({
           instrumentName="keys"
           instrument={keyboard} // Corrigido aqui
           setInstrument={setKey}
+          setVoiceInstrument={setVoice}
           progress={progBarKey} // Corrigido aqui
           setProgress={setProgBarKey}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
@@ -148,6 +152,7 @@ function NewSongColumnB({
           instrumentName="drums"
           instrument={drums} // Corrigido aqui
           setInstrument={setDrums}
+          setVoiceInstrument={setVoice}
           progress={progBarDrums} // Corrigido aqui
           setProgress={setProgBarDrums}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}
@@ -172,6 +177,7 @@ function NewSongColumnB({
           instrumentName="voice"
           instrument={voice} // Corrigido aqui
           setInstrument={setVoice}
+          setVoiceInstrument={setVoice}
           progress={progBarVoice} // Corrigido aqui
           setProgress={setProgBarVoice}
           setArtistExtractedFromUrl={setArtistExtractedFromUrl}

@@ -22,6 +22,8 @@
 body {
   margin: 0;
   min-width: 390px;
+  border-radius: 22px;
+  overflow: hidden;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.64), transparent 40%),
     linear-gradient(145deg, var(--bg), var(--bg-2));
@@ -30,6 +32,7 @@ body {
 }
 
 .app-shell {
+  min-height: 100vh;
   padding: 18px;
 }
 
@@ -99,7 +102,12 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+}
+
+.footer-bar {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
 .compact-user {
@@ -132,6 +140,18 @@ body {
   color: var(--accent-strong);
   font-size: 12px;
   font-weight: 600;
+}
+
+.notice.is-error {
+  color: var(--error);
+}
+
+.notice.is-success {
+  color: var(--success);
+}
+
+.song-content.hidden {
+  display: none;
 }
 
 .form-stack,
@@ -207,6 +227,7 @@ body {
   font-size: 13px;
   line-height: 1.35;
   color: var(--ink);
+  font-weight: 700;
 }
 
 .field {
@@ -266,6 +287,7 @@ select:focus {
 .meta-value.is-placeholder {
   color: var(--muted);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .static-link {
@@ -316,6 +338,11 @@ select:focus {
 
 .progress-field {
   gap: 8px;
+}
+
+.instrument-field select:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
 }
 
 .progress-head {

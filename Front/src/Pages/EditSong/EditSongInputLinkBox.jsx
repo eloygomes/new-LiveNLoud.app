@@ -1,20 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api as axiosApi } from "../../Tools/Controllers";
+
+const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:edit-auto-submit-voice";
 
 /* eslint-disable react/prop-types */
 function EditSongInputLinkBox({
   instrumentName,
   link,
   setInstrument,
+  setVoiceInstrument,
   progress,
   setProgress,
   dataFromAPI,
   onLinkChange,
   onProgressChange,
   setIsDirty,
+  setShowSnackBar,
+  setSnackbarMessage,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
   const isLocked = Boolean(link?.trim());
+
+  const notify = useCallback(
+    (title, message) => {
+      setShowSnackBar?.(true);
+      setSnackbarMessage?.({ title, message });
+    },
+    [setShowSnackBar, setSnackbarMessage]
+  );
+
+  const getLinkHost = (raw) => {
+    try {
+      return new URL(raw).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+
+  const isLetrasLink = (raw) => {
+    const host = getLinkHost(raw);
+    return host === "letras.mus.br" || host === "letras.com";
+  };
 
   useEffect(() => {
     try {
@@ -43,6 +69,24 @@ function EditSongInputLinkBox({
     }
   }, [dataFromAPIParsed, instrumentName, setInstrument, setProgress]);
 
+  useEffect(() => {
+    if (instrumentName !== "voice") return undefined;
+
+    const handleVoiceAutoSubmit = (event) => {
+      const redirectedLink = String(event.detail?.link || "").trim();
+      if (!redirectedLink) return;
+
+      setInstrument(redirectedLink);
+      onLinkChange?.(redirectedLink);
+      setIsDirty?.(true);
+      setTimeout(() => handledata(redirectedLink), 0);
+    };
+
+    window.addEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
+    return () =>
+      window.removeEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
+  }, [instrumentName, onLinkChange, setInstrument, setIsDirty]);
+
   // console.log(progress);
 
   const handledata = async (linkOverride) => {
@@ -51,7 +95,22 @@ function EditSongInputLinkBox({
 
     if (!userEmail || !targetLink) return;
 
+    if (isLetrasLink(targetLink) && instrumentName !== "voice") {
+      setInstrument("");
+      onLinkChange?.("");
+      setIsDirty?.(true);
+      setVoiceInstrument?.(targetLink);
+      notify("Error", "Esse link deve ser usado no campo Voice");
+      window.dispatchEvent(
+        new CustomEvent(LETRAS_AUTO_SUBMIT_EVENT, {
+          detail: { link: targetLink },
+        })
+      );
+      return;
+    }
+
     try {
+      notify("Load", "Carregando...");
       await axiosApi.post("/api/scrape", {
         artist: "",
         song: "",
@@ -60,11 +119,13 @@ function EditSongInputLinkBox({
         instrument_progressbar: `${progress}`,
         link: targetLink,
       });
+      notify("Success", "Cifra adicionada com sucesso!");
     } catch (error) {
       console.error(
         "Error registering user in API:",
         error.response ? error.response.data : error.message
       );
+      notify("Error", "Não foi possivel adicionar o link, tente mais tarde");
     }
   };
 

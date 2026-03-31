@@ -120,6 +120,9 @@ function Presentation() {
 
   // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
   const contentSelected = useMemo(() => {
+    const defaultContent =
+      normalizedSongCifra || songChords || songTabs || songLyrics || "";
+
     switch (selectContenttoShow) {
       case "tabs":
         return songTabs;
@@ -128,9 +131,9 @@ function Presentation() {
       case "lyrics":
         return songLyrics;
       case "full":
-        return normalizedSongCifra; // Retorna a cifra completa
+        return defaultContent;
       default:
-        return normalizedSongCifra; // mostra cifra completa no primeiro carregamento
+        return defaultContent;
     }
   }, [
     selectContenttoShow,
@@ -142,10 +145,11 @@ function Presentation() {
 
   const handleDataFromAPI = (data, instrumentSelected) => {
     if (data && data[instrumentSelected]) {
-      setSongCifraData(data[instrumentSelected].songCifra || "");
-      setSongLyrics(data[instrumentSelected].songLyrics || "");
-      setSongChords(data[instrumentSelected].songChords || "");
-      setSongTabs(data[instrumentSelected].songTabs || "");
+      const instrumentData = data[instrumentSelected];
+      setSongCifraData(instrumentData.songCifra || "");
+      setSongLyrics(instrumentData.songLyrics || "");
+      setSongChords(instrumentData.songChords || "");
+      setSongTabs(instrumentData.songTabs || "");
       return data[instrumentSelected];
     } else {
       console.log("Instrumento não encontrado ou data é undefined");

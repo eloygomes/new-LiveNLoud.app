@@ -51,6 +51,7 @@ const elements = {
   statusText: document.getElementById("statusText"),
   loginView: document.getElementById("loginView"),
   songView: document.getElementById("songView"),
+  songContent: document.getElementById("songContent"),
   loginForm: document.getElementById("loginForm"),
   emailInput: document.getElementById("emailInput"),
   passwordInput: document.getElementById("passwordInput"),
@@ -99,6 +100,10 @@ function setStatus(message) {
   debugLog("STATUS", normalized);
   elements.statusText.textContent = normalized;
   elements.statusCard.classList.toggle("is-idle", IDLE_STATUSES.has(normalized));
+
+  if (!elements.songView.classList.contains("hidden")) {
+    setNotice(normalized);
+  }
 }
 
 function showFinalMessage(message, type) {
@@ -154,6 +159,36 @@ function setNotice(message) {
   const normalized = cleanText(message);
   elements.compatibilityNotice.textContent = normalized;
   elements.compatibilityNotice.classList.toggle("hidden", !normalized);
+  elements.compatibilityNotice.classList.remove("is-error", "is-success");
+}
+
+function setNoticeState(type) {
+  elements.compatibilityNotice.classList.remove("is-error", "is-success");
+  if (type === "error") {
+    elements.compatibilityNotice.classList.add("is-error");
+  } else if (type === "success") {
+    elements.compatibilityNotice.classList.add("is-success");
+  }
+}
+
+function shouldForceVoice(pageContext) {
+  return pageContext?.source === "letrasmus";
+}
+
+function syncInstrumentUi(pageContext) {
+  if (shouldForceVoice(pageContext)) {
+    state.selectedInstrument = "voice";
+    elements.instrumentSelect.value = "voice";
+    elements.instrumentSelect.disabled = true;
+    return;
+  }
+
+  elements.instrumentSelect.disabled = false;
+  elements.instrumentSelect.value = state.selectedInstrument;
+}
+
+function setCompatibleLayout(isCompatible) {
+  elements.songContent.classList.toggle("hidden", !isCompatible);
 }
 
 function isPageSaveable(pageContext) {
@@ -374,6 +409,7 @@ function renderPageContext(pageContext) {
     ...emptyPageContext,
     ...pageContext,
   };
+  syncInstrumentUi(state.pageContext);
 
   const defaults = state.pageContext.defaults || emptyPageContext.defaults;
 
@@ -385,12 +421,16 @@ function renderPageContext(pageContext) {
   setStaticValue(elements.tunerValue, state.pageContext.tuning, defaults.tuning);
 
   if (!state.pageContext.compatible) {
-    setNotice("This site is not compatible");
-    setStatus("This site is not compatible");
+    setCompatibleLayout(false);
+    setNotice("Esse site não é compativel com a extensão");
+    setNoticeState("error");
+    setStatus("");
   } else if (!isPageSaveable(state.pageContext)) {
-    setNotice("Algumas informacoes ainda nao foram detectadas.");
-    setStatus("Buscando informacoes da pagina...");
+    setCompatibleLayout(true);
+    setNotice("Buscando informações da página...");
+    setStatus("");
   } else {
+    setCompatibleLayout(true);
     setNotice("");
     setStatus("");
   }
@@ -453,6 +493,20 @@ function parseVideoLinks(raw) {
 
 function normalizeScrapeDoc(scraped) {
   if (!scraped) return null;
+
+  const pythonSongData = scraped?.songData || scraped?.python?.songData || null;
+  if (pythonSongData?.artist_name && pythonSongData?.song_title) {
+    return {
+      artist: cleanText(pythonSongData.artist_name),
+      song: cleanText(pythonSongData.song_title),
+      capo: cleanText(pythonSongData.capo),
+      tuning: cleanText(pythonSongData.tuning),
+      tom: cleanText(pythonSongData.tom || pythonSongData.key),
+      link: cleanText(pythonSongData.source_url),
+      songCifra:
+        pythonSongData.song_cifra || pythonSongData.songLyrics || "",
+    };
+  }
 
   const candidates = [
     scraped?.document,
@@ -625,7 +679,7 @@ async function ensureSession() {
 }
 
 async function loadSongView(session) {
-  setStatus("Loading current page...");
+  setStatus("Carregando página...");
   hideFinalMessage();
 
   const [pageData, setlists] = await Promise.all([
@@ -635,10 +689,11 @@ async function loadSongView(session) {
 
   fillSetlists(setlists);
   renderProgressValue();
-  renderPageContext(pageData);
-  state.selectedInstrument = getSelectedInstrument();
-  elements.userBadge.textContent = session.email;
   showSongView();
+  renderPageContext(pageData);
+  state.selectedInstrument = shouldForceVoice(pageData) ? "voice" : getSelectedInstrument();
+  syncInstrumentUi(pageData);
+  elements.userBadge.textContent = session.email;
 
   if (pageData.compatible && !hasRequiredMetadata(pageData)) {
     await waitForPageMetadata();
@@ -678,6 +733,11 @@ elements.progressInput.addEventListener("input", () => {
 });
 
 elements.instrumentSelect.addEventListener("change", () => {
+  if (shouldForceVoice(state.pageContext)) {
+    elements.instrumentSelect.value = "voice";
+    state.selectedInstrument = "voice";
+    return;
+  }
   state.selectedInstrument = getSelectedInstrument();
 });
 
@@ -687,10 +747,12 @@ elements.copyLinkButton.addEventListener("click", async () => {
 
   try {
     await navigator.clipboard.writeText(link);
-    setStatus("Link copiado.");
+    setNotice("Link copiado.");
+    setNoticeState("success");
   } catch (error) {
     debugError("Copy link failed", error);
-    setStatus("Nao foi possivel copiar o link.");
+    setNotice("Nao foi possivel copiar o link.");
+    setNoticeState("error");
   }
 });
 
@@ -702,26 +764,29 @@ elements.saveButton.addEventListener("click", async () => {
   const freshPageContext = await waitForPageMetadata();
 
   if (!freshPageContext.compatible) {
-    setStatus("This site is not compatible");
+    setNotice("Esse site não é compativel com a extensão");
+    setNoticeState("error");
     return;
   }
 
   if (!isPageSaveable(freshPageContext)) {
     const errorMessage = "Não foi possivel adicionar a cifra no momento, tente mais tarde";
-    setStatus(errorMessage);
+    setNotice(errorMessage);
+    setNoticeState("error");
     showFinalMessage(errorMessage, "error");
     return;
   }
 
-  setStatus("Buscando dados da cifra...");
+  setNotice("Buscando dados da cifra...");
 
   try {
     const scrapedDoc = await scrapeSong(session, freshPageContext);
     const payload = buildSongPayload(session.email, scrapedDoc);
-    setStatus("Salvando cifra...");
+    setNotice("Salvando cifra...");
     await saveSong(payload, session.accessToken);
     const successMessage = "Cifra adicionada com sucesso";
-    setStatus(successMessage);
+    setNotice(successMessage);
+    setNoticeState("success");
     showFinalOnly(successMessage, "success");
     window.setTimeout(() => {
       window.close();
@@ -729,7 +794,8 @@ elements.saveButton.addEventListener("click", async () => {
   } catch (error) {
     debugError("Save song failed", error);
     const errorMessage = "Não foi possivel adicionar a cifra no momento, tente mais tarde";
-    setStatus(errorMessage);
+    setNotice(errorMessage);
+    setNoticeState("error");
     showFinalOnly(errorMessage, "error");
     window.setTimeout(() => {
       window.close();
@@ -739,7 +805,8 @@ elements.saveButton.addEventListener("click", async () => {
 
 elements.discardButton.addEventListener("click", () => {
   const discardMessage = "Janela fechando...";
-  setStatus(discardMessage);
+  setNotice(discardMessage);
+  setNoticeState("success");
   showFinalMessage(discardMessage, "success");
   window.setTimeout(() => {
     window.close();
@@ -753,7 +820,7 @@ elements.logoutButton.addEventListener("click", async () => {
 });
 
 async function boot() {
-  setStatus("Checking session...");
+  setStatus("");
   const storedSession = await readSessionState();
   elements.rememberSessionInput.checked = storedSession.rememberSession;
   state.selectedInstrument = getSelectedInstrument();

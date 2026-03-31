@@ -9,7 +9,7 @@
   <body>
     <main class="app-shell">
       <header class="hero">
-        <p class="eyebrow">LiveNLoud</p>
+        <p class="eyebrow">#sustenido</p>
         <h1>Quick Add</h1>
         <p class="subtitle">Save the current song page into your library.</p>
       </header>
@@ -38,77 +38,79 @@
       </section>
 
       <section id="songView" class="card hidden">
-        <div class="session-bar">
-          <p id="userBadge" class="muted compact-user"></p>
-          <button id="logoutButton" class="ghost-button compact-button" type="button">Logout</button>
-        </div>
-
         <div id="compatibilityNotice" class="notice hidden"></div>
 
-        <div class="details-stack">
-          <button id="copyLinkButton" class="meta-row meta-row-link meta-row-button" type="button">
-            <div class="meta-row-head">
-              <span class="meta-label">Link</span>
-              <span class="copy-icon" aria-hidden="true">⧉</span>
+        <div id="songContent" class="song-content">
+          <div class="details-stack">
+            <button id="copyLinkButton" class="meta-row meta-row-link meta-row-button" type="button">
+              <div class="meta-row-head">
+                <span class="meta-label">Link</span>
+                <span class="copy-icon" aria-hidden="true">⧉</span>
+              </div>
+              <p id="linkValue" class="meta-value static-link"></p>
+            </button>
+            <div class="field full instrument-field">
+              <span>Instrument</span>
+              <select id="instrumentSelect">
+                <option value="guitar01">Guitar 01</option>
+                <option value="guitar02">Guitar 02</option>
+                <option value="bass">Bass</option>
+                <option value="keys">Keys</option>
+                <option value="drums">Drums</option>
+                <option value="voice">Voice</option>
+              </select>
             </div>
-            <p id="linkValue" class="meta-value static-link"></p>
-          </button>
-          <div class="field full instrument-field">
-            <span>Instrument</span>
-            <select id="instrumentSelect">
-              <option value="guitar01">Guitar 01</option>
-              <option value="guitar02">Guitar 02</option>
-              <option value="bass">Bass</option>
-              <option value="keys">Keys</option>
-              <option value="drums">Drums</option>
-              <option value="voice">Voice</option>
-            </select>
+            <div class="meta-row">
+              <span class="meta-label">Song</span>
+              <p id="songValue" class="meta-value"></p>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Artist</span>
+              <p id="artistValue" class="meta-value"></p>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Capo</span>
+              <p id="capoValue" class="meta-value"></p>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Tom</span>
+              <p id="tomValue" class="meta-value"></p>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Tuner</span>
+              <p id="tunerValue" class="meta-value"></p>
+            </div>
           </div>
-          <div class="meta-row">
-            <span class="meta-label">Song</span>
-            <p id="songValue" class="meta-value"></p>
+
+          <div class="form-grid compact-grid">
+            <label class="field full progress-field">
+              <div class="progress-head">
+                <span>Conclusion</span>
+                <strong id="progressValue">0%</strong>
+              </div>
+              <input id="progressInput" type="range" min="0" max="100" step="5" value="0" />
+            </label>
+            <label class="field full">
+              <span>Video links</span>
+              <textarea id="videosInput" rows="4" placeholder="Paste one or more links separated by line breaks, commas, or spaces"></textarea>
+            </label>
+            <label class="field full">
+              <span>Existing setlist</span>
+              <select id="setlistSelect">
+                <option value="">No setlist</option>
+              </select>
+            </label>
           </div>
-          <div class="meta-row">
-            <span class="meta-label">Artist</span>
-            <p id="artistValue" class="meta-value"></p>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Capo</span>
-            <p id="capoValue" class="meta-value"></p>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Tom</span>
-            <p id="tomValue" class="meta-value"></p>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Tuner</span>
-            <p id="tunerValue" class="meta-value"></p>
+
+          <div class="actions">
+            <button id="discardButton" class="ghost-button" type="button">Discard</button>
+            <button id="saveButton" class="primary-button" type="button">Save</button>
           </div>
         </div>
 
-        <div class="form-grid compact-grid">
-          <label class="field full progress-field">
-            <div class="progress-head">
-              <span>Conclusion</span>
-              <strong id="progressValue">0%</strong>
-            </div>
-            <input id="progressInput" type="range" min="0" max="100" step="5" value="0" />
-          </label>
-          <label class="field full">
-            <span>Video links</span>
-            <textarea id="videosInput" rows="4" placeholder="Paste one or more links separated by line breaks, commas, or spaces"></textarea>
-          </label>
-          <label class="field full">
-            <span>Existing setlist</span>
-            <select id="setlistSelect">
-              <option value="">No setlist</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="actions">
-          <button id="discardButton" class="ghost-button" type="button">Discard</button>
-          <button id="saveButton" class="primary-button" type="button">Save</button>
+        <div class="session-bar footer-bar">
+          <p id="userBadge" class="muted compact-user"></p>
+          <button id="logoutButton" class="ghost-button compact-button" type="button">Logout</button>
         </div>
 
         <p id="finalMessage" class="final-message hidden"></p>

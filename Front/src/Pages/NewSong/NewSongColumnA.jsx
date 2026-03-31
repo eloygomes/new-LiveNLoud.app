@@ -658,8 +658,12 @@ function NewSongColumnA({
 
   const createNewSong = async ({ geralPercentage, setlist }) => {
     try {
-      const savedSongName = songName;
-      const savedArtistName = artistName;
+      const fallbackSongName = localStorage.getItem("song") || "";
+      const fallbackArtistName = localStorage.getItem("artist") || "";
+      const resolvedSongName = (songName || fallbackSongName || "").trim();
+      const resolvedArtistName = (artistName || fallbackArtistName || "").trim();
+      const savedSongName = resolvedSongName;
+      const savedArtistName = resolvedArtistName;
 
       const instrumentsToSave = [
         { key: "guitar01", link: guitar01, progress: progBarG01 },
@@ -679,11 +683,20 @@ function NewSongColumnA({
         return;
       }
 
+      if (!resolvedSongName || !resolvedArtistName) {
+        setShowSnackBar?.(true);
+        setSnackbarMessage?.({
+          title: "Error",
+          message: "Falha ao salvar a música. Tente novamente.",
+        });
+        return;
+      }
+
       for (let index = 0; index < instrumentsToSave.length; index += 1) {
         const { key, link, progress } = instrumentsToSave[index];
         await createNewSongOnServer({
-          songName,
-          artistName,
+          songName: resolvedSongName,
+          artistName: resolvedArtistName,
           instrumentName: key,
           geralPercentage,
           setlist,

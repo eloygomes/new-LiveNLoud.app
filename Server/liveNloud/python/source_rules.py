@@ -17,7 +17,12 @@ SOURCE_RULES = {
         "service_function": "get_ultimate_guitar_data",
     },
     "letrasmus": {
-        "hosts": ("letras.mus.br", "www.letras.mus.br"),
+        "hosts": (
+            "letras.mus.br",
+            "www.letras.mus.br",
+            "letras.com",
+            "www.letras.com",
+        ),
         "service_module": "scraping_service_letrasmus",
         "service_function": "get_letrasmus_data",
     },

@@ -1,10 +1,28 @@
 /* eslint-disable react/prop-types */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { checkCifraExists, scrapeCifra } from "../../Tools/Controllers";
+
+const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 
 /** Normaliza a resposta do scrape em um doc utilizável */
 function normalizeScrapeDoc(scraped, instrumentName) {
   if (!scraped) return null;
+
+  const pythonSongData = scraped?.songData || scraped?.python?.songData || null;
+  if (pythonSongData?.artist_name && pythonSongData?.song_title) {
+    return {
+      doc: null,
+      inst: null,
+      link: pythonSongData?.source_url || "",
+      songCifra: pythonSongData?.song_cifra || "",
+      capo: pythonSongData?.capo || "",
+      tuning: pythonSongData?.tuning || "",
+      artist: pythonSongData.artist_name,
+      song: pythonSongData.song_title,
+      tom: pythonSongData?.tom || pythonSongData?.key || "",
+    };
+  }
+
   const candidates = [
     scraped?.document,
     scraped?.data,
@@ -37,6 +55,7 @@ function normalizeScrapeDoc(scraped, instrumentName) {
     songCifra: inst?.songCifra ?? doc?.songCifra ?? "",
     capo: inst?.capo ?? doc?.capo ?? "",
     tuning: inst?.tuning ?? doc?.tuning ?? "",
+    tom: doc?.tom ?? doc?.tone ?? doc?.key ?? "",
     artist: doc.artist,
     song: doc.song,
   };
@@ -59,7 +78,7 @@ function parseArtistSongFromUrl(raw) {
       return { artist, song };
     }
 
-    if (host === "letras.mus.br") {
+    if (host === "letras.mus.br" || host === "letras.com") {
       const artist = parts[0] || "";
       return { artist, song: "" };
     }
@@ -75,10 +94,24 @@ function parseArtistSongFromUrl(raw) {
   }
 }
 
+function getLinkHost(raw) {
+  try {
+    return new URL(raw).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function isLetrasLink(raw) {
+  const host = getLinkHost(raw);
+  return host === "letras.mus.br" || host === "letras.com";
+}
+
 function NewSongInputLinkBox({
   instrumentName,
   instrument,
   setInstrument,
+  setVoiceInstrument,
   progress,
   setProgress,
   artistName,
@@ -99,32 +132,8 @@ function NewSongInputLinkBox({
   const blurTimer = useRef(null);
   const isLocked = Boolean(instrument?.trim());
 
-  const buildUserErrorMessage = useCallback((err) => {
-    const source = err?.response?.data?.source;
-    const details = String(err?.response?.data?.details || "").toLowerCase();
-
-    if (source === "ultimate_guitar") {
-      if (details.includes("disabled")) {
-        return "A importacao do Ultimate Guitar esta desativada no momento.";
-      }
-      if (details.includes("403") || details.includes("forbidden")) {
-        return "O Ultimate Guitar bloqueou a importacao automatica no momento.";
-      }
-      if (details.includes("chrome/chromium")) {
-        return "A importacao do Ultimate Guitar esta indisponivel no servidor neste momento.";
-      }
-      return "Nao foi possivel importar esta cifra do Ultimate Guitar agora.";
-    }
-
-    if (source === "cifraclub") {
-      return "Nao foi possivel importar esta cifra do CifraClub agora.";
-    }
-
-    if (source === "letrasmus") {
-      return "Nao foi possivel importar esta musica do Letras.mus.br agora.";
-    }
-
-    return "Nao foi possivel processar este link agora. Tente novamente em instantes.";
+  const buildUserErrorMessage = useCallback(() => {
+    return "Não foi possivel adicionar o link, tente mais tarde";
   }, []);
 
   const notify = (title, message) => {
@@ -184,6 +193,21 @@ function NewSongInputLinkBox({
         return;
       }
 
+      if (isLetrasLink(link) && instrumentName !== "voice") {
+        console.warn(`[${instrumentName}] Letras link redirected to voice`, { link });
+        setInstrument?.("");
+        setVoiceInstrument?.(link);
+        notify("Error", "Esse link deve ser usado no campo Voice");
+        window.dispatchEvent(
+          new CustomEvent(LETRAS_AUTO_SUBMIT_EVENT, {
+            detail: { link },
+          })
+        );
+        updateScrapeStatus(false);
+        console.groupEnd();
+        return;
+      }
+
       const email = localStorage.getItem("userEmail") || "";
       if (guard(!!email, "Error", "Email do usuário é obrigatório.")) {
         console.groupEnd();
@@ -207,7 +231,7 @@ function NewSongInputLinkBox({
       try {
         inFlightRef.current = true;
         setLoading(true);
-        notify("Load", "Carregando dados...");
+        notify("Load", "Carregando...");
 
         // 2) Verifica se já existe no banco geral (para evitar scrape desnecessário)
         console.time(`[${instrumentName}] checkCifraExists`);
@@ -261,9 +285,28 @@ function NewSongInputLinkBox({
           setCifraFROMDB?.(parsed.doc);
           localStorage.setItem("cifraFROMDB", JSON.stringify(parsed.doc));
           localStorage.setItem("fromWHERE", "URL");
-          if (parsed.artist) setArtistName?.(parsed.artist);
-          if (parsed.song) setSongName?.(parsed.song);
+          if (parsed.artist) {
+            localStorage.setItem("artist", parsed.artist);
+            setArtistName?.(parsed.artist);
+            setArtistScrapado?.(parsed.artist);
+          }
+          if (parsed.song) {
+            localStorage.setItem("song", parsed.song);
+            setSongName?.(parsed.song);
+            setSongScrapado?.(parsed.song);
+          }
           if (parsed.link && parsed.link !== link) setInstrument?.(parsed.link);
+        } else if (parsed) {
+          if (parsed.artist) {
+            localStorage.setItem("artist", parsed.artist);
+            setArtistName?.(parsed.artist);
+            setArtistScrapado?.(parsed.artist);
+          }
+          if (parsed.song) {
+            localStorage.setItem("song", parsed.song);
+            setSongName?.(parsed.song);
+            setSongScrapado?.(parsed.song);
+          }
         }
 
         // 5) Polling opcional para refletir criação no generalCifras (feito pelo Python)
@@ -312,11 +355,11 @@ function NewSongInputLinkBox({
       } catch (err) {
         console.error(`[${instrumentName}] handleSubmit error`, err);
         console.error(`[${instrumentName}] handleSubmit full response`, err?.response?.data);
-        const baseMsg =
-          err?.response?.data?.message ||
-          "Ocorreu um erro ao processar a requisição.";
         const msg = buildUserErrorMessage(err);
-        console.error(`[${instrumentName}] user-facing error from:`, baseMsg);
+        console.error(
+          `[${instrumentName}] user-facing error from:`,
+          err?.response?.data?.message || "unknown"
+        );
         notify("Error", msg);
         updateScrapeStatus(false);
       } finally {
@@ -341,12 +384,31 @@ function NewSongInputLinkBox({
       setCifraExiste,
       setCifraFROMDB,
       setInstrument,
+      setVoiceInstrument,
       setScrapeStatus,
       primeArtistSongFromLink,
       updateScrapeStatus,
       buildUserErrorMessage,
     ]
   );
+
+  useEffect(() => {
+    if (instrumentName !== "voice") return undefined;
+
+    const handleVoiceAutoSubmit = (event) => {
+      const link = String(event.detail?.link || "").trim();
+      if (!link) return;
+
+      setInstrument?.(link);
+      primeArtistSongFromLink(link);
+      setTimeout(() => handleSubmit(link), 0);
+    };
+
+    window.addEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
+    return () => {
+      window.removeEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
+    };
+  }, [handleSubmit, instrumentName, primeArtistSongFromLink, setInstrument]);
 
   return (
     <div className="flex flex-col mt-3 w-full neuphormism-b px-5 py-3">

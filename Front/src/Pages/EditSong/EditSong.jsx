@@ -2,10 +2,16 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import EditSongColumnA from "./EditSongColumnA";
 import EditSongColumnB from "./EditSongColumnB";
 import { fetchAllSongData } from "../../Tools/Controllers";
+import SnackBar from "../../Tools/SnackBar";
 
 function EditSong() {
   const [dataFromAPI, setDataFromAPI] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [showSnackBar, setShowSnackBar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState({
+    title: "",
+    message: "",
+  });
 
   // Column B
   const [progGuitar01, setProgGuitar01] = useState(0);
@@ -47,6 +53,9 @@ function EditSong() {
 
   return (
     <div className=" flex justify-center h-screen ">
+      <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
+        <SnackBar snackbarMessage={snackbarMessage} />
+      </div>
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
           <div className="flex flex-row my-5 neuphormism-b p-5">
@@ -84,6 +93,8 @@ function EditSong() {
                 setProgVoice={setProgVoice}
                 instrumentUpdatersRef={instrumentUpdatersRef}
                 setIsDirty={setIsDirty}
+                setShowSnackBar={setShowSnackBar}
+                setSnackbarMessage={setSnackbarMessage}
               />
             </div>
           </div>

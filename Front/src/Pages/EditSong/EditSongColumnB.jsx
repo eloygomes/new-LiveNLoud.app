@@ -18,6 +18,8 @@ function EditSongColumnB({
   setProgVoice,
   instrumentUpdatersRef,
   setIsDirty,
+  setShowSnackBar,
+  setSnackbarMessage,
 }) {
   // Guitar 01
   const [guitar01, setGuitar01] = useState("");
@@ -135,6 +137,7 @@ function EditSongColumnB({
           setInstrument={setGuitar01}
           progress={progGuitar01}
           setProgress={setProgGuitar01}
+          setVoiceInstrument={setVoice}
           onLinkChange={(value) =>
             notifyInstrument("guitar01", { link: value })
           }
@@ -142,6 +145,8 @@ function EditSongColumnB({
             notifyInstrument("guitar01", { progress: value })
           }
           setIsDirty={setIsDirty}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
         />
         <EditSongInputLinkBox
           instrumentName="guitar02"
@@ -149,6 +154,7 @@ function EditSongColumnB({
           setInstrument={setGuitar02}
           progress={progGuitar02}
           setProgress={setProgGuitar02}
+          setVoiceInstrument={setVoice}
           onLinkChange={(value) =>
             notifyInstrument("guitar02", { link: value })
           }
@@ -156,6 +162,8 @@ function EditSongColumnB({
             notifyInstrument("guitar02", { progress: value })
           }
           setIsDirty={setIsDirty}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
         />
         <EditSongInputLinkBox
           instrumentName="bass"
@@ -163,11 +171,14 @@ function EditSongColumnB({
           setInstrument={setBass}
           progress={progBass}
           setProgress={setProgBass}
+          setVoiceInstrument={setVoice}
           onLinkChange={(value) => notifyInstrument("bass", { link: value })}
           onProgressChange={(value) =>
             notifyInstrument("bass", { progress: value })
           }
           setIsDirty={setIsDirty}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
         />
         <EditSongInputLinkBox
           instrumentName="keys"
@@ -175,11 +186,14 @@ function EditSongColumnB({
           setInstrument={setKey}
           progress={progKey}
           setProgress={setProgKey}
+          setVoiceInstrument={setVoice}
           onLinkChange={(value) => notifyInstrument("keys", { link: value })}
           onProgressChange={(value) =>
             notifyInstrument("keys", { progress: value })
           }
           setIsDirty={setIsDirty}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
         />
         <EditSongInputLinkBox
           instrumentName="drums"
@@ -187,6 +201,7 @@ function EditSongColumnB({
           setInstrument={setDrums}
           progress={progDrums}
           setProgress={setProgDrums}
+          setVoiceInstrument={setVoice}
           onLinkChange={(value) =>
             notifyInstrument("drums", { link: value })
           }
@@ -194,6 +209,8 @@ function EditSongColumnB({
             notifyInstrument("drums", { progress: value })
           }
           setIsDirty={setIsDirty}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
         />
         <EditSongInputLinkBox
           instrumentName="voice"
@@ -201,11 +218,14 @@ function EditSongColumnB({
           setInstrument={setVoice}
           progress={progVoice}
           setProgress={setProgVoice}
+          setVoiceInstrument={setVoice}
           onLinkChange={(value) => notifyInstrument("voice", { link: value })}
           onProgressChange={(value) =>
             notifyInstrument("voice", { progress: value })
           }
           setIsDirty={setIsDirty}
+          setShowSnackBar={setShowSnackBar}
+          setSnackbarMessage={setSnackbarMessage}
         />
       </div>
     </div>

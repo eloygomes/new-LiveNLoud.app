@@ -18,6 +18,10 @@ function SnackBar({ snackbarMessage }) {
       }
 
       // Definir um tempo para ocultar automaticamente após 3 segundos, por exemplo
+      if (level === "load") {
+        return undefined;
+      }
+
       const timer = setTimeout(() => {
         setVisible(false);
       }, 3000);
