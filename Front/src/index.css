@@ -269,6 +269,60 @@ main{
   display: none;
 }
 
+.presentation-live-shell {
+  background: #000;
+}
+
+.presentation-live-shell:fullscreen {
+  background: #000;
+}
+
+.presentation-live-content {
+  height: 100vh;
+  overflow-y: auto;
+  padding: 48px 56px 72px;
+  background: #000;
+  color: #fff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.65rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  outline: none;
+}
+
+.presentation-live-content pre,
+.presentation-live-content div,
+.presentation-live-content span {
+  color: inherit;
+}
+
+.presentation-live-content .notespresentation {
+  color: #d4a017;
+  font-weight: 700;
+}
+
+.presentation-live-content .presentation-lyrics,
+.presentation-live-content .presentation-chord-lyrics,
+.presentation-live-content .presentation-chords,
+.presentation-live-content .presentation-tom,
+.presentation-live-content .verse,
+.presentation-live-content .chorus,
+.presentation-live-content .intro,
+.presentation-live-content .solo,
+.presentation-live-content .bridge,
+.presentation-live-content .section {
+  color: #fff;
+}
+
+.presentation-live-content .intro,
+.presentation-live-content .chorus,
+.presentation-live-content .verse,
+.presentation-live-content .solo,
+.presentation-live-content .bridge,
+.presentation-live-content .section {
+  margin-bottom: 1.2rem;
+}
+
 .presentation-chord-tooltip {
   position: fixed;
   z-index: 60;

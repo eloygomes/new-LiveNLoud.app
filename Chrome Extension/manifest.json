@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LiveNLoud Quick Add",
-  "version": "0.1.0",
+  "version": "0.62.0.0",
   "description": "Add the current song page to LiveNLoud from the browser toolbar.",
   "permissions": [
     "storage",

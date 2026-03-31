@@ -180,6 +180,8 @@ function Presentation() {
   };
 
   const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const liveModeRootRef = useRef(null);
 
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
@@ -493,6 +495,55 @@ function Presentation() {
     [clearTooltipHideTimeout],
   );
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fullscreenActive = document.fullscreenElement != null;
+      setIsLiveMode(fullscreenActive);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLiveMode) return undefined;
+
+    const handleLiveNavigation = (event) => {
+      const contentNode = presentationContentRef.current;
+      if (!contentNode) return;
+
+      let delta = 0;
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") delta = 120;
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") delta = -120;
+      if (event.key === "PageDown") delta = Math.max(320, window.innerHeight * 0.85);
+      if (event.key === "PageUp") delta = -Math.max(320, window.innerHeight * 0.85);
+      if (event.key === "Home") {
+        event.preventDefault();
+        contentNode.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        contentNode.scrollTo({
+          top: contentNode.scrollHeight,
+          behavior: "smooth",
+        });
+        return;
+      }
+
+      if (!delta) return;
+      event.preventDefault();
+      contentNode.scrollBy({ top: delta, behavior: "smooth" });
+    };
+
+    window.addEventListener("keydown", handleLiveNavigation);
+    return () => {
+      window.removeEventListener("keydown", handleLiveNavigation);
+    };
+  }, [isLiveMode]);
+
   const editor = useEditor(
     {
       extensions: [
@@ -521,40 +572,80 @@ function Presentation() {
     setHideTabs(!hideTabs);
   };
 
+  const enterLiveMode = async () => {
+    const rootNode = liveModeRootRef.current;
+    if (!rootNode) return;
+
+    try {
+      await rootNode.requestFullscreen();
+      setIsLiveMode(true);
+      requestAnimationFrame(() => {
+        presentationContentRef.current?.focus?.();
+      });
+    } catch (error) {
+      console.error("Não foi possível entrar no modo LIVE:", error);
+      pushSnackbarMessage(
+        "Erro",
+        "Não foi possível abrir o modo LIVE em tela cheia.",
+      );
+    }
+  };
+
   return (
-    <div className="flex justify-center h-screen ">
+    <div
+      ref={liveModeRootRef}
+      className={`flex justify-center h-screen ${
+        isLiveMode ? "presentation-live-shell" : ""
+      }`}
+    >
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
       </div>
-      <ToolBox
-        toolBoxBtnStatus={toolBoxBtnStatus}
-        setToolBoxBtnStatus={setToolBoxBtnStatus}
-        toolBoxBtnStatusChange={toolBoxBtnStatusChange}
-        embedLinks={embedLinks}
-        songFromURL={songFromURL}
-        artistFromURL={artistFromURL}
-        instrumentSelected={instrumentSelected}
-        songDataFetched={songDataFetched}
-        toggleTabsVisibility={toggleTabsVisibility}
-        hideChords={hideChords}
-        setHideChords={setHideChords}
-        setSelectContenttoShow={setSelectContenttoShow}
-        isEditing={isEditing}
-        isSavingCifra={isSavingCifra}
-        hasDraftChanges={hasDraftChanges}
-        songCifraData={songCifraData}
-        handleSaveCifra={handleSaveCifra}
-        handleDiscardDraft={handleDiscardDraft}
-        startEditingCifra={startEditingCifra}
-      />
-      <div className="container mx-auto">
-        <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
-          <div className="flex flex-row justify-between my-5 neuphormism-b p-5">
+      {!isLiveMode && (
+        <ToolBox
+          toolBoxBtnStatus={toolBoxBtnStatus}
+          setToolBoxBtnStatus={setToolBoxBtnStatus}
+          toolBoxBtnStatusChange={toolBoxBtnStatusChange}
+          embedLinks={embedLinks}
+          songFromURL={songFromURL}
+          artistFromURL={artistFromURL}
+          instrumentSelected={instrumentSelected}
+          songDataFetched={songDataFetched}
+          toggleTabsVisibility={toggleTabsVisibility}
+          hideChords={hideChords}
+          setHideChords={setHideChords}
+          setSelectContenttoShow={setSelectContenttoShow}
+          isEditing={isEditing}
+          isSavingCifra={isSavingCifra}
+          hasDraftChanges={hasDraftChanges}
+          songCifraData={songCifraData}
+          handleSaveCifra={handleSaveCifra}
+          handleDiscardDraft={handleDiscardDraft}
+          startEditingCifra={startEditingCifra}
+        />
+      )}
+      <div className={`container mx-auto ${isLiveMode ? "max-w-none" : ""}`}>
+        <div
+          className={`h-screen ${
+            isLiveMode
+              ? "w-full max-w-none px-0"
+              : "w-11/12 2xl:w-9/12 mx-auto"
+          }`}
+        >
+          {!isLiveMode && (
+            <div className="flex flex-row justify-between my-5 neuphormism-b p-5">
             <div className="flex flex-col">
               <h1 className="text-4xl font-bold">{songFromURL}</h1>
               <h1 className="text-4xl font-bold">{artistFromURL}</h1>
             </div>
             <div className="flex flex-row items-center gap-3">
+              <button
+                type="button"
+                className="neuphormism-b-btn-gold px-5 py-4 text-lg font-bold text-white"
+                onClick={enterLiveMode}
+              >
+                LIVE
+              </button>
               <div
                 className="flex neuphormism-b-btn p-6"
                 onClick={() =>
@@ -564,12 +655,18 @@ function Presentation() {
                 <FaGear className="w-8 h-8" />
               </div>
             </div>
-          </div>
+            </div>
+          )}
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
           <div
             ref={presentationContentRef}
-            className={`flex flex-col neuphormism-b p-5 ${
+            tabIndex={isLiveMode ? 0 : -1}
+            className={`flex flex-col ${
+              isLiveMode
+                ? "presentation-live-content"
+                : "neuphormism-b p-5"
+            } ${
               hideChords ? "hide-chords" : ""
             }`}
           >
