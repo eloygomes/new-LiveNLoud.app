@@ -14,6 +14,11 @@ import { processSongCifra } from "./ProcessSongCifra";
 import PresentationChordTooltip, {
   findChordTooltipData,
 } from "./PresentationChordTooltip";
+import {
+  getRegisteredScrollController,
+  registerScrollViewport,
+  unregisterScrollViewport,
+} from "./presentationScrollController";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -508,24 +513,78 @@ function Presentation() {
   }, []);
 
   useEffect(() => {
+    const viewport = presentationContentRef.current;
+    if (!viewport) return undefined;
+
+    registerScrollViewport(viewport);
+    return () => {
+      unregisterScrollViewport(viewport);
+    };
+  }, [isLiveMode, hideChords, selectContenttoShow, isEditing]);
+
+  useEffect(() => {
     if (!isLiveMode) return undefined;
 
     const handleLiveNavigation = (event) => {
       const contentNode = presentationContentRef.current;
       if (!contentNode) return;
 
+      const scrollController = getRegisteredScrollController();
+
+      if (scrollController && event.key === " ") {
+        event.preventDefault();
+        scrollController.toggleAutoScroll();
+        return;
+      }
+
+      if (scrollController && event.key === "Escape") {
+        event.preventDefault();
+        scrollController.stopAutoScroll();
+        return;
+      }
+
+      if (scrollController && event.key === "ArrowLeft") {
+        event.preventDefault();
+        scrollController.adjustSpeed(-1);
+        return;
+      }
+
+      if (scrollController && event.key === "ArrowRight") {
+        event.preventDefault();
+        scrollController.adjustSpeed(1);
+        return;
+      }
+
       let delta = 0;
-      if (event.key === "ArrowDown" || event.key === "ArrowRight") delta = 120;
-      if (event.key === "ArrowUp" || event.key === "ArrowLeft") delta = -120;
-      if (event.key === "PageDown") delta = Math.max(320, window.innerHeight * 0.85);
-      if (event.key === "PageUp") delta = -Math.max(320, window.innerHeight * 0.85);
+      if (scrollController && event.key === "ArrowDown") {
+        event.preventDefault();
+        scrollController.handleVerticalAction("down");
+        return;
+      }
+      if (scrollController && event.key === "ArrowUp") {
+        event.preventDefault();
+        scrollController.handleVerticalAction("up");
+        return;
+      }
+      if (event.key === "PageDown")
+        delta = Math.max(320, window.innerHeight * 0.85);
+      if (event.key === "PageUp")
+        delta = -Math.max(320, window.innerHeight * 0.85);
       if (event.key === "Home") {
         event.preventDefault();
+        if (scrollController) {
+          scrollController.scrollViewportTo(0);
+          return;
+        }
         contentNode.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
       if (event.key === "End") {
         event.preventDefault();
+        if (scrollController) {
+          scrollController.scrollViewportTo(contentNode.scrollHeight);
+          return;
+        }
         contentNode.scrollTo({
           top: contentNode.scrollHeight,
           behavior: "smooth",
@@ -626,35 +685,36 @@ function Presentation() {
       )}
       <div className={`container mx-auto ${isLiveMode ? "max-w-none" : ""}`}>
         <div
-          className={`h-screen ${
-            isLiveMode
-              ? "w-full max-w-none px-0"
-              : "w-11/12 2xl:w-9/12 mx-auto"
+          className={`flex h-screen min-h-0 flex-col ${
+            isLiveMode ? "w-full max-w-none px-0" : "w-11/12 2xl:w-9/12 mx-auto"
           }`}
         >
           {!isLiveMode && (
             <div className="flex flex-row justify-between my-5 neuphormism-b p-5">
-            <div className="flex flex-col">
-              <h1 className="text-4xl font-bold">{songFromURL}</h1>
-              <h1 className="text-4xl font-bold">{artistFromURL}</h1>
-            </div>
-            <div className="flex flex-row items-center gap-3">
-              <button
-                type="button"
-                className="neuphormism-b-btn-gold px-5 py-4 text-lg font-bold text-white"
-                onClick={enterLiveMode}
-              >
-                LIVE
-              </button>
-              <div
-                className="flex neuphormism-b-btn p-6"
-                onClick={() =>
-                  toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
-                }
-              >
-                <FaGear className="w-8 h-8" />
+              <div className="flex flex-col">
+                <h1 className="text-4xl font-bold">{songFromURL}</h1>
+                <h1 className="text-4xl font-bold">{artistFromURL}</h1>
               </div>
-            </div>
+              <div className="flex flex-row items-center gap-3">
+                <button
+                  type="button"
+                  className="neuphormism-b-btn-gold p-6 text-lg font-bold text-black"
+                  onClick={enterLiveMode}
+                >
+                  LIVE
+                </button>
+                <div
+                  className="flex neuphormism-b-btn p-6"
+                  onClick={() =>
+                    toolBoxBtnStatusChange(
+                      toolBoxBtnStatus,
+                      setToolBoxBtnStatus,
+                    )
+                  }
+                >
+                  <FaGear className="w-8 h-8" />
+                </div>
+              </div>
             </div>
           )}
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
@@ -662,13 +722,11 @@ function Presentation() {
           <div
             ref={presentationContentRef}
             tabIndex={isLiveMode ? 0 : -1}
-            className={`flex flex-col ${
+            className={`min-h-0 flex-1 ${
               isLiveMode
                 ? "presentation-live-content"
-                : "neuphormism-b p-5"
-            } ${
-              hideChords ? "hide-chords" : ""
-            }`}
+                : "neuphormism-b overflow-y-auto p-5"
+            } ${hideChords ? "hide-chords" : ""}`}
           >
             {isEditing ? (
               editor ? (

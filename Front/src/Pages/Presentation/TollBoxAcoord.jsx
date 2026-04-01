@@ -7,9 +7,10 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Link } from "react-router-dom";
 
-import FloatingBtns from "./FloatingBtns";
-import FloatingBtnsAutoScroll from "./FloatingBtnsAutoScroll";
+import ScrollControlPanel from "./ScrollControlPanel";
 import ToolBoxMini from "./ToolBoxMini";
+import ToolBoxTunerMini from "./ToolBoxTunerMini";
+import ToolBoxChordLibraryMini from "./ToolBoxChordLibraryMini";
 import ToolBoxEditControls from "./ToolBoxEditControls";
 
 // Uma lista de instrumentos, igual ao que você usa em DashList2Items
@@ -35,6 +36,8 @@ export default function TollBoxAcoord({
   embedLinks,
   setLinktoplay,
   setVideoModalStatus,
+  setChordModalStatus,
+  setChordPreviewData,
   songFromURL,
   artistFromURL,
   instrumentSelected,
@@ -68,6 +71,10 @@ export default function TollBoxAcoord({
   const handlePlayClick = (url) => {
     setLinktoplay(url);
     setVideoModalStatus(true);
+  };
+
+  const chordLibraryModal = () => {
+    setChordModalStatus(true);
   };
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
@@ -171,7 +178,7 @@ export default function TollBoxAcoord({
           id="panel2-header"
           className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
         >
-          Embed link
+          Videos
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           <ul className="mb-5">
@@ -182,7 +189,7 @@ export default function TollBoxAcoord({
                   className="neuphormism-b-se w-full p-2 m-2 text-sm"
                   onClick={() => handlePlayClick(link)}
                 >
-                  watch {index + 1}
+                  video {index + 1}
                 </button>
               </li>
             ))}
@@ -309,12 +316,7 @@ export default function TollBoxAcoord({
             {/* Renderização Condicional dos Componentes */}
             {TunerStatus && (
               <div className="block">
-                {/* Substitua pelo seu componente de Tuner */}
-                <div className="p-1 rounded-md mb-2 neuphormism-b">
-                  <div className="flex flex-col items-center justify-center h-32">
-                    <h1 className="text-xl">Tuner Component</h1>
-                  </div>
-                </div>
+                <ToolBoxTunerMini />
               </div>
             )}
             {MetronomeStatus && (
@@ -324,12 +326,12 @@ export default function TollBoxAcoord({
             )}
             {ChordLibraryStatus && (
               <div className="block">
-                {/* Substitua pelo seu componente de Chord Library */}
-                <div className="p-1 rounded-md mb-2 neuphormism-b">
-                  <div className="flex flex-col items-center justify-center h-32">
-                    <h1 className="text-xl">Chord Library Component</h1>
-                  </div>
-                </div>
+                <ToolBoxChordLibraryMini
+                  onOpenPreview={(previewData) => {
+                    setChordPreviewData(previewData);
+                    chordLibraryModal();
+                  }}
+                />
               </div>
             )}
 
@@ -337,7 +339,11 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className={`w-full my-2 ${
+                  TunerStatus
+                    ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
+                    : "neuphormism-b-se"
+                }`}
                 onClick={() => {
                   setTunerStatus(true);
                   setMetronomeStatus(false);
@@ -350,7 +356,11 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className={`w-full my-2 ${
+                  MetronomeStatus
+                    ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
+                    : "neuphormism-b-se"
+                }`}
                 onClick={() => {
                   setTunerStatus(false);
                   setMetronomeStatus(true);
@@ -363,11 +373,16 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className={`w-full my-2 ${
+                  ChordLibraryStatus
+                    ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
+                    : "neuphormism-b-se"
+                }`}
                 onClick={() => {
                   setTunerStatus(false);
                   setMetronomeStatus(false);
                   setChordLibraryStatus(true);
+                  chordLibraryModal();
                 }}
               >
                 chord library
@@ -392,16 +407,8 @@ export default function TollBoxAcoord({
           Scrolling
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <div className="my-5">
-            <div className="flex flex-row h-44">
-              <div className="border-b-2 border-gray-300 w-full mb-36">
-                <div className="flex flex-row text-sm font-semibold py-2">
-                  SCROLLING
-                </div>
-              </div>
-              <FloatingBtns />
-              <FloatingBtnsAutoScroll />
-            </div>
+          <div className="my-4">
+            <ScrollControlPanel />
           </div>
         </AccordionDetails>
       </Accordion>

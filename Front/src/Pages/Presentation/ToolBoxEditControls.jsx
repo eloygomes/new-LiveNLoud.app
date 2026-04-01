@@ -15,7 +15,7 @@ function ToolBoxEditControls({
         <>
           <button
             type="button"
-            className="rounded-md bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+            className="rounded-md neuphormism-b-btn-green-save px-3 py-2 text-sm text-white disabled:opacity-50"
             onClick={handleSaveCifra}
             disabled={isSavingCifra || !hasDraftChanges}
           >
@@ -23,7 +23,7 @@ function ToolBoxEditControls({
           </button>
           <button
             type="button"
-            className="rounded-md bg-gray-200 px-3 py-2 text-sm text-gray-800 disabled:opacity-50"
+            className="rounded-md neuphormism-b-btn-red-cancel px-3 py-2 text-sm text-gray-800 disabled:opacity-50"
             onClick={handleDiscardDraft}
             disabled={isSavingCifra}
           >
@@ -33,7 +33,7 @@ function ToolBoxEditControls({
       ) : (
         <button
           type="button"
-          className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+          className="rounded-md ? neuphormism-b-btn-gold text-black bg-[#d9ad26] font-bold px-3 py-2 text-sm disabled:opacity-50"
           onClick={startEditingCifra}
           disabled={!songCifraData}
         >
