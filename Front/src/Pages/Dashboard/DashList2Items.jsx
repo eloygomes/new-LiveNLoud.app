@@ -2,6 +2,16 @@
 import { useEffect, useState, useMemo } from "react";
 import { requestData } from "../../Tools/Controllers";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  GiDrumKit,
+  GiGuitar,
+  GiGuitarBassHead,
+  GiMicrophone,
+  GiPianoKeys,
+} from "react-icons/gi";
+
+const INSTRUMENT_ICON_SIZE = 26;
+const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
 
 function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
   const [data, setData] = useState([]);
@@ -9,12 +19,12 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
   const navigate = useNavigate();
 
   const instrumentLabels = [
-    { key: "guitar01", label: "G1" },
-    { key: "guitar02", label: "G2" },
-    { key: "bass", label: "B" },
-    { key: "keys", label: "K" },
-    { key: "drums", label: "D" },
-    { key: "voice", label: "V" },
+    { key: "guitar01", label: "G1", icon: GiGuitar },
+    { key: "guitar02", label: "G2", icon: GiGuitar },
+    { key: "bass", label: "B", icon: GiGuitarBassHead },
+    { key: "keys", label: "K", icon: GiPianoKeys },
+    { key: "drums", label: "D", icon: GiDrumKit },
+    { key: "voice", label: "V", icon: GiMicrophone },
   ];
 
   useEffect(() => {
@@ -30,7 +40,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
             const filteredData = parsedResult.filter(
               (item) =>
                 item.instruments &&
-                Object.values(item.instruments).some((val) => val === true)
+                Object.values(item.instruments).some((val) => val === true),
             );
             setData(filteredData);
           } else {
@@ -78,6 +88,20 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
     return dataCopy;
   }, [data, sortColumn, sortOrder]);
 
+  const renderInstrumentIcon = (instrument, isActive) => {
+    const Icon = instrument.icon;
+
+    return (
+      <span
+        className={INSTRUMENT_ICON_BOX_CLASS}
+        title={instrument.label}
+        aria-label={instrument.label}
+      >
+        <Icon size={INSTRUMENT_ICON_SIZE} />
+      </span>
+    );
+  };
+
   return (
     <>
       {sortedData.length < 1 ? (
@@ -90,7 +114,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                 <Link
                   className="relative flex justify-between w-full"
                   to={`/editsong/${encodeURIComponent(
-                    item.artist || ""
+                    item.artist || "",
                   )}/${encodeURIComponent(item.song || "")}`}
                   onClick={() => {
                     localStorage.setItem("song", item.song || "");
@@ -139,19 +163,21 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                               e.stopPropagation();
                               navigate(
                                 `/presentation/${encodeURIComponent(
-                                  item.artist || ""
+                                  item.artist || "",
                                 )}/${encodeURIComponent(
-                                  item.song || ""
-                                )}/${encodeURIComponent(instrument.key)}`
+                                  item.song || "",
+                                )}/${encodeURIComponent(instrument.key)}`,
                               );
                             }}
-                            className="z-40 text-gray-700 hover:text-gray-900 hover:font-bold"
+                            className={`z-40 ${INSTRUMENT_ICON_BOX_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
                           >
-                            {instrument.label}
+                            {renderInstrumentIcon(instrument, true)}
                           </button>
                         ) : (
-                          <span className="z-40 text-gray-400">
-                            {instrument.label}
+                          <span
+                            className={`z-40 ${INSTRUMENT_ICON_BOX_CLASS} text-gray-400`}
+                          >
+                            {renderInstrumentIcon(instrument, false)}
                           </span>
                         )}
                       </li>
@@ -168,7 +194,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
             <div key={index} className="relative group hover:bg-gray-300">
               <Link
                 to={`/editsong/${encodeURIComponent(
-                  item.artist || ""
+                  item.artist || "",
                 )}/${encodeURIComponent(item.song || "")}`}
                 className="absolute inset-0 z-10"
                 onClick={() => {
@@ -209,19 +235,21 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                             e.stopPropagation();
                             navigate(
                               `/presentation/${encodeURIComponent(
-                                item.artist || ""
+                                item.artist || "",
                               )}/${encodeURIComponent(
-                                item.song || ""
-                              )}/${encodeURIComponent(instrument.key)}`
+                                item.song || "",
+                              )}/${encodeURIComponent(instrument.key)}`,
                             );
                           }}
-                          className="text-gray-700 hover:text-gray-900 hover:font-bold"
+                          className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
                         >
-                          {instrument.label}
+                          {renderInstrumentIcon(instrument, true)}
                         </button>
                       ) : (
-                        <span className="text-gray-400">
-                          {instrument.label}
+                        <span
+                          className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-400`}
+                        >
+                          {renderInstrumentIcon(instrument, false)}
                         </span>
                       )}
                     </li>
