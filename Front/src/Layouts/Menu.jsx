@@ -13,9 +13,7 @@ export default function RootLayouts() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const isDashboardRoute = location.pathname
-    .toLowerCase()
-    .includes("dashboard");
+  const isDashboardRoute = location.pathname.toLowerCase().includes("/");
 
   return (
     <>
@@ -123,6 +121,8 @@ export default function RootLayouts() {
             isDashboardRoute ? "overflow-y-hidden" : "overflow-y-auto"
           } pt-0 md:pt-16`}
           style={{ maxHeight: "100vh" }}
+          // className={`flex-1 overflow-y-hidden pt-0 md:pt-16`}
+          // style={{ maxHeight: "100vh" }}
         >
           {/* aqui a magia: passamos searchTerm e setter para as rotas filhas */}
           <Outlet context={{ searchTerm, setSearchTerm }} />

@@ -73,7 +73,7 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="h-full min-h-0 w-full overflow-hidden">
       <DashboardOptions
         optStatus={optStatus}
         setOptStatus={setOptStatus}
@@ -135,15 +135,11 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
         </div>
       ) : (
         // ----- MODO DESKTOP -----
-        <div className="container mx-auto ">
-          <div className="flex flex-col mt-0 h-[100vh] ">
+        <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden">
+          <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden">
             {!optStatus && (
-              <div
-                className={`fixed left-1/2 top-[80px] w-[91%] -translate-x-1/2 transform pointer-events-none z-40 ${
-                  optStatus ? "hidden" : "block"
-                }`}
-              >
-                <div className="flex flex-col justify-around neuphormism-b bg-white pointer-events-auto">
+              <div className={`${optStatus ? "hidden" : "block"} sticky top-0 z-40 shrink-0`}>
+                <div className="flex flex-col justify-around neuphormism-b bg-white">
                   <div className="flex flex-row p-3 rounded-t-md">
                     <div
                       className="w-[10%] text-center px-5 cursor-pointer"
@@ -192,8 +188,8 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
             )}
 
             <ul
-              className={`overflow-auto h-screen pb-60 z-0 ${
-                optStatus ? "mt-[43rem]" : "mt-20"
+              className={`min-h-0 flex-1 overflow-auto pb-60 z-0 ${
+                optStatus ? "mt-[43rem]" : "mt-2"
               }`}
             >
               <DashList2Items

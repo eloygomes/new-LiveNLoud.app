@@ -735,32 +735,34 @@ function Presentation() {
                 <p>Carregando editor...</p>
               )
             ) : (
-              htmlBlocks.map((block, index) => {
-                const classMatch = block.match(/class="([^"]*)"/);
-                const classes = classMatch ? classMatch[1].split(" ") : [];
+              htmlBlocks
+                .reduce((blocksToRender, block, index) => {
+                  const classMatch = block.match(/class="([^"]*)"/);
+                  const classes = classMatch ? classMatch[1].split(" ") : [];
 
-                let shouldRender = true;
+                  const shouldHideTabBlock =
+                    hideTabs &&
+                    (classes.includes("presentation-combined-tab-chords") ||
+                      classes.includes("presentation-tab") ||
+                      classes.includes("presentation-tab-section"));
 
-                if (
-                  hideTabs &&
-                  (classes.includes("presentation-combined-tab-chords") ||
-                    classes.includes("presentation-tab") ||
-                    classes.includes("presentation-tab-section"))
-                ) {
-                  shouldRender = false;
-                }
+                  if (!shouldHideTabBlock) {
+                    blocksToRender.push({ block, index });
+                  }
 
-                if (shouldRender) {
-                  return (
-                    <div
-                      key={index}
-                      dangerouslySetInnerHTML={{ __html: block }}
-                    />
-                  );
-                } else {
-                  return null;
-                }
-              })
+                  return blocksToRender;
+                }, [])
+                .map(({ block, index }, visibleIndex, visibleBlocks) => (
+                  <div
+                    key={index}
+                    style={
+                      !isLiveMode && visibleIndex === visibleBlocks.length - 1
+                        ? { paddingBottom: 200 }
+                        : undefined
+                    }
+                    dangerouslySetInnerHTML={{ __html: block }}
+                  />
+                ))
             )}
           </div>
           {!isEditing && (

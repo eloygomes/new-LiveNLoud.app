@@ -202,7 +202,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                   localStorage.setItem("artist", item.artist || "");
                 }}
               />
-              <div className="flex flex-row justify-around p-3 border-b border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
+              <div className="flex flex-row items-center p-3 border-b border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
                 <div className="w-[10%] text-center px-5">{index + 1}</div>
                 <div
                   className="w-full px-5 overflow-hidden text-ellipsis whitespace-nowrap"
@@ -211,7 +211,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                   {item.song || "N/A"}
                 </div>
                 <div
-                  className="w-full pr-5 px-5 overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="w-full pl-5 overflow-hidden text-ellipsis whitespace-nowrap"
                   title={item.artist || ""}
                 >
                   {item.artist || "N/A"}

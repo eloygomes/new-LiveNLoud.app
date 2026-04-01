@@ -59,7 +59,7 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="flex justify-center h-screen pt-0 sm:pt-0 md:pt-5 lg:pt-1 xl:pt-1 2xl:pt-1 overflow-y-hidden">
+    <div className="flex h-full min-h-0 justify-center overflow-hidden pt-0 sm:pt-0 md:pt-5 lg:pt-1 xl:pt-1 2xl:pt-1">
       {isMobile === 1 ? (
         <div className="bg-black flex justify-center items-center">
           <div className="container mx-auto">
@@ -69,12 +69,12 @@ function Dashboard() {
           </div>
         </div>
       ) : isMobile === 2 ? (
-        <div className="w-full mobile ">
+        <div className="mobile h-full min-h-0 w-full">
           <DashList2 searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <FloatingActionButtons />
         </div>
       ) : isMobile === 3 ? (
-        <div className="container mx-auto desktop">
+        <div className="desktop container mx-auto flex h-full min-h-0 flex-col overflow-hidden">
           <DashList2 searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <FloatingActionButtons />
           <SoftVersion />
