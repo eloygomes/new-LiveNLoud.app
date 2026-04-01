@@ -181,12 +181,12 @@ export default function TollBoxAcoord({
           Videos
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ul className="mb-5">
+          <ul className="">
             {embedLinks.map((link, index) => (
               <li key={index} className="hover:font-semibold flex flex-row">
                 <button
                   type="button"
-                  className="neuphormism-b-se w-full p-2 m-2 text-sm"
+                  className="neuphormism-b-se  py-2 w-full m-2 text-sm"
                   onClick={() => handlePlayClick(link)}
                 >
                   video {index + 1}
@@ -251,7 +251,7 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className="neuphormism-b-se  py-2 w-full my-2"
                 // onClick={toggleTabsVisibility}
                 onClick={() => {
                   setSelectContenttoShow("full");
@@ -261,7 +261,7 @@ export default function TollBoxAcoord({
               </button>
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className="neuphormism-b-se  py-2 w-full my-2"
                 // onClick={toggleTabsVisibility}
                 onClick={() => {
                   setSelectContenttoShow("tabs");
@@ -273,7 +273,7 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className="neuphormism-b-se  py-2 w-full my-2"
                 // onClick={toggleTabsVisibility}
                 onClick={() => {
                   setSelectContenttoShow("chords");
@@ -285,7 +285,7 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className="neuphormism-b-se w-full my-2"
+                className="neuphormism-b-se  py-2 w-full my-2"
                 onClick={() => {
                   setSelectContenttoShow("lyrics");
                 }}
@@ -339,7 +339,7 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className={`w-full my-2 ${
+                className={`w-full my-2 py-2 ${
                   TunerStatus
                     ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
                     : "neuphormism-b-se"
@@ -356,7 +356,7 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className={`w-full my-2 ${
+                className={`w-full my-2 py-2 ${
                   MetronomeStatus
                     ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
                     : "neuphormism-b-se"
@@ -373,7 +373,7 @@ export default function TollBoxAcoord({
             <li className="hover:font-semibold">
               <button
                 type="button"
-                className={`w-full my-2 ${
+                className={`w-full my-2 py-2 ${
                   ChordLibraryStatus
                     ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
                     : "neuphormism-b-se"
