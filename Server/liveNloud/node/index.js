@@ -3530,12 +3530,9 @@ app.post("/api/newsong", async (req, res) => {
             progressBar:
               userdata.progressBar ||
               existingUser.userdata[songIndex].progressBar,
-            embedVideos: Array.from(
-              new Set([
-                ...existingUser.userdata[songIndex].embedVideos,
-                ...userdata.embedVideos,
-              ]),
-            ),
+            embedVideos: Array.isArray(userdata.embedVideos)
+              ? userdata.embedVideos
+              : existingUser.userdata[songIndex].embedVideos || [],
             // Adicione esta linha para armazenar o setlist vindo do front
             setlist: Array.from(
               new Set([

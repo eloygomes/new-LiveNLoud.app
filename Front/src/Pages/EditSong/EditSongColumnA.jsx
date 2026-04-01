@@ -18,6 +18,7 @@ function EditSongColumnA({
   progVoice,
   registerInstrumentUpdaters,
   isDirty,
+  setIsDirty,
 }) {
   // Dados principais da música
   const [songName, setSongName] = useState("");
@@ -471,7 +472,17 @@ function EditSongColumnA({
 
       <GeralProgressBar geralPercentage={geralPercentage} />
 
-      <EditSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
+      <EditSongEmbed
+        ytEmbedSongList={embedLink}
+        setEmbedLink={(updater) => {
+          setEmbedLink((prevLinks) => {
+            const nextLinks =
+              typeof updater === "function" ? updater(prevLinks) : updater;
+            setIsDirty?.(true);
+            return nextLinks;
+          });
+        }}
+      />
 
       {/* Exibe as tags de setlist: 
           setListOptions: array global de opções,

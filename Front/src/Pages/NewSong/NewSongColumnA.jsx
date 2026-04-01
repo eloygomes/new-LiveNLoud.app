@@ -431,7 +431,16 @@ function NewSongColumnA({
   const navigate = useNavigate();
   const hasSaved = useRef(false);
   const addedSongName = useRef(null);
-  const canSaveSong = Object.values(scrapeStatus || {}).some(Boolean);
+  const hasInstrumentLinks = [
+    guitar01,
+    guitar02,
+    bass,
+    keyboard,
+    drums,
+    voice,
+  ].some((link) => Boolean(link && link.trim()));
+  const canSaveSong =
+    Object.values(scrapeStatus || {}).some(Boolean) || hasInstrumentLinks;
 
   // Adicione este useEffect (fora do outro useEffect grandão)
   useEffect(() => {
@@ -703,7 +712,7 @@ function NewSongColumnA({
           capo: capoData || "",
           tom: tomData || "",
           tuning: tunerData || "",
-          embedLink: index === 0 ? embedLink : [],
+          embedLink,
           instrumentFields: {
             active: true,
             link: link.trim(),

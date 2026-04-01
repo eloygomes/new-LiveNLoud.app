@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#Sustenido Project Documentation</title>
+    <style>
+      :root {
+        --bg: #f5f1e8;
+        --paper: #fffdf8;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --line: #d6d3d1;
+        --accent: #9a6b16;
+        --accent-dark: #6f4d0f;
+        --soft: #f3e5c8;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.6 "Georgia", "Times New Roman", serif;
+      }
+
+      .page {
+        width: 210mm;
+        margin: 0 auto;
+        background: var(--paper);
+        padding: 18mm 16mm 20mm;
+      }
+
+      h1, h2, h3, h4 {
+        color: #111827;
+        line-height: 1.2;
+        margin: 0 0 10px;
+        page-break-after: avoid;
+      }
+
+      h1 {
+        font-size: 30px;
+        letter-spacing: 0.02em;
+      }
+
+      h2 {
+        margin-top: 28px;
+        font-size: 21px;
+        border-bottom: 2px solid var(--soft);
+        padding-bottom: 6px;
+      }
+
+      h3 {
+        margin-top: 18px;
+        font-size: 16px;
+        color: var(--accent-dark);
+      }
+
+      p { margin: 0 0 10px; }
+
+      ul, ol {
+        margin: 8px 0 12px 22px;
+      }
+
+      li { margin: 3px 0; }
+
+      .hero {
+        padding: 20px 22px;
+        border: 1px solid var(--line);
+        background: linear-gradient(135deg, #fffaf0 0%, #f4ead5 100%);
+        border-radius: 16px;
+        margin-bottom: 24px;
+      }
+
+      .kicker {
+        font: 700 12px/1.2 Arial, Helvetica, sans-serif;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+
+      .subtle {
+        color: var(--muted);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: #fff;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font: 700 11px/1.4 Arial, Helvetica, sans-serif;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: var(--soft);
+        color: var(--accent-dark);
+      }
+
+      code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 0.92em;
+        background: #f5f5f4;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid var(--line);
+        background: #fafaf9;
+        border-radius: 10px;
+        padding: 10px 12px;
+        overflow: hidden;
+        page-break-inside: avoid;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 18px;
+        page-break-inside: avoid;
+      }
+
+      th, td {
+        border: 1px solid var(--line);
+        padding: 8px 10px;
+        vertical-align: top;
+        text-align: left;
+      }
+
+      th {
+        background: #f8f1df;
+        color: #3f2d0e;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .mono { font-family: "SFMono-Regular", Consolas, monospace; }
+      .small { font-size: 12px; }
+      .note {
+        border-left: 4px solid var(--accent);
+        background: #fff7e6;
+        padding: 10px 12px;
+        margin: 10px 0 14px;
+      }
+
+      .break-before {
+        page-break-before: always;
+      }
+
+      @media print {
+        body { background: white; }
+        .page { margin: 0; width: auto; box-shadow: none; }
+        a { color: inherit; text-decoration: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="kicker">Technical Documentation</div>
+        <h1>#Sustenido / LiveNLoud Project Documentation</h1>
+        <p>
+          Comprehensive internal documentation for the repository currently located at
+          <code>/Users/eloygomes/Documents/GitHub/new-LiveNLoud</code>.
+        </p>
+        <p class="subtle">
+          Generated from the current codebase state on 2026-03-31. Frontend version:
+          <strong>0.62.0.0</strong>. Chrome Extension version: <strong>0.62.0.0</strong>.
+        </p>
+      </section>
+
+      <h2>1. Executive Summary</h2>
+      <p>
+        This repository contains a multi-service music preparation and live performance platform.
+        The main product identity in the UI is <strong>#Sustenido</strong>, while several technical
+        and historical artifacts still use the older name <strong>LiveNLoud</strong>.
+      </p>
+      <p>The platform combines:</p>
+      <ul>
+        <li>A React frontend for dashboard, library management, editing, presentation, tuner, metronome, and profile flows.</li>
+        <li>A Node.js / Express API as the main authenticated application backend.</li>
+        <li>A Python scraping service that imports song content from external music websites.</li>
+        <li>A Python Socket.IO service used in the tuner / footswitch pipeline.</li>
+        <li>A Chrome extension used to capture supported song pages directly from the browser.</li>
+        <li>Docker Compose orchestration for MongoDB, Node, Python scraper, Python Socket.IO, and mailserver services.</li>
+      </ul>
+
+      <div class="grid">
+        <div class="card">
+          <div class="tag">Primary User Goal</div>
+          <p>Manage a personal song library with per-instrument arrangements, embed videos, setlists, lyrics, chords, tabs, and live presentation tooling.</p>
+        </div>
+        <div class="card">
+          <div class="tag">Primary Technical Pattern</div>
+          <p>Frontend calls Node API. Node delegates scraping to Python when needed. Python stores structured song data in MongoDB and mirrors shared songs into a general catalog.</p>
+        </div>
+      </div>
+
+      <h2>2. Repository Structure</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Front/</code></td>
+            <td>Main React + Vite frontend application.</td>
+          </tr>
+          <tr>
+            <td><code>Chrome Extension/</code></td>
+            <td>Browser extension for quick-add workflows from supported music sites.</td>
+          </tr>
+          <tr>
+            <td><code>Server/liveNloud/node/</code></td>
+            <td>Main Node.js backend API, auth flows, CRUD, YouTube export, profile image handling.</td>
+          </tr>
+          <tr>
+            <td><code>Server/liveNloud/python/</code></td>
+            <td>Python scraper API and Mongo/general catalog persistence logic.</td>
+          </tr>
+          <tr>
+            <td><code>Server/liveNloud/python_socketio/</code></td>
+            <td>Socket.IO bridge / tuner-related processing.</td>
+          </tr>
+          <tr>
+            <td><code>Server/liveNloud/python_tuner/</code></td>
+            <td>Separate tuner service artifacts and experiments.</td>
+          </tr>
+          <tr>
+            <td><code>Server/liveNloud/docker-compose.yml</code></td>
+            <td>Local/production-like orchestration for the backend stack.</td>
+          </tr>
+          <tr>
+            <td><code>Server/OLD/</code></td>
+            <td>Legacy implementation retained for reference and migration support.</td>
+          </tr>
+          <tr>
+            <td><code>Server/03/</code></td>
+            <td>Built/static deployment artifacts and historical server output.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. High-Level Architecture</h2>
+      <pre>
+Browser / Frontend / Chrome Extension
+          |
+          v
+   Node API (Express)
+          |
+          +--> MongoDB
+          |
+          +--> Python Scraper API
+          |       |
+          |       +--> External sources:
+          |             - Cifra Club
+          |             - Ultimate Guitar
+          |             - Letras / Letras.mus.br
+          |
+          +--> YouTube OAuth + playlist export
+          |
+          +--> Mailserver for email-related flows
+          |
+          +--> Socket.IO namespace used with Python tuner bridge
+      </pre>
+
+      <h3>Core Architectural Rules</h3>
+      <ul>
+        <li>The React app is the main operator console for authenticated users.</li>
+        <li>Song data is user-scoped in the main app database but also mirrored into a general shared catalog.</li>
+        <li>Scraping is isolated in Python, not in Node, which keeps source-specific parsing logic separate from business routes.</li>
+        <li>The Chrome extension is a lightweight ingestion client and depends on the same backend APIs.</li>
+        <li>Presentation mode is not just read-only display; it includes live performance tooling such as tooltip chords and fullscreen LIVE mode.</li>
+      </ul>
+
+      <h2>4. Frontend Application</h2>
+      <h3>4.1 Stack</h3>
+      <ul>
+        <li><code>React 18</code> with <code>react-router-dom</code></li>
+        <li><code>Vite</code> build pipeline</li>
+        <li><code>Tailwind CSS</code> plus a large custom stylesheet in <code>Front/src/index.css</code></li>
+        <li><code>Axios</code> for API communication</li>
+        <li><code>@tiptap/react</code> for in-place cifra editing</li>
+        <li><code>ChordSheetJS</code> for chord formatting and normalization</li>
+        <li><code>socket.io-client</code> for realtime integrations</li>
+      </ul>
+
+      <h3>4.2 Frontend Entrypoint and Routing</h3>
+      <p>
+        The main frontend entrypoint is <code>Front/src/main.jsx</code>. It creates the browser router,
+        wraps the app in <code>AuthProvider</code> and <code>BluetoothProvider</code>, and protects
+        internal pages using token presence in <code>localStorage</code>.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th>Page</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/</code></td>
+            <td>Dashboard</td>
+            <td>Main authenticated landing page.</td>
+          </tr>
+          <tr>
+            <td><code>/newsong</code></td>
+            <td>New Song</td>
+            <td>New library entry creation and scraping intake.</td>
+          </tr>
+          <tr>
+            <td><code>/editsong/:artist/:song</code></td>
+            <td>Edit Song</td>
+            <td>Edit existing entries, embeds, setlists, instrument data.</td>
+          </tr>
+          <tr>
+            <td><code>/presentation/:artist/:song/:instrument</code></td>
+            <td>Presentation</td>
+            <td>Live reading / rehearsal / stage display mode.</td>
+          </tr>
+          <tr>
+            <td><code>/chordlibrary</code></td>
+            <td>Chord Library</td>
+            <td>Reference utility page for shapes and chord lookup.</td>
+          </tr>
+          <tr>
+            <td><code>/metronome</code></td>
+            <td>Metronome</td>
+            <td>Tempo utility.</td>
+          </tr>
+          <tr>
+            <td><code>/tuner</code></td>
+            <td>Tuner</td>
+            <td>Tuning tools and related experiments.</td>
+          </tr>
+          <tr>
+            <td><code>/userprofile/:userid</code></td>
+            <td>User Profile</td>
+            <td>Account, password, user data, and profile settings.</td>
+          </tr>
+          <tr>
+            <td><code>/login</code></td>
+            <td>Login</td>
+            <td>Public auth entrypoint.</td>
+          </tr>
+          <tr>
+            <td><code>/userregistration</code></td>
+            <td>User Registration</td>
+            <td>User signup flow.</td>
+          </tr>
+          <tr>
+            <td><code>/newpassword</code></td>
+            <td>New Password</td>
+            <td>Password reset completion flow.</td>
+          </tr>
+          <tr>
+            <td><code>/auth/spotify/callback</code></td>
+            <td>Spotify Callback</td>
+            <td>OAuth completion for Spotify integrations.</td>
+          </tr>
+          <tr>
+            <td><code>/yt/done</code></td>
+            <td>YouTube Popup Done</td>
+            <td>Lightweight popup completion page for YouTube OAuth.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>4.3 Important Frontend Contexts</h3>
+      <h4>Auth Context</h4>
+      <p>
+        <code>Front/src/contexts/AuthContext.jsx</code> is intentionally simple. It stores the access
+        token and user email in <code>localStorage</code> and exposes <code>login()</code> and
+        <code>logout()</code>. Routing protection is currently presence-based, not role-based.
+      </p>
+
+      <h4>Bluetooth Context / Footswitch Input</h4>
+      <p>
+        <code>Front/src/contexts/BluetoothContext.jsx</code> centralizes BLE and MIDI footswitch
+        integration. It stores action mappings in <code>localStorage</code>, logs events, and dispatches
+        navigation actions such as arrow scroll and page scroll to the current page scroll target.
+      </p>
+      <div class="note">
+        This context injects a custom <code>data-scroll-REMOVED_MONGO_USER</code> marker to identify the
+        current scroll container. The warning seen in the browser console about
+        <code>data-scroll-REMOVED_MONGO_USER</code> comes from this mechanism and is a known technical debt item.
+      </div>
+
+      <h3>4.4 Frontend API Layer</h3>
+      <p>
+        The main API client lives in <code>Front/src/Tools/Controllers.jsx</code>. It creates an
+        Axios instance whose base URL is selected in this order:
+      </p>
+      <ol>
+        <li><code>VITE_API_BASE_URL</code></li>
+        <li><code>http://localhost:3000</code> when running locally</li>
+        <li><code>https://api.live.eloygomes.com</code> as default production fallback</li>
+      </ol>
+      <p>Important frontend controller responsibilities include:</p>
+      <ul>
+        <li>User library fetch and per-song fetch.</li>
+        <li>Song creation and exact song updates.</li>
+        <li>Update last-played timestamps per instrument.</li>
+        <li>User profile actions such as username changes and account deletion.</li>
+        <li>Download of raw user JSON data.</li>
+      </ul>
+
+      <h3>4.5 Core Pages</h3>
+      <h4>Dashboard</h4>
+      <p>
+        The dashboard is the main operational screen. It supports search, list display, floating action
+        buttons, exports, and version display. It also intentionally disables global page scroll while active.
+      </p>
+
+      <h4>New Song and Edit Song</h4>
+      <p>
+        These pages are the ingestion and maintenance center of the app. They maintain separate blocks
+        for <code>guitar01</code>, <code>guitar02</code>, <code>bass</code>, <code>keys</code>,
+        <code>drums</code>, and <code>voice</code>.
+      </p>
+      <p>Recent behavior now documented in the current codebase:</p>
+      <ul>
+        <li>Letras links are voice-only sources.</li>
+        <li>If a Letras link is pasted in another instrument, the UI redirects it to Voice and shows a warning.</li>
+        <li>During scraping, the user receives a persistent <code>Carregando...</code> snackbar.</li>
+        <li>After scraping, artist and song values are hydrated back into the form so save actions do not lose metadata.</li>
+      </ul>
+
+      <h4>Presentation</h4>
+      <p>
+        The presentation page is a performance-focused view that loads a song, selects instrument-specific
+        content, and renders it using the custom <code>processSongCifra</code> pipeline. It supports:
+      </p>
+      <ul>
+        <li>Chords, tabs, lyrics, and mixed content rendering.</li>
+        <li>Chord tooltips with alternative fingering variation selection.</li>
+        <li>Embedded video toolbox and draggable utility components.</li>
+        <li>Inline cifra editing via TipTap.</li>
+        <li>LIVE fullscreen mode with black background, white lyrics, golden chords, ESC exit, and keyboard scrolling.</li>
+      </ul>
+      <p>
+        The page also contains a fallback path where <code>songLyrics</code> are displayed when
+        <code>songCifra</code> is empty, which is important for Voice/Letras content.
+      </p>
+
+      <h2>5. Chrome Extension</h2>
+      <h3>5.1 Purpose</h3>
+      <p>
+        The Chrome extension provides a lightweight “quick add” flow directly from supported source sites.
+        It is designed to reduce friction when importing songs into the shared backend.
+      </p>
+
+      <h3>5.2 Main Files</h3>
+      <ul>
+        <li><code>Chrome Extension/manifest.json</code> — extension declaration, permissions, popup, content script.</li>
+        <li><code>Chrome Extension/page-context.js</code> — extracts song context from the current website.</li>
+        <li><code>Chrome Extension/popup.js</code> — login/session, page compatibility, save flow, notices.</li>
+        <li><code>Chrome Extension/popup.html</code> and <code>popup.css</code> — popup UI.</li>
+      </ul>
+
+      <h3>5.3 Supported Sources</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Host Pattern</th>
+            <th>Extension Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cifra Club</td>
+            <td><code>*.cifraclub.com.br</code></td>
+            <td>Extracts song, artist, key/tom, tuning, and capo.</td>
+          </tr>
+          <tr>
+            <td>Ultimate Guitar</td>
+            <td><code>*.ultimate-guitar.com</code></td>
+            <td>Extracts song, artist, key, tuning, and capo.</td>
+          </tr>
+          <tr>
+            <td>Letras / Letras.mus.br</td>
+            <td><code>*.letras.com</code>, <code>*.letras.mus.br</code></td>
+            <td>Extracts lyrics metadata and forces instrument selection to Voice.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>5.4 Current UX Behavior</h3>
+      <ul>
+        <li>All popup feedback is unified into the top notice area.</li>
+        <li>On Letras pages, the instrument selector is locked to <code>voice</code>.</li>
+        <li>For unsupported pages, the popup hides all normal fields and shows only the incompatible-site message.</li>
+        <li>The popup uses <code>#sustenido</code> branding while some low-level identifiers still reference LiveNLoud.</li>
+      </ul>
+
+      <h2>6. Node.js Backend API</h2>
+      <h3>6.1 Role</h3>
+      <p>
+        The Node backend is the primary application API. It owns authentication, CRUD flows, profile image
+        endpoints, song persistence, library retrieval, setlist handling, YouTube export, and the bridge to the Python scraper.
+      </p>
+
+      <h3>6.2 Implementation Note</h3>
+      <p>
+        <code>Server/liveNloud/node/index.js</code> contains a large amount of old commented code plus the
+        active implementation later in the file. Documentation and maintenance should be based on the active
+        un-commented routes near the bottom of the file, not on the historical blocks at the top.
+      </p>
+
+      <h3>6.3 Important Route Groups</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Representative Endpoints</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Authentication</td>
+            <td><code>/api/auth/signup</code>, <code>/api/auth/login</code>, <code>/api/auth/refresh</code>, <code>/api/auth/updatePassword</code>, <code>/api/auth/request-password-reset</code>, <code>/api/auth/reset-password</code></td>
+            <td>User auth, token lifecycle, password management.</td>
+          </tr>
+          <tr>
+            <td>Song CRUD</td>
+            <td><code>/api/newsong</code>, <code>/api/allsongdata</code>, <code>/api/song/updateExact</code>, <code>/api/deleteonesong</code></td>
+            <td>Create, fetch, patch, or delete song entries.</td>
+          </tr>
+          <tr>
+            <td>Library/User Data</td>
+            <td><code>/api/alldata/:email</code>, <code>/api/downloadUserData/:email</code>, <code>/api/deleteAllUserSongs</code>, <code>/api/deleteUserAccount</code></td>
+            <td>Full library retrieval and destructive account/data actions.</td>
+          </tr>
+          <tr>
+            <td>Scraping</td>
+            <td><code>/api/scrape</code>, <code>/api/generalCifra</code></td>
+            <td>Trigger Python scraping and resolve stored general catalog documents.</td>
+          </tr>
+          <tr>
+            <td>Playback / Metadata</td>
+            <td><code>/api/lastPlay</code>, <code>/api/updateSetlists</code></td>
+            <td>Track usage and maintain setlist metadata.</td>
+          </tr>
+          <tr>
+            <td>Profile</td>
+            <td><code>/api/uploadProfileImage</code>, <code>/api/profileImage/:email</code>, <code>/api/updateUsername</code></td>
+            <td>Profile image and identity updates.</td>
+          </tr>
+          <tr>
+            <td>YouTube</td>
+            <td><code>/api/youtube/*</code></td>
+            <td>OAuth, token refresh, and playlist export.</td>
+          </tr>
+          <tr>
+            <td>Health</td>
+            <td><code>/health</code></td>
+            <td>Basic service health check.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>6.4 Data Persistence Pattern</h3>
+      <p>
+        The Node layer primarily reads and writes user-scoped song documents under the Mongo database
+        <code>liveNloud_</code>. In addition, shared song-like artifacts are mirrored into a separate
+        general catalog used by extension and scraping flows.
+      </p>
+
+      <h3>6.5 YouTube Integration</h3>
+      <p>
+        The YouTube routes under <code>node/youtube/</code> implement OAuth URL generation, state
+        verification, token exchange, token refresh, and playlist export. The flow stores YouTube
+        credentials per authenticated user and retries export once automatically when it detects
+        invalid or expired credentials.
+      </p>
+
+      <h2>7. Python Scraper Service</h2>
+      <h3>7.1 Role</h3>
+      <p>
+        The Python service is an isolated HTTP API dedicated to scraping and persisting song content
+        imported from external websites. Its main entrypoint is
+        <code>Server/liveNloud/python/scrapper.py</code>.
+      </p>
+
+      <h3>7.2 Scraper Request Flow</h3>
+      <ol>
+        <li>Receive a POST request at <code>/scrape</code>.</li>
+        <li>Sanitize and normalize the incoming link.</li>
+        <li>Detect the source host using <code>source_rules.py</code>.</li>
+        <li>Reject invalid source/instrument combinations such as Letras on non-Voice fields.</li>
+        <li>Dispatch to the correct source-specific scraper through <code>scraping_service.py</code>.</li>
+        <li>Persist the normalized result to MongoDB through <code>storage_service.py</code>.</li>
+        <li>Return <code>songData</code> so the frontend can hydrate its form immediately.</li>
+      </ol>
+
+      <h3>7.3 Supported Scraping Sources</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Python Service</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cifra Club</td>
+            <td><code>scraping_service_cifraclub.py</code></td>
+            <td>Original/core source.</td>
+          </tr>
+          <tr>
+            <td>Ultimate Guitar</td>
+            <td><code>scraping_service_ultimate_guitar.py</code></td>
+            <td>Uses UG API first, keeps browser scraping fallback.</td>
+          </tr>
+          <tr>
+            <td>Letras / Letras.mus.br</td>
+            <td><code>scraping_service_letrasmus.py</code></td>
+            <td>Lyrics-oriented source intended for Voice instrument.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>7.4 Important Current Scraper Rules</h3>
+      <ul>
+        <li><strong>Letras links are Voice-only.</strong> If the request uses another instrument, the API returns a 400 with a guidance message.</li>
+        <li><strong>Lyrics-only sources can omit capo/tuning/tab fields.</strong> Storage logic now handles missing values safely.</li>
+        <li><strong>Returned payload includes <code>songData</code>.</strong> This is required by the frontend and extension to hydrate title/artist immediately after scrape.</li>
+      </ul>
+
+      <h3>7.5 Storage Service Responsibilities</h3>
+      <p>
+        <code>storage_service.py</code> turns scraper output into the internal song schema. It creates
+        a per-instrument block containing fields such as:
+      </p>
+      <ul>
+        <li><code>active</code></li>
+        <li><code>capo</code></li>
+        <li><code>tuning</code></li>
+        <li><code>lastPlay</code></li>
+        <li><code>songCifra</code></li>
+        <li><code>songTabs</code></li>
+        <li><code>songChords</code></li>
+        <li><code>songLyrics</code></li>
+        <li><code>progress</code></li>
+        <li><code>link</code></li>
+      </ul>
+      <p>
+        It also forwards normalized data to the general catalog through the Node API after Mongo persistence.
+      </p>
+
+      <h3>7.6 General Catalog Mirroring</h3>
+      <p>
+        The Python service does not only persist into the user-scoped library. It also sends a normalized
+        version to the shared <code>generalCifras</code> path so that the platform can resolve songs by
+        instrument, link, artist, and title across flows such as extension add and scraper retries.
+      </p>
+
+      <h2>8. MongoDB Data Model</h2>
+      <h3>8.1 User-Scoped Song Model</h3>
+      <p>
+        The dominant structure in the application stores one document per user email with a
+        <code>userdata</code> array of songs.
+      </p>
+      <pre>
+{
+  "email": "user@example.com",
+  "userdata": [
+    {
+      "id": 1,
+      "song": "Wish You Were Here",
+      "artist": "Pink Floyd",
+      "capo": "",
+      "tom": "",
+      "tuning": "",
+      "progressBar": 0,
+      "instruments": {
+        "guitar01": true,
+        "guitar02": false,
+        "bass": false,
+        "keys": false,
+        "drums": false,
+        "voice": true
+      },
+      "embedVideos": [],
+      "setlist": [],
+      "addedIn": "YYYY-MM-DD",
+      "updateIn": "YYYY-MM-DD",
+      "guitar01": { ...instrument block... },
+      "voice": { ...instrument block... }
+    }
+  ]
+}
+      </pre>
+
+      <h3>8.2 Instrument Block Design</h3>
+      <p>
+        Each instrument stores its own content independently. This is one of the key architectural choices
+        in the application: the same song can hold multiple arrangements and source links at once.
+      </p>
+
+      <h3>8.3 General Catalog Model</h3>
+      <p>
+        The shared catalog in <code>generalCifras</code> stores song-level documents that can be resolved
+        by source link and by instrument availability. This is especially important for extension-based
+        ingestion and for scraper-to-frontend synchronization.
+      </p>
+
+      <h2>9. External Integrations</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Integration</th>
+            <th>Where Used</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MongoDB</td>
+            <td>Node + Python</td>
+            <td>Primary persistent storage.</td>
+          </tr>
+          <tr>
+            <td>Cifra Club</td>
+            <td>Python scraper + Chrome extension</td>
+            <td>Song import source.</td>
+          </tr>
+          <tr>
+            <td>Ultimate Guitar</td>
+            <td>Python scraper + Chrome extension</td>
+            <td>Song import source, API-first scraping path.</td>
+          </tr>
+          <tr>
+            <td>Letras / Letras.mus.br</td>
+            <td>Python scraper + Chrome extension</td>
+            <td>Voice/lyrics import source.</td>
+          </tr>
+          <tr>
+            <td>YouTube</td>
+            <td>Node backend + Dashboard export flow</td>
+            <td>Playlist export.</td>
+          </tr>
+          <tr>
+            <td>Spotify</td>
+            <td>Frontend callback / dashboard flow</td>
+            <td>Music service integration.</td>
+          </tr>
+          <tr>
+            <td>Bluetooth / Web MIDI</td>
+            <td>Frontend context</td>
+            <td>Footswitch navigation and control mapping.</td>
+          </tr>
+          <tr>
+            <td>Mailserver</td>
+            <td>Docker stack + Node auth flows</td>
+            <td>Email and password-reset related delivery.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>10. Deployment and Runtime</h2>
+      <h3>10.1 Docker Compose Services</h3>
+      <p>The active compose file is <code>Server/liveNloud/docker-compose.yml</code>.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Container Role</th>
+            <th>Ports</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>db</code></td>
+            <td>MongoDB 7</td>
+            <td><code>27017</code></td>
+          </tr>
+          <tr>
+            <td><code>mailserver</code></td>
+            <td>SMTP/IMAP mail service</td>
+            <td><code>25</code>, <code>465</code>, <code>587</code></td>
+          </tr>
+          <tr>
+            <td><code>node</code></td>
+            <td>Main Express backend</td>
+            <td><code>3000</code></td>
+          </tr>
+          <tr>
+            <td><code>python_scraper</code></td>
+            <td>Python/Flask scraper service with Chromium available</td>
+            <td><code>8000</code></td>
+          </tr>
+          <tr>
+            <td><code>python_socketio</code></td>
+            <td>Python Socket.IO tuner/bridge service</td>
+            <td>internal</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>10.2 Runtime Environment Variables</h3>
+      <p>Important runtime variables visible in the current repository include:</p>
+      <ul>
+        <li><code>MONGO_URI</code></li>
+        <li><code>PYTHON_API_URL</code></li>
+        <li><code>NODE_ENV</code></li>
+        <li><code>ACCESS_SECRET</code> / <code>REFRESH_SECRET</code></li>
+        <li><code>FRONTEND_BASE_URL</code></li>
+        <li><code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code></li>
+        <li><code>CHROME_BINARY</code></li>
+        <li><code>TRUSTED_HOSTS</code></li>
+        <li><code>YOUTUBE_CLIENT_ID</code>, <code>YOUTUBE_CLIENT_SECRET</code>, <code>YOUTUBE_REDIRECT_URI</code>, <code>YOUTUBE_STATE_SECRET</code></li>
+      </ul>
+
+      <div class="note">
+        Secrets are intentionally redacted in this documentation. Production deployment should always source them from environment variables or secret storage, never from committed literals.
+      </div>
+
+      <h2>11. Current Strengths of the Codebase</h2>
+      <ul>
+        <li>Clear separation between scraping logic and the main Node business API.</li>
+        <li>Per-instrument storage model is flexible and well aligned with rehearsal/performance use cases.</li>
+        <li>Chrome extension significantly reduces friction for content ingestion.</li>
+        <li>Presentation page now supports true stage-focused fullscreen LIVE mode.</li>
+        <li>Ultimate Guitar and Letras integration is already wired end-to-end across backend, frontend, and extension.</li>
+      </ul>
+
+      <h2>12. Important Technical Debt / Risks</h2>
+      <ul>
+        <li><strong>Very large backend file:</strong> <code>Server/liveNloud/node/index.js</code> mixes active code and large commented historical blocks, which increases maintenance risk.</li>
+        <li><strong>Mixed naming:</strong> product branding is moving from LiveNLoud to #Sustenido, but many internal identifiers still use the old name.</li>
+        <li><strong>LocalStorage-heavy state:</strong> several frontend flows rely on <code>localStorage</code> as operational state, not just session state.</li>
+        <li><strong>Console warning in Bluetooth context:</strong> custom DOM attribute injection currently produces React warnings.</li>
+        <li><strong>Legacy folders remain in repo:</strong> <code>Server/OLD</code> and built deployment artifacts can confuse new maintainers.</li>
+        <li><strong>Large monolithic controllers/components:</strong> some frontend pages and the main controller layer are difficult to reason about because of broad responsibilities.</li>
+      </ul>
+
+      <h2>13. Recommended Refactoring Priorities</h2>
+      <ol>
+        <li>Split <code>Server/liveNloud/node/index.js</code> into route modules by domain: auth, songs, profile, scraping, YouTube, media.</li>
+        <li>Document the Mongo schema formally in a dedicated versioned spec.</li>
+        <li>Replace ad-hoc frontend localStorage field passing with a normalized state strategy.</li>
+        <li>Remove or archive obsolete deployment artifacts that are no longer part of the active system.</li>
+        <li>Centralize source definitions and field contracts for extension, frontend, and Python scraper to reduce drift.</li>
+        <li>Add explicit tests around scraper normalization and instrument persistence, especially for lyrics-only sources.</li>
+      </ol>
+
+      <h2>14. Operational Workflows</h2>
+      <h3>14.1 Add Song Through Frontend</h3>
+      <ol>
+        <li>User opens <code>New Song</code>.</li>
+        <li>User pastes source link into an instrument field.</li>
+        <li>Node forwards scrape request to Python.</li>
+        <li>Python detects source and scrapes content.</li>
+        <li>Python stores normalized result and returns <code>songData</code>.</li>
+        <li>Frontend hydrates song title, artist, and instrument content.</li>
+        <li>User saves final record in the app library.</li>
+      </ol>
+
+      <h3>14.2 Add Song Through Chrome Extension</h3>
+      <ol>
+        <li>User opens a supported source website.</li>
+        <li>Content script extracts page metadata.</li>
+        <li>User opens popup and reviews source, instrument, and metadata.</li>
+        <li>Popup calls backend save flow.</li>
+        <li>Backend scraper/general catalog persistence completes.</li>
+        <li>The song becomes available in the application library and presentation flow.</li>
+      </ol>
+
+      <h3>14.3 Live Performance Flow</h3>
+      <ol>
+        <li>User opens a presentation route for a chosen song and instrument.</li>
+        <li>Frontend loads the exact song entry from the backend.</li>
+        <li>Rendered content is normalized through the cifra parser.</li>
+        <li>User can show videos, edit the cifra, or switch content type.</li>
+        <li>User can enter LIVE mode for fullscreen stage display.</li>
+        <li>Keyboard arrows, page keys, BLE, or MIDI mapping can be used to navigate the content.</li>
+      </ol>
+
+      <h2>15. File-Level Starting Points for New Developers</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Start Here</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Frontend bootstrap</td>
+            <td><code>Front/src/main.jsx</code></td>
+          </tr>
+          <tr>
+            <td>Frontend API calls</td>
+            <td><code>Front/src/Tools/Controllers.jsx</code></td>
+          </tr>
+          <tr>
+            <td>Song ingestion UI</td>
+            <td><code>Front/src/Pages/NewSong/</code> and <code>Front/src/Pages/EditSong/</code></td>
+          </tr>
+          <tr>
+            <td>Presentation/live view</td>
+            <td><code>Front/src/Pages/Presentation/Presentation.jsx</code></td>
+          </tr>
+          <tr>
+            <td>Node backend</td>
+            <td><code>Server/liveNloud/node/index.js</code></td>
+          </tr>
+          <tr>
+            <td>Scraper dispatch</td>
+            <td><code>Server/liveNloud/python/scrapping_service.py</code> conceptually; actual file is <code>scraping_service.py</code></td>
+          </tr>
+          <tr>
+            <td>Source detection</td>
+            <td><code>Server/liveNloud/python/source_rules.py</code></td>
+          </tr>
+          <tr>
+            <td>Scraper persistence</td>
+            <td><code>Server/liveNloud/python/storage_service.py</code></td>
+          </tr>
+          <tr>
+            <td>Chrome extension</td>
+            <td><code>Chrome Extension/popup.js</code> and <code>Chrome Extension/page-context.js</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>16. Conclusion</h2>
+      <p>
+        The current repository is not a simple CRUD app. It is a hybrid music operations platform that combines
+        song ingestion, per-instrument arrangement storage, external-source scraping, live presentation tooling,
+        browser extension capture, and export/utility integrations. The most important architectural idea in the
+        system is that one song can be represented differently per instrument and still remain part of a unified
+        library and performance workflow.
+      </p>
+      <p>
+        The codebase is already capable of supporting a full rehearsal-to-stage flow. The next major engineering
+        gains will come from modularization, formal schema documentation, and reducing the current amount of
+        duplicated or historical code retained in the active repository.
+      </p>
+
+      <p class="subtle small">
+        End of document.
+      </p>
+    </main>
+  </body>
+</html>

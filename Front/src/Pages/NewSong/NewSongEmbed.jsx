@@ -2,75 +2,125 @@ import { useState, useEffect } from "react";
 
 /* eslint-disable react/prop-types */
 const NewSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
-  const [btnStatus, setBtnStatus] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const [videoTitles, setVideoTitles] = useState([]);
-  const [videoLinks, setVideoLinks] = useState([]);
+  const [videoItems, setVideoItems] = useState([]);
   const [error, setError] = useState(null);
   const [selectedVideo, setSelectedVideo] = useState(null); // Estado para o vídeo selecionado
-
-  useEffect(() => {
-    // Função para carregar os títulos dos vídeos existentes em ytEmbedSongList
-    const loadExistingVideos = async () => {
-      if (ytEmbedSongList && ytEmbedSongList.length > 0) {
-        const titles = await Promise.all(
-          ytEmbedSongList.map(async (url) => {
-            const title = await fetchYouTubeTitle(url);
-            return title ? title : "Título não disponível";
-          })
-        );
-        setVideoTitles(titles);
-        setVideoLinks(ytEmbedSongList);
-      }
-    };
-
-    loadExistingVideos();
-  }, [ytEmbedSongList]);
 
   const isValidYouTubeLink = (url) => {
     const regex = /^(https?:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/;
     return regex.test(url);
   };
 
+  const getVideoId = (url) => {
+    try {
+      const parsedUrl = new URL(url);
+      const host = parsedUrl.hostname.replace("www.", "");
+
+      if (host === "youtu.be") {
+        return parsedUrl.pathname.slice(1) || null;
+      }
+
+      if (host === "youtube.com" || host === "m.youtube.com") {
+        if (parsedUrl.pathname === "/watch") {
+          return parsedUrl.searchParams.get("v");
+        }
+
+        if (parsedUrl.pathname.startsWith("/shorts/")) {
+          return parsedUrl.pathname.split("/")[2] || null;
+        }
+
+        if (parsedUrl.pathname.startsWith("/embed/")) {
+          return parsedUrl.pathname.split("/")[2] || null;
+        }
+      }
+    } catch (parseError) {
+      console.error("Invalid YouTube URL:", parseError);
+    }
+
+    return null;
+  };
+
+  const normalizeYouTubeUrl = (url) => {
+    const videoId = getVideoId(url);
+    return videoId ? `https://www.youtube.com/watch?v=${videoId}` : null;
+  };
+
   const fetchYouTubeTitle = async (url) => {
     try {
       const response = await fetch(`https://noembed.com/embed?url=${url}`);
       const data = await response.json();
-      if (data.title) {
-        return data.title;
-      } else {
-        throw new Error("O título não foi encontrado.");
-      }
+      return data.title || null;
     } catch (error) {
-      console.error("Erro ao buscar título do vídeo:", error);
-      setError("Failed to fetch video title.");
+      console.warn("Unable to fetch YouTube title:", error);
       return null;
     }
   };
 
-  const handleInputChange = async (e) => {
-    const url = e.target.value;
-    setInputValue(url);
+  useEffect(() => {
+    let isMounted = true;
 
-    if (isValidYouTubeLink(url)) {
-      setBtnStatus(true);
-      const title = await fetchYouTubeTitle(url);
-      if (title) {
-        const truncatedTitle =
-          title.length > 50 ? `${title.substring(0, 47)}...` : title;
-        setVideoTitles((prevTitles) => [...prevTitles, truncatedTitle]);
-        setVideoLinks((prevLinks) => [...prevLinks, url]);
-        setEmbedLink((prevLinks = []) => [...prevLinks, url]); // Default to an empty array if prevLinks is undefined
-        setInputValue(""); // Limpa o campo de input após adicionar o título
-        setBtnStatus(false); // Desativa o botão até que um novo link seja adicionado
+    const loadExistingVideos = async () => {
+      const safeList = Array.isArray(ytEmbedSongList) ? ytEmbedSongList : [];
+      const items = await Promise.all(
+        safeList.map(async (url) => {
+          const title = await fetchYouTubeTitle(url);
+          const fallbackTitle = getVideoId(url)
+            ? `YouTube video (${getVideoId(url)})`
+            : "YouTube video";
+
+          return {
+            url,
+            title:
+              title && title.length > 50
+                ? `${title.substring(0, 47)}...`
+                : title || fallbackTitle,
+          };
+        })
+      );
+
+      if (isMounted) {
+        setVideoItems(items);
       }
-    } else {
-      setBtnStatus(false);
+    };
+
+    loadExistingVideos();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [ytEmbedSongList]);
+
+  const handleAddVideo = async () => {
+    const normalizedUrl = normalizeYouTubeUrl(inputValue.trim());
+
+    if (!normalizedUrl || !isValidYouTubeLink(normalizedUrl)) {
+      setError("Insert a valid YouTube link.");
+      return;
     }
+
+    if (ytEmbedSongList.includes(normalizedUrl)) {
+      setError("This video is already in the list.");
+      return;
+    }
+
+    setError(null);
+    setEmbedLink((prevLinks = []) => [...prevLinks, normalizedUrl]);
+    setInputValue("");
   };
 
   const handlePlayClick = (url) => {
     setSelectedVideo(url); // Define o vídeo selecionado para ser exibido no box
+  };
+
+  const handleDeleteVideo = (urlToDelete) => {
+    setEmbedLink((prevLinks = []) =>
+      prevLinks.filter((link) => link !== urlToDelete)
+    );
+
+    if (selectedVideo === urlToDelete) {
+      setSelectedVideo(null);
+    }
   };
 
   return (
@@ -82,9 +132,7 @@ const NewSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
           <iframe
             width="100%"
             height="315"
-            src={`https://www.youtube.com/embed/${new URL(
-              selectedVideo
-            ).searchParams.get("v")}`}
+            src={`https://www.youtube.com/embed/${getVideoId(selectedVideo)}`}
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -100,21 +148,48 @@ const NewSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-md text-sm"
           value={inputValue}
-          onChange={handleInputChange}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            if (error) setError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleAddVideo();
+            }
+          }}
         />
+        <button
+          type="button"
+          className="ml-2 px-3 py-1 neuphormism-b-btn text-xs"
+          onClick={handleAddVideo}
+        >
+          Add
+        </button>
       </div>
       {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
       <div className="flex flex-col px-1 py-2 my-2 m-0">
         <ul className="flex flex-col">
-          {videoTitles.map((title, index) => (
+          {videoItems.map(({ title, url }, index) => (
             <li
-              key={index}
-              className="flex justify-between text-[6pt] py-3 px-1 my-2 neuphormism-b-btn"
+              key={`${url}-${index}`}
+              className="flex items-center justify-between text-[6pt] py-3 px-1 my-2 neuphormism-b-btn"
             >
-              <span>{title}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteVideo(url)}
+                  className="px-1 text-red-600 font-bold hover:text-red-800"
+                  aria-label="Delete video"
+                >
+                  X
+                </button>
+                <span className="truncate">{title}</span>
+              </div>
               <button
-                onClick={() => handlePlayClick(videoLinks[index])}
-                className="hover:font-black px-1"
+                type="button"
+                onClick={() => handlePlayClick(url)}
+                className="px-1 font-extrabold tracking-wide hover:font-black"
               >
                 PLAY
               </button>

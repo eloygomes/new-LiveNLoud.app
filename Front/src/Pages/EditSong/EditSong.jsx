@@ -74,6 +74,7 @@ function EditSong() {
                 progVoice={progVoice}
                 registerInstrumentUpdaters={registerInstrumentUpdaters}
                 isDirty={isDirty}
+                setIsDirty={setIsDirty}
               />
             </div>
             <div className="right-column w-1/2">
