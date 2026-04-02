@@ -1,4 +1,4 @@
-import { getListOfMusic } from "@/connect/connect";
+import { getListOfMusic, getStoredUserEmail } from "@/connect/connect";
 import React, {
   useState,
   useCallback,
@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import Filter from "react-native-vector-icons/FontAwesome";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect } from "@react-navigation/native";
 
 // Defina ou importe o tipo Instruments corretamente
@@ -35,6 +37,8 @@ type FlatListProps = {
   onSelect: (item: SelectPayload) => void;
   onOpenFilter: () => void;
   selectedSetlists: string[];
+  searchTerm: string;
+  onAllSongsChange?: (songs: SelectPayload[]) => void;
 };
 
 // 👇 Handle exposto ao pai (Songlist)
@@ -43,42 +47,160 @@ export type FLCompHandle = {
 };
 
 type ItemProps = {
+  index: number;
   song: string;
   artist: string;
+  progressBar?: number;
+  instruments?: Instruments;
   onPress: () => void;
 };
 
-const Item = ({ song, artist, onPress }: ItemProps) => (
+const instrumentMeta: {
+  key: keyof Instruments;
+  icon: string;
+}[] = [
+  { key: "guitar01", icon: "guitar" },
+  { key: "guitar02", icon: "guitar" },
+  { key: "bass", icon: "music" },
+  { key: "keys", icon: "keyboard" },
+  { key: "drums", icon: "compact-disc" },
+  { key: "voice", icon: "microphone" },
+];
+
+const ProgressCircle = ({ progress = 0 }: { progress?: number }) => {
+  const size = 18;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+  const strokeDashoffset = circumference - (safeProgress / 100) * circumference;
+
+  return (
+    <Svg width={size} height={size}>
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="#d7d7d7"
+        strokeWidth={strokeWidth}
+        fill="none"
+      />
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="#d9ad26"
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeDasharray={`${circumference} ${circumference}`}
+        strokeDashoffset={strokeDashoffset}
+        strokeLinecap="round"
+        rotation="-90"
+        origin={`${size / 2}, ${size / 2}`}
+      />
+    </Svg>
+  );
+};
+
+const Item = ({
+  index,
+  song,
+  artist,
+  progressBar = 0,
+  instruments,
+  onPress,
+}: ItemProps) => (
   <TouchableOpacity onPress={onPress}>
     <View style={styles.item}>
-      <Text style={styles.label}>Song</Text>
-      <Text style={styles.song}>{song}</Text>
-      <Text style={styles.label}>Artist</Text>
-      <Text style={styles.artist}>{artist}</Text>
+      <View style={styles.indexColumn}>
+        <Text style={styles.indexText}>{index + 1}</Text>
+      </View>
+
+      <View style={styles.contentColumn}>
+        <View style={styles.headerwrapper}>
+          <View style={styles.titlewrapper}>
+            <Text style={styles.song}>{song}</Text>
+            <Text style={styles.artist}>{artist}</Text>
+
+            <View style={styles.metaRow}>
+              <View style={styles.progressChip}>
+                <ProgressCircle progress={progressBar} />
+                <Text style={styles.progressText}>
+                  {Number(progressBar || 0)}%
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.iconsRow}>
+            {instrumentMeta.map((instrument) => {
+              const enabled = Boolean(instruments?.[instrument.key]);
+
+              return (
+                <View
+                  key={instrument.key}
+                  style={[
+                    styles.instrumentChip,
+                    enabled
+                      ? styles.instrumentChipActive
+                      : styles.instrumentChipDisabled,
+                  ]}
+                >
+                  <FontAwesome5
+                    name={instrument.icon}
+                    size={12}
+                    color={enabled ? "#000000" : "#8f8f8f"}
+                    solid={enabled}
+                  />
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
     </View>
   </TouchableOpacity>
 );
 
 const FLComp = forwardRef<FLCompHandle, FlatListProps>(
-  ({ onSelect, onOpenFilter, selectedSetlists }, ref) => {
+  (
+    {
+      onSelect,
+      onOpenFilter,
+      selectedSetlists,
+      searchTerm,
+      onAllSongsChange,
+    },
+    ref,
+  ) => {
     const [listOfSongs, setListOfSongs] = useState<SelectPayload[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const fetchSongs = useCallback(async () => {
       try {
+        const userEmail = await getStoredUserEmail();
+
+        if (!userEmail) {
+          setListOfSongs([]);
+          return;
+        }
+
         console.log("[fetchSongs] carregando músicas...");
         const songs = await getListOfMusic({
-          email: "teste@teste.com",
+          email: userEmail,
           artist: "",
           song: "",
         });
-        setListOfSongs(Array.isArray(songs) ? songs : []);
+        const safeSongs = Array.isArray(songs) ? songs : [];
+        setListOfSongs(safeSongs);
+        onAllSongsChange?.(safeSongs);
       } catch (e) {
         console.warn("[fetchSongs] erro:", e);
         setListOfSongs([]);
+        onAllSongsChange?.([]);
       }
-    }, []);
+    }, [onAllSongsChange]);
 
     // ✅ expõe método imperativo ao pai
     useImperativeHandle(
@@ -93,7 +215,7 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
           }
         },
       }),
-      [fetchSongs]
+      [fetchSongs],
     );
 
     // refetch sempre que a tela ganha foco
@@ -108,7 +230,7 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
         return () => {
           isActive = false;
         };
-      }, [fetchSongs])
+      }, [fetchSongs]),
     );
 
     const onRefresh = useCallback(async () => {
@@ -121,10 +243,24 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
     }, [fetchSongs]);
 
     const filteredSongs =
-      selectedSetlists.length > 0
-        ? listOfSongs.filter((song) =>
-            (song?.setlist || []).some((s) => selectedSetlists.includes(s))
-          )
+      selectedSetlists.length > 0 || searchTerm.trim().length > 0
+        ? listOfSongs.filter((song) => {
+            const matchesSetlist =
+              selectedSetlists.length === 0 ||
+              (song?.setlist || []).some((s) => selectedSetlists.includes(s));
+
+            const term = searchTerm.trim().toLowerCase();
+            const matchesSearch =
+              term.length === 0 ||
+              String(song?.song || "")
+                .toLowerCase()
+                .includes(term) ||
+              String(song?.artist || "")
+                .toLowerCase()
+                .includes(term);
+
+            return matchesSetlist && matchesSearch;
+          })
         : listOfSongs;
 
     return (
@@ -147,10 +283,13 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
 
             <FlatList
               data={filteredSongs}
-              renderItem={({ item }) => (
+              renderItem={({ item, index }) => (
                 <Item
+                  index={index}
                   song={item.song ?? ""}
                   artist={item.artist ?? ""}
+                  progressBar={item.progressBar}
+                  instruments={item.instruments}
                   onPress={() =>
                     onSelect({
                       song: item.song,
@@ -184,7 +323,7 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
         </SafeAreaProvider>
       </>
     );
-  }
+  },
 );
 
 // Set display name for better debugging and to fix the warning
@@ -201,31 +340,93 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   filterTitle: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
-
+  title: { fontSize: 24, fontWeight: "900", color: "#000000" },
   item: {
     backgroundColor: "#E0E0E0",
-    padding: 10,
+    padding: 12,
     marginVertical: 8,
     marginHorizontal: 16,
-    borderRadius: 8,
-    flexDirection: "column",
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 12,
   },
-  title: {
-    fontSize: 38,
-    fontWeight: "bold",
-    textAlign: "center",
+  indexColumn: {
+    width: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: "#d0d0d0",
+    paddingRight: 10,
   },
-  label: {
+  indexText: {
     fontSize: 12,
+    fontWeight: "800",
+    color: "#6b7280",
+  },
+  contentColumn: {
+    flex: 1,
   },
   song: {
     fontSize: 16,
-    marginBottom: 8,
-    fontWeight: "bold",
+    fontWeight: "800",
+    color: "#000000",
   },
   artist: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2d2d2d",
+    marginTop: 2,
+  },
+  metaRow: {
+    // marginTop: 10,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    // gap: 5,
+  },
+  progressChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 8,
+    borderRadius: 9,
+    backgroundColor: "#f0f0f0",
+  },
+  progressText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#000000",
+  },
+  iconsRow: {
+    width: 64,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 4,
+  },
+  instrumentChip: {
+    width: 30,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 6,
+  },
+  instrumentChipActive: {
+    backgroundColor: "#d9ad26",
+  },
+  instrumentChipDisabled: {
+    backgroundColor: "#f0f0f0",
+  },
+  titlewrapper: {
+    flexDirection: "column",
+    gap: 4,
+  },
+  headerwrapper: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
 });
 

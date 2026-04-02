@@ -34,7 +34,7 @@ const Index = () => {
             edges={Platform.OS === "android" ? ["top"] : ["top", "bottom"]}
           >
             <View style={styles.innerContainerTop}>
-              <Text style={styles.title}>LIVE N LOUD</Text>
+              <Text style={styles.title}>#SUSTENIDO</Text>
             </View>
 
             <View style={styles.innerContainer}>

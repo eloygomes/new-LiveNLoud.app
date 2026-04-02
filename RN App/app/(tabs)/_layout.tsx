@@ -5,7 +5,6 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { HapticTab } from "@/components/HapticTab";
-import { Colors } from "@/constants/Colors";
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
@@ -74,6 +73,15 @@ export default function TabsLayout() {
             title: "Metronome",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="speedometer" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="User"
+          options={{
+            title: "User",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person" size={size} color={color} />
             ),
           }}
         />

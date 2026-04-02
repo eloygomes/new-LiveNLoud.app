@@ -11,96 +11,141 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
-  Dimensions,
-  ImageBackground,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
-import Svg, { Path, Circle } from "react-native-svg";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import { login } from "../../connect/connect";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const GOLD = "#d9ad26";
+const PANEL = "#E0E0E0";
+const PANEL_SOFT = "#f0f0f0";
+const BORDER = "#d1d5db";
+const TEXT = "#000000";
+const MUTED = "#6b7280";
 
 const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberPassword, setRememberPassword] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const onLogin = () => {
-    console.log("login", email, password);
-    router.navigate(`/(tabs)/Songlist`);
+  const onLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert("Login", "Enter your email and password.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      router.replace(`/(tabs)/Songlist`);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Login failed. Check your email and password.";
+
+      Alert.alert("Login failed", message);
+      setPassword("");
+    } finally {
+      setLoading(false);
+    }
   };
-  const onForgot = () => console.log("forgot password");
+
+  const onForgot = () => {
+    router.navigate({
+      pathname: "/(login)/ChangePassword",
+      params: email.trim() ? { email: email.trim() } : undefined,
+    });
+  };
+
   const onSignUp = () => {
-    console.log("SignUp");
     router.navigate(`/(login)/SignUp`);
   };
 
   return (
-    <>
-      {/* ----- BLUE HEADER SECTION ----- */}
-      <ImageBackground
-        source={require("../../assets/images/rockBand03.png")}
-        resizeMode="cover"
-        style={styles.image}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboard}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View style={styles.blueHeaderContent}>
-          <Text style={styles.title}>Welcome{"\n"}Back</Text>
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.screen}>
+            <View style={styles.formCard}>
+              <Text style={styles.formEyebrow}>WELCOME BACK</Text>
+              <Text style={styles.formTitle}>Login</Text>
 
-        <Svg
-          width={SCREEN_WIDTH}
-          height={80}
-          viewBox="0 0 1440 320"
-          preserveAspectRatio="none"
-          style={styles.wave}
-        >
-          <Path
-            fill="#ffffff"
-            d="M0,224L60,218.7C120,213,240,203,360,197.3C480,192,600,192,720,181.3C840,171,960,149,1080,138.7C1200,128,1320,128,1380,128L1440,128L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
-          />
-        </Svg>
-      </ImageBackground>
-
-      <SafeAreaView style={styles.safeArea}>
-        {/* ----- FORM SECTION ----- */}
-        <KeyboardAvoidingView
-          style={styles.formContainer}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={80}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.formInner}>
-              {/* Email */}
-              <View style={styles.inputWrapper}>
-                {/* <Icon name="mail" size={16} color="#666" /> */}
-                <TextInput
-                  placeholder="water@gmail.com"
-                  placeholderTextColor="#666"
-                  style={styles.input}
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                />
-                {/* <Icon name="check" size={16} color="#0075ff" /> */}
-              </View>
-              {/* Password */}
-              <View style={styles.inputWrapper}>
-                {/* <Icon name="lock" size={16} color="#666" /> */}
-                <TextInput
-                  placeholder="Password"
-                  placeholderTextColor="#666"
-                  secureTextEntry
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                />
+              <View style={styles.inputBlock}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="your@email.com"
+                    placeholderTextColor="#8f8f8f"
+                    style={styles.input}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
               </View>
 
-              <TouchableOpacity onPress={onForgot} style={styles.forgotBtn}>
-                <Text style={styles.forgotText}>Forgot password?</Text>
-              </TouchableOpacity>
+              <View style={styles.inputBlock}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    placeholder="Password"
+                    placeholderTextColor="#8f8f8f"
+                    secureTextEntry
+                    style={styles.input}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                </View>
+              </View>
 
-              <TouchableOpacity style={styles.loginBtn} onPress={onLogin}>
-                <Text style={styles.loginText}>Log in</Text>
+              <View style={styles.utilityRow}>
+                <TouchableOpacity
+                  style={styles.rememberBtn}
+                  onPress={() => setRememberPassword((value) => !value)}
+                  disabled={loading}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      rememberPassword && styles.checkboxActive,
+                    ]}
+                  >
+                    {rememberPassword ? (
+                      <FontAwesome5
+                        name="check"
+                        size={10}
+                        color="#000000"
+                        solid
+                      />
+                    ) : null}
+                  </View>
+                  <Text style={styles.rememberText}>Remember password</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={onForgot} style={styles.forgotBtn}>
+                  <Text style={styles.forgotText}>Forgot password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPress={onLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#000000" />
+                ) : (
+                  <Text style={styles.loginText}>Log in</Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.dividerRow}>
@@ -110,108 +155,205 @@ const AuthScreen: React.FC = () => {
               </View>
 
               <TouchableOpacity style={styles.outlinedBtn} onPress={onSignUp}>
-                <Text style={styles.outlinedText}>Sign up</Text>
+                <Text style={styles.outlinedText}>Create account</Text>
               </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
-
-// ——————————————————————— STYLES ———————————————————————
-const BLUE = "#daa520";
-
-const BORDER = "#e4e7ee";
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: PANEL_SOFT,
   },
-  /* HEADER */
-  image: {
+  keyboard: {
     flex: 1,
+  },
+  screen: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 24,
+    justifyContent: "center",
+    backgroundColor: PANEL_SOFT,
+  },
+  heroCard: {
+    backgroundColor: PANEL,
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: "#bebebe",
+    shadowOffset: { width: 8, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  heroTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  brandBadge: {
+    backgroundColor: GOLD,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  brandBadgeText: {
+    color: TEXT,
+    fontWeight: "900",
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+  heroMarker: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: TEXT,
+  },
+  heroTitle: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: TEXT,
+  },
+  heroSubtitle: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 22,
+    color: MUTED,
+  },
+  heroStatsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 22,
+  },
+  heroStat: {
+    flex: 1,
+    backgroundColor: PANEL_SOFT,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+  },
+  heroStatLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: MUTED,
+  },
+  heroStatValue: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: TEXT,
+    marginTop: 4,
+  },
+  formCard: {
+    backgroundColor: PANEL,
+    borderRadius: 24,
+    padding: 20,
     width: "100%",
-    // height: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+    shadowColor: "#bebebe",
+    shadowOffset: { width: 8, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  blueHeader: {
-    height: SCREEN_HEIGHT * 0.55,
-    backgroundColor: BLUE,
+  formEyebrow: {
+    fontSize: 11,
+    color: MUTED,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
-  blueHeaderContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    justifyContent: "flex-start",
+  formTitle: {
+    marginTop: 6,
+    fontSize: 30,
+    fontWeight: "900",
+    color: TEXT,
+    marginBottom: 16,
   },
-  backArrow: {
-    color: "#ffffff",
-    fontSize: 26,
-    marginBottom: 20,
+  inputBlock: {
+    marginBottom: 12,
   },
-  title: {
-    color: "#ffffff",
-    fontSize: 32,
-    fontWeight: "700",
-    lineHeight: 38,
-    marginTop: 80,
-  },
-  wave: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0, // cobre toda a largura
-  },
-  /* FORM */
-  formContainer: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  formInner: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  inputWrapper: {
+  utilityRow: {
+    marginTop: 2,
+    marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  rememberBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    height: 48,
+    backgroundColor: PANEL_SOFT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxActive: {
+    backgroundColor: GOLD,
+    borderColor: GOLD,
+  },
+  rememberText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: MUTED,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: MUTED,
+    marginBottom: 6,
+  },
+  inputWrapper: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 52,
+    backgroundColor: PANEL_SOFT,
+    justifyContent: "center",
   },
   input: {
-    flex: 1,
-    fontSize: 14,
-    color: "#000",
+    fontSize: 15,
+    color: TEXT,
   },
   forgotBtn: {
     alignSelf: "flex-end",
-    marginBottom: 20,
   },
   forgotText: {
     fontSize: 12,
-    color: BLUE,
+    color: GOLD,
+    fontWeight: "700",
   },
   loginBtn: {
-    backgroundColor: BLUE,
-    height: 48,
-    borderRadius: 6,
+    backgroundColor: GOLD,
+    height: 52,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   loginText: {
-    color: "#ffffff",
-    fontWeight: "600",
+    color: TEXT,
+    fontWeight: "900",
+    fontSize: 15,
   },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: 18,
   },
   divLine: {
     flex: 1,
@@ -221,19 +363,22 @@ const styles = StyleSheet.create({
   dividerLabel: {
     marginHorizontal: 8,
     fontSize: 12,
-    color: "#6b7280",
+    color: MUTED,
+    fontWeight: "700",
   },
   outlinedBtn: {
-    height: 48,
-    borderRadius: 6,
+    height: 52,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BLUE,
+    borderColor: BORDER,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: PANEL_SOFT,
   },
   outlinedText: {
-    color: BLUE,
-    fontWeight: "600",
+    color: TEXT,
+    fontWeight: "800",
+    fontSize: 15,
   },
 });
 

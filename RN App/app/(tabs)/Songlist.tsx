@@ -68,7 +68,7 @@
 //   },
 // });
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import FLComp, { SelectPayload } from "@/components/FlatList/FlatList";
 import ActionSheetTemplate from "@/components/ActionSheet/ActionSheet";
@@ -90,6 +90,28 @@ const Songlist = () => {
 
   const [selected, setSelected] = useState<SelectPayload | null>(null);
   const [selectedSetlists, setSelectedSetlists] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allSongs, setAllSongs] = useState<SelectPayload[]>([]);
+
+  const visibleSongs = useMemo(() => {
+    return allSongs.filter((song) => {
+      const matchesSetlist =
+        selectedSetlists.length === 0 ||
+        (song?.setlist || []).some((s) => selectedSetlists.includes(s));
+
+      const term = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        term.length === 0 ||
+        String(song?.song || "")
+          .toLowerCase()
+          .includes(term) ||
+        String(song?.artist || "")
+          .toLowerCase()
+          .includes(term);
+
+      return matchesSetlist && matchesSearch;
+    });
+  }, [allSongs, searchTerm, selectedSetlists]);
 
   // Fechar qualquer sheet ao sair da tela
   useEffect(() => {
@@ -109,11 +131,6 @@ const Songlist = () => {
     sheetRefFilter.current?.show();
   };
 
-  // 👇 função que você pode chamar quando quiser (ex.: após salvar algo no modal)
-  const forceRefresh = async () => {
-    await flRef.current?.refetch();
-  };
-
   return (
     <View style={styles.container}>
       {/* Agora passamos o ref para o FLComp */}
@@ -122,6 +139,8 @@ const Songlist = () => {
         onSelect={handleSelect}
         onOpenFilter={handleOpenFilter}
         selectedSetlists={selectedSetlists}
+        searchTerm={searchTerm}
+        onAllSongsChange={setAllSongs}
       />
 
       {/* ActionSheet do item selecionado */}
@@ -137,11 +156,11 @@ const Songlist = () => {
         ref={sheetRefFilter}
         selected={selected}
         selectedSetlists={selectedSetlists}
-        setSelectedSetlists={async (v) => {
-          setSelectedSetlists(v);
-          // Opcional: ao fechar/alterar o filtro, refaça o fetch
-          await forceRefresh();
-        }}
+        setSearchTerm={setSearchTerm}
+        searchTerm={searchTerm}
+        visibleSongs={visibleSongs}
+        allSongs={allSongs}
+        setSelectedSetlists={setSelectedSetlists}
       />
     </View>
   );

@@ -1,8 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native";
 import React from "react";
 import PBar from "../ProgressBar/PBar";
 import ActionSheetGradeOptBtn from "./ActionSheetGradeOptBtn";
 import { Instruments } from "@/shared/types"; // Import the correct Instruments type
+import { useRouter } from "expo-router";
+import { getAllUserData, getStoredUserEmail } from "@/connect/connect";
+import { saveSongDraft, SongDraft } from "@/connect/songDraft";
 
 interface Props {
   song: string;
@@ -20,7 +23,59 @@ const ActionSheetGradeOpt = ({
   progressBar,
   songCifra,
 }: Props) => {
-  // console.log("ActionSheetGradeOpt", songCifra);
+  const router = useRouter();
+  const [openingEdit, setOpeningEdit] = React.useState(false);
+
+  const handleOpenEdit = async () => {
+    if (openingEdit) {
+      return;
+    }
+
+    setOpeningEdit(true);
+
+    try {
+      const email = await getStoredUserEmail();
+
+      if (!email) {
+        Alert.alert("Edit song", "User email not found. Please log in again.");
+        return;
+      }
+
+      const allSongs = await getAllUserData({ email, artist: "", song: "" });
+      const match = (Array.isArray(allSongs) ? allSongs : []).find(
+        (item: any) => item?.song === song && item?.artist === artist
+      );
+
+      const draft: SongDraft = {
+        artist: match?.artist || artist || "",
+        song: match?.song || song || "",
+        capo: match?.capo || "",
+        tom: match?.tom || "",
+        tuning: match?.tuning || "",
+        instrumentLinks: {
+          guitar01: match?.guitar01?.link || "",
+          guitar02: match?.guitar02?.link || "",
+          bass: match?.bass?.link || "",
+          keys: match?.keys?.link || "",
+          drums: match?.drums?.link || "",
+          voice: match?.voice?.link || "",
+        },
+        videos: Array.isArray(match?.embedVideos) ? match.embedVideos : [],
+        setlists: Array.isArray(match?.setlist) ? match.setlist : [],
+        setlistOptions: Array.isArray(match?.setlist) ? match.setlist : [],
+      };
+
+      await saveSongDraft(draft);
+      router.push("/EditSong");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to open the edit page.";
+      Alert.alert("Edit song", message);
+    } finally {
+      setOpeningEdit(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.progressBarParent}>
@@ -128,9 +183,14 @@ const ActionSheetGradeOpt = ({
               backgroundColor: "#daa520",
               flex: 1,
             }}
-            // onPress={onLogin}
+            onPress={handleOpenEdit}
+            disabled={openingEdit}
           >
-            <Text style={{ color: "#ffffff", fontWeight: "600" }}>Edit</Text>
+            {openingEdit ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={{ color: "#ffffff", fontWeight: "600" }}>Edit</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
