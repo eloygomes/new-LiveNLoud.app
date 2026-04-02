@@ -6,3 +6,4 @@ Front/src/assets/auto-rotate-img.gif
 .env
 /Server/liveNloud/.env
 /Server/liveNloud/node/.env
+/RN App/node_modules
