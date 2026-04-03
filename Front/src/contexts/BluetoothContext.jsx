@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { getRegisteredScrollViewport } from "../Pages/Presentation/presentationScrollController";
 
 /* ============================ Constantes ============================ */
 const MIDI_SERVICE = "03b80e5a-ede8-4b33-a751-6ce34ec4c700";
@@ -44,11 +45,21 @@ const saveJSON = (k, v) => {
 const now = () => new Date().toLocaleTimeString();
 
 /* ================= Scroll global (site inteiro) =================== */
+function isScrollable(node) {
+  return Boolean(node && node.scrollHeight > node.clientHeight + 4);
+}
+
 /** Encontra o alvo de scroll da página atual. */
 function getScrollTarget() {
+  // 0) Viewport explícito da tela de apresentação/live
+  const registeredViewport = getRegisteredScrollViewport();
+  if (isScrollable(registeredViewport)) return registeredViewport;
+
   // 1) Marcador explícito
-  const explicit = document.querySelector('[data-scroll-REMOVED_MONGO_USER="true"]');
-  if (explicit) return explicit;
+  const explicit = document.querySelector(
+    '[data-scroll-removed-mongo-user="true"]'
+  );
+  if (isScrollable(explicit)) return explicit;
 
   // 2) Documento rola?
   const se =
@@ -165,11 +176,6 @@ export function BluetoothProvider({ children }) {
     saveJSON(LS.actions, controls);
   }, [controls]);
 
-  // Se alternar para MIDI, limpamos a tabela para evitar confusão
-  useEffect(() => {
-    if (activeSource === SOURCE.MIDI) clearControls();
-  }, [activeSource]);
-
   const ensureRow = (controlId, meta) => {
     setControls((prev) => {
       const row = prev[controlId];
@@ -207,9 +213,22 @@ export function BluetoothProvider({ children }) {
     }));
   };
 
+  /* ========================== BLE (Web Bluetooth) ========================== */
+  const bleDeviceRef = useRef(null);
+  const bleCharRef = useRef(null);
+  const manualDisconnectRef = useRef(false);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const MAX_BACKOFF_MS = 30000;
+  const midiFallbackLoggedRef = useRef(false);
+
+  const [bleConnected, setBleConnected] = useState(false);
+
   /* ============ Garante um REMOVED_MONGO_USER de scroll se o Layout não marcar ============ */
   useEffect(() => {
-    const already = document.querySelector('[data-scroll-REMOVED_MONGO_USER="true"]');
+    const already = document.querySelector(
+      '[data-scroll-removed-mongo-user="true"]'
+    );
     if (already) return;
 
     const main =
@@ -218,7 +237,7 @@ export function BluetoothProvider({ children }) {
       document.getElementById("REMOVED_MONGO_USER") ||
       document.body;
 
-    main.setAttribute("data-scroll-REMOVED_MONGO_USER", "true");
+    main.setAttribute("data-scroll-removed-mongo-user", "true");
 
     if (main !== document.body) {
       const prevOverflow = main.style.overflow;
@@ -227,8 +246,8 @@ export function BluetoothProvider({ children }) {
         main.style.overflow = "auto";
       }
       return () => {
-        if (main.getAttribute("data-scroll-REMOVED_MONGO_USER") === "true") {
-          main.removeAttribute("data-scroll-REMOVED_MONGO_USER");
+        if (main.getAttribute("data-scroll-removed-mongo-user") === "true") {
+          main.removeAttribute("data-scroll-removed-mongo-user");
         }
         if (prevOverflow !== main.style.overflow) {
           main.style.overflow = prevOverflow;
@@ -237,8 +256,8 @@ export function BluetoothProvider({ children }) {
     }
 
     return () => {
-      if (main.getAttribute("data-scroll-REMOVED_MONGO_USER") === "true") {
-        main.removeAttribute("data-scroll-REMOVED_MONGO_USER");
+      if (main.getAttribute("data-scroll-removed-mongo-user") === "true") {
+        main.removeAttribute("data-scroll-removed-mongo-user");
       }
     };
   }, []);
@@ -257,7 +276,18 @@ export function BluetoothProvider({ children }) {
         for (const input of access.inputs.values()) {
           log("MIDI IN:", input.name);
           input.onmidimessage = (msg) => {
-            if (activeSource !== SOURCE.MIDI) return;
+            const midiAllowed =
+              activeSource === SOURCE.MIDI ||
+              (activeSource === SOURCE.BLE && !bleConnected);
+            if (!midiAllowed) return;
+            if (
+              activeSource === SOURCE.BLE &&
+              !bleConnected &&
+              !midiFallbackLoggedRef.current
+            ) {
+              midiFallbackLoggedRef.current = true;
+              log("Usando Web MIDI como fallback enquanto o BLE está desconectado.");
+            }
             const [status, d1, d2] = msg.data;
             const st = status & 0xf0,
               ch = (status & 0x0f) + 1;
@@ -282,18 +312,23 @@ export function BluetoothProvider({ children }) {
         console.warn("Cleanup MIDI falhou:", e);
       }
     };
-  }, [support.midi, activeSource]);
+  }, [support.midi, activeSource, bleConnected]);
 
-  /* ========================== BLE (Web Bluetooth) ========================== */
-  const bleDeviceRef = useRef(null);
-  const bleCharRef = useRef(null);
-  const manualDisconnectRef = useRef(false);
-  const reconnectTimerRef = useRef(null);
-  const reconnectAttemptsRef = useRef(0);
-  const MAX_BACKOFF_MS = 30000;
+  function detachBleListeners() {
+    try {
+      bleCharRef.current?.removeEventListener(
+        "characteristicvaluechanged",
+        onBleNotify
+      );
+    } catch {}
 
-  // >>> Ajuste fino: bleConnected como STATE para re-render
-  const [bleConnected, setBleConnected] = useState(false);
+    try {
+      bleDeviceRef.current?.removeEventListener(
+        "gattserverdisconnected",
+        onGattDisconnected
+      );
+    } catch {}
+  }
 
   async function connectBLE() {
     if (!support.bt) return log("Web Bluetooth não suportado.");
@@ -312,14 +347,13 @@ export function BluetoothProvider({ children }) {
   const clearControls = () => {
     setControls({});
     saveJSON(LS.actions, {});
-    log("Controles resetados (nova conexão).");
+    log("Controles resetados.");
   };
 
   async function setupBLE(device) {
+    detachBleListeners();
     bleDeviceRef.current = device;
     manualDisconnectRef.current = false;
-
-    clearControls();
 
     device.addEventListener("gattserverdisconnected", onGattDisconnected);
     const server = await device.gatt.connect();
@@ -338,6 +372,7 @@ export function BluetoothProvider({ children }) {
       time: now(),
     });
     setBleConnected(true); // <<< update state
+    midiFallbackLoggedRef.current = false;
     log("BLE conectado:", device.name || device.id);
 
     setActiveSource(SOURCE.BLE);
@@ -348,6 +383,10 @@ export function BluetoothProvider({ children }) {
     setLast({ source: "BLE", key: name, bytes: "disconnected", time: now() });
     setBleConnected(false); // <<< update state
     log("BLE desconectado:", name);
+    if (activeSource === SOURCE.BLE) {
+      midiFallbackLoggedRef.current = false;
+      log("Fallback BLE→MIDI habilitado enquanto o BLE estiver fora.");
+    }
     if (!manualDisconnectRef.current && autoReconnect) scheduleReconnect();
   }
 
@@ -374,7 +413,20 @@ export function BluetoothProvider({ children }) {
   }
 
   async function reconnectBLE() {
-    const device = bleDeviceRef.current;
+    let device = bleDeviceRef.current;
+    if (!device) return;
+
+    try {
+      const permitted = await navigator.bluetooth?.getDevices?.();
+      const matchedDevice = permitted?.find((entry) => entry.id === device.id);
+      if (matchedDevice) {
+        device = matchedDevice;
+        bleDeviceRef.current = matchedDevice;
+      }
+    } catch (e) {
+      log("Falha ao consultar devices permitidos:", e?.message || e);
+    }
+
     if (!device || device.gatt.connected) return;
     const server = await device.gatt.connect();
     const service = await server.getPrimaryService(MIDI_SERVICE);
@@ -391,18 +443,14 @@ export function BluetoothProvider({ children }) {
       time: now(),
     });
     setBleConnected(true); // <<< update state
+    midiFallbackLoggedRef.current = false;
     log("BLE reconectado:", device.name || device.id);
   }
 
   function disconnectBLE() {
     manualDisconnectRef.current = true;
     if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-    try {
-      bleCharRef.current?.removeEventListener(
-        "characteristicvaluechanged",
-        onBleNotify
-      );
-    } catch {}
+    detachBleListeners();
     try {
       if (bleDeviceRef.current?.gatt?.connected)
         bleDeviceRef.current.gatt.disconnect();
@@ -415,6 +463,7 @@ export function BluetoothProvider({ children }) {
       time: now(),
     });
     setBleConnected(false); // <<< update state
+    midiFallbackLoggedRef.current = false;
     bleDeviceRef.current = null;
     bleCharRef.current = null;
     reconnectAttemptsRef.current = 0;
@@ -492,13 +541,26 @@ export function BluetoothProvider({ children }) {
     });
   }
 
+  function findMappedAction(controlId) {
+    const exactAction = controlsRef.current?.[controlId]?.action;
+    if (exactAction && exactAction !== "none") return exactAction;
+
+    const genericKey = controlId.replace(/^[^:]+:/, "");
+    const fallbackEntry = Object.entries(controlsRef.current || {}).find(
+      ([key, meta]) =>
+        key.replace(/^[^:]+:/, "") === genericKey && meta?.action !== "none"
+    );
+
+    return fallbackEntry?.[1]?.action ?? "none";
+  }
+
   function handleControl({ controlId, source, info, lastValue }) {
     ensureRow(controlId, { source, info });
     updateRowValue(controlId, lastValue);
     setLast({ source, key: controlId, bytes: lastValue, time: now() });
     log("Evento", source, "→", controlId, "|", lastValue);
 
-    const action = controlsRef.current?.[controlId]?.action ?? "none";
+    const action = findMappedAction(controlId);
     if (action !== "none") {
       runGlobalAction(action);
       log("Ação executada:", action);
@@ -537,7 +599,15 @@ export function BluetoothProvider({ children }) {
 
       if (bleDeviceRef.current?.gatt?.connected) return;
 
-      for (const dev of permitted) {
+      const currentDeviceId = bleDeviceRef.current?.id;
+      const devicesInPriorityOrder = currentDeviceId
+        ? [
+            ...permitted.filter((device) => device.id === currentDeviceId),
+            ...permitted.filter((device) => device.id !== currentDeviceId),
+          ]
+        : permitted;
+
+      for (const dev of devicesInPriorityOrder) {
         try {
           await setupBLE(dev);
           log("BLE restaurado via getDevices():", dev.name || dev.id);
@@ -560,8 +630,12 @@ export function BluetoothProvider({ children }) {
       }
     };
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", restoreBleIfPermitted);
 
-    return () => document.removeEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", restoreBleIfPermitted);
+    };
   }, []);
 
   return (

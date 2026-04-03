@@ -116,7 +116,7 @@ export default function RootLayouts() {
       {/* CONTEÚDO */}
       <main className="min-h-screen">
         <div
-          data-scroll-REMOVED_MONGO_USER="true"
+          data-scroll-removed-mongo-user="true"
           className={`flex-1 ${
             isDashboardRoute ? "overflow-y-hidden" : "overflow-y-auto"
           } pt-0 md:pt-16`}

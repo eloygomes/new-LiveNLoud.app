@@ -188,6 +188,19 @@ function Presentation() {
   const [isLiveMode, setIsLiveMode] = useState(false);
   const liveModeRootRef = useRef(null);
 
+  const focusLiveViewport = useCallback(() => {
+    const contentNode = presentationContentRef.current;
+    if (!contentNode) return;
+
+    try {
+      window.focus();
+    } catch {}
+
+    requestAnimationFrame(() => {
+      contentNode.focus({ preventScroll: true });
+    });
+  }, []);
+
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
       setSaveError("Sem dados da música carregados para salvar.");
@@ -504,13 +517,16 @@ function Presentation() {
     const handleFullscreenChange = () => {
       const fullscreenActive = document.fullscreenElement != null;
       setIsLiveMode(fullscreenActive);
+      if (fullscreenActive) {
+        focusLiveViewport();
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, []);
+  }, [focusLiveViewport]);
 
   useEffect(() => {
     const viewport = presentationContentRef.current;
@@ -521,6 +537,21 @@ function Presentation() {
       unregisterScrollViewport(viewport);
     };
   }, [isLiveMode, hideChords, selectContenttoShow, isEditing]);
+
+  useEffect(() => {
+    if (!isLiveMode) return undefined;
+
+    focusLiveViewport();
+
+    const handleWindowFocus = () => {
+      focusLiveViewport();
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [focusLiveViewport, isLiveMode]);
 
   useEffect(() => {
     if (!isLiveMode) return undefined;
@@ -638,9 +669,7 @@ function Presentation() {
     try {
       await rootNode.requestFullscreen();
       setIsLiveMode(true);
-      requestAnimationFrame(() => {
-        presentationContentRef.current?.focus?.();
-      });
+      focusLiveViewport();
     } catch (error) {
       console.error("Não foi possível entrar no modo LIVE:", error);
       pushSnackbarMessage(
@@ -653,9 +682,11 @@ function Presentation() {
   return (
     <div
       ref={liveModeRootRef}
+      tabIndex={isLiveMode ? -1 : undefined}
       className={`flex justify-center h-screen ${
         isLiveMode ? "presentation-live-shell" : ""
       }`}
+      onMouseDown={isLiveMode ? focusLiveViewport : undefined}
     >
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
