@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import musician from "../../assets/musician.jpg";
+import AuthShell from "../Auth/AuthShell";
 import {
   requestPasswordReset,
   resetPassword,
@@ -87,117 +87,98 @@ function NewPassword() {
   };
 
   return (
-    <div className="flex justify-center h-screen pt-5">
-      <div className="container mx-auto">
-        <div className="h-screen w-11/12 2xl:w-9/12 mx-auto flex flex-col">
-          <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">
-              {isResetMode ? "Create New Password" : "Reset Password"}
-            </h1>
-            <h4 className="ml-auto mt-auto text-sm">
-              Secure access for your account
-            </h4>
-          </div>
-
-          <div className="flex flex-row my-5 neuphormism-b p-5 h-[75vh]">
-            <div className="w-1/2 flex items-center justify-center">
-              <img src={musician} className="h-[70vh] object-cover" alt="" />
-            </div>
-
-            <div className="w-1/2 flex flex-col justify-center">
-              <div className="mx-10 neuphormism-b p-8">
-                <h2 className="text-2xl font-bold mb-2">
-                  {isResetMode ? "Choose a new password" : "Request reset link"}
-                </h2>
-                <p className="text-sm text-gray-600 mb-6">
-                  {isResetMode
-                    ? "Use o link recebido por email para criar uma nova senha para a sua conta."
-                    : "Enter your email and we will prepare a reset link for this account."}
-                </p>
-
-                <form
-                  onSubmit={isResetMode ? handleResetPassword : handleRequestReset}
-                  className="flex flex-col gap-4"
-                >
-                  <div className="flex flex-col">
-                    <label className="text-sm font-semibold mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={isResetMode ? initialEmail : requestEmail}
-                      onChange={(e) => setRequestEmail(e.target.value)}
-                      disabled={isResetMode || loading}
-                      className="w-full p-3 border border-gray-300 rounded input-neumorfismo bg-white"
-                    />
-                  </div>
-
-                  {isResetMode && (
-                    <>
-                      <div className="flex flex-col">
-                        <label className="text-sm font-semibold mb-2">
-                          New password
-                        </label>
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded input-neumorfismo bg-white"
-                          disabled={loading}
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-sm font-semibold mb-2">
-                          Confirm new password
-                        </label>
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded input-neumorfismo bg-white"
-                          disabled={loading}
-                        />
-                      </div>
-
-                      <p className="text-[11px] text-gray-500 leading-snug">
-                        A nova senha precisa ter pelo menos 8 caracteres e nao pode ser igual a senha anterior.
-                      </p>
-                    </>
-                  )}
-
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  {status && <p className="text-sm text-green-700">{status}</p>}
-
-                  <button
-                    type="submit"
-                    disabled={loading || saved}
-                    className="neuphormism-b-btn-gold w-full py-3 mt-2"
-                  >
-                    {loading
-                      ? "Processing..."
-                      : isResetMode
-                        ? "Save new password"
-                        : "Request reset"}
-                  </button>
-                </form>
-
-                <div className="text-sm pt-5 flex items-center justify-between">
-                  <Link to="/login">Back to login</Link>
-                  {saved && (
-                    <button
-                      type="button"
-                      onClick={() => navigate("/login")}
-                      className="neuphormism-b-btn px-4 py-2"
-                    >
-                      Go to login
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+    <AuthShell
+      eyebrow="Password Access"
+      title={isResetMode ? "Create New Password" : "Reset Password"}
+      subtitle={isResetMode ? "Set a secure new password" : "Request a reset link"}
+      panelTitle="Secure the next session."
+      panelCopy="Reset access without leaving the same authentication flow already connected to the backend."
+    >
+      <form
+        onSubmit={isResetMode ? handleResetPassword : handleRequestReset}
+        className="space-y-5"
+      >
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Email
+          </label>
+          <input
+            type="email"
+            value={isResetMode ? initialEmail : requestEmail}
+            onChange={(e) => setRequestEmail(e.target.value)}
+            disabled={isResetMode || loading}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod] disabled:bg-gray-100"
+            placeholder="you@email.com"
+          />
         </div>
+
+        {isResetMode ? (
+          <>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                New Password
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod]"
+                disabled={loading}
+                placeholder="At least 8 characters"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod]"
+                disabled={loading}
+                placeholder="Repeat your password"
+              />
+            </div>
+
+            <p className="rounded-[18px] bg-white/70 px-4 py-3 text-[11px] leading-5 text-gray-500">
+              The new password must have at least 8 characters and should be different from the previous one.
+            </p>
+          </>
+        ) : null}
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {status ? <p className="text-sm text-green-700">{status}</p> : null}
+
+        <button
+          type="submit"
+          disabled={loading || saved}
+          className="neuphormism-b-btn-gold w-full py-3 text-sm font-bold uppercase tracking-[0.18em] disabled:opacity-60"
+        >
+          {loading
+            ? "Processing..."
+            : isResetMode
+              ? "Save New Password"
+              : "Request Reset"}
+        </button>
+      </form>
+
+      <div className="mt-6 flex items-center justify-between gap-3 text-sm">
+        <Link to="/login" className="text-gray-600">
+          Back to login
+        </Link>
+        {saved ? (
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="neuphormism-b-btn px-4 py-2 text-xs font-bold uppercase"
+          >
+            Go to Login
+          </button>
+        ) : null}
       </div>
-    </div>
+    </AuthShell>
   );
 }
 

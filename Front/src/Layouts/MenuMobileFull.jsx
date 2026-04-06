@@ -50,6 +50,13 @@ function MenuMobileFull({ setMobileMenuOpen }) {
               Tuner
             </NavLink>
             <NavLink
+              to="/calendar"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-24  neuphormism-b-btn flex-1 h-1/2 mx-2 text-center"
+            >
+              Calendar
+            </NavLink>
+            <NavLink
               to="/metronome"
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-24  neuphormism-b-btn flex-1 h-1/2 ml-2 text-center"
@@ -59,7 +66,6 @@ function MenuMobileFull({ setMobileMenuOpen }) {
           </div>
         </div>
       </div>
-      342
     </>
   );
 }

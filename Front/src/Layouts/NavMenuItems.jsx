@@ -22,6 +22,12 @@ function NavMenuItems() {
               Tuner
             </NavLink>
             <NavLink
+              to="/calendar"
+              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+            >
+              Calendar
+            </NavLink>
+            <NavLink
               to="/metronome"
               // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
               className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
@@ -47,6 +53,12 @@ function NavMenuItems() {
               className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
             >
               Tuner
+            </NavLink>
+            <NavLink
+              to="/calendar"
+              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+            >
+              Calendar
             </NavLink>
             <NavLink
               to="/metronome"

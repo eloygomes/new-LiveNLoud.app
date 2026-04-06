@@ -4,6 +4,7 @@ import "../index.css";
 import NavMenuItems from "./NavMenuItems";
 import MenuMobileFull from "./MenuMobileFull";
 import UserProfileModal from "../Tools/modal/UserProfileModal";
+import NotificationBell from "./NotificationBell";
 
 export default function RootLayouts() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -39,9 +40,10 @@ export default function RootLayouts() {
                   </h1>
                 </div>
                 <div className="flex items-center">
+                  <NotificationBell />
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                    className="ml-3 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
                     aria-controls="mobile-menu"
                     aria-expanded={mobileMenuOpen}
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -103,6 +105,7 @@ export default function RootLayouts() {
 
                 {/* ====== Botão + input de busca ====== */}
                 <div className="absolute inset-y-0 right-4 top-0 flex items-center gap-4 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                  <NotificationBell />
                   <div className="relative ml-3">
                     <UserProfileModal />
                   </div>

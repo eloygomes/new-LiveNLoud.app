@@ -1,14 +1,5 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Container,
-  FormControlLabel,
-  TextField,
-  Typography,
-} from "@mui/material";
 import axios from "axios";
 import { DEFAULT_IMAGE_BASE64 } from "./defaultProfileImage";
 
@@ -57,6 +48,8 @@ function UserRegistrationForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
@@ -66,6 +59,13 @@ function UserRegistrationForm() {
       alert("Passwords do not match");
       return;
     }
+
+    if (!acceptedTerms) {
+      alert("Please accept the Terms of Use.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       // 1️⃣ Criação na autenticação JWT
@@ -111,81 +111,108 @@ function UserRegistrationForm() {
       } else {
         alert("Erro ao cadastrar. Tente novamente.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <Typography component="h1" variant="h5">
-          Sign Up
-        </Typography>
-        <Box component="form" noValidate sx={{ mt: 3 }} onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
+    <form noValidate onSubmit={handleSubmit} className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-2 sm:col-span-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Full Name
+          </label>
+          <input
             required
-            label="Full Name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="Your full name"
           />
-          <TextField
-            fullWidth
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Email
+          </label>
+          <input
             required
-            label="Email"
+            type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="you@email.com"
           />
-          <TextField
-            fullWidth
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Username
+          </label>
+          <input
             required
-            label="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="@yourname"
           />
-          <TextField
-            fullWidth
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Password
+          </label>
+          <input
             required
             type="password"
-            label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="Create a password"
           />
-          <TextField
-            fullWidth
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Repeat Password
+          </label>
+          <input
             required
             type="password"
-            label="Repeat Password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="Repeat your password"
           />
-          <FormControlLabel
-            control={<Checkbox value="terms" color="primary" />}
-            label="I agree to the Terms of Use"
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            color="primary"
-          >
-            Sign Up
-          </Button>
-          <Box sx={{ textAlign: "center" }}>
-            <NavLink to="/login" variant="body2">
-              Sign in →
-            </NavLink>
-          </Box>
-        </Box>
-      </Box>
-    </Container>
+        </div>
+      </div>
+
+      <label className="flex items-center gap-3 rounded-[18px] bg-white/70 px-4 py-2.5 text-sm text-gray-600">
+        <input
+          type="checkbox"
+          checked={acceptedTerms}
+          onChange={(e) => setAcceptedTerms(e.target.checked)}
+          className="h-4 w-4 accent-[goldenrod]"
+        />
+        <span>I agree to the Terms of Use.</span>
+      </label>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="neuphormism-b-btn-gold w-full py-2.5 text-sm font-bold uppercase tracking-[0.18em] disabled:opacity-60"
+      >
+        {loading ? "Creating Account..." : "Sign Up"}
+      </button>
+
+      <div className="text-center text-sm text-gray-600">
+        Already have access?{" "}
+        <NavLink to="/login" className="font-bold uppercase tracking-[0.12em] text-[goldenrod]">
+          Sign In
+        </NavLink>
+      </div>
+    </form>
   );
 }
 

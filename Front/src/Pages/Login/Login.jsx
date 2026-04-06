@@ -1,10 +1,12 @@
-import { TextField, Grid, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import AuthShell from "../Auth/AuthShell";
 import { useAuth } from "../../contexts/AuthContext";
-import { login as loginApi } from "../../Tools/Controllers";
+import {
+  fetchCurrentUserProfile,
+  login as loginApi,
+} from "../../Tools/Controllers";
 
 function Login() {
   const [userEmail, setUserEmail] = useState("");
@@ -27,6 +29,7 @@ function Login() {
 
       // Atualiza o estado global de auth (se o seu contexto usa isso)
       loginContext(accessToken, userEmail);
+      await fetchCurrentUserProfile();
 
       navigate("/");
     } catch (err) {
@@ -47,84 +50,77 @@ function Login() {
   };
 
   return (
-    <div className="flex justify-center h-screen pt-20">
-      <div className="container mx-auto">
-        <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
-          <div className="flex items-center justify-center h-screen">
-            <Grid container component="main">
-              <Grid className="w-full sm:w-2/3 md:w-5/12 p-6 shadow-lg mx-auto">
-                <div className="m-5 flex flex-col items-center neuphormism-b p-5">
-                  <Typography component="h1" variant="h5">
-                    # Sustenido
-                  </Typography>
-                  <Typography className="text-sm">Login</Typography>
-
-                  <form
-                    style={{ width: "100%", marginTop: "20px" }}
-                    noValidate
-                    onSubmit={handleLogin}
-                  >
-                    <TextField
-                      variant="outlined"
-                      margin="normal"
-                      required
-                      fullWidth
-                      id="email"
-                      label="Email"
-                      name="email"
-                      autoComplete="email"
-                      autoFocus
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                    />
-
-                    <div className="flex flex-col">
-                      <TextField
-                        variant="outlined"
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Password"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                        value={userPassword}
-                        onChange={(e) => setUserPassword(e.target.value)}
-                      />
-                      <div
-                        className="text-[10px] flex justify-end w-full py-1 cursor-pointer"
-                        onClick={handlePasswordReset}
-                      >
-                        Forgot Password?
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      style={{
-                        margin: "20px 0 10px",
-                        opacity: loading ? 0.6 : 1,
-                      }}
-                      className="neuphormism-b-btn-gold w-full py-3 transform active:scale-95 transition-transform duration-100"
-                    >
-                      {loading ? "Logging in..." : "Login"}
-                    </button>
-                  </form>
-
-                  <Link to="/userregistration">
-                    <div className="text-sm flex justify-start w-full pt-5">
-                      Create a new account
-                    </div>
-                  </Link>
-                </div>
-              </Grid>
-            </Grid>
-          </div>
+    <AuthShell
+      eyebrow="Public Access"
+      title="Login"
+      subtitle="Sign in to your workspace"
+      panelTitle="Practice starts before the first note."
+      panelCopy="Access your dashboard, manage charts, plan rehearsals and keep your collaborators aligned in the same environment."
+    >
+      <form className="space-y-5" noValidate onSubmit={handleLogin}>
+        <div className="space-y-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            Email
+          </label>
+          <input
+            required
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="you@email.com"
+          />
         </div>
-      </div>
-    </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              Password
+            </label>
+            <button
+              type="button"
+              className="text-[11px] font-bold uppercase tracking-[0.14em] text-[goldenrod]"
+              onClick={handlePasswordReset}
+            >
+              Forgot Password
+            </button>
+          </div>
+          <input
+            required
+            name="password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={userPassword}
+            onChange={(e) => setUserPassword(e.target.value)}
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod]"
+            placeholder="Your password"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="neuphormism-b-btn-gold w-full py-3 text-sm font-bold uppercase tracking-[0.18em] disabled:opacity-60"
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+
+        <div className="flex items-center justify-between gap-3 pt-2 text-sm text-gray-600">
+          <span>Need a new account?</span>
+          <Link
+            to="/userregistration"
+            className="font-bold uppercase tracking-[0.12em] text-[goldenrod]"
+          >
+            Create Account
+          </Link>
+        </div>
+      </form>
+    </AuthShell>
   );
 }
 

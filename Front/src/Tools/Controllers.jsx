@@ -27,12 +27,81 @@ const axiosApi = axios.create({
 axiosApi.interceptors.request.use((config) => {
   const t =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (t) config.headers.Authorization = `Bearer ${t}`;
+  if (t && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${t}`;
+  }
   return config;
 });
 
+let refreshPromise = null;
+
+async function refreshAccessToken() {
+  const refreshToken =
+    typeof window !== "undefined"
+      ? localStorage.getItem("refreshToken")
+      : null;
+
+  if (!refreshToken) {
+    throw new Error("Refresh token not found.");
+  }
+
+  const { data } = await axios.post(
+    `${API_BASE}/api/auth/refresh`,
+    { refreshToken },
+    { headers: { "Content-Type": "application/json" } },
+  );
+
+  if (!data?.accessToken) {
+    throw new Error("Access token refresh failed.");
+  }
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", data.accessToken);
+  }
+
+  return data.accessToken;
+}
+
+axiosApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error?.config;
+    const status = error?.response?.status;
+    const isAuthRoute = originalRequest?.url?.includes("/api/auth/");
+
+    if (
+      !originalRequest ||
+      originalRequest._retry ||
+      isAuthRoute ||
+      ![401, 403].includes(status)
+    ) {
+      return Promise.reject(error);
+    }
+
+    try {
+      originalRequest._retry = true;
+
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
+
+      const nextAccessToken = await refreshPromise;
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+
+      return axiosApi(originalRequest);
+    } catch (refreshError) {
+      logoutUser();
+      return Promise.reject(refreshError);
+    }
+  },
+);
+
 // Alias para compatibilidade (alguns trechos usam `api`)
 export const api = axiosApi;
+export { API_BASE };
 
 /* =========================
    Helpers
@@ -55,6 +124,18 @@ function normalizeInstrument(i) {
 
 const getUserEmail = () =>
   (typeof window !== "undefined" && localStorage.getItem("userEmail")) || null;
+
+const syncStoredUserProfile = (profile = {}) => {
+  if (typeof window === "undefined") return;
+
+  if (profile.email) localStorage.setItem("userEmail", profile.email);
+  if (profile.usernameDisplay || profile.username) {
+    localStorage.setItem(
+      "username",
+      profile.usernameDisplay || profile.username,
+    );
+  }
+};
 
 /** Normaliza link como no backend (host sem www, minúsculo, sem barra final). */
 export function normalizeLink(u) {
@@ -323,16 +404,111 @@ export async function login(userEmail, userPassword) {
       password: userPassword,
     });
 
-    const { accessToken } = data;
+    const { accessToken, refreshToken } = data;
 
     localStorage.setItem("token", accessToken);
     localStorage.setItem("userEmail", userEmail);
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
 
     return accessToken;
   } catch (err) {
     console.error("Login failed:", err);
     alert("Login inválido. Verifique e-mail e senha.");
   }
+}
+
+export async function fetchCurrentUserProfile() {
+  const { data } = await axiosApi.get("/api/me");
+  syncStoredUserProfile(data);
+  return data;
+}
+
+export async function searchUsers(query) {
+  const { data } = await axiosApi.get("/api/users/search", {
+    params: { q: query },
+  });
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchNotifications() {
+  const { data } = await axiosApi.get("/api/notifications");
+  return Array.isArray(data) ? data : [];
+}
+
+export async function markNotificationAsRead(notificationId) {
+  const { data } = await axiosApi.put(`/api/notifications/${notificationId}/read`);
+  return data;
+}
+
+export async function markAllNotificationsAsRead() {
+  const { data } = await axiosApi.put("/api/notifications/read-all");
+  return data;
+}
+
+export async function fetchInvitations() {
+  const { data } = await axiosApi.get("/api/invitations");
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchUserLogs() {
+  const { data } = await axiosApi.get("/api/logs");
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createInvitation({ identifier, message = "" }) {
+  const { data } = await axiosApi.post("/api/invitations", {
+    email: identifier,
+    message,
+  });
+  return data;
+}
+
+export async function respondToInvitation(invitationId, status) {
+  const { data } = await axiosApi.put(`/api/invitations/${invitationId}/respond`, {
+    status,
+  });
+  return data;
+}
+
+export async function revokeFriendship(counterpartEmail) {
+  const { data } = await axiosApi.delete(
+    `/api/friends/${encodeURIComponent(counterpartEmail)}`,
+  );
+  return data;
+}
+
+export async function fetchCalendarEvents() {
+  const { data } = await axiosApi.get("/api/calendar/events");
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchCalendarEvent(eventId) {
+  const { data } = await axiosApi.get(`/api/calendar/events/${eventId}`);
+  return data;
+}
+
+export async function createCalendarEvent(payload) {
+  const { data } = await axiosApi.post("/api/calendar/events", payload);
+  return data;
+}
+
+export async function updateCalendarEvent(eventId, payload) {
+  const { data } = await axiosApi.put(`/api/calendar/events/${eventId}`, payload);
+  return data;
+}
+
+export async function deleteCalendarEvent(eventId) {
+  const { data } = await axiosApi.delete(`/api/calendar/events/${eventId}`);
+  return data;
+}
+
+export async function respondToCalendarEvent(eventId, status) {
+  const { data } = await axiosApi.put(`/api/calendar/events/${eventId}/respond`, {
+    status,
+  });
+  return data;
 }
 
 /* =========================
@@ -769,6 +945,7 @@ export async function resetPassword({ email, token, newPassword }) {
 export function logoutUser() {
   if (typeof window === "undefined") return;
   localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("username");
 }

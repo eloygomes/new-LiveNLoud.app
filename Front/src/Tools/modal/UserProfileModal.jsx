@@ -9,6 +9,7 @@ import UserData from "./modalContent/UserData";
 import Settings from "./modalContent/Settings";
 import Logs from "./modalContent/Logs";
 import Bluetooth from "./modalContent/bluetooth/Bluetooth";
+import Invitations from "./modalContent/Invitations";
 import SoftVersion from "../../Pages/Dashboard/SoftVersion";
 
 export default function UserProfileModal() {
@@ -26,6 +27,29 @@ export default function UserProfileModal() {
         setName(storedName);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleOpenUserHubSection = (event) => {
+      const nextSection = event?.detail?.section || "USER INFO";
+      setModalOptionChoose(nextSection);
+      setOpen(true);
+    };
+
+    const handleCloseAllModals = () => {
+      setOpen(false);
+    };
+
+    window.addEventListener("open-userhub-section", handleOpenUserHubSection);
+    window.addEventListener("close-all-modals", handleCloseAllModals);
+    return () =>
+      {
+        window.removeEventListener(
+          "open-userhub-section",
+          handleOpenUserHubSection,
+        );
+        window.removeEventListener("close-all-modals", handleCloseAllModals);
+      };
   }, []);
 
   const handleOpen = () => setOpen(true);
@@ -76,7 +100,7 @@ export default function UserProfileModal() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-row justify-between h-[90%] overflow-y-scroll">
+            <div className="flex flex-row justify-between h-[90%] overflow-hidden">
               {/* menu */}
               <div className="w-[20%] h-auto  flex flex-col justify-between  my-2 neuphormism-b py-2 px-5">
                 <ul>
@@ -100,6 +124,16 @@ export default function UserProfileModal() {
                     onClick={() => setModalOptionChoose("USER DATA")}
                   >
                     USER DATA
+                  </li>
+                  <li
+                    className={`my-5  text-xs cursor-pointer ${
+                      modalOptionChoosen === "FRIENDS"
+                        ? "neuphormism-b-btn-desactivated "
+                        : "neuphormism-b-btn"
+                    }    p-2`}
+                    onClick={() => setModalOptionChoose("FRIENDS")}
+                  >
+                    FRIENDS
                   </li>
                   <li
                     className={`my-5  text-xs cursor-pointer ${
@@ -133,13 +167,15 @@ export default function UserProfileModal() {
                   </button>
                 </div>
               </div>
-              <div className="w-[78%]   flex flex-col  my-2 neuphormism-b py-2 px-5 cursor-pointer">
+              <div className="w-[78%] flex flex-col my-2 neuphormism-b py-2 px-5 min-h-0 overflow-hidden">
                 {modalOptionChoosen === "USER INFO" ? (
                   <UserInfo />
                 ) : modalOptionChoosen === "USER DATA" ? (
                   <UserData />
                 ) : modalOptionChoosen === "SETTINGS" ? (
                   <Settings setModalOptionChoose={setModalOptionChoose} />
+                ) : modalOptionChoosen === "FRIENDS" ? (
+                  <Invitations />
                 ) : modalOptionChoosen === "LOGS" ? (
                   <Logs />
                 ) : modalOptionChoosen === "BLUETOOTH" ? (

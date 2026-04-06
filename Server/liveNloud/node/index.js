@@ -3561,6 +3561,13 @@ app.post("/api/newsong", async (req, res) => {
 
           console.log("Usuário atualizado com sucesso:", updateResult);
 
+          await addUserLog({
+            userEmail: userdata.email,
+            action: "song_updated",
+            message: `Updated song "${userdata.song}" by ${userdata.artist}.`,
+            meta: { song: userdata.song, artist: userdata.artist },
+          });
+
           return res.status(200).json({
             message: "Dados atualizados com sucesso!",
             updatedUser: updateResult,
@@ -3574,6 +3581,13 @@ app.post("/api/newsong", async (req, res) => {
           );
 
           console.log("Novo registro adicionado com sucesso:", updateResult);
+
+          await addUserLog({
+            userEmail: userdata.email,
+            action: "song_added",
+            message: `Added song "${userdata.song}" by ${userdata.artist}.`,
+            meta: { song: userdata.song, artist: userdata.artist },
+          });
 
           return res.status(200).json({
             message: "Novo registro adicionado com sucesso!",
@@ -3597,6 +3611,13 @@ app.post("/api/newsong", async (req, res) => {
           updateResult,
         );
 
+        await addUserLog({
+          userEmail: userdata.email,
+          action: "song_added",
+          message: `Added song "${userdata.song}" by ${userdata.artist}.`,
+          meta: { song: userdata.song, artist: userdata.artist },
+        });
+
         return res.status(200).json({
           message: "Dados atualizados com sucesso!",
           updatedUser: updateResult,
@@ -3613,6 +3634,13 @@ app.post("/api/newsong", async (req, res) => {
       });
 
       console.log("Usuário criado com sucesso:", result);
+
+      await addUserLog({
+        userEmail: userdata.email,
+        action: "song_added",
+        message: `Added song "${userdata.song}" by ${userdata.artist}.`,
+        meta: { song: userdata.song, artist: userdata.artist },
+      });
 
       return res.status(201).json({
         message: "Usuário criado com sucesso!",
@@ -3868,6 +3896,13 @@ app.put("/api/lastPlay", async (req, res) => {
       },
       { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] },
     );
+
+    await addUserLog({
+      userEmail: email,
+      action: "song_last_played",
+      message: `Played "${song}" by ${artist} on ${instrument}.`,
+      meta: { song, artist, instrument },
+    });
 
     return res.status(200).json({
       message: "Campo lastPlay atualizado com sucesso!",
@@ -4150,8 +4185,287 @@ const bcrypt = require("bcrypt");
 // Modelo AuthUser (usando o próprio MongoClient, sem mongoose)
 const authDatabase = client.db("liveNloud_");
 const authCollection = authDatabase.collection("authUsers");
+const userDataCollection = authDatabase.collection("data");
+const notificationsCollection = authDatabase.collection("notifications");
+const invitationsCollection = authDatabase.collection("invitations");
+const calendarEventsCollection = authDatabase.collection("calendarEvents");
+const userLogsCollection = authDatabase.collection("userLogs");
 const FRONTEND_BASE_URL =
   process.env.FRONTEND_BASE_URL || "https://www.live.eloygomes.com";
+
+function normalizeEmail(email = "") {
+  return String(email).trim().toLowerCase();
+}
+
+function fallbackUsernameFromEmail(email = "") {
+  return normalizeEmail(email).split("@")[0] || "user";
+}
+
+function normalizeUsername(username = "") {
+  return String(username).trim().replace(/^@+/, "").toLowerCase();
+}
+
+function isValidEmail(email = "") {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
+function buildSafeUserProfile({ authUser, dataDoc }) {
+  const firstUserData = Array.isArray(dataDoc?.userdata)
+    ? dataDoc.userdata.find((entry) => entry && typeof entry === "object")
+    : null;
+
+  const email = normalizeEmail(authUser?.email || dataDoc?.email || "");
+  const username =
+    normalizeUsername(firstUserData?.username) || fallbackUsernameFromEmail(email);
+
+  return {
+    id: String(authUser?._id || dataDoc?._id || ""),
+    email,
+    username,
+    usernameDisplay: firstUserData?.username || username,
+    fullName: firstUserData?.fullName || "",
+    acceptedInvitations: Array.isArray(authUser?.acceptedInvitations)
+      ? authUser.acceptedInvitations
+      : [],
+  };
+}
+
+async function getCurrentUserProfile(req) {
+  const authUser = await authCollection.findOne({
+    _id: new ObjectId(req.user.userId),
+  });
+
+  if (!authUser?.email) return null;
+
+  const dataDoc = await userDataCollection.findOne({
+    email: normalizeEmail(authUser.email),
+  });
+
+  return buildSafeUserProfile({ authUser, dataDoc });
+}
+
+async function findUserByUsernameOrEmail(value = "") {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) return null;
+
+  const normalizedEmail = normalizeEmail(rawValue);
+  const normalizedUsername = normalizeUsername(rawValue);
+
+  const authUser = rawValue.includes("@")
+    ? await authCollection.findOne({ email: normalizedEmail })
+    : null;
+
+  if (authUser) {
+    const dataDoc = await userDataCollection.findOne({ email: authUser.email });
+    return buildSafeUserProfile({ authUser, dataDoc });
+  }
+
+  const dataDocs = await userDataCollection
+    .find({ userdata: { $elemMatch: { username: { $exists: true } } } })
+    .project({ email: 1, userdata: 1 })
+    .toArray();
+
+  const matchedDataDoc = dataDocs.find((doc) =>
+    Array.isArray(doc.userdata)
+      ? doc.userdata.some(
+          (entry) =>
+            normalizeUsername(entry?.username || "") === normalizedUsername,
+        )
+      : false,
+  );
+
+  if (!matchedDataDoc?.email) return null;
+
+  const matchedAuthUser = await authCollection.findOne({
+    email: normalizeEmail(matchedDataDoc.email),
+  });
+
+  if (!matchedAuthUser) return null;
+
+  return buildSafeUserProfile({
+    authUser: matchedAuthUser,
+    dataDoc: matchedDataDoc,
+  });
+}
+
+async function findUserByEmail(email = "") {
+  const normalizedEmail = normalizeEmail(email);
+  if (!isValidEmail(normalizedEmail)) return null;
+
+  const authUser = await authCollection.findOne({ email: normalizedEmail });
+  if (!authUser) return null;
+
+  const dataDoc = await userDataCollection.findOne({ email: normalizedEmail });
+  return buildSafeUserProfile({ authUser, dataDoc });
+}
+
+function areUsersFriends(userProfile, targetEmail) {
+  const normalizedTargetEmail = normalizeEmail(targetEmail);
+  return Array.isArray(userProfile?.acceptedInvitations)
+    ? userProfile.acceptedInvitations.some(
+        (item) =>
+          normalizeEmail(item?.counterpartEmail || "") === normalizedTargetEmail,
+      )
+    : false;
+}
+
+async function saveAcceptedInvitationForUser(userEmail, acceptedInvitation) {
+  const normalizedEmail = normalizeEmail(userEmail);
+  const authUser = await authCollection.findOne({ email: normalizedEmail });
+  if (!authUser) return;
+
+  const currentAcceptedInvitations = Array.isArray(authUser.acceptedInvitations)
+    ? authUser.acceptedInvitations
+    : [];
+
+  const nextAcceptedInvitations = [
+    ...currentAcceptedInvitations.filter(
+      (item) =>
+        normalizeEmail(item?.counterpartEmail || "") !==
+        normalizeEmail(acceptedInvitation.counterpartEmail || ""),
+    ),
+    acceptedInvitation,
+  ];
+
+  await authCollection.updateOne(
+    { _id: authUser._id },
+    { $set: { acceptedInvitations: nextAcceptedInvitations } },
+  );
+}
+
+async function removeAcceptedInvitationForUser(userEmail, counterpartEmail) {
+  const normalizedEmail = normalizeEmail(userEmail);
+  const authUser = await authCollection.findOne({ email: normalizedEmail });
+  if (!authUser) return;
+
+  const nextAcceptedInvitations = Array.isArray(authUser.acceptedInvitations)
+    ? authUser.acceptedInvitations.filter(
+        (item) =>
+          normalizeEmail(item?.counterpartEmail || "") !==
+          normalizeEmail(counterpartEmail),
+      )
+    : [];
+
+  await authCollection.updateOne(
+    { _id: authUser._id },
+    { $set: { acceptedInvitations: nextAcceptedInvitations } },
+  );
+}
+
+async function addUserLog({ userEmail, action, message, meta = {} }) {
+  const normalizedEmail = normalizeEmail(userEmail);
+  if (!normalizedEmail) return;
+
+  await userLogsCollection.insertOne({
+    userEmail: normalizedEmail,
+    action,
+    message,
+    meta,
+    createdAt: new Date(),
+  });
+}
+
+function extractMentionedUsernames(text = "") {
+  const matches = String(text || "").match(/@([a-zA-Z0-9_.-]{3,30})/g) || [];
+  return Array.from(new Set(matches.map((match) => normalizeUsername(match))));
+}
+
+function extractEmails(text = "") {
+  const matches =
+    String(text || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+  return Array.from(new Set(matches.map((email) => normalizeEmail(email))));
+}
+
+async function createNotification({
+  recipient,
+  actor,
+  type,
+  title,
+  message,
+  meta = {},
+}) {
+  const now = new Date();
+  const notification = {
+    userEmail: recipient.email,
+    userId: recipient.id,
+    username: recipient.usernameDisplay,
+    type,
+    title,
+    message,
+    read: false,
+    actor: actor
+      ? {
+          email: actor.email,
+          username: actor.usernameDisplay,
+          fullName: actor.fullName || "",
+        }
+      : null,
+    meta,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const result = await notificationsCollection.insertOne(notification);
+  const savedNotification = {
+    ...notification,
+    _id: result.insertedId,
+  };
+
+  clientNamespace.to(recipient.email).emit("notification:new", {
+    ...savedNotification,
+    _id: savedNotification._id.toString(),
+  });
+
+  return savedNotification;
+}
+
+function serializeNotification(notification = {}) {
+  return {
+    ...notification,
+    _id: notification._id?.toString?.() || String(notification._id || ""),
+    createdAt: notification.createdAt || null,
+    updatedAt: notification.updatedAt || null,
+  };
+}
+
+function serializeInvitation(invitation = {}) {
+  return {
+    ...invitation,
+    _id: invitation._id?.toString?.() || String(invitation._id || ""),
+    createdAt: invitation.createdAt || null,
+    updatedAt: invitation.updatedAt || null,
+  };
+}
+
+function serializeCalendarEvent(event = {}) {
+  return {
+    ...event,
+    _id: event._id?.toString?.() || String(event._id || ""),
+    createdAt: event.createdAt || null,
+    updatedAt: event.updatedAt || null,
+    startsAt: event.startsAt || null,
+    invitedUsers: Array.isArray(event.invitedUsers) ? event.invitedUsers : [],
+    pendingInvitedUsers: Array.isArray(event.pendingInvitedUsers)
+      ? event.pendingInvitedUsers
+      : [],
+  };
+}
+
+(async () => {
+  await notificationsCollection.createIndex({ userEmail: 1, createdAt: -1 });
+  await notificationsCollection.createIndex({ userEmail: 1, read: 1 });
+  await invitationsCollection.createIndex(
+    { senderEmail: 1, receiverEmail: 1, status: 1 },
+    { unique: true, partialFilterExpression: { status: "pending" } },
+  );
+  await invitationsCollection.createIndex({ receiverEmail: 1, createdAt: -1 });
+  await calendarEventsCollection.createIndex({ ownerEmail: 1, startsAt: 1 });
+  await calendarEventsCollection.createIndex({
+    "invitedUsers.email": 1,
+    startsAt: 1,
+  });
+  await userLogsCollection.createIndex({ userEmail: 1, createdAt: -1 });
+})();
 
 async function sendPasswordResetEmail({ email, resetUrl }) {
   const host = process.env.SMTP_HOST;
@@ -4475,6 +4789,875 @@ app.get("/api/protected", authenticateJWT, (req, res) => {
     userId: req.user.userId,
   });
 });
+
+app.get("/api/me", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    return res.json(currentUser);
+  } catch (error) {
+    console.error("GET /api/me error:", error);
+    return res.status(500).json({ message: "Erro interno ao buscar usuário." });
+  }
+});
+
+app.get("/api/users/search", authenticateJWT, async (req, res) => {
+  try {
+    const query = normalizeEmail(req.query?.q || "");
+    const currentUser = await getCurrentUserProfile(req);
+
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    if (!query) {
+      return res.json([]);
+    }
+
+    const authUsers = await authCollection
+      .find({ email: { $regex: query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } })
+      .limit(12)
+      .toArray();
+
+    const users = [];
+    for (const authUser of authUsers) {
+      const safeUser = await findUserByEmail(authUser.email);
+      if (!safeUser || safeUser.email === currentUser.email) continue;
+      users.push({
+        email: safeUser.email,
+        username: safeUser.username,
+        usernameDisplay: safeUser.usernameDisplay,
+        fullName: safeUser.fullName || "",
+      });
+    }
+
+    return res.json(users);
+  } catch (error) {
+    console.error("GET /api/users/search error:", error);
+    return res.status(500).json({ message: "Erro ao buscar usuários." });
+  }
+});
+
+app.get("/api/notifications", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const notifications = await notificationsCollection
+      .find({ userEmail: currentUser.email })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray();
+
+    return res.json(notifications.map(serializeNotification));
+  } catch (error) {
+    console.error("GET /api/notifications error:", error);
+    return res.status(500).json({ message: "Erro ao buscar notificações." });
+  }
+});
+
+app.get("/api/logs", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const logs = await userLogsCollection
+      .find({ userEmail: currentUser.email })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .toArray();
+
+    return res.json(
+      logs.map((log) => ({
+        ...log,
+        _id: log._id?.toString?.() || String(log._id || ""),
+      })),
+    );
+  } catch (error) {
+    console.error("GET /api/logs error:", error);
+    return res.status(500).json({ message: "Erro ao buscar logs." });
+  }
+});
+
+app.put("/api/notifications/read-all", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    await notificationsCollection.updateMany(
+      { userEmail: currentUser.email, read: false },
+      { $set: { read: true, updatedAt: new Date() } },
+    );
+
+    clientNamespace.to(currentUser.email).emit("notification:read-all", {
+      userEmail: currentUser.email,
+    });
+
+    return res.json({ message: "Notificações marcadas como lidas." });
+  } catch (error) {
+    console.error("PUT /api/notifications/read-all error:", error);
+    return res.status(500).json({ message: "Erro ao atualizar notificações." });
+  }
+});
+
+app.put("/api/notifications/:id/read", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const notificationId = req.params.id;
+    if (!ObjectId.isValid(notificationId)) {
+      return res.status(400).json({ message: "ID de notificação inválido." });
+    }
+
+    const result = await notificationsCollection.findOneAndUpdate(
+      {
+        _id: new ObjectId(notificationId),
+        userEmail: currentUser.email,
+      },
+      { $set: { read: true, updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: "Notificação não encontrada." });
+    }
+
+    clientNamespace.to(currentUser.email).emit("notification:updated", {
+      notification: serializeNotification(result),
+    });
+
+    return res.json(serializeNotification(result));
+  } catch (error) {
+    console.error("PUT /api/notifications/:id/read error:", error);
+    return res.status(500).json({ message: "Erro ao atualizar notificação." });
+  }
+});
+
+app.get("/api/invitations", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const invitations = await invitationsCollection
+      .find({
+        $or: [
+          { senderEmail: currentUser.email },
+          { receiverEmail: currentUser.email },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray();
+
+    return res.json(invitations.map(serializeInvitation));
+  } catch (error) {
+    console.error("GET /api/invitations error:", error);
+    return res.status(500).json({ message: "Erro ao buscar convites." });
+  }
+});
+
+app.post("/api/invitations", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const email = normalizeEmail(req.body?.email || req.body?.identifier || "");
+    const message = String(req.body?.message || "").trim();
+
+    if (!email) {
+      return res
+        .status(400)
+        .json({ message: "Informe o email do usuário para convidar." });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Email de convite inválido." });
+    }
+
+    const targetUser = await findUserByEmail(email);
+    if (!targetUser) {
+      return res.status(404).json({ message: "Usuário convidado não encontrado." });
+    }
+
+    if (targetUser.email === currentUser.email) {
+      return res.status(400).json({ message: "Você não pode convidar a si mesmo." });
+    }
+
+    const existingPending = await invitationsCollection.findOne({
+      senderEmail: currentUser.email,
+      receiverEmail: targetUser.email,
+      status: "pending",
+    });
+
+    if (existingPending) {
+      return res.status(409).json({ message: "Já existe um convite pendente para esse usuário." });
+    }
+
+    const now = new Date();
+    const invitation = {
+      senderEmail: currentUser.email,
+      senderUsername: currentUser.usernameDisplay,
+      senderFullName: currentUser.fullName || "",
+      receiverEmail: targetUser.email,
+      receiverUsername: targetUser.usernameDisplay,
+      receiverFullName: targetUser.fullName || "",
+      status: "pending",
+      message,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await invitationsCollection.insertOne(invitation);
+    const savedInvitation = { ...invitation, _id: result.insertedId };
+
+    await createNotification({
+      recipient: targetUser,
+      actor: currentUser,
+      type: "user_invitation",
+      title: "Friend request",
+      message: `${currentUser.usernameDisplay} sent you a friendship invite.`,
+      meta: {
+        invitationId: savedInvitation._id.toString(),
+        senderEmail: currentUser.email,
+        action: "friend_invitation",
+      },
+    });
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "friend_request_sent",
+      message: `Sent a friend request to ${targetUser.email}.`,
+      meta: { targetEmail: targetUser.email },
+    });
+    await addUserLog({
+      userEmail: targetUser.email,
+      action: "friend_request_received",
+      message: `Received a friend request from ${currentUser.email}.`,
+      meta: { senderEmail: currentUser.email },
+    });
+
+    return res.status(201).json(serializeInvitation(savedInvitation));
+  } catch (error) {
+    console.error("POST /api/invitations error:", error);
+    return res.status(500).json({ message: "Erro ao criar convite." });
+  }
+});
+
+app.put("/api/invitations/:id/respond", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const invitationId = req.params.id;
+    const status = String(req.body?.status || "").trim().toLowerCase();
+
+    if (!ObjectId.isValid(invitationId)) {
+      return res.status(400).json({ message: "ID de convite inválido." });
+    }
+
+    if (!["accepted", "declined"].includes(status)) {
+      return res.status(400).json({ message: "Status inválido para convite." });
+    }
+
+    const invitation = await invitationsCollection.findOne({
+      _id: new ObjectId(invitationId),
+      receiverEmail: currentUser.email,
+      status: "pending",
+    });
+
+    if (!invitation) {
+      return res.status(404).json({ message: "Convite pendente não encontrado." });
+    }
+
+    const updatedInvitation = await invitationsCollection.findOneAndUpdate(
+      { _id: invitation._id },
+      { $set: { status, updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+
+    const senderUser = await findUserByUsernameOrEmail(invitation.senderEmail);
+    if (status === "accepted") {
+      const acceptedAt = new Date();
+
+      await saveAcceptedInvitationForUser(invitation.senderEmail, {
+        invitationId,
+        counterpartEmail: invitation.receiverEmail,
+        counterpartUsername: invitation.receiverUsername || currentUser.usernameDisplay,
+        counterpartFullName: invitation.receiverFullName || currentUser.fullName || "",
+        acceptedAt,
+      });
+
+      await saveAcceptedInvitationForUser(invitation.receiverEmail, {
+        invitationId,
+        counterpartEmail: invitation.senderEmail,
+        counterpartUsername: invitation.senderUsername || senderUser?.usernameDisplay || "",
+        counterpartFullName: invitation.senderFullName || senderUser?.fullName || "",
+        acceptedAt,
+      });
+
+      await addUserLog({
+        userEmail: invitation.senderEmail,
+        action: "friend_request_accepted",
+        message: `${invitation.receiverEmail} accepted your friend request.`,
+        meta: { counterpartEmail: invitation.receiverEmail },
+      });
+      await addUserLog({
+        userEmail: invitation.receiverEmail,
+        action: "friend_added",
+        message: `You are now friends with ${invitation.senderEmail}.`,
+        meta: { counterpartEmail: invitation.senderEmail },
+      });
+    } else {
+      await addUserLog({
+        userEmail: invitation.senderEmail,
+        action: "friend_request_declined",
+        message: `${invitation.receiverEmail} declined your friend request.`,
+        meta: { counterpartEmail: invitation.receiverEmail },
+      });
+    }
+
+    if (senderUser) {
+      await createNotification({
+        recipient: senderUser,
+        actor: currentUser,
+        type: "invitation_response",
+        title: "Friend request updated",
+        message: `${currentUser.usernameDisplay} ${status} your friendship invite.`,
+        meta: {
+          invitationId,
+          status,
+          receiverEmail: currentUser.email,
+        },
+      });
+    }
+
+    return res.json(serializeInvitation(updatedInvitation));
+  } catch (error) {
+    console.error("PUT /api/invitations/:id/respond error:", error);
+    return res.status(500).json({ message: "Erro ao responder convite." });
+  }
+});
+
+app.delete("/api/friends/:email", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const counterpartEmail = normalizeEmail(req.params.email || "");
+    if (!isValidEmail(counterpartEmail)) {
+      return res.status(400).json({ message: "Email de amizade inválido." });
+    }
+
+    const counterpartUser = await findUserByEmail(counterpartEmail);
+    if (!counterpartUser) {
+      return res.status(404).json({ message: "Amigo não encontrado." });
+    }
+
+    if (!areUsersFriends(currentUser, counterpartEmail)) {
+      return res.status(404).json({ message: "Esta amizade não existe." });
+    }
+
+    await removeAcceptedInvitationForUser(currentUser.email, counterpartEmail);
+    await removeAcceptedInvitationForUser(counterpartEmail, currentUser.email);
+
+    await createNotification({
+      recipient: counterpartUser,
+      actor: currentUser,
+      type: "friend_removed",
+      title: "Friendship revoked",
+      message: `${currentUser.usernameDisplay} revoked your friendship.`,
+      meta: {
+        counterpartEmail: currentUser.email,
+        action: "friend_removed",
+      },
+    });
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "friend_removed",
+      message: `You revoked your friendship with ${counterpartEmail}.`,
+      meta: { counterpartEmail },
+    });
+    await addUserLog({
+      userEmail: counterpartEmail,
+      action: "friend_removed",
+      message: `${currentUser.email} revoked the friendship.`,
+      meta: { counterpartEmail: currentUser.email },
+    });
+
+    return res.json({ message: "Friendship revoked successfully." });
+  } catch (error) {
+    console.error("DELETE /api/friends/:email error:", error);
+    return res.status(500).json({ message: "Erro ao revogar amizade." });
+  }
+});
+
+app.get("/api/calendar/events", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const events = await calendarEventsCollection
+      .find({
+        $or: [
+          { ownerEmail: currentUser.email },
+          { "invitedUsers.email": currentUser.email },
+        ],
+      })
+      .sort({ startsAt: 1 })
+      .toArray();
+
+    return res.json(events.map(serializeCalendarEvent));
+  } catch (error) {
+    console.error("GET /api/calendar/events error:", error);
+    return res.status(500).json({ message: "Erro ao buscar eventos." });
+  }
+});
+
+app.get("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const eventId = req.params.id;
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "ID de evento inválido." });
+    }
+
+    const event = await calendarEventsCollection.findOne({
+      _id: new ObjectId(eventId),
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Evento não encontrado." });
+    }
+
+    const isOwner = event.ownerEmail === currentUser.email;
+    const isAcceptedGuest = (event.invitedUsers || []).some(
+      (user) => normalizeEmail(user?.email || "") === currentUser.email,
+    );
+    const isPendingGuest = (event.pendingInvitedUsers || []).some(
+      (user) => normalizeEmail(user?.email || "") === currentUser.email,
+    );
+
+    if (!isOwner && !isAcceptedGuest && !isPendingGuest) {
+      return res.status(403).json({ message: "Você não tem acesso a este evento." });
+    }
+
+    return res.json({
+      ...serializeCalendarEvent(event),
+      inviteStatus: isOwner
+        ? "owner"
+        : isAcceptedGuest
+          ? "accepted"
+          : "pending",
+    });
+  } catch (error) {
+    console.error("GET /api/calendar/events/:id error:", error);
+    return res.status(500).json({ message: "Erro ao buscar evento." });
+  }
+});
+
+app.post("/api/calendar/events", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const title = String(req.body?.title || "").trim();
+    const description = String(req.body?.description || "").trim();
+    const startsAtRaw = req.body?.startsAt;
+    const inviteInput = String(req.body?.invitedUsersText || "");
+
+    if (!title || !startsAtRaw) {
+      return res
+        .status(400)
+        .json({ message: "Título e data do evento são obrigatórios." });
+    }
+
+    const startsAt = new Date(startsAtRaw);
+    if (Number.isNaN(startsAt.getTime())) {
+      return res.status(400).json({ message: "Data do evento inválida." });
+    }
+
+    const invitedEmails = extractEmails(inviteInput);
+    const invitedUsers = [];
+
+    for (const email of invitedEmails) {
+      const user = await findUserByEmail(email);
+      if (!user || user.email === currentUser.email) continue;
+      if (!areUsersFriends(currentUser, user.email)) {
+        return res.status(403).json({
+          message: `You can only invite friends to calendar events. ${user.email} is not your friend yet.`,
+        });
+      }
+      invitedUsers.push({
+        email: user.email,
+        username: user.usernameDisplay,
+        fullName: user.fullName || "",
+      });
+    }
+
+    const dedupedInvitedUsers = invitedUsers.filter(
+      (user, index, array) =>
+        array.findIndex((candidate) => candidate.email === user.email) === index,
+    );
+
+    const now = new Date();
+    const calendarEvent = {
+      title,
+      description,
+      startsAt,
+      ownerEmail: currentUser.email,
+      ownerUsername: currentUser.usernameDisplay,
+      invitedUsers: [],
+      pendingInvitedUsers: dedupedInvitedUsers,
+      invitedUsersText: inviteInput,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await calendarEventsCollection.insertOne(calendarEvent);
+    const savedEvent = { ...calendarEvent, _id: result.insertedId };
+
+    for (const invitedUser of dedupedInvitedUsers) {
+      const targetUser = await findUserByEmail(invitedUser.email);
+      if (!targetUser) continue;
+
+      await createNotification({
+        recipient: targetUser,
+        actor: currentUser,
+        type: "calendar_invite",
+        title: "New calendar event",
+        message: `${currentUser.usernameDisplay} added you to "${title}".`,
+        meta: {
+          eventId: savedEvent._id.toString(),
+          startsAt,
+          action: "calendar_invite_response",
+        },
+      });
+    }
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "calendar_event_created",
+      message: `Created calendar event "${title}".`,
+      meta: { eventId: savedEvent._id.toString(), title },
+    });
+
+    return res.status(201).json(serializeCalendarEvent(savedEvent));
+  } catch (error) {
+    console.error("POST /api/calendar/events error:", error);
+    return res.status(500).json({ message: "Erro ao criar evento." });
+  }
+});
+
+app.put("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const eventId = req.params.id;
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "ID de evento inválido." });
+    }
+
+    const existingEvent = await calendarEventsCollection.findOne({
+      _id: new ObjectId(eventId),
+    });
+
+    if (!existingEvent) {
+      return res.status(404).json({ message: "Evento não encontrado." });
+    }
+
+    const isOwner = existingEvent.ownerEmail === currentUser.email;
+    const isInvitedEditor =
+      Boolean(existingEvent.allowGuestEdit) &&
+      Array.isArray(existingEvent.invitedUsers) &&
+      existingEvent.invitedUsers.some(
+        (user) => normalizeEmail(user?.email || "") === currentUser.email,
+      );
+
+    if (!isOwner && !isInvitedEditor) {
+      return res
+        .status(403)
+        .json({ message: "Você não tem permissão para editar este evento." });
+    }
+
+    const title = String(req.body?.title || existingEvent.title || "").trim();
+    const description = String(
+      req.body?.description ?? existingEvent.description ?? "",
+    ).trim();
+    const startsAt = req.body?.startsAt
+      ? new Date(req.body.startsAt)
+      : existingEvent.startsAt;
+    const invitedUsersText =
+      req.body?.invitedUsersText ?? existingEvent.invitedUsersText ?? "";
+
+    if (!title || Number.isNaN(new Date(startsAt).getTime())) {
+      return res.status(400).json({ message: "Dados do evento inválidos." });
+    }
+
+    const invitedEmails = extractEmails(invitedUsersText);
+    const invitedUsers = [];
+
+    for (const email of invitedEmails) {
+      const user = await findUserByEmail(email);
+      if (!user || user.email === currentUser.email) continue;
+      if (!areUsersFriends(currentUser, user.email)) {
+        return res.status(403).json({
+          message: `You can only invite friends to calendar events. ${user.email} is not your friend yet.`,
+        });
+      }
+      invitedUsers.push({
+        email: user.email,
+        username: user.usernameDisplay,
+        fullName: user.fullName || "",
+      });
+    }
+
+    const dedupedInvitedUsers = invitedUsers.filter(
+      (user, index, array) =>
+        array.findIndex((candidate) => candidate.email === user.email) === index,
+    );
+
+    const nextAcceptedUsers = (existingEvent.invitedUsers || []).filter((user) =>
+      dedupedInvitedUsers.some(
+        (candidate) => normalizeEmail(candidate.email) === normalizeEmail(user.email),
+      ),
+    );
+
+    const nextPendingUsers = dedupedInvitedUsers.filter(
+      (candidate) =>
+        !nextAcceptedUsers.some(
+          (acceptedUser) =>
+            normalizeEmail(acceptedUser.email) === normalizeEmail(candidate.email),
+        ),
+    );
+
+    const updatedEvent = await calendarEventsCollection.findOneAndUpdate(
+      { _id: existingEvent._id },
+      {
+        $set: {
+          title,
+          description,
+          startsAt: new Date(startsAt),
+          invitedUsers: nextAcceptedUsers,
+          pendingInvitedUsers: nextPendingUsers,
+          allowGuestEdit:
+            req.body?.allowGuestEdit !== undefined
+              ? Boolean(req.body.allowGuestEdit)
+              : Boolean(existingEvent.allowGuestEdit),
+          invitedUsersText,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "calendar_event_updated",
+      message: `Updated calendar event "${title}".`,
+      meta: { eventId, title },
+    });
+
+    const notificationRecipients = [
+      ...nextAcceptedUsers,
+      ...nextPendingUsers,
+      existingEvent.ownerEmail && existingEvent.ownerEmail !== currentUser.email
+        ? {
+            email: existingEvent.ownerEmail,
+            username: existingEvent.ownerUsername || "",
+            fullName: "",
+          }
+        : null,
+    ]
+      .filter(Boolean)
+      .filter(
+        (user, index, array) =>
+          normalizeEmail(user.email || "") !== currentUser.email &&
+          array.findIndex(
+            (candidate) =>
+              normalizeEmail(candidate.email || "") ===
+              normalizeEmail(user.email || ""),
+          ) === index,
+      );
+
+    for (const recipient of notificationRecipients) {
+      await createNotification({
+        recipient,
+        type: "calendar_event_updated",
+        title: "Event updated",
+        message: `${currentUser.usernameDisplay} updated "${title}".`,
+        meta: {
+          eventId,
+          startsAt: new Date(startsAt),
+          action: "calendar_event_details",
+        },
+      });
+    }
+
+    return res.json(serializeCalendarEvent(updatedEvent));
+  } catch (error) {
+    console.error("PUT /api/calendar/events/:id error:", error);
+    return res.status(500).json({ message: "Erro ao atualizar evento." });
+  }
+});
+
+app.put("/api/calendar/events/:id/respond", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const eventId = req.params.id;
+    const status = String(req.body?.status || "").trim().toLowerCase();
+
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "ID de evento inválido." });
+    }
+
+    if (!["accepted", "declined"].includes(status)) {
+      return res.status(400).json({ message: "Status inválido." });
+    }
+
+    const existingEvent = await calendarEventsCollection.findOne({
+      _id: new ObjectId(eventId),
+    });
+
+    if (!existingEvent) {
+      return res.status(404).json({ message: "Evento não encontrado." });
+    }
+
+    const pendingInvite = (existingEvent.pendingInvitedUsers || []).find(
+      (user) => normalizeEmail(user?.email || "") === currentUser.email,
+    );
+
+    if (!pendingInvite) {
+      return res.status(404).json({ message: "Convite pendente não encontrado." });
+    }
+
+    const nextPendingUsers = (existingEvent.pendingInvitedUsers || []).filter(
+      (user) => normalizeEmail(user?.email || "") !== currentUser.email,
+    );
+    const nextAcceptedUsers =
+      status === "accepted"
+        ? [
+            ...(existingEvent.invitedUsers || []).filter(
+              (user) => normalizeEmail(user?.email || "") !== currentUser.email,
+            ),
+            pendingInvite,
+          ]
+        : (existingEvent.invitedUsers || []).filter(
+            (user) => normalizeEmail(user?.email || "") !== currentUser.email,
+          );
+
+    const updatedEvent = await calendarEventsCollection.findOneAndUpdate(
+      { _id: existingEvent._id },
+      {
+        $set: {
+          pendingInvitedUsers: nextPendingUsers,
+          invitedUsers: nextAcceptedUsers,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    const ownerUser = await findUserByEmail(existingEvent.ownerEmail);
+    if (ownerUser) {
+      await createNotification({
+        recipient: ownerUser,
+        actor: currentUser,
+        type: "calendar_invite_response",
+        title: "Event invitation updated",
+        message: `${currentUser.usernameDisplay} ${status} your event invite.`,
+        meta: {
+          eventId,
+          status,
+        },
+      });
+    }
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "calendar_invite_response",
+      message: `${status === "accepted" ? "Accepted" : "Declined"} calendar invite for "${existingEvent.title}".`,
+      meta: { eventId, status },
+    });
+
+    return res.json({ event: serializeCalendarEvent(updatedEvent), status });
+  } catch (error) {
+    console.error("PUT /api/calendar/events/:id/respond error:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao responder convite do evento." });
+  }
+});
+
+app.delete("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const eventId = req.params.id;
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "ID de evento inválido." });
+    }
+
+    const result = await calendarEventsCollection.deleteOne({
+      _id: new ObjectId(eventId),
+      ownerEmail: currentUser.email,
+    });
+
+    if (!result.deletedCount) {
+      return res.status(404).json({ message: "Evento não encontrado." });
+    }
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "calendar_event_deleted",
+      message: `Deleted a calendar event.`,
+      meta: { eventId },
+    });
+
+    return res.json({ message: "Evento removido com sucesso." });
+  } catch (error) {
+    console.error("DELETE /api/calendar/events/:id error:", error);
+    return res.status(500).json({ message: "Erro ao remover evento." });
+  }
+});
 // ======================= JWT LOGIN END ============================
 
 // Endpoint de healthcheck HTTP (fora de qualquer handler de conexão)
@@ -4754,6 +5937,13 @@ app.put("/api/song/updateExact", async (req, res) => {
       { email },
       { $set: { userdata: userDoc.userdata } },
     );
+
+    await addUserLog({
+      userEmail: email,
+      action: "song_updated",
+      message: `Edited song "${updatedSong.song}" by ${updatedSong.artist}.`,
+      meta: { song: updatedSong.song, artist: updatedSong.artist },
+    });
 
     return res
       .status(200)

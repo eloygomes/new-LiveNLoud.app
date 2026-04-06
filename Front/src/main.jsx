@@ -21,6 +21,7 @@ import Metronome from "./Pages/Metronome/Metronome";
 import EditSong from "./Pages/EditSong/EditSong";
 import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
 import Tuner from "./Pages/Tuner/Tuner";
+import Calendar from "./Pages/Calendar/Calendar";
 import Presentation from "./Pages/Presentation/Presentation";
 import Login from "./Pages/Login/Login";
 import NewPassword from "./Pages/NewPassword/NewPassword";
@@ -187,6 +188,10 @@ const router = createBrowserRouter(
         <Route
           path="/metronome"
           element={<ProtectedRoute element={Metronome} />}
+        />
+        <Route
+          path="/calendar"
+          element={<ProtectedRoute element={Calendar} />}
         />
         <Route path="/newsong" element={<ProtectedRoute element={NewSong} />} />
         <Route
