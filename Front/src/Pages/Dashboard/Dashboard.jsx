@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import DashList2 from "./DashList2";
 import FloatingActionButtons from "./FloatingActionButtons";
-import Rotate from "../../assets/userPerfil.jpg";
 import SoftVersion from "./SoftVersion";
 
 function Dashboard() {
@@ -34,7 +33,6 @@ function Dashboard() {
     };
 
     window.addEventListener("resize", handleResize);
-    window.addEventListener("orientationchange", handleOrientationChange);
     handleResize();
 
     return () => {
@@ -44,15 +42,19 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const shouldLockScroll = window.innerWidth > 1024;
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow; // <html>
 
-    // trava scroll global
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
+    if (shouldLockScroll) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
 
     return () => {
-      // restaura quando sair do Dashboard
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
@@ -60,16 +62,8 @@ function Dashboard() {
 
   return (
     <div className="flex h-full min-h-0 justify-center overflow-hidden pt-0 sm:pt-0 md:pt-5 lg:pt-1 xl:pt-1 2xl:pt-1">
-      {isMobile === 1 ? (
-        <div className="bg-black flex justify-center items-center">
-          <div className="container mx-auto">
-            <div className="flex flex-col">
-              <img src={Rotate} alt="Rotate Device" />
-            </div>
-          </div>
-        </div>
-      ) : isMobile === 2 ? (
-        <div className="mobile h-full min-h-0 w-full">
+      {isMobile === 1 || isMobile === 2 ? (
+        <div className="mobile h-full min-h-0 w-full overflow-y-auto bg-[#f0f0f0] px-3 pt-3">
           <DashList2 searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <FloatingActionButtons />
         </div>

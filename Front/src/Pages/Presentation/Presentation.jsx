@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { FaGear } from "react-icons/fa6";
+import { IoClose } from "react-icons/io5";
 import ToolBox from "./ToolBox";
 import {
   allDataFromOneSong,
@@ -186,7 +187,27 @@ function Presentation() {
 
   const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
   const [isLiveMode, setIsLiveMode] = useState(false);
+  const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
   const liveModeRootRef = useRef(null);
+  const isTouchLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
+  const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
+
+  const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
+    const length = String(value || "").trim().length;
+
+    if (type === "song") {
+      if (length > 30) return "text-[1.8rem] leading-[1.95rem]";
+      if (length > 22) return "text-[2rem] leading-[2.1rem]";
+      if (length > 14) return "text-[2.2rem] leading-[2.3rem]";
+      return "text-[2.4rem] leading-[2.45rem]";
+    }
+
+    if (length > 28) return "text-[1.4rem] leading-[1.55rem]";
+    if (length > 20) return "text-[1.55rem] leading-[1.7rem]";
+    if (length > 14) return "text-[1.7rem] leading-[1.85rem]";
+    return "text-[1.85rem] leading-[1.95rem]";
+  }, []);
 
   const focusLiveViewport = useCallback(() => {
     const contentNode = presentationContentRef.current;
@@ -518,6 +539,7 @@ function Presentation() {
       const fullscreenActive = document.fullscreenElement != null;
       setIsLiveMode(fullscreenActive);
       if (fullscreenActive) {
+        setIsPseudoLiveMode(false);
         focusLiveViewport();
       }
     };
@@ -536,10 +558,10 @@ function Presentation() {
     return () => {
       unregisterScrollViewport(viewport);
     };
-  }, [isLiveMode, hideChords, selectContenttoShow, isEditing]);
+  }, [effectiveLiveMode, hideChords, selectContenttoShow, isEditing]);
 
   useEffect(() => {
-    if (!isLiveMode) return undefined;
+    if (!effectiveLiveMode) return undefined;
 
     focusLiveViewport();
 
@@ -551,10 +573,10 @@ function Presentation() {
     return () => {
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [focusLiveViewport, isLiveMode]);
+  }, [focusLiveViewport, effectiveLiveMode]);
 
   useEffect(() => {
-    if (!isLiveMode) return undefined;
+    if (!effectiveLiveMode) return undefined;
 
     const handleLiveNavigation = (event) => {
       const contentNode = presentationContentRef.current;
@@ -632,7 +654,25 @@ function Presentation() {
     return () => {
       window.removeEventListener("keydown", handleLiveNavigation);
     };
-  }, [isLiveMode]);
+  }, [effectiveLiveMode]);
+
+  useEffect(() => {
+    if (!isTouchLayout) return undefined;
+
+    window.dispatchEvent(
+      new CustomEvent("mobile-ui-visibility-change", {
+        detail: { hidden: effectiveLiveMode },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("mobile-ui-visibility-change", {
+          detail: { hidden: false },
+        }),
+      );
+    };
+  }, [effectiveLiveMode, isTouchLayout]);
 
   const editor = useEditor(
     {
@@ -666,6 +706,24 @@ function Presentation() {
     const rootNode = liveModeRootRef.current;
     if (!rootNode) return;
 
+    if (isTouchLayout) {
+      if (typeof rootNode.requestFullscreen === "function") {
+        try {
+          await rootNode.requestFullscreen();
+          setIsLiveMode(true);
+          setIsPseudoLiveMode(false);
+          focusLiveViewport();
+          return;
+        } catch (error) {
+          console.warn("Fallback para pseudo LIVE mode:", error);
+        }
+      }
+
+      setIsPseudoLiveMode(true);
+      focusLiveViewport();
+      return;
+    }
+
     try {
       await rootNode.requestFullscreen();
       setIsLiveMode(true);
@@ -679,19 +737,37 @@ function Presentation() {
     }
   };
 
+  const exitLiveMode = async () => {
+    if (
+      document.fullscreenElement &&
+      typeof document.exitFullscreen === "function"
+    ) {
+      try {
+        await document.exitFullscreen();
+      } catch (error) {
+        console.error("Não foi possível sair do modo LIVE:", error);
+      }
+    }
+
+    setIsPseudoLiveMode(false);
+    setIsLiveMode(false);
+  };
+
   return (
     <div
       ref={liveModeRootRef}
-      tabIndex={isLiveMode ? -1 : undefined}
-      className={`flex justify-center h-screen ${
-        isLiveMode ? "presentation-live-shell" : ""
+      tabIndex={effectiveLiveMode ? -1 : undefined}
+      className={`flex justify-center ${
+        effectiveLiveMode ? "h-[100dvh]" : "h-screen"
+      } ${effectiveLiveMode ? "presentation-live-shell" : ""} ${
+        isPseudoLiveMode ? "overflow-hidden" : ""
       }`}
-      onMouseDown={isLiveMode ? focusLiveViewport : undefined}
+      onMouseDown={effectiveLiveMode ? focusLiveViewport : undefined}
     >
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
       </div>
-      {!isLiveMode && (
+      {!effectiveLiveMode && (
         <ToolBox
           toolBoxBtnStatus={toolBoxBtnStatus}
           setToolBoxBtnStatus={setToolBoxBtnStatus}
@@ -714,28 +790,70 @@ function Presentation() {
           startEditingCifra={startEditingCifra}
         />
       )}
-      <div className={`container mx-auto ${isLiveMode ? "max-w-none" : ""}`}>
+      <div
+        className={`container mx-auto ${
+          effectiveLiveMode ? "max-w-none" : ""
+        }`}
+      >
         <div
-          className={`flex h-screen min-h-0 flex-col ${
-            isLiveMode ? "w-full max-w-none px-0" : "w-11/12 2xl:w-9/12 mx-auto"
+          className={`flex min-h-0 flex-col ${
+            effectiveLiveMode ? "h-[100dvh]" : "h-screen"
+          } ${
+            effectiveLiveMode
+              ? "w-full max-w-none px-0"
+              : "w-11/12 2xl:w-9/12 mx-auto"
           }`}
         >
-          {!isLiveMode && (
-            <div className="flex flex-row justify-between my-5 neuphormism-b p-5">
-              <div className="flex flex-col">
-                <h1 className="text-4xl font-bold">{songFromURL}</h1>
-                <h1 className="text-4xl font-bold">{artistFromURL}</h1>
+          {!effectiveLiveMode && (
+            <div
+              className={`my-5 flex justify-between neuphormism-b ${
+                isTouchLayout
+                  ? "items-start gap-4 px-4 py-4"
+                  : "flex-row p-5"
+              }`}
+            >
+              <div className="min-w-0 flex-1 flex-col">
+                <h1
+                  className={`font-bold text-black ${
+                    isTouchLayout
+                      ? getMobileTitleSizeClass(songFromURL, "song")
+                      : "text-4xl"
+                  }`}
+                >
+                  {songFromURL}
+                </h1>
+                <h1
+                  className={`font-bold text-black ${
+                    isTouchLayout
+                      ? getMobileTitleSizeClass(artistFromURL, "artist")
+                      : "text-4xl"
+                  }`}
+                >
+                  {artistFromURL}
+                </h1>
               </div>
-              <div className="flex flex-row items-center gap-3">
+              <div
+                className={`flex ${
+                  isTouchLayout
+                    ? "flex-col items-stretch justify-start gap-2 self-start"
+                    : "flex-row items-center gap-3"
+                }`}
+              >
                 <button
                   type="button"
-                  className="neuphormism-b-btn-gold p-6 text-lg font-bold text-black"
+                  className={`neuphormism-b-btn-gold font-bold text-black ${
+                    isTouchLayout
+                      ? "px-4 py-3 text-sm tracking-[0.08em]"
+                      : "p-6 text-lg"
+                  }`}
                   onClick={enterLiveMode}
                 >
                   LIVE
                 </button>
                 <div
-                  className="flex neuphormism-b-btn p-6"
+                  className={`flex items-center justify-center neuphormism-b-btn ${
+                    isTouchLayout ? "px-4 py-3" : "p-6"
+                  }`}
                   onClick={() =>
                     toolBoxBtnStatusChange(
                       toolBoxBtnStatus,
@@ -743,20 +861,45 @@ function Presentation() {
                     )
                   }
                 >
-                  <FaGear className="w-8 h-8" />
+                  <FaGear className={isTouchLayout ? "h-5 w-5" : "w-8 h-8"} />
                 </div>
               </div>
             </div>
           )}
+          {isTouchLayout && effectiveLiveMode ? (
+            <div className="px-3 pb-1 pt-2">
+              <div className="flex items-start justify-between gap-3 rounded-[18px] border border-white/10 bg-black px-3 py-2 shadow-[0_12px_24px_rgba(0,0,0,0.24)]">
+                <div className="min-w-0">
+                  <div className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
+                    # sustenido live
+                  </div>
+                  <div className="mt-1 text-[1.02rem] font-black leading-[1.05rem] text-white">
+                    {songFromURL}
+                  </div>
+                  <div className="mt-0.5 text-[0.82rem] font-bold leading-[0.92rem] text-white/80">
+                    {artistFromURL}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-white"
+                  onClick={exitLiveMode}
+                >
+                  <IoClose className="h-3.5 w-3.5" />
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : null}
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
           <div
             ref={presentationContentRef}
-            tabIndex={isLiveMode ? 0 : -1}
+            tabIndex={effectiveLiveMode ? 0 : -1}
             className={`min-h-0 flex-1 ${
-              isLiveMode
+              effectiveLiveMode
                 ? "presentation-live-content"
-                : "neuphormism-b overflow-y-auto p-5"
+                : `neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
             } ${hideChords ? "hide-chords" : ""}`}
           >
             {isEditing ? (
@@ -787,7 +930,8 @@ function Presentation() {
                   <div
                     key={index}
                     style={
-                      !isLiveMode && visibleIndex === visibleBlocks.length - 1
+                      !effectiveLiveMode &&
+                      visibleIndex === visibleBlocks.length - 1
                         ? { paddingBottom: 200 }
                         : undefined
                     }

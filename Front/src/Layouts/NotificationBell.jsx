@@ -98,8 +98,20 @@ export default function NotificationBell() {
       }
     };
 
+    const handleForceClose = () => {
+      setOpen(false);
+    };
+
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("dashboard-mobile-close-notifications", handleForceClose);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener(
+        "dashboard-mobile-close-notifications",
+        handleForceClose,
+      );
+    };
   }, []);
 
   const handleOpen = async () => {
@@ -113,6 +125,12 @@ export default function NotificationBell() {
     }
 
     if (!open) {
+      if (window.innerWidth <= 1024) {
+        window.dispatchEvent(
+          new CustomEvent("dashboard-mobile-close-filter"),
+        );
+      }
+
       try {
         const nextNotifications = await fetchNotifications();
         setNotifications(nextNotifications);

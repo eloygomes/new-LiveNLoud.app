@@ -287,6 +287,8 @@ function InviteResponseModal({
 }
 
 export default function Calendar() {
+  const isTouchLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
@@ -569,7 +571,11 @@ export default function Calendar() {
   };
 
   return (
-    <div className="flex justify-center h-screen">
+    <div
+      className={`flex justify-center ${
+        isTouchLayout ? "min-h-screen bg-[#f0f0f0] pb-28 pt-3" : "h-screen"
+      }`}
+    >
       <InviteResponseModal
         open={inviteModalOpen}
         event={inviteEvent}
@@ -593,16 +599,39 @@ export default function Calendar() {
       />
 
       <div className="container mx-auto">
-        <div className="w-11/12 2xl:w-9/12 mx-auto pb-10">
-          <div className="flex flex-row my-5 neuphormism-b p-5">
+        <div
+          className={`${
+            isTouchLayout ? "w-full px-3 pb-10" : "w-11/12 2xl:w-9/12 mx-auto pb-10"
+          }`}
+        >
+          <div
+            className={`my-5 neuphormism-b ${
+              isTouchLayout ? "p-4" : "flex flex-row p-5"
+            }`}
+          >
             <div>
-              <h1 className="text-4xl font-bold">CALENDAR</h1>
+              {isTouchLayout ? (
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  # sustenido
+                </div>
+              ) : null}
+              <h1
+                className={`${isTouchLayout ? "mt-2 text-[2rem]" : "text-4xl"} font-bold`}
+              >
+                CALENDAR
+              </h1>
               <h4 className="text-sm mt-2">
                 Schedule rehearsals, sessions, and invite other users with
                 their email.
               </h4>
             </div>
-            <div className="ml-auto mt-auto flex items-center gap-3">
+            <div
+              className={`${
+                isTouchLayout
+                  ? "mt-4 flex flex-col gap-3"
+                  : "ml-auto mt-auto flex items-center gap-3"
+              }`}
+            >
               <div className="flex rounded-full bg-white p-1">
                 {VIEW_OPTIONS.map((option) => (
                   <button
@@ -621,7 +650,9 @@ export default function Calendar() {
               </div>
               <button
                 type="button"
-                className="neuphormism-b-btn-gold px-5 py-3 text-xs font-bold uppercase"
+                className={`neuphormism-b-btn-gold px-5 py-3 text-xs font-bold uppercase ${
+                  isTouchLayout ? "w-full" : ""
+                }`}
                 onClick={() => {
                   openNewEventModal(new Date());
                 }}
@@ -633,7 +664,13 @@ export default function Calendar() {
 
           {error ? <div className="neuphormism-b p-4 text-red-600">{error}</div> : null}
 
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.65fr),360px] gap-5 items-stretch min-h-[calc(100vh-260px)]">
+          <div
+            className={`grid grid-cols-1 gap-5 items-stretch ${
+              isTouchLayout
+                ? ""
+                : "xl:grid-cols-[minmax(0,1.65fr),360px] min-h-[calc(100vh-260px)]"
+            }`}
+          >
             <div className="neuphormism-b p-5 min-h-0 flex flex-col">
               <div className="flex items-center justify-between mb-5 gap-4">
                 <button

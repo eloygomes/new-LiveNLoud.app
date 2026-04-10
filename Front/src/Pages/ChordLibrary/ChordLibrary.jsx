@@ -8,6 +8,8 @@ const chordNames = [...new Set(ChordShapeData.map((item) => item.chordName))];
 const chordTypes = [...new Set(ChordShapeData.map((item) => item.chordType))];
 
 function ChordLibrary() {
+  const isTouchLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
   // Estados principais (paridade com RN)
   const [chordName, setChordName] = useState(chordNames[0] || "");
   const [chordType, setChordType] = useState(chordTypes[0] || "");
@@ -54,6 +56,55 @@ function ChordLibrary() {
   })();
 
   return (
+    isTouchLayout ? (
+      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
+        <div className="rounded-[24px] bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            # sustenido
+          </div>
+          <div className="mt-3 text-[2rem] font-black tracking-tight text-black">
+            Chord Library
+          </div>
+          <div className="mt-2 text-sm leading-5 text-gray-600">
+            Build the chord by root, quality, and variation.
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="grid grid-cols-2 gap-3">
+            <ChordInput
+              values={chordNames}
+              setSelectedRoot={setChordName}
+              inputLabel="Root"
+            />
+            <ChordInput
+              values={chordTypes}
+              setSelectedQuality={setChordType}
+              inputLabel="Quality"
+            />
+          </div>
+          <button
+            className="mt-4 w-full rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
+            type="button"
+            onClick={handleNextVariation}
+          >
+            Next Variation
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="text-center text-[1.6rem] font-black text-black">
+            {`${chordName || ""} ${chordType || ""}`.trim() || "Select a chord"}
+          </div>
+          <div className="mt-4 flex items-center justify-center rounded-[20px] bg-white p-4">
+            <ChordDisplay
+              fingering={fingering}
+              chordName={`${chordName} ${chordType}`.trim()}
+            />
+          </div>
+        </div>
+      </div>
+    ) : (
     <div className="flex justify-center h-screen ">
       <div className="container mx-auto">
         <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
@@ -105,6 +156,7 @@ function ChordLibrary() {
         </div>
       </div>
     </div>
+    )
   );
 }
 

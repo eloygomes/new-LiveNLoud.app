@@ -2970,6 +2970,16 @@ const PORT = process.env.PORT || 3000;
 
 const cors = require("cors");
 
+const LAN_DEV_ORIGIN_REGEX = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/;
+
+function isAllowedDevOrigin(origin) {
+  return (
+    origin === "http://127.0.0.1:5173" ||
+    origin === "http://localhost:5173" ||
+    LAN_DEV_ORIGIN_REGEX.test(origin)
+  );
+}
+
 // Função para conectar ao banco de dados
 async function connectToDatabase() {
   try {
@@ -2997,10 +3007,11 @@ const io = new Server(server, {
         "https://live.eloygomes.com",
         "http://127.0.0.1:5173",
         "http://localhost:5173",
-        // <-- habilita dev
       ];
       // Sem origin (apps nativos) ou na lista => libera
-      if (!origin || allowed.includes(origin)) return callback(null, true);
+      if (!origin || allowed.includes(origin) || isAllowedDevOrigin(origin)) {
+        return callback(null, true);
+      }
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST"],
@@ -3081,15 +3092,23 @@ pythonNamespace.on("connection", (socket) => {
 
 app.use(
   cors({
-    origin: [
-      "https://www.live.eloygomes.com",
-      "https://api.live.eloygomes.com",
-      "https://www.live.eloygomes.com",
-      "https://api.live.eloygomes.com",
-      "https://live.eloygomes.com",
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-    ],
+    origin: (origin, callback) => {
+      const allowed = [
+        "https://www.live.eloygomes.com",
+        "https://api.live.eloygomes.com",
+        "https://www.live.eloygomes.com",
+        "https://api.live.eloygomes.com",
+        "https://live.eloygomes.com",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+      ];
+
+      if (!origin || allowed.includes(origin) || isAllowedDevOrigin(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
@@ -4216,7 +4235,8 @@ function buildSafeUserProfile({ authUser, dataDoc }) {
 
   const email = normalizeEmail(authUser?.email || dataDoc?.email || "");
   const username =
-    normalizeUsername(firstUserData?.username) || fallbackUsernameFromEmail(email);
+    normalizeUsername(firstUserData?.username) ||
+    fallbackUsernameFromEmail(email);
 
   return {
     id: String(authUser?._id || dataDoc?._id || ""),
@@ -4304,7 +4324,8 @@ function areUsersFriends(userProfile, targetEmail) {
   return Array.isArray(userProfile?.acceptedInvitations)
     ? userProfile.acceptedInvitations.some(
         (item) =>
-          normalizeEmail(item?.counterpartEmail || "") === normalizedTargetEmail,
+          normalizeEmail(item?.counterpartEmail || "") ===
+          normalizedTargetEmail,
       )
     : false;
 }
@@ -4818,7 +4839,12 @@ app.get("/api/users/search", authenticateJWT, async (req, res) => {
     }
 
     const authUsers = await authCollection
-      .find({ email: { $regex: query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" } })
+      .find({
+        email: {
+          $regex: query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          $options: "i",
+        },
+      })
       .limit(12)
       .toArray();
 
@@ -4992,11 +5018,15 @@ app.post("/api/invitations", authenticateJWT, async (req, res) => {
 
     const targetUser = await findUserByEmail(email);
     if (!targetUser) {
-      return res.status(404).json({ message: "Usuário convidado não encontrado." });
+      return res
+        .status(404)
+        .json({ message: "Usuário convidado não encontrado." });
     }
 
     if (targetUser.email === currentUser.email) {
-      return res.status(400).json({ message: "Você não pode convidar a si mesmo." });
+      return res
+        .status(400)
+        .json({ message: "Você não pode convidar a si mesmo." });
     }
 
     const existingPending = await invitationsCollection.findOne({
@@ -5006,7 +5036,9 @@ app.post("/api/invitations", authenticateJWT, async (req, res) => {
     });
 
     if (existingPending) {
-      return res.status(409).json({ message: "Já existe um convite pendente para esse usuário." });
+      return res
+        .status(409)
+        .json({ message: "Já existe um convite pendente para esse usuário." });
     }
 
     const now = new Date();
@@ -5067,7 +5099,9 @@ app.put("/api/invitations/:id/respond", authenticateJWT, async (req, res) => {
     }
 
     const invitationId = req.params.id;
-    const status = String(req.body?.status || "").trim().toLowerCase();
+    const status = String(req.body?.status || "")
+      .trim()
+      .toLowerCase();
 
     if (!ObjectId.isValid(invitationId)) {
       return res.status(400).json({ message: "ID de convite inválido." });
@@ -5084,7 +5118,9 @@ app.put("/api/invitations/:id/respond", authenticateJWT, async (req, res) => {
     });
 
     if (!invitation) {
-      return res.status(404).json({ message: "Convite pendente não encontrado." });
+      return res
+        .status(404)
+        .json({ message: "Convite pendente não encontrado." });
     }
 
     const updatedInvitation = await invitationsCollection.findOneAndUpdate(
@@ -5100,16 +5136,20 @@ app.put("/api/invitations/:id/respond", authenticateJWT, async (req, res) => {
       await saveAcceptedInvitationForUser(invitation.senderEmail, {
         invitationId,
         counterpartEmail: invitation.receiverEmail,
-        counterpartUsername: invitation.receiverUsername || currentUser.usernameDisplay,
-        counterpartFullName: invitation.receiverFullName || currentUser.fullName || "",
+        counterpartUsername:
+          invitation.receiverUsername || currentUser.usernameDisplay,
+        counterpartFullName:
+          invitation.receiverFullName || currentUser.fullName || "",
         acceptedAt,
       });
 
       await saveAcceptedInvitationForUser(invitation.receiverEmail, {
         invitationId,
         counterpartEmail: invitation.senderEmail,
-        counterpartUsername: invitation.senderUsername || senderUser?.usernameDisplay || "",
-        counterpartFullName: invitation.senderFullName || senderUser?.fullName || "",
+        counterpartUsername:
+          invitation.senderUsername || senderUser?.usernameDisplay || "",
+        counterpartFullName:
+          invitation.senderFullName || senderUser?.fullName || "",
         acceptedAt,
       });
 
@@ -5265,7 +5305,9 @@ app.get("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
     );
 
     if (!isOwner && !isAcceptedGuest && !isPendingGuest) {
-      return res.status(403).json({ message: "Você não tem acesso a este evento." });
+      return res
+        .status(403)
+        .json({ message: "Você não tem acesso a este evento." });
     }
 
     return res.json({
@@ -5325,7 +5367,8 @@ app.post("/api/calendar/events", authenticateJWT, async (req, res) => {
 
     const dedupedInvitedUsers = invitedUsers.filter(
       (user, index, array) =>
-        array.findIndex((candidate) => candidate.email === user.email) === index,
+        array.findIndex((candidate) => candidate.email === user.email) ===
+        index,
     );
 
     const now = new Date();
@@ -5445,20 +5488,24 @@ app.put("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
 
     const dedupedInvitedUsers = invitedUsers.filter(
       (user, index, array) =>
-        array.findIndex((candidate) => candidate.email === user.email) === index,
+        array.findIndex((candidate) => candidate.email === user.email) ===
+        index,
     );
 
-    const nextAcceptedUsers = (existingEvent.invitedUsers || []).filter((user) =>
-      dedupedInvitedUsers.some(
-        (candidate) => normalizeEmail(candidate.email) === normalizeEmail(user.email),
-      ),
+    const nextAcceptedUsers = (existingEvent.invitedUsers || []).filter(
+      (user) =>
+        dedupedInvitedUsers.some(
+          (candidate) =>
+            normalizeEmail(candidate.email) === normalizeEmail(user.email),
+        ),
     );
 
     const nextPendingUsers = dedupedInvitedUsers.filter(
       (candidate) =>
         !nextAcceptedUsers.some(
           (acceptedUser) =>
-            normalizeEmail(acceptedUser.email) === normalizeEmail(candidate.email),
+            normalizeEmail(acceptedUser.email) ===
+            normalizeEmail(candidate.email),
         ),
     );
 
@@ -5532,97 +5579,106 @@ app.put("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
   }
 });
 
-app.put("/api/calendar/events/:id/respond", authenticateJWT, async (req, res) => {
-  try {
-    const currentUser = await getCurrentUserProfile(req);
-    if (!currentUser) {
-      return res.status(404).json({ message: "Usuário não encontrado." });
-    }
+app.put(
+  "/api/calendar/events/:id/respond",
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const currentUser = await getCurrentUserProfile(req);
+      if (!currentUser) {
+        return res.status(404).json({ message: "Usuário não encontrado." });
+      }
 
-    const eventId = req.params.id;
-    const status = String(req.body?.status || "").trim().toLowerCase();
+      const eventId = req.params.id;
+      const status = String(req.body?.status || "")
+        .trim()
+        .toLowerCase();
 
-    if (!ObjectId.isValid(eventId)) {
-      return res.status(400).json({ message: "ID de evento inválido." });
-    }
+      if (!ObjectId.isValid(eventId)) {
+        return res.status(400).json({ message: "ID de evento inválido." });
+      }
 
-    if (!["accepted", "declined"].includes(status)) {
-      return res.status(400).json({ message: "Status inválido." });
-    }
+      if (!["accepted", "declined"].includes(status)) {
+        return res.status(400).json({ message: "Status inválido." });
+      }
 
-    const existingEvent = await calendarEventsCollection.findOne({
-      _id: new ObjectId(eventId),
-    });
-
-    if (!existingEvent) {
-      return res.status(404).json({ message: "Evento não encontrado." });
-    }
-
-    const pendingInvite = (existingEvent.pendingInvitedUsers || []).find(
-      (user) => normalizeEmail(user?.email || "") === currentUser.email,
-    );
-
-    if (!pendingInvite) {
-      return res.status(404).json({ message: "Convite pendente não encontrado." });
-    }
-
-    const nextPendingUsers = (existingEvent.pendingInvitedUsers || []).filter(
-      (user) => normalizeEmail(user?.email || "") !== currentUser.email,
-    );
-    const nextAcceptedUsers =
-      status === "accepted"
-        ? [
-            ...(existingEvent.invitedUsers || []).filter(
-              (user) => normalizeEmail(user?.email || "") !== currentUser.email,
-            ),
-            pendingInvite,
-          ]
-        : (existingEvent.invitedUsers || []).filter(
-            (user) => normalizeEmail(user?.email || "") !== currentUser.email,
-          );
-
-    const updatedEvent = await calendarEventsCollection.findOneAndUpdate(
-      { _id: existingEvent._id },
-      {
-        $set: {
-          pendingInvitedUsers: nextPendingUsers,
-          invitedUsers: nextAcceptedUsers,
-          updatedAt: new Date(),
-        },
-      },
-      { returnDocument: "after" },
-    );
-
-    const ownerUser = await findUserByEmail(existingEvent.ownerEmail);
-    if (ownerUser) {
-      await createNotification({
-        recipient: ownerUser,
-        actor: currentUser,
-        type: "calendar_invite_response",
-        title: "Event invitation updated",
-        message: `${currentUser.usernameDisplay} ${status} your event invite.`,
-        meta: {
-          eventId,
-          status,
-        },
+      const existingEvent = await calendarEventsCollection.findOne({
+        _id: new ObjectId(eventId),
       });
+
+      if (!existingEvent) {
+        return res.status(404).json({ message: "Evento não encontrado." });
+      }
+
+      const pendingInvite = (existingEvent.pendingInvitedUsers || []).find(
+        (user) => normalizeEmail(user?.email || "") === currentUser.email,
+      );
+
+      if (!pendingInvite) {
+        return res
+          .status(404)
+          .json({ message: "Convite pendente não encontrado." });
+      }
+
+      const nextPendingUsers = (existingEvent.pendingInvitedUsers || []).filter(
+        (user) => normalizeEmail(user?.email || "") !== currentUser.email,
+      );
+      const nextAcceptedUsers =
+        status === "accepted"
+          ? [
+              ...(existingEvent.invitedUsers || []).filter(
+                (user) =>
+                  normalizeEmail(user?.email || "") !== currentUser.email,
+              ),
+              pendingInvite,
+            ]
+          : (existingEvent.invitedUsers || []).filter(
+              (user) => normalizeEmail(user?.email || "") !== currentUser.email,
+            );
+
+      const updatedEvent = await calendarEventsCollection.findOneAndUpdate(
+        { _id: existingEvent._id },
+        {
+          $set: {
+            pendingInvitedUsers: nextPendingUsers,
+            invitedUsers: nextAcceptedUsers,
+            updatedAt: new Date(),
+          },
+        },
+        { returnDocument: "after" },
+      );
+
+      const ownerUser = await findUserByEmail(existingEvent.ownerEmail);
+      if (ownerUser) {
+        await createNotification({
+          recipient: ownerUser,
+          actor: currentUser,
+          type: "calendar_invite_response",
+          title: "Event invitation updated",
+          message: `${currentUser.usernameDisplay} ${status} your event invite.`,
+          meta: {
+            eventId,
+            status,
+          },
+        });
+      }
+
+      await addUserLog({
+        userEmail: currentUser.email,
+        action: "calendar_invite_response",
+        message: `${status === "accepted" ? "Accepted" : "Declined"} calendar invite for "${existingEvent.title}".`,
+        meta: { eventId, status },
+      });
+
+      return res.json({ event: serializeCalendarEvent(updatedEvent), status });
+    } catch (error) {
+      console.error("PUT /api/calendar/events/:id/respond error:", error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao responder convite do evento." });
     }
-
-    await addUserLog({
-      userEmail: currentUser.email,
-      action: "calendar_invite_response",
-      message: `${status === "accepted" ? "Accepted" : "Declined"} calendar invite for "${existingEvent.title}".`,
-      meta: { eventId, status },
-    });
-
-    return res.json({ event: serializeCalendarEvent(updatedEvent), status });
-  } catch (error) {
-    console.error("PUT /api/calendar/events/:id/respond error:", error);
-    return res
-      .status(500)
-      .json({ message: "Erro ao responder convite do evento." });
-  }
-});
+  },
+);
 
 app.delete("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
   try {

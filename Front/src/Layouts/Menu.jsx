@@ -1,88 +1,98 @@
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { Outlet, useNavigate, useLocation, NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  FaFilter,
+  FaListUl,
+  FaPlusCircle,
+  FaTools,
+  FaUser,
+} from "react-icons/fa";
 import "../index.css";
 import NavMenuItems from "./NavMenuItems";
-import MenuMobileFull from "./MenuMobileFull";
 import UserProfileModal from "../Tools/modal/UserProfileModal";
 import NotificationBell from "./NotificationBell";
 
 export default function RootLayouts() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   // ===== ESTADO DA BUSCA (navbar) =====
   const [searchTerm, setSearchTerm] = useState("");
+  const [hideMobileChrome, setHideMobileChrome] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
-  const isDashboardRoute = location.pathname.toLowerCase().includes("/");
+  const isDashboardRoute = location.pathname === "/";
+  const isPresentationRoute = location.pathname.startsWith("/presentation/");
+  const isTouchDashboardLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
+  const mobileTabs = [
+    { to: "/", label: "Songlist", icon: FaListUl },
+    { to: "/newsong", label: "Plus", icon: FaPlusCircle },
+    { to: "/tools", label: "Tools", icon: FaTools },
+    { to: "/userprofile/1", label: "User", icon: FaUser },
+  ];
+
+  useEffect(() => {
+    const handleVisibilityChange = (event) => {
+      setHideMobileChrome(Boolean(event.detail?.hidden));
+    };
+
+    window.addEventListener(
+      "mobile-ui-visibility-change",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mobile-ui-visibility-change",
+        handleVisibilityChange,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPresentationRoute) {
+      setHideMobileChrome(false);
+    }
+  }, [isPresentationRoute, location.pathname]);
 
   return (
     <>
       {/* HEADER */}
       <header>
         {/* Mobile */}
-        {window.innerWidth <= 768 && (
-          <>
-            {mobileMenuOpen && (
-              <div className="absolute w-screen h-screen neuphormism-b z-50">
-                <MenuMobileFull setMobileMenuOpen={setMobileMenuOpen} />
+        {window.innerWidth <= 768 && !isPresentationRoute && (
+          <nav className="fixed inset-x-0 top-0 z-[90] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
+            <div className="flex items-center justify-between flex-row">
+              <div className="flex flex-row">
+                <h1
+                  className="font-black text-[2rem] tracking-tight"
+                  onClick={() => navigate("/")}
+                >
+                  {location.pathname === "/" ? "SONGLIST" : "SUSTENIDO"}
+                </h1>
               </div>
-            )}
-            <nav className="p-4">
-              <div className="flex justify-between items-center">
-                <div className="flex flex-row">
-                  <h1 className="font-bold text-3xl">#</h1>
-                  <h1
-                    className="ml-2 font-bold italic mr-5 "
-                    onClick={() => navigate("/")}
-                  >
-                    SUSTENIDO
-                  </h1>
-                </div>
-                <div className="flex items-center">
+
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  className="relative z-[95] mr-5 rounded-full p-3 neuphormism-b-btn"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("dashboard-mobile-close-notifications"),
+                    );
+                    window.dispatchEvent(
+                      new CustomEvent("dashboard-mobile-open-filter"),
+                    );
+                  }}
+                  aria-label="Open filters"
+                >
+                  <FaFilter size={14} />
+                </button>
+                <div className="relative z-[95] rounded-[16px] bg-[#efefef] p-0 shadow-[0_8px_18px_rgba(0,0,0,0.08)]">
                   <NotificationBell />
-                  <button
-                    type="button"
-                    className="ml-3 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-                    aria-controls="mobile-menu"
-                    aria-expanded={mobileMenuOpen}
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  >
-                    <span className="sr-only">Open main menu</span>
-                    {mobileMenuOpen ? (
-                      <svg
-                        className="block h-6 w-6"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="block h-6 w-6"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M3 6h18M3 12h18m-18 6h18"
-                        />
-                      </svg>
-                    )}
-                  </button>
                 </div>
               </div>
-            </nav>
-          </>
+            </div>
+          </nav>
         )}
 
         {/* Desktop */}
@@ -121,9 +131,17 @@ export default function RootLayouts() {
         <div
           data-scroll-removed-mongo-user="true"
           className={`flex-1 ${
-            isDashboardRoute ? "overflow-y-hidden" : "overflow-y-auto"
-          } pt-0 md:pt-16`}
-          style={{ maxHeight: "100vh" }}
+            isDashboardRoute && !isTouchDashboardLayout
+              ? "overflow-y-hidden"
+              : "overflow-y-auto"
+          } ${
+            isTouchDashboardLayout && !isPresentationRoute
+              ? "pt-[5.25rem]"
+              : "pt-0"
+          } ${
+            hideMobileChrome && isPresentationRoute ? "pb-0" : "pb-24"
+          } md:pb-0 md:pt-16`}
+          style={{ maxHeight: isTouchDashboardLayout ? "none" : "100vh" }}
           // className={`flex-1 overflow-y-hidden pt-0 md:pt-16`}
           // style={{ maxHeight: "100vh" }}
         >
@@ -131,6 +149,28 @@ export default function RootLayouts() {
           <Outlet context={{ searchTerm, setSearchTerm }} />
         </div>
       </main>
+
+      {window.innerWidth <= 1024 &&
+        !(isPresentationRoute && hideMobileChrome) && (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 px-0 pb-0">
+          <div className="grid grid-cols-4 bg-black px-2 py-2 text-white shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
+            {mobileTabs.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-1 rounded-[14px] py-2 text-[11px] font-bold ${
+                    isActive ? "text-[goldenrod]" : "text-[#9d9d9d]"
+                  }`
+                }
+              >
+                <Icon className="text-[18px]" />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      )}
     </>
   );
 }

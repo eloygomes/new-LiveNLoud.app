@@ -29,6 +29,26 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
     setIsMobile(window.innerWidth < 840);
   }, []);
 
+  useEffect(() => {
+    const handleOpenMobileFilter = () => {
+      if (window.innerWidth < 840) {
+        setOptStatus(true);
+      }
+    };
+
+    window.addEventListener(
+      "dashboard-mobile-open-filter",
+      handleOpenMobileFilter,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "dashboard-mobile-open-filter",
+        handleOpenMobileFilter,
+      );
+    };
+  }, []);
+
   // Filtro por setlists (já existia)
   const handleFilterChange = useCallback(
     (filters) => {
@@ -85,46 +105,9 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
       />
 
       {isMobile ? (
-        // ----- MODO MOBILE -----
-        <div>
-          <div className="flex flex-col mt-0">
-            <div className="flex flex-row justify-around neuphormism-b p-3 sticky top-0 bg-white z-40 sm:mt-0 md:mt-14 lg:mt-14 xl:mt-14 2xl:mt-14">
-              <div
-                className="w-[10%] text-center px-1 cursor-pointer"
-                onClick={() => handleSort("number")}
-              >
-                N
-              </div>
-              <div
-                className="w-full px-5 cursor-pointer"
-                onClick={() => handleSort("song")}
-              >
-                SONGS
-                {sortColumn === "song" && (
-                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
-                )}
-              </div>
-              <div
-                className="w-full pr-5 cursor-pointer"
-                onClick={() => handleSort("artist")}
-              >
-                ARTISTS
-                {sortColumn === "artist" && (
-                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
-                )}
-              </div>
-              <div
-                className="w-full text-center px-5 cursor-pointer"
-                onClick={() => handleSort("progressBar")}
-              >
-                PROGRESSION
-                {sortColumn === "progressBar" && (
-                  <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
-                )}
-              </div>
-              <div className="w-full text-center px-5">INSTRUMENTS</div>
-            </div>
-            <ul className="overflow-auto h-screen mb-40">
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-32">
+            <ul>
               <DashList2Items
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}
@@ -138,7 +121,9 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
         <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden">
           <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden">
             {!optStatus && (
-              <div className={`${optStatus ? "hidden" : "block"} sticky top-0 z-40 shrink-0`}>
+              <div
+                className={`${optStatus ? "hidden" : "block"} sticky top-0 z-40 shrink-0`}
+              >
                 <div className="flex flex-col justify-around neuphormism-b bg-white">
                   <div className="flex flex-row p-3 rounded-t-md">
                     <div

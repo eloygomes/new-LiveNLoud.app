@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import livePhotoIcon from "../../assets/logo-provisorio.svg";
 import userIcon from "../../assets/user-logo.svg";
 
@@ -10,9 +9,9 @@ export default function AuthShell({
   children,
 }) {
   return (
-    <div className="h-screen overflow-hidden px-4 py-4 lg:px-8">
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-4">
-        <div className="neuphormism-b flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen px-4 lg:h-screen lg:overflow-hidden lg:px-8">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 lg:h-full lg:min-h-0">
+        <div className="hidden neuphormism-b items-center justify-between px-6 lg:flex">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
               # sustenido
@@ -26,8 +25,8 @@ export default function AuthShell({
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 items-center gap-4 lg:grid-cols-[0.85fr,0.9fr]">
-          <section className="neuphormism-b flex max-h-full min-h-0 flex-col overflow-hidden">
+        <div className="grid flex-1 grid-cols-1 place-items-center gap-4 py-6 lg:min-h-0 lg:grid-cols-[0.85fr,0.9fr] lg:py-0">
+          <section className="hidden lg:flex neuphormism-b max-h-full min-h-0 flex-col overflow-hidden">
             <div className="relative flex flex-1 flex-col overflow-hidden p-5 sm:p-6">
               <div className="absolute -right-16 top-16 h-48 w-48 rounded-full bg-[goldenrod]/10 blur-3xl" />
               <div className="absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-black/5 blur-3xl" />
@@ -87,7 +86,8 @@ export default function AuthShell({
                         </div>
                       </div>
                       <div className="mt-3 text-xs leading-5 text-gray-600">
-                        Keep access, recovery and onboarding connected to the same backend flow.
+                        Keep access, recovery and onboarding connected to the
+                        same backend flow.
                       </div>
                     </div>
                   </div>
@@ -96,8 +96,8 @@ export default function AuthShell({
             </div>
           </section>
 
-          <section className="neuphormism-b flex max-h-full min-h-0 flex-col justify-center p-5 sm:p-6">
-            <div className="rounded-[28px] bg-gradient-to-br from-white to-gray-100 px-5 py-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.8)] sm:px-7 sm:py-6">
+          <section className="flex min-h-[calc(100vh-3rem)] w-full items-center justify-center self-center lg:min-h-0 lg:max-w-none">
+            <div className="neuphormism-b w-full max-w-[420px] rounded-[28px] px-5 py-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.8)] sm:max-w-[560px] sm:px-7 sm:py-6">
               <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
                 Account access
               </div>
@@ -105,21 +105,11 @@ export default function AuthShell({
                 {subtitle}
               </div>
               <div className="mt-2 text-sm leading-6 text-gray-600">
-                Use the same routes and actions already connected to the backend.
+                Use the same routes and actions already connected to the
+                backend.
               </div>
 
               <div className="mt-6">{children}</div>
-              <div className="mt-6 flex flex-wrap gap-4 border-t border-gray-200 pt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500">
-                <Link to="/login" className="hover:text-black">
-                  Login
-                </Link>
-                <Link to="/newpassword" className="hover:text-black">
-                  Forgot Password
-                </Link>
-                <Link to="/userregistration" className="hover:text-black">
-                  Create Account
-                </Link>
-              </div>
             </div>
           </section>
         </div>

@@ -10,10 +10,22 @@ const ENV_BASE =
   (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
   null;
 
+function isPrivateDevHostname(hostname) {
+  if (!hostname) return false;
+
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
+  );
+}
+
 const LOCAL_API_BASE =
   typeof window !== "undefined" &&
-  /localhost|127\.0\.0\.1/i.test(window.location.hostname)
-    ? "http://localhost:3000"
+  isPrivateDevHostname(window.location.hostname)
+    ? `${window.location.protocol === "https:" ? "https:" : "http:"}//${window.location.hostname}:3000`
     : null;
 
 const API_BASE = ENV_BASE || LOCAL_API_BASE || "https://api.live.eloygomes.com";

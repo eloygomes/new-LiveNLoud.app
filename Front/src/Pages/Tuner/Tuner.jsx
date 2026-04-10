@@ -172,6 +172,8 @@ const float32ToInt16ArrayBuffer = (bufferFloat32) => {
    🎛️ COMPONENTE
    ------------------------------------------------------------------ */
 export default function Tuner() {
+  const isTouchLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
   // Execução
   const [isTuning, setIsTuning] = useState(false);
 
@@ -509,6 +511,75 @@ export default function Tuner() {
 
   /* ------------------------ RENDER ------------------------ */
   const needleDeg = useMemo(() => (cents / 50) * 50, [cents]);
+
+  if (isTouchLayout) {
+    return (
+      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
+        <div className="rounded-[24px] bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            # sustenido
+          </div>
+          <div className="mt-3 text-[2rem] font-black tracking-tight text-black">
+            Tuner
+          </div>
+          <div className="mt-2 text-sm leading-5 text-gray-600">
+            Backend-driven pitch display with the same gauge language as web.
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="rounded-full bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black">
+              {serverOnlineRef.current
+                ? "Server online"
+                : isTuning
+                  ? "Connecting"
+                  : "Idle"}
+            </div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500">
+              C0 to C8
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <div className="text-[3.4rem] font-black leading-none text-black">
+              {displayNote ? displayNote.replace(/[0-9]/g, "") : "—"}
+            </div>
+            <div className="mt-2 text-sm font-semibold text-gray-500">
+              {liveFreq ? `${liveFreq.toFixed(1)} Hz` : "No pitch detected"}
+            </div>
+            <div className="mt-4 text-[13px] font-bold text-[goldenrod]">
+              {Math.round(cents)} cents
+            </div>
+          </div>
+
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-white">
+            <div
+              className="h-full rounded-full bg-[goldenrod] transition-all"
+              style={{
+                width: `${Math.max(
+                  0,
+                  Math.min(100, ((cents + 50) / 100) * 100),
+                )}%`,
+              }}
+            />
+          </div>
+
+          <button
+            type="button"
+            className={`mt-6 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] ${
+              isTuning
+                ? "bg-black text-[goldenrod]"
+                : "bg-[goldenrod] text-black"
+            }`}
+            onClick={toggleTuner}
+          >
+            {isTuning ? "Stop Listening" : "Start Listening"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center h-screen ">

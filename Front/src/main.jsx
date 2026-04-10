@@ -28,6 +28,7 @@ import NewPassword from "./Pages/NewPassword/NewPassword";
 import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 import SpotifyCallback from "./Pages/Dashboard/SpotifyCallback";
+import ToolsHub from "./Pages/Tools/ToolsHub";
 // import YouTubeCallback from "./Pages/Dashboard/YouTubeCallback";
 
 // Firebase Authentication
@@ -176,6 +177,10 @@ const router = createBrowserRouter(
 
       {/* Rotas com menu / protegidas */}
       <Route element={<Menu />}>
+        <Route
+          path="/tools"
+          element={<ProtectedRoute element={ToolsHub} />}
+        />
         <Route
           path="/chordlibrary"
           element={<ProtectedRoute element={ChordLibrary} />}

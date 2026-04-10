@@ -10,6 +10,8 @@ const bpmList = [
 ];
 
 function Metronome() {
+  const isTouchLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
   const [bpm, setBpm] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isOn, setIsOn] = useState(false);
@@ -165,6 +167,90 @@ function Metronome() {
     const sec = String(totalSeconds % 60).padStart(2, "0");
     return `${min}:${sec}`;
   };
+
+  if (isTouchLayout) {
+    return (
+      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
+        <div className="rounded-[24px] bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            # sustenido
+          </div>
+          <div className="mt-3 text-[2rem] font-black tracking-tight text-black">
+            Metronome
+          </div>
+          <div className="mt-2 text-sm leading-5 text-gray-600">
+            Choose your BPM, tap tempo, and keep time while rehearsing.
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-5 text-center shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">
+            {isPlaying ? "Playing" : "Ready"}
+          </div>
+          <div className="mt-3 text-[4rem] font-black leading-none text-black">
+            {bpm}
+          </div>
+          <div className="mt-1 text-sm font-bold uppercase text-gray-500">
+            BPM
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+          <div className="grid grid-cols-5 gap-2">
+            {[
+              ["-10", () => setBpm((current) => Math.max(30, current - 10))],
+              ["-1", () => setBpm((current) => Math.max(30, current - 1))],
+              ["TAP", handleTapTempo],
+              ["+1", () => setBpm((current) => Math.min(240, current + 1))],
+              ["+10", () => setBpm((current) => Math.min(240, current + 10))],
+            ].map(([label, action]) => (
+              <button
+                key={label}
+                type="button"
+                className="rounded-[14px] bg-white px-3 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-black"
+                onClick={action}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {[80, 100, 120, 140, 160, 180].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={`rounded-[14px] px-3 py-3 text-[11px] font-black uppercase tracking-[0.12em] ${
+                  bpm === preset
+                    ? "bg-[goldenrod] text-black"
+                    : "bg-white text-gray-500"
+                }`}
+                onClick={() => setBpm(preset)}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className={`mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] ${
+              isPlaying
+                ? "bg-black text-[goldenrod]"
+                : "bg-[goldenrod] text-black"
+            }`}
+            onClick={handlePlayClick}
+          >
+            {isPlaying ? "Stop" : "Play"}
+          </button>
+
+          <div className="mt-4 text-center text-sm font-semibold text-gray-500">
+            Timer: {formatTime(isTimerActive && isPlaying ? timeLeft : timerDuration)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center h-screen ">

@@ -253,6 +253,19 @@ main{
   /* display: none; */
 }
 
+.tab,
+.presentation-tom,
+.presentation-lyrics,
+.presentation-chords,
+.presentation-chord-lyrics,
+.presentation-combined-tab-chords,
+.presentation-tab,
+.presentation-tab-section {
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
 .notespresentation{
   color: goldenrod;
   cursor: pointer;
@@ -280,7 +293,8 @@ main{
 .presentation-live-content {
   height: 100vh;
   overflow-y: auto;
-  padding: 48px 56px 72px;
+  /* padding: 48px 56px 72px; */
+  padding: 14px;
   background: #000;
   color: #fff;
   font-family: "Courier New", Courier, monospace;
@@ -288,6 +302,7 @@ main{
   line-height: 1.65;
   white-space: pre-wrap;
   outline: none;
+  overflow-x: hidden;
 }
 
 .presentation-live-content pre,
@@ -312,6 +327,8 @@ main{
 .presentation-live-content .bridge,
 .presentation-live-content .section {
   color: #fff;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .presentation-live-content .intro,
@@ -321,6 +338,40 @@ main{
 .presentation-live-content .bridge,
 .presentation-live-content .section {
   margin-bottom: 1.2rem;
+}
+
+.presentation-live-content .intro pre,
+.presentation-live-content .chorus pre,
+.presentation-live-content .verse pre,
+.presentation-live-content .solo pre,
+.presentation-live-content .bridge pre,
+.presentation-live-content .section pre {
+  font-size: 10pt;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+@media (max-width: 1024px) {
+  .tab,
+  .presentation-tom,
+  .presentation-lyrics,
+  .presentation-chords,
+  .presentation-chord-lyrics,
+  .presentation-combined-tab-chords,
+  .presentation-tab,
+  .presentation-tab-section {
+    width: 100%;
+    max-width: 100%;
+    font-size: clamp(0.68rem, 1.95vw, 0.9rem);
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+    white-space: pre;
+  }
+
+  .tab {
+    font-size: clamp(0.56rem, 1.7vw, 0.78rem);
+    line-height: 1.32;
+  }
 }
 
 .presentation-chord-tooltip {
