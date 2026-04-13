@@ -362,14 +362,14 @@ main{
   .presentation-tab-section {
     width: 100%;
     max-width: 100%;
-    font-size: clamp(0.68rem, 1.95vw, 0.9rem);
+    font-size: calc(clamp(0.68rem, 1.95vw, 0.9rem) * var(--touch-presentation-font-scale, 1));
     line-height: 1.45;
     letter-spacing: -0.02em;
     white-space: pre;
   }
 
   .tab {
-    font-size: clamp(0.56rem, 1.7vw, 0.78rem);
+    font-size: calc(clamp(0.56rem, 1.7vw, 0.78rem) * var(--touch-presentation-font-scale, 1));
     line-height: 1.32;
   }
 }

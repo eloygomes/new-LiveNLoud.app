@@ -7,7 +7,7 @@ import SnackBar from "../../Tools/SnackBar";
 function EditSong() {
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
-  const [mobileSection, setMobileSection] = useState("SONG DATA");
+  const [songDataOpen, setSongDataOpen] = useState(false);
   const [dataFromAPI, setDataFromAPI] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
@@ -61,38 +61,16 @@ function EditSong() {
           <SnackBar snackbarMessage={snackbarMessage} />
         </div>
 
-        <div className="rounded-[24px] bg-[#e0e0e0] px-4 py-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-          <div className="text-[1.9rem] font-black tracking-tight text-black">
-            EDIT SONG
+        <div className="origin-top ">
+          <div className="rounded-[20px] bg-[#e0e0e0] px-4 py-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+            <div className="text-[1.9rem] font-black tracking-tight text-black">
+              EDIT SONG
+            </div>
+            <div className="mt-1 text-sm font-semibold text-gray-500">
+              Update the song and its instrument links here.
+            </div>
           </div>
-          <div className="mt-1 text-sm font-semibold text-gray-500">
-            Update your song with the touch editor flow.
-          </div>
-        </div>
 
-        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-          <div className="grid grid-cols-2 gap-3">
-            {["SONG DATA", "INPUT LINKS"].map((section) => {
-              const active = section === mobileSection;
-              return (
-                <button
-                  key={section}
-                  type="button"
-                  className={`rounded-[16px] px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] ${
-                    active
-                      ? "bg-[goldenrod] text-black"
-                      : "bg-[#f0f0f0] text-gray-500"
-                  }`}
-                  onClick={() => setMobileSection(section)}
-                >
-                  {section}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {mobileSection === "SONG DATA" ? (
           <div className="mt-4">
             <EditSongColumnA
               dataFromAPI={dataFromAPI}
@@ -105,31 +83,35 @@ function EditSong() {
               registerInstrumentUpdaters={registerInstrumentUpdaters}
               isDirty={isDirty}
               setIsDirty={setIsDirty}
+              touchLayout
+              songDataOpen={songDataOpen}
+              onToggleSongData={() => setSongDataOpen((current) => !current)}
+              middleContent={
+                <EditSongColumnB
+                  dataFromAPI={dataFromAPI}
+                  progGuitar01={progGuitar01}
+                  setProgGuitar01={setProgGuitar01}
+                  progGuitar02={progGuitar02}
+                  setProgGuitar02={setProgGuitar02}
+                  progBass={progBass}
+                  setProgBass={setProgBass}
+                  progKey={progKey}
+                  setProgKey={setProgKey}
+                  progDrums={progDrums}
+                  setProgDrums={setProgDrums}
+                  progVoice={progVoice}
+                  setProgVoice={setProgVoice}
+                  instrumentUpdatersRef={instrumentUpdatersRef}
+                  setIsDirty={setIsDirty}
+                  setShowSnackBar={setShowSnackBar}
+                  setSnackbarMessage={setSnackbarMessage}
+                  onLinkAdded={() => setSongDataOpen(true)}
+                  touchLayout
+                />
+              }
             />
           </div>
-        ) : (
-          <div className="mt-4">
-            <EditSongColumnB
-              dataFromAPI={dataFromAPI}
-              progGuitar01={progGuitar01}
-              setProgGuitar01={setProgGuitar01}
-              progGuitar02={progGuitar02}
-              setProgGuitar02={setProgGuitar02}
-              progBass={progBass}
-              setProgBass={setProgBass}
-              progKey={progKey}
-              setProgKey={setProgKey}
-              progDrums={progDrums}
-              setProgDrums={setProgDrums}
-              progVoice={progVoice}
-              setProgVoice={setProgVoice}
-              instrumentUpdatersRef={instrumentUpdatersRef}
-              setIsDirty={setIsDirty}
-              setShowSnackBar={setShowSnackBar}
-              setSnackbarMessage={setSnackbarMessage}
-            />
-          </div>
-        )}
+        </div>
       </div>
     );
   }

@@ -59,6 +59,7 @@ const elements = {
   userBadge: document.getElementById("userBadge"),
   compatibilityNotice: document.getElementById("compatibilityNotice"),
   copyLinkButton: document.getElementById("copyLinkButton"),
+  copyLinkButtonProxy: document.getElementById("copyLinkButtonProxy"),
   linkValue: document.getElementById("linkValue"),
   instrumentSelect: document.getElementById("instrumentSelect"),
   songValue: document.getElementById("songValue"),
@@ -245,6 +246,35 @@ function clearFromStorageArea(area, keys) {
   });
 }
 
+function canInjectIntoTab(tab) {
+  const url = cleanText(tab?.url);
+  if (!tab?.id || !url) return false;
+
+  return /^(https?|file):/i.test(url);
+}
+
+function shouldRetryWithInjection(error) {
+  const message = cleanText(error?.message || error);
+  return /receiving end does not exist/i.test(message);
+}
+
+async function injectPageContextScript(tabId) {
+  if (!extensionApi.scripting?.executeScript) {
+    throw new Error("Content script is unavailable in this browser.");
+  }
+
+  await extensionApi.scripting.executeScript({
+    target: { tabId },
+    files: ["page-context.js"],
+  });
+}
+
+async function requestPageContext(tabId) {
+  return extensionApi.tabs.sendMessage(tabId, {
+    type: "GET_PAGE_SONG_CONTEXT",
+  });
+}
+
 async function readSessionState() {
   const keys = Object.values(STORAGE_KEYS);
   const [sessionData, localData] = await Promise.all([
@@ -318,10 +348,27 @@ async function getPageContext() {
     return { ...emptyPageContext };
   }
 
+  if (!canInjectIntoTab(tab)) {
+    return {
+      ...emptyPageContext,
+      link: cleanText(tab.url),
+    };
+  }
+
   try {
-    const context = await extensionApi.tabs.sendMessage(tab.id, {
-      type: "GET_PAGE_SONG_CONTEXT",
-    });
+    let context;
+
+    try {
+      context = await requestPageContext(tab.id);
+    } catch (error) {
+      if (!shouldRetryWithInjection(error)) {
+        throw error;
+      }
+
+      debugLog("Injecting page context script", { tabId: tab.id, url: tab.url });
+      await injectPageContextScript(tab.id);
+      context = await requestPageContext(tab.id);
+    }
 
     return {
       ...emptyPageContext,
@@ -755,6 +802,12 @@ elements.copyLinkButton.addEventListener("click", async () => {
     setNoticeState("error");
   }
 });
+
+if (elements.copyLinkButtonProxy) {
+  elements.copyLinkButtonProxy.addEventListener("click", () => {
+    elements.copyLinkButton.click();
+  });
+}
 
 elements.saveButton.addEventListener("click", async () => {
   hideFinalMessage();

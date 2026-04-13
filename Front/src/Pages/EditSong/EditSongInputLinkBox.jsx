@@ -17,6 +17,7 @@ function EditSongInputLinkBox({
   setIsDirty,
   setShowSnackBar,
   setSnackbarMessage,
+  onLinkAdded,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
   const isLocked = Boolean(link?.trim());
@@ -120,6 +121,7 @@ function EditSongInputLinkBox({
         link: targetLink,
       });
       notify("Success", "Cifra adicionada com sucesso!");
+      onLinkAdded?.();
     } catch (error) {
       console.error(
         "Error registering user in API:",

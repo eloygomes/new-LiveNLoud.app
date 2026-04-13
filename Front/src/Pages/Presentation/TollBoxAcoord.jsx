@@ -53,9 +53,16 @@ export default function TollBoxAcoord({
   handleSaveCifra,
   handleDiscardDraft,
   startEditingCifra,
+  isTouchLayout = false,
+  closeToolBox,
+  touchFontSizeLabel = "100%",
+  decreaseTouchFontSize,
+  increaseTouchFontSize,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
+  const [showEditorDetails, setShowEditorDetails] = useState(false);
+  const [showFontSizeDetails, setShowFontSizeDetails] = useState(false);
 
   // Estados para controlar qual ferramenta está ativa
   const [TunerStatus, setTunerStatus] = useState(false);
@@ -71,6 +78,9 @@ export default function TollBoxAcoord({
   const handlePlayClick = (url) => {
     setLinktoplay(url);
     setVideoModalStatus(true);
+    if (isTouchLayout) {
+      closeToolBox?.();
+    }
   };
 
   const chordLibraryModal = () => {
@@ -90,6 +100,365 @@ export default function TollBoxAcoord({
 
   const bpm = "120";
 
+  const openTouchEditorDetails = () => {
+    if (!isEditing && songCifraData) {
+      startEditingCifra();
+    }
+    setShowEditorDetails(true);
+  };
+
+  const handleTouchSave = async () => {
+    await handleSaveCifra();
+    setShowEditorDetails(false);
+    closeToolBox?.();
+  };
+
+  const handleTouchDiscard = () => {
+    handleDiscardDraft();
+    setShowEditorDetails(false);
+    closeToolBox?.();
+  };
+
+  const openTouchFontSizeDetails = () => {
+    setShowFontSizeDetails(true);
+  };
+
+  const renderEditorContent = () => (
+    <ToolBoxEditControls
+      isEditing={isEditing}
+      isSavingCifra={isSavingCifra}
+      hasDraftChanges={hasDraftChanges}
+      songCifraData={songCifraData}
+      handleSaveCifra={handleSaveCifra}
+      handleDiscardDraft={handleDiscardDraft}
+      startEditingCifra={startEditingCifra}
+    />
+  );
+
+  const renderInstrumentsContent = () => (
+    <ul className={isTouchLayout ? "grid grid-cols-2 gap-2" : "mb-5"}>
+      {chunkedInstruments.map((row, rowIndex) => (
+        <li
+          key={rowIndex}
+          className={isTouchLayout ? "contents" : "hover:font-semibold flex flex-row"}
+        >
+          {row.map((instrument) => {
+            const { key, label } = instrument;
+            const isActive = instLinkPageStatus[key];
+            const sharedClass = isTouchLayout
+              ? "rounded-[14px] px-3 py-3 text-sm font-black"
+              : "w-1/2 p-2 m-2 text-sm";
+            return isActive ? (
+              <button
+                key={key}
+                onClick={() => {
+                  window.location.href = `/presentation/${artistFromURL}/${songFromURL}/${key}`;
+                }}
+                className={`${sharedClass} ${isTouchLayout ? "bg-[goldenrod] text-black" : "neuphormism-b-btn flex justify-center items-center rounded text-center"}`}
+              >
+                {label}
+              </button>
+            ) : (
+              <button
+                key={key}
+                type="button"
+                className={`${sharedClass} ${isTouchLayout ? "bg-[#ececec] text-gray-400" : "neuphormism-b-btn-desactivated"}`}
+                disabled
+                aria-disabled="true"
+              >
+                {label}
+              </button>
+            );
+          })}
+        </li>
+      ))}
+    </ul>
+  );
+
+  const renderVideosContent = () => (
+    <ul>
+      {embedLinks.map((link, index) => (
+        <li key={index} className={isTouchLayout ? "mb-2" : "hover:font-semibold flex flex-row"}>
+          <button
+            type="button"
+            className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full m-2 text-sm"}
+            onClick={() => handlePlayClick(link)}
+          >
+            video {index + 1}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const renderHighlightContent = () => (
+    <ul className={isTouchLayout ? "space-y-2" : "m-2"}>
+      <li className="hover:font-semibold">
+        <button
+          type="button"
+          className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
+          onClick={() => {
+            setSelectContenttoShow("full");
+          }}
+        >
+          original
+        </button>
+        <button
+          type="button"
+          className={isTouchLayout ? "mt-2 w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
+          onClick={() => {
+            setSelectContenttoShow("tabs");
+          }}
+        >
+          tabs
+        </button>
+      </li>
+      <li className="hover:font-semibold">
+        <button
+          type="button"
+          className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
+          onClick={() => {
+            setSelectContenttoShow("chords");
+          }}
+        >
+          notes
+        </button>
+      </li>
+      <li className="hover:font-semibold">
+        <button
+          type="button"
+          className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
+          onClick={() => {
+            setSelectContenttoShow("lyrics");
+          }}
+        >
+          lyrics
+        </button>
+      </li>
+    </ul>
+  );
+
+  const renderFontSizeContent = () => (
+    <div className={isTouchLayout ? "rounded-[16px] bg-[#ececec] p-2" : "m-2"}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
+          onClick={decreaseTouchFontSize}
+        >
+          -
+        </button>
+        <div className="flex-1 rounded-[14px] bg-white px-3 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]">
+          {touchFontSizeLabel}
+        </div>
+        <button
+          type="button"
+          className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
+          onClick={increaseTouchFontSize}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderToolsContent = () => (
+    <ul className={isTouchLayout ? "space-y-2" : "my-5"}>
+      {TunerStatus && (
+        <div className="block">
+          <ToolBoxTunerMini />
+        </div>
+      )}
+      {MetronomeStatus && (
+        <div className="block">
+          <ToolBoxMini bpm={bpm} />
+        </div>
+      )}
+      {ChordLibraryStatus && (
+        <div className="block">
+          <ToolBoxChordLibraryMini
+            onOpenPreview={(previewData) => {
+              setChordPreviewData(previewData);
+              chordLibraryModal();
+            }}
+          />
+        </div>
+      )}
+      <li className="hover:font-semibold">
+        <button
+          type="button"
+          className={`w-full ${isTouchLayout ? "rounded-[14px] px-3 py-3 text-left text-sm font-bold" : "my-2 py-2"} ${
+            TunerStatus
+              ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
+              : isTouchLayout
+                ? "bg-white text-black"
+                : "neuphormism-b-se"
+          }`}
+          onClick={() => {
+            setTunerStatus(true);
+            setMetronomeStatus(false);
+            setChordLibraryStatus(false);
+          }}
+        >
+          tuner
+        </button>
+      </li>
+      <li className="hover:font-semibold">
+        <button
+          type="button"
+          className={`w-full ${isTouchLayout ? "rounded-[14px] px-3 py-3 text-left text-sm font-bold" : "my-2 py-2"} ${
+            MetronomeStatus
+              ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
+              : isTouchLayout
+                ? "bg-white text-black"
+                : "neuphormism-b-se"
+          }`}
+          onClick={() => {
+            setTunerStatus(false);
+            setMetronomeStatus(true);
+            setChordLibraryStatus(false);
+          }}
+        >
+          metronome
+        </button>
+      </li>
+      <li className="hover:font-semibold">
+        <button
+          type="button"
+          className={`w-full ${isTouchLayout ? "rounded-[14px] px-3 py-3 text-left text-sm font-bold" : "my-2 py-2"} ${
+            ChordLibraryStatus
+              ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
+              : isTouchLayout
+                ? "bg-white text-black"
+                : "neuphormism-b-se"
+          }`}
+          onClick={() => {
+            setTunerStatus(false);
+            setMetronomeStatus(false);
+            setChordLibraryStatus(true);
+            chordLibraryModal();
+          }}
+        >
+          chord library
+        </button>
+      </li>
+    </ul>
+  );
+
+  const renderScrollingContent = () => (
+    <div className={isTouchLayout ? "rounded-[16px] bg-[#ececec] p-3" : "my-4"}>
+      <ScrollControlPanel />
+    </div>
+  );
+
+  if (isTouchLayout) {
+    if (showEditorDetails) {
+      return (
+        <div className="space-y-4">
+          <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
+            Editor
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              className="rounded-[14px] bg-[goldenrod] px-4 py-3 text-center text-lg font-black text-black disabled:opacity-50"
+              onClick={handleTouchSave}
+              disabled={isSavingCifra || !hasDraftChanges}
+            >
+              {isSavingCifra ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              className="rounded-[14px] bg-white px-4 py-3 text-center text-lg font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] disabled:opacity-50"
+              onClick={handleTouchDiscard}
+              disabled={isSavingCifra}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (showFontSizeDetails) {
+      return (
+        <div className="space-y-4">
+          <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
+            Font Size
+          </div>
+          <div className="rounded-[16px] bg-[#ececec] p-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
+                onClick={decreaseTouchFontSize}
+              >
+                -
+              </button>
+              <div className="flex-1 rounded-[14px] bg-white px-3 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]">
+                {touchFontSizeLabel}
+              </div>
+              <button
+                type="button"
+                className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
+                onClick={increaseTouchFontSize}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const sections = [
+      { id: "panel-editor", label: "Editor", content: renderEditorContent() },
+      { id: "panel-font", label: "Font Size", content: renderFontSizeContent() },
+      { id: "panel1", label: "Instruments", content: renderInstrumentsContent() },
+      { id: "panel2", label: "Videos", content: renderVideosContent() },
+      { id: "panel4", label: "Highlight", content: renderHighlightContent() },
+      { id: "panel5", label: "Tools", content: renderToolsContent() },
+      { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
+    ];
+
+    return (
+      <div className="space-y-3">
+        {sections.map((section) => {
+          const isOpen = expanded === section.id;
+          const shouldBlinkEditor =
+            section.id === "panel-editor" && isEditing && !showEditorDetails;
+          return (
+            <div key={section.id}>
+              <button
+                type="button"
+                className={`flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-lg font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] ${
+                  shouldBlinkEditor
+                    ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite] bg-[#ececec]"
+                    : "bg-[#ececec]"
+                }`}
+                onClick={() => {
+                  if (section.id === "panel-editor") {
+                    openTouchEditorDetails();
+                    return;
+                  }
+                  if (section.id === "panel-font") {
+                    openTouchFontSizeDetails();
+                    return;
+                  }
+                  setExpanded(isOpen ? false : section.id);
+                }}
+              >
+                <span>{section.label}</span>
+                <span className="text-2xl leading-none">{isOpen ? "−" : "+"}</span>
+              </button>
+              {isOpen ? <div className="mt-2 px-1">{section.content}</div> : null}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div>
       <Accordion
@@ -106,15 +475,7 @@ export default function TollBoxAcoord({
           Editor
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ToolBoxEditControls
-            isEditing={isEditing}
-            isSavingCifra={isSavingCifra}
-            hasDraftChanges={hasDraftChanges}
-            songCifraData={songCifraData}
-            handleSaveCifra={handleSaveCifra}
-            handleDiscardDraft={handleDiscardDraft}
-            startEditingCifra={startEditingCifra}
-          />
+          {renderEditorContent()}
         </AccordionDetails>
       </Accordion>
 
@@ -132,37 +493,25 @@ export default function TollBoxAcoord({
           Instruments
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ul className="mb-5">
-            {chunkedInstruments.map((row, rowIndex) => (
-              <li key={rowIndex} className="hover:font-semibold flex flex-row">
-                {row.map((instrument) => {
-                  const { key, label } = instrument;
-                  const isActive = instLinkPageStatus[key]; // true/false
-                  return isActive ? (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        window.location.href = `/presentation/${artistFromURL}/${songFromURL}/${key}`;
-                      }}
-                      className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn flex justify-center items-center rounded text-center"
-                    >
-                      {label}
-                    </button>
-                  ) : (
-                    <button
-                      key={key}
-                      type="button"
-                      className="w-1/2 p-2 m-2 text-sm neuphormism-b-btn-desactivated"
-                      disabled
-                      aria-disabled="true"
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </li>
-            ))}
-          </ul>
+          {renderInstrumentsContent()}
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion
+        expanded={expanded === "panel-font"}
+        onChange={handleAccordionChange("panel-font")}
+        className="my-2"
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel-font-content"
+          id="panel-font-header"
+          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
+        >
+          Font Size
+        </AccordionSummary>
+        <AccordionDetails className="neuphormism-b text-sm font-semibold">
+          {renderFontSizeContent()}
         </AccordionDetails>
       </Accordion>
 
@@ -181,19 +530,7 @@ export default function TollBoxAcoord({
           Videos
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ul className="">
-            {embedLinks.map((link, index) => (
-              <li key={index} className="hover:font-semibold flex flex-row">
-                <button
-                  type="button"
-                  className="neuphormism-b-se  py-2 w-full m-2 text-sm"
-                  onClick={() => handlePlayClick(link)}
-                >
-                  video {index + 1}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {renderVideosContent()}
         </AccordionDetails>
       </Accordion>
 
@@ -247,53 +584,7 @@ export default function TollBoxAcoord({
           Highlight
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ul className="m-2">
-            <li className="hover:font-semibold">
-              <button
-                type="button"
-                className="neuphormism-b-se  py-2 w-full my-2"
-                // onClick={toggleTabsVisibility}
-                onClick={() => {
-                  setSelectContenttoShow("full");
-                }}
-              >
-                original
-              </button>
-              <button
-                type="button"
-                className="neuphormism-b-se  py-2 w-full my-2"
-                // onClick={toggleTabsVisibility}
-                onClick={() => {
-                  setSelectContenttoShow("tabs");
-                }}
-              >
-                tabs
-              </button>
-            </li>
-            <li className="hover:font-semibold">
-              <button
-                type="button"
-                className="neuphormism-b-se  py-2 w-full my-2"
-                // onClick={toggleTabsVisibility}
-                onClick={() => {
-                  setSelectContenttoShow("chords");
-                }}
-              >
-                notes
-              </button>
-            </li>
-            <li className="hover:font-semibold">
-              <button
-                type="button"
-                className="neuphormism-b-se  py-2 w-full my-2"
-                onClick={() => {
-                  setSelectContenttoShow("lyrics");
-                }}
-              >
-                lyrics
-              </button>
-            </li>
-          </ul>
+          {renderHighlightContent()}
         </AccordionDetails>
       </Accordion>
 
@@ -312,83 +603,7 @@ export default function TollBoxAcoord({
           Tools
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ul className="my-5">
-            {/* Renderização Condicional dos Componentes */}
-            {TunerStatus && (
-              <div className="block">
-                <ToolBoxTunerMini />
-              </div>
-            )}
-            {MetronomeStatus && (
-              <div className="block">
-                <ToolBoxMini bpm={bpm} />
-              </div>
-            )}
-            {ChordLibraryStatus && (
-              <div className="block">
-                <ToolBoxChordLibraryMini
-                  onOpenPreview={(previewData) => {
-                    setChordPreviewData(previewData);
-                    chordLibraryModal();
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Botões para Alternar os Componentes */}
-            <li className="hover:font-semibold">
-              <button
-                type="button"
-                className={`w-full my-2 py-2 ${
-                  TunerStatus
-                    ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
-                    : "neuphormism-b-se"
-                }`}
-                onClick={() => {
-                  setTunerStatus(true);
-                  setMetronomeStatus(false);
-                  setChordLibraryStatus(false);
-                }}
-              >
-                tuner
-              </button>
-            </li>
-            <li className="hover:font-semibold">
-              <button
-                type="button"
-                className={`w-full my-2 py-2 ${
-                  MetronomeStatus
-                    ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
-                    : "neuphormism-b-se"
-                }`}
-                onClick={() => {
-                  setTunerStatus(false);
-                  setMetronomeStatus(true);
-                  setChordLibraryStatus(false);
-                }}
-              >
-                metronome
-              </button>
-            </li>
-            <li className="hover:font-semibold">
-              <button
-                type="button"
-                className={`w-full my-2 py-2 ${
-                  ChordLibraryStatus
-                    ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
-                    : "neuphormism-b-se"
-                }`}
-                onClick={() => {
-                  setTunerStatus(false);
-                  setMetronomeStatus(false);
-                  setChordLibraryStatus(true);
-                  chordLibraryModal();
-                }}
-              >
-                chord library
-              </button>
-            </li>
-          </ul>
+          {renderToolsContent()}
         </AccordionDetails>
       </Accordion>
 
@@ -407,9 +622,7 @@ export default function TollBoxAcoord({
           Scrolling
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <div className="my-4">
-            <ScrollControlPanel />
-          </div>
+          {renderScrollingContent()}
         </AccordionDetails>
       </Accordion>
     </div>

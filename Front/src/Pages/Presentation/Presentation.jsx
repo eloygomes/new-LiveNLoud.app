@@ -10,6 +10,7 @@ import {
 } from "../../Tools/Controllers";
 import { useRef } from "react";
 import SnackBar from "../../Tools/SnackBar";
+import MobileSnackBar from "../../Tools/MobileSnackBar";
 
 import { processSongCifra } from "./ProcessSongCifra";
 import PresentationChordTooltip, {
@@ -67,6 +68,7 @@ function Presentation() {
   const [draftCifra, setDraftCifra] = useState("");
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [touchFontSizeStep, setTouchFontSizeStep] = useState(0);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
     title: "",
@@ -188,10 +190,16 @@ function Presentation() {
   const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const liveModeRootRef = useRef(null);
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
+  const touchFontSizeRem = useMemo(
+    () => Math.max(0.58, Math.min(1.18, 0.82 + touchFontSizeStep * 0.08)),
+    [touchFontSizeStep],
+  );
+  const touchFontSizeLabel = `${Math.round((touchFontSizeRem / 0.82) * 100)}%`;
 
   const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
     const length = String(value || "").trim().length;
@@ -765,7 +773,11 @@ function Presentation() {
       onMouseDown={effectiveLiveMode ? focusLiveViewport : undefined}
     >
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
-        <SnackBar snackbarMessage={snackbarMessage} />
+        {isTouchLayout ? (
+          <MobileSnackBar snackbarMessage={snackbarMessage} />
+        ) : (
+          <SnackBar snackbarMessage={snackbarMessage} />
+        )}
       </div>
       {!effectiveLiveMode && (
         <ToolBox
@@ -788,6 +800,15 @@ function Presentation() {
           handleSaveCifra={handleSaveCifra}
           handleDiscardDraft={handleDiscardDraft}
           startEditingCifra={startEditingCifra}
+          isTouchLayout={isTouchLayout}
+          touchFontSizeLabel={touchFontSizeLabel}
+          decreaseTouchFontSize={() =>
+            setTouchFontSizeStep((current) => Math.max(-3, current - 1))
+          }
+          increaseTouchFontSize={() =>
+            setTouchFontSizeStep((current) => Math.min(4, current + 1))
+          }
+          onVideoModalChange={setIsVideoModalOpen}
         />
       )}
       <div
@@ -852,6 +873,12 @@ function Presentation() {
                 </button>
                 <div
                   className={`flex items-center justify-center neuphormism-b-btn ${
+                    isTouchLayout &&
+                    !toolBoxBtnStatus &&
+                    (isEditing || isVideoModalOpen)
+                      ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
+                      : ""
+                  } ${
                     isTouchLayout ? "px-4 py-3" : "p-6"
                   }`}
                   onClick={() =>
@@ -863,6 +890,22 @@ function Presentation() {
                 >
                   <FaGear className={isTouchLayout ? "h-5 w-5" : "w-8 h-8"} />
                 </div>
+                {isTouchLayout ? (
+                  <style>{`
+                    @keyframes mobile-gear-blink {
+                      0%, 100% {
+                        background: #efefef;
+                        color: #111;
+                        box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+                      }
+                      50% {
+                        background: goldenrod;
+                        color: #111;
+                        box-shadow: 0 10px 20px rgba(218,165,32,0.34);
+                      }
+                    }
+                  `}</style>
+                ) : null}
               </div>
             </div>
           )}
@@ -901,6 +944,17 @@ function Presentation() {
                 ? "presentation-live-content"
                 : `neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
             } ${hideChords ? "hide-chords" : ""}`}
+            style={
+              !effectiveLiveMode && isTouchLayout
+                ? {
+                    "--touch-presentation-font-scale": String(
+                      touchFontSizeRem / 0.82,
+                    ),
+                    fontSize: `${touchFontSizeRem}rem`,
+                    lineHeight: 1.45,
+                  }
+                : undefined
+            }
           >
             {isEditing ? (
               editor ? (

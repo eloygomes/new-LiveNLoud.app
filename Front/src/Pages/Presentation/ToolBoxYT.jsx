@@ -98,6 +98,8 @@ export default function ToolBoxYT({
   linktoplay,
   setVideoModalStatus,
   setLinktoplay, // Adiciona para limpar o linktoplay
+  isTouchLayout = false,
+  onVideoModalChange,
 }) {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
@@ -106,10 +108,12 @@ export default function ToolBoxYT({
     if (linktoplay) {
       setSelectedVideo(linktoplay); // Atualiza o vídeo ao receber o linktoplay como prop
       setIsAccordionOpen(true); // Abre o acordeão quando houver um link válido
+      onVideoModalChange?.(true);
     } else {
       setIsAccordionOpen(false); // Fecha o acordeão quando não houver link
+      onVideoModalChange?.(false);
     }
-  }, [linktoplay]);
+  }, [linktoplay, onVideoModalChange]);
 
   const getVideoIdFromUrl = (url) => {
     try {
@@ -122,11 +126,54 @@ export default function ToolBoxYT({
   };
 
   const handleCloseAccordion = (e) => {
-    e.stopPropagation(); // Impede a propagação do clique
+    e?.stopPropagation?.(); // Impede a propagação do clique
     setIsAccordionOpen(false); // Fecha o acordeão
     setVideoModalStatus(false); // Fecha o modal de vídeo
     setLinktoplay(null); // Limpa o linktoplay
+    onVideoModalChange?.(false);
   };
+
+  if (isTouchLayout && isAccordionOpen) {
+    return (
+      <div className="fixed inset-0 z-[120] bg-black/30">
+        <button
+          type="button"
+          className="absolute inset-0 h-full w-full cursor-default"
+          onClick={handleCloseAccordion}
+          aria-label="Close video modal"
+        />
+        <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-[1.6rem] font-black tracking-tight text-black">
+              Video
+            </span>
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+              onClick={handleCloseAccordion}
+            >
+              <CloseIcon />
+            </button>
+          </div>
+          {selectedVideo ? (
+            <div className="overflow-hidden rounded-[18px] bg-black">
+              <iframe
+                width="100%"
+                height="260"
+                src={`https://www.youtube.com/embed/${getVideoIdFromUrl(
+                  selectedVideo
+                )}`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Accordion expanded={isAccordionOpen}>

@@ -350,6 +350,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from "react";
+import { FaChevronDown, FaChevronUp, FaListUl, FaTimes, FaVideo } from "react-icons/fa";
 import NewSongEmbed from "./NewSongEmbed";
 import GeralProgressBar from "./GeralProgressBar";
 import NewSongSongData from "./NewSongSongData";
@@ -398,6 +399,10 @@ function NewSongColumnA({
   setShowSnackBar,
   setSnackbarMessage,
   scrapeStatus = {},
+  touchLayout = false,
+  songDataOpen = false,
+  onToggleSongData,
+  middleContent = null,
 }) {
   const [songName, setSongName] = useState(null);
   const [artistName, setArtistName] = useState(null);
@@ -431,6 +436,8 @@ function NewSongColumnA({
   const navigate = useNavigate();
   const hasSaved = useRef(false);
   const addedSongName = useRef(null);
+  const [touchVideosOpen, setTouchVideosOpen] = useState(false);
+  const [touchSetlistsOpen, setTouchSetlistsOpen] = useState(false);
   const hasInstrumentLinks = [
     guitar01,
     guitar02,
@@ -745,7 +752,182 @@ function NewSongColumnA({
   };
 
   return (
-    <>
+    touchLayout ? (
+      <>
+        <div className="rounded-[20px] bg-[#e0e0e0] p-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between"
+            onClick={onToggleSongData}
+          >
+            <h2 className="text-[1.55rem] font-black tracking-tight text-black">Song Data</h2>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f8f8f8] text-black">
+              {songDataOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
+            </span>
+          </button>
+
+          {songDataOpen ? (
+            <div className="mt-3">
+              <NewSongSongData
+                songName={isLoadingData ? "Carregando..." : songName}
+                artistName={isLoadingData ? "Carregando..." : artistName}
+                capoData={capoData}
+                tomData={tomData}
+                tunerData={tunerData}
+                fistTime={addedInDATE}
+                lastTime={addedInDATE}
+                touchLayout
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-4 [&_.neuphormism-b-btn-flat]:!m-0 [&_.neuphormism-b-btn-flat]:!rounded-[20px] [&_.neuphormism-b-btn-flat]:!border-0 [&_.neuphormism-b-btn-flat]:!bg-[#e0e0e0] [&_.neuphormism-b-btn-flat]:!px-3 [&_.neuphormism-b-btn-flat]:!py-3 [&_.neuphormism-b-btn-flat]:!shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+          <GeralProgressBar geralPercentage={geralPercentage} />
+        </div>
+
+        {middleContent}
+
+        <div className="mt-4 rounded-[20px] bg-[#e0e0e0] p-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+          <h2 className="text-[1.55rem] font-black tracking-tight text-black">Media & Setlist</h2>
+
+          <div className="mt-3 space-y-3">
+            <div className="rounded-[18px] bg-[#f8f8f8] p-3">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between"
+                onClick={() => setTouchVideosOpen((current) => !current)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ececec] text-black">
+                    <FaVideo className="text-sm" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-lg font-black text-black">Videos</div>
+                    <div className="text-xs font-bold text-[#2f6f3e]">
+                      {embedLink.length} videos added
+                    </div>
+                  </div>
+                </div>
+                {touchVideosOpen ? <FaChevronUp className="text-sm text-gray-500" /> : <FaChevronDown className="text-sm text-gray-500" />}
+              </button>
+            </div>
+
+            <div className="rounded-[18px] bg-[#f8f8f8] p-3">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between"
+                onClick={() => setTouchSetlistsOpen((current) => !current)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ececec] text-black">
+                    <FaListUl className="text-sm" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-lg font-black text-black">Setlist</div>
+                    <div className="text-xs font-bold text-[#2f6f3e]">
+                      {setlist.length} setlists selected
+                    </div>
+                  </div>
+                </div>
+                {touchSetlistsOpen ? <FaChevronUp className="text-sm text-gray-500" /> : <FaChevronDown className="text-sm text-gray-500" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {touchVideosOpen ? (
+          <div className="fixed inset-0 z-[110] bg-black/25">
+            <button
+              type="button"
+              className="absolute inset-0 h-full w-full cursor-default"
+              onClick={() => setTouchVideosOpen(false)}
+              aria-label="Close videos modal"
+            />
+            <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <div className="text-[2rem] font-black tracking-tight text-black">Videos</div>
+                  <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
+                    Add a video URL for this song.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                  onClick={() => setTouchVideosOpen(false)}
+                >
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none [&_.neuphormism-b-btn]:!rounded-[14px] [&_.neuphormism-b-btn]:!bg-white [&_.neuphormism-b-btn]:!shadow-none">
+                <NewSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {touchSetlistsOpen ? (
+          <div className="fixed inset-0 z-[110] bg-black/25">
+            <button
+              type="button"
+              className="absolute inset-0 h-full w-full cursor-default"
+              onClick={() => setTouchSetlistsOpen(false)}
+              aria-label="Close setlist modal"
+            />
+            <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <div className="text-[2rem] font-black tracking-tight text-black">Setlist</div>
+                  <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
+                    Select existing tags or create a new one for this song.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                  onClick={() => setTouchSetlistsOpen(false)}
+                >
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
+                <NewSongSetlist
+                  setlistOptions={setListOptions}
+                  setSetlistOptions={setSetListOptions}
+                  setlist={setlist}
+                  setSetlist={setSetlist}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            className="rounded-[16px] border border-[#f0b6ae] bg-[#fff4f2] px-4 py-3 text-lg font-black text-[#d13b2f]"
+            onClick={() => {
+              deleteOneSong(artistName, songName);
+              hasSaved.current = true;
+              addedSongName.current = null;
+              navigate("/");
+            }}
+          >
+            Discard
+          </button>
+          <button
+            className="rounded-[16px] bg-[goldenrod] px-4 py-3 text-lg font-black text-black disabled:opacity-50"
+            onClick={() => {
+              createNewSong({ geralPercentage, setlist });
+            }}
+            disabled={!canSaveSong}
+          >
+            Save Song
+          </button>
+        </div>
+      </>
+    ) : (
+      <>
       <NewSongSongData
         songName={isLoadingData ? "Carregando..." : songName}
         artistName={isLoadingData ? "Carregando..." : artistName}
@@ -788,7 +970,8 @@ function NewSongColumnA({
           Discard
         </button>
       </div>
-    </>
+      </>
+    )
   );
 }
 

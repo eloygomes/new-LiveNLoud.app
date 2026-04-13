@@ -7,7 +7,7 @@ import { requestData } from "../../Tools/Controllers"; // ⬅️ importa do Cont
 function NewSong() {
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
-  const [mobileSection, setMobileSection] = useState("SONG DATA");
+  const [songDataOpen, setSongDataOpen] = useState(false);
   // Column A
   const [artistExtractedFromUrl, setArtistExtractedFromUrl] = useState();
   const [songExtractedFromUrl, setSongExtractedFromUrl] = useState();
@@ -93,38 +93,16 @@ function NewSong() {
         </div>
 
         <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
-          <div className="rounded-[24px] bg-[#e0e0e0] px-4 py-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-            <div className="text-[1.9rem] font-black tracking-tight text-black">
-              NEW SONG
+          <div className="origin-top">
+            <div className="rounded-[20px] bg-[#e0e0e0] px-4 py-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+              <div className="text-[1.9rem] font-black tracking-tight text-black">
+                NEW SONG
+              </div>
+              <div className="mt-1 text-sm font-semibold text-gray-500">
+                Register the song and its instrument links here.
+              </div>
             </div>
-            <div className="mt-1 text-sm font-semibold text-gray-500">
-              Register a new song with the touch editor flow.
-            </div>
-          </div>
 
-          <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-            <div className="grid grid-cols-2 gap-3">
-              {["SONG DATA", "INPUT LINKS"].map((section) => {
-                const active = section === mobileSection;
-                return (
-                  <button
-                    key={section}
-                    type="button"
-                    className={`rounded-[16px] px-4 py-3 text-[11px] font-black uppercase tracking-[0.14em] ${
-                      active
-                        ? "bg-[goldenrod] text-black"
-                        : "bg-[#f0f0f0] text-gray-500"
-                    }`}
-                    onClick={() => setMobileSection(section)}
-                  >
-                    {section}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {mobileSection === "SONG DATA" ? (
             <div className="mt-4">
               <NewSongColumnA
                 dataFromUrl={dataFromUrl}
@@ -148,55 +126,59 @@ function NewSong() {
                 setShowSnackBar={setShowSnackBar}
                 setSnackbarMessage={setSnackbarMessage}
                 scrapeStatus={scrapeStatus}
+                touchLayout
+                songDataOpen={songDataOpen}
+                onToggleSongData={() => setSongDataOpen((current) => !current)}
+                middleContent={
+                  <NewSongColumnB
+                    guitar01={guitar01}
+                    setGuitar01={setGuitar01}
+                    guitar02={guitar02}
+                    setGuitar02={setGuitar02}
+                    bass={bass}
+                    setBass={setBass}
+                    keyboard={key}
+                    setKey={setKey}
+                    drums={drums}
+                    setDrums={setDrums}
+                    voice={voice}
+                    setVoice={setVoice}
+                    progBarG01={progBarG01}
+                    setProgBarG01={setProgBarG01}
+                    progBarG02={progBarG02}
+                    setProgBarG02={setProgBarG02}
+                    progBarBass={progBarBass}
+                    setProgBarBass={setProgBarBass}
+                    progBarKey={progBarKey}
+                    setProgBarKey={setProgBarKey}
+                    progBarDrums={progBarDrums}
+                    setProgBarDrums={setProgBarDrums}
+                    progBarVoice={progBarVoice}
+                    setProgBarVoice={setProgBarVoice}
+                    setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+                    setSongExtractedFromUrl={setSongExtractedFromUrl}
+                    gettingSongData={gettingSongData}
+                    setShowSnackBar={setShowSnackBar}
+                    setSnackbarMessage={setSnackbarMessage}
+                    dataFromUrl={dataFromUrl}
+                    setSongScrapado={setSongScrapado}
+                    setArtistScrapado={setArtistScrapado}
+                    cifraExiste={cifraExiste}
+                    setCifraExiste={setCifraExiste}
+                    setCifraFROMDB={setCifraFROMDB}
+                    cifraFROMDB={cifraFROMDB}
+                    artistName={artistName}
+                    setArtistName={setArtistName}
+                    songName={songName}
+                    setSongName={setSongName}
+                    setScrapeStatus={handleScrapeStatus}
+                    onLinkAdded={() => setSongDataOpen(true)}
+                    touchLayout
+                  />
+                }
               />
             </div>
-          ) : (
-            <div className="mt-4">
-              <NewSongColumnB
-                guitar01={guitar01}
-                setGuitar01={setGuitar01}
-                guitar02={guitar02}
-                setGuitar02={setGuitar02}
-                bass={bass}
-                setBass={setBass}
-                keyboard={key}
-                setKey={setKey}
-                drums={drums}
-                setDrums={setDrums}
-                voice={voice}
-                setVoice={setVoice}
-                progBarG01={progBarG01}
-                setProgBarG01={setProgBarG01}
-                progBarG02={progBarG02}
-                setProgBarG02={setProgBarG02}
-                progBarBass={progBarBass}
-                setProgBarBass={setProgBarBass}
-                progBarKey={progBarKey}
-                setProgBarKey={setProgBarKey}
-                progBarDrums={progBarDrums}
-                setProgBarDrums={setProgBarDrums}
-                progBarVoice={progBarVoice}
-                setProgBarVoice={setProgBarVoice}
-                setArtistExtractedFromUrl={setArtistExtractedFromUrl}
-                setSongExtractedFromUrl={setSongExtractedFromUrl}
-                gettingSongData={gettingSongData}
-                setShowSnackBar={setShowSnackBar}
-                setSnackbarMessage={setSnackbarMessage}
-                dataFromUrl={dataFromUrl}
-                setSongScrapado={setSongScrapado}
-                setArtistScrapado={setArtistScrapado}
-                cifraExiste={cifraExiste}
-                setCifraExiste={setCifraExiste}
-                setCifraFROMDB={setCifraFROMDB}
-                cifraFROMDB={cifraFROMDB}
-                artistName={artistName}
-                setArtistName={setArtistName}
-                songName={songName}
-                setSongName={setSongName}
-                setScrapeStatus={handleScrapeStatus}
-              />
-            </div>
-          )}
+          </div>
         </div>
       </>
     );

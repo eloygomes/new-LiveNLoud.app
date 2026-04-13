@@ -1,5 +1,4 @@
-
-// require("dotenv").config(); 
+// require("dotenv").config();
 
 // const express = require("express");
 // const axios = require("axios");
@@ -10,7 +9,6 @@
 // const fs = require('fs');
 // const youtubeRoutes = require("./youtube/youtube.routes");
 // const cookieParser = require("cookie-parser");
-
 
 // // Socket.IO
 // const http = require('http');
@@ -40,7 +38,6 @@
 
 // // Crie o servidor HTTP a partir do Express
 // const server = http.createServer(app);
-
 
 // const io = new Server(server, {
 //   path: '/socket.io',
@@ -128,8 +125,6 @@
 //   });
 // });
 
-
-
 // app.use(cors({
 //   origin: [
 //     "https://www.live.eloygomes.com.br",
@@ -144,7 +139,7 @@
 // }));
 
 // // Middleware para JSON com limite de tamanho adequado
-// app.use(express.json({ limit: "50mb" })); 
+// app.use(express.json({ limit: "50mb" }));
 
 // app.use(cookieParser());
 
@@ -198,7 +193,6 @@
 //   }
 //   next();
 // });
-
 
 // app.post('/api/uploadProfileImage', upload.single('profileImage'), async (req, res) => {
 //   try {
@@ -261,8 +255,6 @@
 //     }
 //   }
 // });
-
-
 
 // app.get('/api/profileImage/:email', async (req, res) => {
 //   try {
@@ -1101,7 +1093,6 @@
 //   }
 // });
 
-
 // // ======================= JWT LOGIN START ============================
 // const jwt = require('jsonwebtoken');
 // const bcrypt = require('bcrypt');
@@ -1121,11 +1112,11 @@
 
 //   try {
 //     const existing = await authCollection.findOne({ email });
-    
+
 //     if (existing) return res.status(400).json({ error: 'Email já registrado' });
 
 //     await authCollection.insertOne({ email, passwordHash: hash,  userdata: ' ',});
-    
+
 //     res.status(201).json({ message: 'Usuário criado com sucesso!' });
 //   } catch (err) {
 //     console.error('Erro ao cadastrar:', err);
@@ -1204,9 +1195,6 @@
 //   res.json({ ok: true, ts: Date.now() });
 // });
 
-
-
-
 // // ---------- helpers p/ normalização ----------
 // const INSTRUMENT_ALLOWED = ['guitar01','guitar02','bass','keys','drums','voice'];
 // const INSTRUMENT_MAP = { keyboard: 'keys', key: 'keys' };
@@ -1259,7 +1247,6 @@
 //   return subdoc;
 // }
 
-
 // (async () => {
 //   const database = client.db('generalCifras');
 //   const collection = database.collection('Documents');
@@ -1283,7 +1270,6 @@
 //   await collection.createIndex({ "instruments.drums": 1 });
 //   await collection.createIndex({ "instruments.voice": 1 });
 // })();
-
 
 // app.put("/api/updateSetlists", async (req, res) => {
 //   try {
@@ -1340,8 +1326,6 @@
 //       .json({ message: "Erro ao atualizar setlists do usuário." });
 //   }
 // });
-
-
 
 // app.get('/api/generalCifra', async (req, res) => {
 //   try {
@@ -1400,7 +1384,6 @@
 //     return res.status(500).json({ message: "Erro interno." });
 //   }
 // });
-
 
 // app.put("/api/song/updateExact", async (req, res) => {
 //   try {
@@ -1482,14 +1465,10 @@
 //   }
 // });
 
-
-
-
 // // Inicie o servidor HTTP (Express + Socket.IO)
 // server.listen(PORT, '0.0.0.0', () => {
 //   console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
 // });
-
 
 // require("dotenv").config();
 
@@ -3161,11 +3140,9 @@ app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     // Erros do Multer
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res
-        .status(400)
-        .json({
-          message: "O tamanho do arquivo excede o limite permitido de 5MB.",
-        });
+      return res.status(400).json({
+        message: "O tamanho do arquivo excede o limite permitido de 5MB.",
+      });
     }
     return res.status(400).json({ message: err.message });
   } else if (err) {
@@ -3434,11 +3411,9 @@ app.post("/api/scrape", async (req, res) => {
         .status(500)
         .json({ message: "Nenhuma resposta recebida da API Python" });
     }
-    return res
-      .status(500)
-      .json({
-        message: "Erro na configuração da requisição para a API Python",
-      });
+    return res.status(500).json({
+      message: "Erro na configuração da requisição para a API Python",
+    });
   }
 });
 

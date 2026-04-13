@@ -5,7 +5,8 @@
   "description": "Add the current song page to LiveNLoud from the browser toolbar.",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://api.live.eloygomes.com/*",

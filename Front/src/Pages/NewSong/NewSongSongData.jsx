@@ -7,7 +7,39 @@ function NewSongSongData({
   tunerData,
   fistTime,
   lastTime,
+  touchLayout = false,
 }) {
+  if (touchLayout) {
+    return (
+      <div className="w-full">
+        <div className="flex flex-col gap-3">
+          <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+            <div className="text-[11px] font-bold uppercase text-gray-500">Artist</div>
+            <div className="mt-1 text-base font-bold text-black">{artistName || "-"}</div>
+          </div>
+          <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+            <div className="text-[11px] font-bold uppercase text-gray-500">Song</div>
+            <div className="mt-1 text-base font-bold text-black">{songName || "-"}</div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+              <div className="text-[11px] font-bold uppercase text-gray-500">Capo</div>
+              <div className="mt-1 text-sm font-bold text-black">{capoData || "-"}</div>
+            </div>
+            <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+              <div className="text-[11px] font-bold uppercase text-gray-500">Tom</div>
+              <div className="mt-1 text-sm font-bold text-black">{tomData || "-"}</div>
+            </div>
+            <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+              <div className="text-[11px] font-bold uppercase text-gray-500">Tuning</div>
+              <div className="mt-1 text-sm font-bold text-black">{tunerData || "-"}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-row neuphormism-b-btn-flat p-5 my-5 mr-5">
       <div className="flex flex-col w-full">

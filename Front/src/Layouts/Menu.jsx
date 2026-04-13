@@ -20,9 +20,14 @@ export default function RootLayouts() {
   const navigate = useNavigate();
   const location = useLocation();
   const isDashboardRoute = location.pathname === "/";
+  const isToolsRoute = location.pathname === "/tools";
+  const isNewSongRoute = location.pathname === "/newsong";
+  const isEditSongRoute = location.pathname.startsWith("/editsong/");
   const isPresentationRoute = location.pathname.startsWith("/presentation/");
   const isTouchDashboardLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
+  const hideFilterOnTouchRoute =
+    isToolsRoute || isNewSongRoute || isEditSongRoute;
   const mobileTabs = [
     { to: "/", label: "Songlist", icon: FaListUl },
     { to: "/newsong", label: "Plus", icon: FaPlusCircle },
@@ -67,30 +72,32 @@ export default function RootLayouts() {
                   className="font-black text-[2rem] tracking-tight"
                   onClick={() => navigate("/")}
                 >
-                  {location.pathname === "/" ? "SONGLIST" : "SUSTENIDO"}
+                  {isDashboardRoute ? "SONGLIST" : "SUSTENIDO"}
                 </h1>
               </div>
 
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  className="relative z-[95] mr-5 rounded-full p-3 neuphormism-b-btn"
-                  onClick={() => {
-                    window.dispatchEvent(
-                      new CustomEvent("dashboard-mobile-close-notifications"),
-                    );
-                    window.dispatchEvent(
-                      new CustomEvent("dashboard-mobile-open-filter"),
-                    );
-                  }}
-                  aria-label="Open filters"
-                >
-                  <FaFilter size={14} />
-                </button>
-                <div className="relative z-[95] rounded-[16px] bg-[#efefef] p-0 shadow-[0_8px_18px_rgba(0,0,0,0.08)]">
-                  <NotificationBell />
+              {!hideFilterOnTouchRoute ? (
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    className="relative z-[95] mr-5 rounded-full p-3 neuphormism-b-btn"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("dashboard-mobile-close-notifications"),
+                      );
+                      window.dispatchEvent(
+                        new CustomEvent("dashboard-mobile-open-filter"),
+                      );
+                    }}
+                    aria-label="Open filters"
+                  >
+                    <FaFilter size={14} />
+                  </button>
+                  <div className="relative z-[95] rounded-[16px] bg-[#efefef] p-0 shadow-[0_8px_18px_rgba(0,0,0,0.08)]">
+                    <NotificationBell />
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </nav>
         )}
@@ -115,7 +122,9 @@ export default function RootLayouts() {
 
                 {/* ====== Botão + input de busca ====== */}
                 <div className="absolute inset-y-0 right-4 top-0 flex items-center gap-4 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                  <NotificationBell />
+                  {!(hideFilterOnTouchRoute && isTouchDashboardLayout) ? (
+                    <NotificationBell />
+                  ) : null}
                   <div className="relative ml-3">
                     <UserProfileModal />
                   </div>
@@ -131,7 +140,8 @@ export default function RootLayouts() {
         <div
           data-scroll-removed-mongo-user="true"
           className={`flex-1 ${
-            isDashboardRoute && !isTouchDashboardLayout
+            (isDashboardRoute && !isTouchDashboardLayout) ||
+            (isToolsRoute && isTouchDashboardLayout)
               ? "overflow-y-hidden"
               : "overflow-y-auto"
           } ${

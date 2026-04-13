@@ -126,6 +126,7 @@ function NewSongInputLinkBox({
   setCifraExiste,
   setCifraFROMDB,
   setScrapeStatus,
+  onLinkAdded,
 }) {
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
   const inFlightRef = useRef(false);
@@ -252,6 +253,7 @@ function NewSongInputLinkBox({
 
           notify("Info", "Essa cifra já está na sua biblioteca.");
           updateScrapeStatus(true);
+          onLinkAdded?.();
           const fresh = await gettingSongData?.();
           console.log("[gettingSongData()] (DB-hit) =>", fresh);
           console.groupEnd();
@@ -352,6 +354,7 @@ function NewSongInputLinkBox({
         notify("Success", "Cifra adicionada com sucesso!");
         setCifraExiste?.(false);
         updateScrapeStatus(true);
+        onLinkAdded?.();
       } catch (err) {
         console.error(`[${instrumentName}] handleSubmit error`, err);
         console.error(`[${instrumentName}] handleSubmit full response`, err?.response?.data);
@@ -389,6 +392,7 @@ function NewSongInputLinkBox({
       primeArtistSongFromLink,
       updateScrapeStatus,
       buildUserErrorMessage,
+      onLinkAdded,
     ]
   );
 
