@@ -1,6 +1,7 @@
 // Tuner.jsx — FRONT exibindo dados do backend, sem afinação manual
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { TuningPresets } from "./TuningPresets";
 
 /* ------------------------------------------------------------------
    🔌 SOCKET
@@ -509,169 +510,220 @@ export default function Tuner() {
     committedRef.current = { name: null };
   };
 
+  const toggleTuner = () => {
+    if (isTuning) {
+      stopRecording();
+      return;
+    }
+    startRecording();
+  };
+
   /* ------------------------ RENDER ------------------------ */
   const needleDeg = useMemo(() => (cents / 50) * 50, [cents]);
-
-  if (isTouchLayout) {
-    return (
-      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
-        <div className="rounded-[24px] bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-            # sustenido
-          </div>
-          <div className="mt-3 text-[2rem] font-black tracking-tight text-black">
-            Tuner
-          </div>
-          <div className="mt-2 text-sm leading-5 text-gray-600">
-            Backend-driven pitch display with the same gauge language as web.
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center justify-between gap-3">
-            <div className="rounded-full bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black">
-              {serverOnlineRef.current
-                ? "Server online"
-                : isTuning
-                  ? "Connecting"
-                  : "Idle"}
-            </div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500">
-              C0 to C8
-            </div>
-          </div>
-
-          <div className="mt-6 text-center">
-            <div className="text-[3.4rem] font-black leading-none text-black">
-              {displayNote ? displayNote.replace(/[0-9]/g, "") : "—"}
-            </div>
-            <div className="mt-2 text-sm font-semibold text-gray-500">
-              {liveFreq ? `${liveFreq.toFixed(1)} Hz` : "No pitch detected"}
-            </div>
-            <div className="mt-4 text-[13px] font-bold text-[goldenrod]">
-              {Math.round(cents)} cents
-            </div>
-          </div>
-
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-white">
-            <div
-              className="h-full rounded-full bg-[goldenrod] transition-all"
-              style={{
-                width: `${Math.max(
-                  0,
-                  Math.min(100, ((cents + 50) / 100) * 100),
-                )}%`,
-              }}
-            />
-          </div>
-
-          <button
-            type="button"
-            className={`mt-6 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] ${
-              isTuning
-                ? "bg-black text-[goldenrod]"
-                : "bg-[goldenrod] text-black"
-            }`}
-            onClick={toggleTuner}
-          >
-            {isTuning ? "Stop Listening" : "Start Listening"}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const standardTuning = TuningPresets["Standard (E A D G B E)"] || [];
+  const noteLabel = displayNote ? displayNote.replace(/[0-9]/g, "") : "—";
+  const centsWidth = Math.max(0, Math.min(100, ((cents + 50) / 100) * 100));
+  const tunerStatus = serverOnlineRef.current
+    ? "Server online"
+    : isTuning
+      ? "Connecting"
+      : "Idle";
 
   return (
-    <div className="flex justify-center h-screen ">
-      <div className="container mx-auto">
-        <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
-          {/* Header */}
-          <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">TUNER</h1>
-            <div className="ml-auto flex items-center gap-3">
-              <button
-                className="neuphormism-b-se px-4 py-2"
-                onClick={() => {
-                  if (!isTuning) startRecording();
-                  else stopRecording();
-                }}
-              >
-                {isTuning ? "Stop Listening" : "Start Listening..."}
-              </button>
+    <div
+      className={`min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-10 pt-4 sm:px-5 lg:px-8 ${
+        isTouchLayout ? "pb-28" : ""
+      }`}
+    >
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 lg:gap-5">
+        <section className="bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-6 neuphormism-b">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+            # sustenido
+          </p>
+          <h1 className="mt-3 text-3xl font-black uppercase tracking-tight text-black sm:text-[2.4rem]">
+            Tuner
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-[#697180] sm:text-[15px]">
+            Live pitch detection with a clean gauge, frequency readout, and a
+            quick standard tuning reference.
+          </p>
+        </section>
+
+        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
+          <section className="order-1 flex min-h-[680px] flex-col rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:min-h-[760px] sm:p-5 neuphormism-b">
+            <div className="flex flex-col gap-4">
+              <div className="rounded-[24px] bg-[linear-gradient(145deg,#f4f4f4,#dddddd)] px-4 py-4 shadow-[6px_6px_14px_rgba(190,190,190,0.55),-6px_-6px_14px_rgba(255,255,255,0.9)] sm:px-5">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.32em] text-[goldenrod]">
+                      Listening
+                    </p>
+                    <h2 className="mt-2 break-words text-3xl font-black leading-none text-black sm:text-[2.35rem]">
+                      {noteLabel}
+                    </h2>
+                  </div>
+                  <span className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)] neuphormism-b">
+                    {tunerStatus}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                  {
+                    label: "Frequency",
+                    value: liveFreq ? `${liveFreq.toFixed(1)} Hz` : "No signal",
+                  },
+                  {
+                    label: "Cents",
+                    value: `${Math.round(cents)} cents`,
+                  },
+                  {
+                    label: "Range",
+                    value: "C0 to C8",
+                  },
+                  {
+                    label: "Mode",
+                    value: isTuning ? "Listening" : "Standby",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded bg-[#efefef] px-3 py-3 text-center shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] neuphormism-b sm:px-4"
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#697180] sm:text-[11px] sm:tracking-[0.2em]">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 break-words text-xs font-black text-black sm:text-sm">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* DISPLAY */}
-          <div className="flex flex-row my-5 neuphormism-b p-5">
-            <div className="flex flex-col justify-start w-[90%] mx-auto rounded-md mb-2">
-              <div className="p-10 w-[90%] mx-auto rounded-md mb-2 neuphormism-b">
-                <div className="flex flex-col items-center justify-center select-none">
-                  {/* Linha superior (indicativa) */}
-                  <div className="flex items-end gap-6 mb-2 text-gray-500">
-                    <span className="text-3xl opacity-40">A#</span>
-                    <span className="text-4xl opacity-60">B</span>
-                    <span className="text-[110px] leading-none text-red-500 font-semibold">
-                      {displayNote ? displayNote.replace(/[0-9]/g, "") : "—"}
-                    </span>
-                    <span className="text-4xl opacity-60">C#</span>
-                    <span className="text-3xl opacity-40">D</span>
-                  </div>
+            <div className="mt-5 flex flex-1 flex-col rounded-[24px] bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_8px_18px_rgba(0,0,0,0.05)] sm:min-h-[520px] sm:p-5">
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <div className="flex items-end gap-3 text-gray-500 sm:gap-6">
+                  <span className="text-lg opacity-40 sm:text-3xl">A#</span>
+                  <span className="text-2xl opacity-60 sm:text-4xl">B</span>
+                  <span className="text-[72px] font-semibold leading-none text-[goldenrod] sm:text-[110px]">
+                    {noteLabel}
+                  </span>
+                  <span className="text-2xl opacity-60 sm:text-4xl">C#</span>
+                  <span className="text-lg opacity-40 sm:text-3xl">D</span>
+                </div>
 
-                  {/* Frequência do backend */}
-                  <div className="text-lg mb-6 opacity-80">
-                    {liveFreq ? `${liveFreq.toFixed(1)} Hz` : "—"}
-                  </div>
+                <div className="mt-3 text-sm font-semibold text-[#697180] sm:text-lg">
+                  {liveFreq ? `${liveFreq.toFixed(1)} Hz` : "No pitch detected"}
+                </div>
 
-                  {/* Gauge */}
-                  <div className="relative w-[320px] h-[170px]">
-                    <div className="absolute inset-0 top-[20px] flex items-end justify-center">
-                      <div className="w-[300px] h-[150px] rounded-t-[300px] border-t-2 border-l-2 border-r-2 border-gray-600 relative">
-                        {[...Array(9)].map((_, i) => {
-                          const angle = -50 + (i * 100) / 8;
-                          return (
-                            <div
-                              key={i}
-                              className="absolute w-[2px] h-5 origin-bottom left-1/2"
-                              style={{
-                                bottom: -2,
-                                transform: `translateX(-50%) rotate(${
-                                  (angle / 50) * 50
-                                }deg) translateY(-4px)`,
-                                opacity: i === 4 ? 1 : 0.6,
-                              }}
-                            />
-                          );
-                        })}
-                        <div className="absolute left-2 top-2 text-gray-500">
-                          ♭
-                        </div>
-                        <div className="absolute right-2 top-2 text-gray-500">
-                          ♯
-                        </div>
-                        <div className="absolute left-1/2 -translate-x-1/2 top-1 text-gray-400">
-                          ||
-                        </div>
+                <div className="mt-8 relative h-[150px] w-[280px] sm:h-[170px] sm:w-[320px]">
+                  <div className="absolute inset-0 top-[20px] flex items-end justify-center">
+                    <div className="relative h-[130px] w-[260px] rounded-t-[260px] border-t-2 border-l-2 border-r-2 border-gray-600 sm:h-[150px] sm:w-[300px] sm:rounded-t-[300px]">
+                      {[...Array(9)].map((_, i) => {
+                        const angle = -50 + (i * 100) / 8;
+                        return (
+                          <div
+                            key={i}
+                            className="absolute left-1/2 h-5 w-[2px] origin-bottom"
+                            style={{
+                              bottom: -2,
+                              transform: `translateX(-50%) rotate(${
+                                (angle / 50) * 50
+                              }deg) translateY(-4px)`,
+                              opacity: i === 4 ? 1 : 0.6,
+                            }}
+                          />
+                        );
+                      })}
+                      <div className="absolute left-2 top-2 text-gray-500">
+                        ♭
+                      </div>
+                      <div className="absolute right-2 top-2 text-gray-500">
+                        ♯
+                      </div>
+                      <div className="absolute left-1/2 top-1 -translate-x-1/2 text-gray-400">
+                        ||
                       </div>
                     </div>
+                  </div>
 
-                    <div
-                      className="absolute left-1/2 bottom-[10px] w-1 h-[135px] origin-bottom"
-                      style={{
-                        transform: `translateX(-50%) rotate(${needleDeg}deg)`,
-                      }}
-                    >
-                      <div className="w-[2px] h-full bg-red-500" />
-                    </div>
+                  <div
+                    className="absolute bottom-[10px] left-1/2 h-[116px] w-1 origin-bottom sm:h-[135px]"
+                    style={{
+                      transform: `translateX(-50%) rotate(${needleDeg}deg)`,
+                    }}
+                  >
+                    <div className="h-full w-[2px] bg-red-500" />
                   </div>
                 </div>
               </div>
 
-              {/* Rodapé simples C0–C8 (informativo) */}
-              <div className="w-[90%] mx-auto text-center text-sm opacity-60">
-                Faixa exibida: C0 (16.35 Hz) até C8 (4186.01 Hz)
+              <div className="mt-4 min-h-[120px]">
+                <div className="h-full rounded-[22px] p-4 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm leading-6 text-[#4e5563]">
+                      Range displayed: C0 ({MIN_UI_FREQ} Hz) to C8 ({MAX_UI_FREQ}{" "}
+                      Hz).
+                    </p>
+                    <p className="text-sm leading-6 text-[#4e5563]">
+                      Use a sustained note and keep the mic close for steadier
+                      readings.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+
+            <button
+              className={`mt-4 w-full rounded px-4 py-3 text-[12px] font-black uppercase tracking-[0.16em] transition ${
+                isTuning
+                  ? "bg-black text-[goldenrod]"
+                  : "bg-[goldenrod] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
+              }`}
+              type="button"
+              onClick={toggleTuner}
+            >
+              {isTuning ? "Stop listening" : "Start listening"}
+            </button>
+          </section>
+
+          <section className="order-2 rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-5 neuphormism-b">
+            <p className="text-lg font-black uppercase text-black">
+              Standard tuning
+            </p>
+            <div className="mt-4 grid gap-3">
+              {standardTuning.map((item, index) => (
+                <div
+                  key={`${item.name}-${index}`}
+                  className="rounded-[22px] bg-[#efefef] p-4 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-black">
+                        String {index + 1}
+                      </p>
+                      <p className="mt-1 text-sm font-extrabold text-[#697180]">
+                        {item.name}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)]">
+                      {item.freq.toFixed(2)} Hz
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-[22px] bg-[#efefef] p-4 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]">
+              <p className="text-sm leading-6 text-[#4e5563]">
+                The tuner UI follows the same card layout as the chord library,
+                with the live note on the main panel and a quick reference panel
+                alongside it.
+              </p>
+            </div>
+          </section>
         </div>
       </div>
     </div>

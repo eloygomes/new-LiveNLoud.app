@@ -32,9 +32,11 @@ function ToolBox({
   decreaseTouchFontSize,
   increaseTouchFontSize,
   onVideoModalChange,
+  linktoplay,
+  setLinktoplay,
+  videoModalStatus,
+  setVideoModalStatus,
 }) {
-  const [linktoplay, setLinktoplay] = useState("");
-  const [videoModalStatus, setVideoModalStatus] = useState(false);
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
 
@@ -45,7 +47,7 @@ function ToolBox({
 
   return (
     <>
-      {linktoplay && videoModalStatus ? (
+      {!isTouchLayout && linktoplay && videoModalStatus ? (
         <div className="fixed right-4 bottom-4 z-[60]">
           <VideoDragComp toolBoxBtnStatus={toolBoxBtnStatus}>
             <ToolBoxYT

@@ -11,6 +11,7 @@ import {
 import { useRef } from "react";
 import SnackBar from "../../Tools/SnackBar";
 import MobileSnackBar from "../../Tools/MobileSnackBar";
+import ToolBoxYT from "./ToolBoxYT";
 
 import { processSongCifra } from "./ProcessSongCifra";
 import PresentationChordTooltip, {
@@ -191,6 +192,9 @@ function Presentation() {
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [touchVideoLink, setTouchVideoLink] = useState("");
+  const [isTouchVideoActive, setIsTouchVideoActive] = useState(false);
+  const [isTouchVideoMenuOpen, setIsTouchVideoMenuOpen] = useState(false);
   const liveModeRootRef = useRef(null);
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
@@ -761,6 +765,13 @@ function Presentation() {
     setIsLiveMode(false);
   };
 
+  const closeTouchVideo = useCallback(() => {
+    setTouchVideoLink("");
+    setIsTouchVideoActive(false);
+    setIsVideoModalOpen(false);
+    setIsTouchVideoMenuOpen(false);
+  }, []);
+
   return (
     <div
       ref={liveModeRootRef}
@@ -809,6 +820,10 @@ function Presentation() {
             setTouchFontSizeStep((current) => Math.min(4, current + 1))
           }
           onVideoModalChange={setIsVideoModalOpen}
+          linktoplay={touchVideoLink}
+          setLinktoplay={setTouchVideoLink}
+          videoModalStatus={isTouchVideoActive}
+          setVideoModalStatus={setIsTouchVideoActive}
         />
       )}
       <div
@@ -834,24 +849,50 @@ function Presentation() {
               }`}
             >
               <div className="min-w-0 flex-1 flex-col">
-                <h1
-                  className={`font-bold text-black ${
-                    isTouchLayout
-                      ? getMobileTitleSizeClass(songFromURL, "song")
-                      : "text-4xl"
-                  }`}
-                >
-                  {songFromURL}
-                </h1>
-                <h1
-                  className={`font-bold text-black ${
-                    isTouchLayout
-                      ? getMobileTitleSizeClass(artistFromURL, "artist")
-                      : "text-4xl"
-                  }`}
-                >
-                  {artistFromURL}
-                </h1>
+                {isTouchLayout && isTouchVideoActive ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+                          Video Active
+                        </div>
+                        <div className="truncate text-[1rem] font-bold leading-[1.15rem] text-black/70">
+                          {songFromURL} • {artistFromURL}
+                        </div>
+                      </div>
+                    </div>
+                    <ToolBoxYT
+                      linktoplay={touchVideoLink}
+                      setVideoModalStatus={setIsTouchVideoActive}
+                      setLinktoplay={setTouchVideoLink}
+                      isTouchLayout
+                      onVideoModalChange={setIsVideoModalOpen}
+                      renderInline
+                      iframeHeight={208}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <h1
+                      className={`font-bold text-black ${
+                        isTouchLayout
+                          ? getMobileTitleSizeClass(songFromURL, "song")
+                          : "text-4xl"
+                      }`}
+                    >
+                      {songFromURL}
+                    </h1>
+                    <h1
+                      className={`font-bold text-black ${
+                        isTouchLayout
+                          ? getMobileTitleSizeClass(artistFromURL, "artist")
+                          : "text-4xl"
+                      }`}
+                    >
+                      {artistFromURL}
+                    </h1>
+                  </>
+                )}
               </div>
               <div
                 className={`flex ${
@@ -875,18 +916,22 @@ function Presentation() {
                   className={`flex items-center justify-center neuphormism-b-btn ${
                     isTouchLayout &&
                     !toolBoxBtnStatus &&
-                    (isEditing || isVideoModalOpen)
+                    (isEditing || isVideoModalOpen || isTouchVideoActive)
                       ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
                       : ""
                   } ${
                     isTouchLayout ? "px-4 py-3" : "p-6"
                   }`}
-                  onClick={() =>
+                  onClick={() => {
+                    if (isTouchLayout && isTouchVideoActive) {
+                      setIsTouchVideoMenuOpen(true);
+                      return;
+                    }
                     toolBoxBtnStatusChange(
                       toolBoxBtnStatus,
                       setToolBoxBtnStatus,
-                    )
-                  }
+                    );
+                  }}
                 >
                   <FaGear className={isTouchLayout ? "h-5 w-5" : "w-8 h-8"} />
                 </div>
@@ -935,6 +980,39 @@ function Presentation() {
             </div>
           ) : null}
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
+
+          {isTouchLayout && isTouchVideoActive && isTouchVideoMenuOpen ? (
+            <div className="fixed inset-0 z-[120] bg-black/30">
+              <button
+                type="button"
+                className="absolute inset-0 h-full w-full cursor-default"
+                onClick={() => setIsTouchVideoMenuOpen(false)}
+                aria-label="Close video options"
+              />
+              <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="text-[1.4rem] font-black tracking-tight text-black">
+                    Video
+                  </div>
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                    onClick={() => setIsTouchVideoMenuOpen(false)}
+                    aria-label="Close video options"
+                  >
+                    <IoClose className="h-5 w-5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="w-full rounded-[16px] bg-white px-4 py-4 text-left text-base font-black text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
+                  onClick={closeTouchVideo}
+                >
+                  Close video
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div
             ref={presentationContentRef}
