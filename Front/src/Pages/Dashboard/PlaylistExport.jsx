@@ -4,6 +4,7 @@ import { FaSpotify, FaYoutube } from "react-icons/fa";
 
 import { pickJwtToken, startYouTubeLoginPopup } from "./youtubeAuth";
 import { startSpotifyLogin } from "./spotifyAuth";
+import { formatDisplayDate } from "../../Tools/dateFormat";
 
 function normalizeSongsForExport(list = []) {
   // Backend expects: [{ song, artist }]
@@ -20,7 +21,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
   const disabled = !visibleSongs?.length;
 
   const defaultName = useMemo(() => {
-    const date = new Date().toLocaleDateString("pt-BR");
+    const date = formatDisplayDate(new Date());
     const count = visibleSongs?.length || 0;
     return `Sustenido • ${count} músicas • ${date}`;
   }, [visibleSongs]);
@@ -364,29 +365,26 @@ export default function PlaylistExport({ visibleSongs = [] }) {
         : "";
 
   return (
-    <div className="neuphormism-b m-2">
-      <div className="px-5 py-4 flex flex-col neuphormism-b m-2">
-        <h1 className=" pb-2 text-sm pt-3 font-bold text-md uppercase">
-          Playlists
-        </h1>
+    <section className="neuphormism-b p-4">
+      <div className="flex flex-col">
+        <h1 className="text-sm font-black uppercase">Playlists</h1>
 
         {mode === "idle" && (
           <>
-            <p className="text-[11px] pb-3">
-              Crie uma playlist automaticamente com as músicas visíveis usando
-              sua conta.
+            <p className="mt-1 pb-3 text-[11px] font-semibold text-gray-500">
+              Create a playlist automatically with the visible songs.
             </p>
 
             {!!statusLine && (
               <p className="text-[11px] pb-3 text-gray-500">{statusLine}</p>
             )}
 
-            <div className="flex flex-row flex-wrap gap-3">
+            <div className="flex flex-row flex-wrap gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => goToNaming("spotify")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
+                className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-white"
@@ -401,7 +399,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("youtube")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-transform
+                className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-white"
@@ -495,6 +493,6 @@ export default function PlaylistExport({ visibleSongs = [] }) {
           </>
         )}
       </div>
-    </div>
+    </section>
   );
 }

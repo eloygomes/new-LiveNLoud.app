@@ -9,13 +9,7 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "../Tools/Controllers";
-
-function formatNotificationDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
-}
+import { formatDisplayDateTime } from "../Tools/dateFormat";
 
 function closeAllModals() {
   window.dispatchEvent(new CustomEvent("close-all-modals"));
@@ -104,6 +98,7 @@ export default function NotificationBell() {
 
     document.addEventListener("mousedown", handleOutsideClick);
     window.addEventListener("dashboard-mobile-close-notifications", handleForceClose);
+    window.addEventListener("close-all-modals", handleForceClose);
 
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
@@ -111,10 +106,18 @@ export default function NotificationBell() {
         "dashboard-mobile-close-notifications",
         handleForceClose,
       );
+      window.removeEventListener("close-all-modals", handleForceClose);
     };
   }, []);
 
   const handleOpen = async () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+
+    closeAllModals();
+
     const button = bellRef.current?.querySelector("button");
     if (button) {
       const rect = button.getBoundingClientRect();
@@ -124,22 +127,14 @@ export default function NotificationBell() {
       });
     }
 
-    if (!open) {
-      if (window.innerWidth <= 1024) {
-        window.dispatchEvent(
-          new CustomEvent("dashboard-mobile-close-filter"),
-        );
-      }
-
-      try {
-        const nextNotifications = await fetchNotifications();
-        setNotifications(nextNotifications);
-      } catch (error) {
-        console.error("Failed to refresh notifications:", error);
-      }
+    try {
+      const nextNotifications = await fetchNotifications();
+      setNotifications(nextNotifications);
+    } catch (error) {
+      console.error("Failed to refresh notifications:", error);
     }
 
-    setOpen((current) => !current);
+    setOpen(true);
   };
 
   const handleMarkAll = async () => {
@@ -169,7 +164,7 @@ export default function NotificationBell() {
   };
 
   return (
-    <div className="relative z-[10001]" ref={bellRef}>
+    <div className="relative z-[10020]" ref={bellRef}>
       <button
         type="button"
         className="relative neuphormism-b-btn p-3 rounded-full"
@@ -186,7 +181,7 @@ export default function NotificationBell() {
 
       {open ? (
         <div
-          className="fixed w-[340px] max-w-[calc(100vw-2rem)] neuphormism-b p-4 z-[10020] shadow-2xl"
+          className="fixed z-[12000] w-[340px] max-w-[calc(100vw-2rem)] neuphormism-b p-4 shadow-2xl"
           style={panelStyle}
         >
           <div className="flex items-center justify-between gap-3">
@@ -255,7 +250,7 @@ export default function NotificationBell() {
                     ) : null}
                   </div>
                   <p className="text-[11px] text-gray-500 mt-3">
-                    {formatNotificationDate(notification.createdAt)}
+                    {formatDisplayDateTime(notification.createdAt)}
                   </p>
                 </button>
               ))

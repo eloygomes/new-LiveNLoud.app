@@ -6,13 +6,7 @@ import {
   revokeFriendship,
   respondToInvitation,
 } from "../../../Tools/Controllers";
-
-function formatInviteDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
-}
+import { formatDisplayDateTime } from "../../../Tools/dateFormat";
 
 function InvitationCard({ invitation, isIncoming, onRespond }) {
   return (
@@ -28,7 +22,7 @@ function InvitationCard({ invitation, isIncoming, onRespond }) {
             {invitation.message || "No message attached."}
           </p>
           <p className="text-[11px] text-gray-500 mt-2">
-            {formatInviteDate(invitation.createdAt)}
+            {formatDisplayDateTime(invitation.createdAt)}
           </p>
         </div>
         <span className="text-[11px] font-semibold uppercase px-2 py-1 rounded-full bg-white">
@@ -297,7 +291,7 @@ export default function Invitations() {
                   </div>
                 ) : null}
                 <div className="text-[11px] text-gray-500 mt-3">
-                  Friends since {formatInviteDate(friend.acceptedAt)}
+                  Friends since {formatDisplayDateTime(friend.acceptedAt)}
                 </div>
                 <button
                   type="button"

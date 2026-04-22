@@ -14,7 +14,6 @@ import {
 import PlaylistExport from "./PlaylistExport";
 import SetlistExport from "./SetlistExport";
 import Insights from "./Insights";
-import SearchBox from "./SearchBox/SearchBox";
 import Tags from "./Tags";
 
 const instrumentLabels = [
@@ -26,13 +25,84 @@ const instrumentLabels = [
   { key: "voice", label: "V" },
 ];
 
+const columnOptions = [
+  { key: "progression", label: "Progression" },
+  { key: "tags", label: "Tags / Setlists" },
+  { key: "videos", label: "Videos" },
+  { key: "instruments", label: "Instruments" },
+  { key: "addedDate", label: "Date added" },
+  { key: "lastPlay", label: "Last play" },
+];
+
+function ColumnsData({
+  visibleColumns = [],
+  onToggleColumn = () => {},
+  canSelectAllColumns = false,
+}) {
+  const allColumnsSelected = columnOptions.every((option) =>
+    visibleColumns.includes(option.key),
+  );
+  const maxColumnsReached =
+    !canSelectAllColumns && visibleColumns.length >= columnOptions.length - 1;
+
+  return (
+    <section className="neuphormism-b p-4">
+      <div>
+        <h1 className="text-sm font-black uppercase">Columns Data</h1>
+        <p className="mt-1 text-[11px] font-semibold text-gray-500">
+          Number, song and artist are always visible
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {columnOptions.map(({ key, label }) => {
+          const checked = visibleColumns.includes(key);
+          const disabled = !checked && (allColumnsSelected || maxColumnsReached);
+
+          return (
+          <label
+            key={key}
+            className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
+              disabled ? "opacity-50" : "cursor-pointer"
+            }`}
+          >
+            <span className="text-[12px] font-black uppercase text-gray-700">
+              {label}
+            </span>
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={checked}
+              disabled={disabled}
+              onChange={() => onToggleColumn(key)}
+            />
+            <span
+              className={`relative inline-flex h-6 w-11 items-center rounded-full shadow-inner ${
+                checked ? "bg-[goldenrod]" : "bg-gray-400"
+              }`}
+            >
+              <span
+                className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  checked ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </span>
+          </label>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function DashboardOptions({
   optStatus,
   setOptStatus,
   onFilterChange,
-  searchTerm = "",
-  setSearchTerm = () => {},
   visibleSongs = [],
+  visibleColumns = [],
+  onToggleColumn = () => {},
+  canSelectAllColumns = false,
 }) {
   const [setlists, setSetlists] = useState([]);
   const [selectedSetlists, setSelectedSetlists] = useState(null);
@@ -45,12 +115,14 @@ export default function DashboardOptions({
     };
 
     window.addEventListener("dashboard-mobile-close-filter", handleCloseFilter);
+    window.addEventListener("close-all-modals", handleCloseFilter);
 
     return () => {
       window.removeEventListener(
         "dashboard-mobile-close-filter",
         handleCloseFilter,
       );
+      window.removeEventListener("close-all-modals", handleCloseFilter);
     };
   }, [setOptStatus]);
 
@@ -112,6 +184,9 @@ export default function DashboardOptions({
       return {
         totalSongs: 0,
         averageProgress: 0,
+        readySongs: 0,
+        emptyProgressSongs: 0,
+        topInstrument: null,
         instrumentCounts: instrumentLabels.map((item) => ({
           ...item,
           count: 0,
@@ -140,6 +215,18 @@ export default function DashboardOptions({
     return {
       totalSongs,
       averageProgress: Math.round(totalProgress / totalSongs),
+      readySongs: visibleSongs.filter(
+        (song) => Number(song.progressBar || 0) >= 100,
+      ).length,
+      emptyProgressSongs: visibleSongs.filter(
+        (song) => Number(song.progressBar || 0) === 0,
+      ).length,
+      topInstrument: instrumentLabels
+        .map((item) => ({
+          ...item,
+          count: countsMap[item.key] || 0,
+        }))
+        .sort((a, b) => b.count - a.count)[0],
       instrumentCounts: instrumentLabels.map((item) => ({
         ...item,
         count: countsMap[item.key] || 0,
@@ -176,16 +263,45 @@ export default function DashboardOptions({
     }
   };
 
+  const handleAddSetlist = async (tag) => {
+    const trimmed = tag.trim();
+    if (!trimmed) return;
+
+    const existingTag = setlists.find(
+      (item) => item.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (existingTag) {
+      if (!selectedSetlists.includes(existingTag)) {
+        setSelectedSetlists((prev) => [...prev, existingTag]);
+      }
+      return;
+    }
+
+    const updatedList = [...setlists, trimmed];
+    setSetlists(updatedList);
+    setSelectedSetlists((prev) =>
+      prev.includes(trimmed) ? prev : [...prev, trimmed],
+    );
+
+    try {
+      await updateUserSetlists(updatedList);
+    } catch (error) {
+      console.error("Erro ao adicionar setlist no servidor:", error);
+      const distinct = await fetchDistinctSetlists();
+      setSetlists(distinct);
+    }
+  };
+
   const closeFilter = () => {
     setOptStatus(false);
   };
 
-  const openFilterClassName = `fixed z-30 overflow-hidden ${
+  const openFilterClassName = `fixed z-[10020] overflow-hidden ${
     optStatus ? "" : "hidden"
   } ${
     isSmallScreen
       ? "inset-0 bg-black/25 px-3 pb-24 pt-[5.5rem]"
-      : "left-1/2 top-[80px] flex h-fit w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14]"
+      : "left-1/2 top-[80px] flex max-h-[calc(100vh-6rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14]"
   }`;
 
   return (
@@ -202,41 +318,39 @@ export default function DashboardOptions({
       <div
         className={
           isSmallScreen
-            ? "relative flex h-full flex-col overflow-hidden rounded-[30px] bg-[#f0f0f0] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+            ? "relative flex h-full flex-col overflow-hidden rounded-md bg-[#f0f0f0] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
             : ""
         }
       >
         <div
           className={`flex flex-row justify-between ${
             isSmallScreen
-              ? "border-b border-black/5 px-5 pb-4 pt-4"
-              : "rounded-t-lg bg-black/10 py-1"
+              ? "border-b border-black/5 px-4 py-3"
+              : " rounded-t-lg px-5 py-2 text-center  text-white font-bold  bg-[#000000]/60 cursor-pointer"
           }`}
         >
           <div className="min-w-0">
             {isSmallScreen ? (
               <button
                 type="button"
-                className="mb-3 flex h-8 w-full items-center justify-center"
+                className=" flex  w-full items-center justify-center"
                 onClick={closeFilter}
                 aria-label="Close filter"
               >
-                <span className="h-1.5 w-12 rounded-full bg-[#c8c8c8]" />
+                {/* <span className="h-1.5 w-12 rounded-full bg-[#c8c8c8]" /> */}
               </button>
             ) : null}
 
             <h1
-              className={`font-bold ${
-                isSmallScreen ? "text-[2rem]" : "px-5 text-md"
-              }`}
+              className={`font-black ${isSmallScreen ? "text-[2rem]" : "text-md"}`}
             >
-              {isSmallScreen ? "TOOLS" : "OPTIONS"}
+              {isSmallScreen ? "FILTER" : "OPTIONS"}
             </h1>
-            {isSmallScreen ? (
+            {/* {isSmallScreen ? (
               <p className="mt-2 text-sm text-gray-600">
                 Choose filters, inspect metrics, and export the visible songs.
               </p>
-            ) : null}
+            ) : null} */}
           </div>
           <button
             type="button"
@@ -255,31 +369,36 @@ export default function DashboardOptions({
           className={
             isSmallScreen
               ? "flex-1 overflow-y-auto px-4 pb-6 pt-4"
-              : "flex flex-row gap-3 overflow-hidden rounded-b-lg bg-slate-100 px-5 py-2"
+              : "overflow-y-auto rounded-b-lg bg-[#e6e6e6] px-5 py-4"
           }
         >
-          <div className={isSmallScreen ? "flex flex-col gap-4" : "flex w-1/2 flex-col"}>
-            <div className={isSmallScreen ? "rounded-[24px] bg-[#e3e3e3] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.06)]" : "neuphormism-b m-2 pb-5"}>
-              <SearchBox searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-            </div>
-
-            <div className={isSmallScreen ? "rounded-[24px] bg-[#e3e3e3] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.06)]" : "neuphormism-b m-2  h-auto"}>
+          <div
+            className={
+              isSmallScreen ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"
+            }
+          >
+            <div className={isSmallScreen ? "hidden" : "col-span-2"}>
               <Insights dashboardMetrics={dashboardMetrics} />
             </div>
 
-            <div className={isSmallScreen ? "rounded-[24px] bg-[#e3e3e3] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.06)]" : "neuphormism-b m-2  pb-4"}>
+            <div>
               <Tags
                 setlists={setlists}
                 selectedSetlists={selectedSetlists}
                 toggleTag={toggleTag}
                 handleDeleteSetlist={handleDeleteSetlist}
+                handleAddSetlist={handleAddSetlist}
                 RiDeleteBin6Line={RiDeleteBin6Line}
               />
             </div>
-          </div>
 
-          <div className={isSmallScreen ? "mt-4 flex flex-col gap-4" : "flex w-1/2 flex-col"}>
-            <div className={isSmallScreen ? "rounded-[24px] bg-[#e3e3e3] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.06)]" : "neuphormism-b m-2 "}>
+            <ColumnsData
+              visibleColumns={visibleColumns}
+              onToggleColumn={onToggleColumn}
+              canSelectAllColumns={canSelectAllColumns}
+            />
+
+            <div>
               <SetlistExport
                 handleExportText={handleExportText}
                 visibleSongs={visibleSongs}
@@ -289,7 +408,7 @@ export default function DashboardOptions({
               />
             </div>
 
-            <div className={isSmallScreen ? "rounded-[24px] bg-[#e3e3e3] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.06)]" : "neuphormism-b m-2 "}>
+            <div>
               <PlaylistExport
                 visibleSongs={visibleSongs}
                 onCreateSpotifyPlaylist={(songs) => {
@@ -310,7 +429,14 @@ export default function DashboardOptions({
               Close Filter
             </button>
           </div>
-        ) : null}
+        ) : (
+          <div
+            className="text-center text-[10px] text-white font-bold rounded-b-md bg-[#000000]/60 cursor-pointer"
+            onClick={closeFilter}
+          >
+            {optStatus ? "HIDE OPTIONS" : "SHOW OPTIONS"}
+          </div>
+        )}
       </div>
     </div>
   );

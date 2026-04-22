@@ -3,13 +3,46 @@ import DashList2Items from "./DashList2Items";
 import DashboardOptions from "./DashboardOptions";
 import { fetchUserSongs } from "../../Tools/Controllers";
 
-function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
+const DEFAULT_VISIBLE_COLUMNS = ["progression", "instruments"];
+const OPTIONAL_COLUMNS = [
+  { key: "progression", label: "PROGRESSION", sortable: "progressBar" },
+  { key: "tags", label: "TAGS" },
+  { key: "videos", label: "VIDEOS" },
+  { key: "instruments", label: "INSTRUMENTS" },
+  { key: "addedDate", label: "DATE ADDED" },
+  { key: "lastPlay", label: "LAST PLAY" },
+];
+
+function DashList2({ searchTerm = "" }) {
   const [isMobile, setIsMobile] = useState(false);
   const [sortColumn, setSortColumn] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
   const [optStatus, setOptStatus] = useState(false);
   const [songs, setSongs] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
+  const [isUserHubOpen, setIsUserHubOpen] = useState(false);
+  const canSelectAllColumns =
+    typeof window !== "undefined" && window.innerWidth >= 1280;
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("dashboardVisibleColumns") || "null",
+      );
+      const validStored = Array.isArray(stored)
+        ? stored.filter((key) =>
+            OPTIONAL_COLUMNS.some((column) => column.key === key),
+          )
+        : [];
+      if (!validStored.length) return DEFAULT_VISIBLE_COLUMNS;
+      return typeof window !== "undefined" &&
+        window.innerWidth < 1280 &&
+        validStored.length === OPTIONAL_COLUMNS.length
+        ? validStored.slice(0, OPTIONAL_COLUMNS.length - 1)
+        : validStored;
+    } catch {
+      return DEFAULT_VISIBLE_COLUMNS;
+    }
+  });
 
   // Carrega as músicas da API
   useEffect(() => {
@@ -31,7 +64,7 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
 
   useEffect(() => {
     const handleOpenMobileFilter = () => {
-      if (window.innerWidth < 840) {
+      if (window.innerWidth <= 1024) {
         setOptStatus(true);
       }
     };
@@ -45,6 +78,24 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
       window.removeEventListener(
         "dashboard-mobile-open-filter",
         handleOpenMobileFilter,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleUserHubVisibilityChange = (event) => {
+      setIsUserHubOpen(Boolean(event.detail?.open));
+    };
+
+    window.addEventListener(
+      "userhub-visibility-change",
+      handleUserHubVisibilityChange,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "userhub-visibility-change",
+        handleUserHubVisibilityChange,
       );
     };
   }, []);
@@ -92,15 +143,48 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
     }
   };
 
+  const toggleOptions = () => {
+    if (!optStatus) {
+      window.dispatchEvent(new CustomEvent("close-all-modals"));
+    }
+    setOptStatus((current) => !current);
+  };
+
+  const handleToggleColumn = (columnKey) => {
+    setVisibleColumns((current) => {
+      const isSelected = current.includes(columnKey);
+      const next = isSelected
+        ? current.filter((key) => key !== columnKey)
+        : [...current, columnKey];
+
+      if (!canSelectAllColumns && next.length === OPTIONAL_COLUMNS.length) {
+        return current;
+      }
+
+      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const orderedVisibleColumns = OPTIONAL_COLUMNS.map(
+    (column) => column.key,
+  ).filter((key) => visibleColumns.includes(key));
+  const listGridTemplateColumns = `0.35fr 1.35fr 1.25fr${
+    orderedVisibleColumns.length
+      ? ` repeat(${orderedVisibleColumns.length}, minmax(7rem, 1fr))`
+      : ""
+  }`;
+
   return (
     <div className="h-full min-h-0 w-full overflow-hidden">
       <DashboardOptions
         optStatus={optStatus}
         setOptStatus={setOptStatus}
         onFilterChange={handleFilterChange}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
         visibleSongs={displaySongs}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
+        canSelectAllColumns={canSelectAllColumns}
         style={{ display: optStatus ? "block" : "none" }}
       />
 
@@ -112,6 +196,8 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}
                 songs={displaySongs}
+                visibleColumns={orderedVisibleColumns}
+                gridTemplateColumns={listGridTemplateColumns}
               />
             </ul>
           </div>
@@ -120,20 +206,25 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
         // ----- MODO DESKTOP -----
         <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden">
           <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden">
-            {!optStatus && (
+            {!optStatus && !isUserHubOpen && (
               <div
                 className={`${optStatus ? "hidden" : "block"} sticky top-0 z-40 shrink-0`}
               >
                 <div className="flex flex-col justify-around neuphormism-b bg-white">
-                  <div className="flex flex-row p-3 rounded-t-md">
+                  <div
+                    className="grid items-center gap-3 rounded-t-md p-3 text-[13px]"
+                    style={{
+                      gridTemplateColumns: listGridTemplateColumns,
+                    }}
+                  >
                     <div
-                      className="w-[10%] text-center px-5 cursor-pointer"
+                      className="cursor-pointer text-center"
                       onClick={() => handleSort("number")}
                     >
                       N
                     </div>
                     <div
-                      className="w-full px-5 cursor-pointer"
+                      className="cursor-pointer px-2"
                       onClick={() => handleSort("song")}
                     >
                       SONGS
@@ -142,7 +233,7 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
                       )}
                     </div>
                     <div
-                      className="w-full pl-5 cursor-pointer"
+                      className="cursor-pointer px-2"
                       onClick={() => handleSort("artist")}
                     >
                       ARTISTS
@@ -150,21 +241,31 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
                         <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
                       )}
                     </div>
-                    <div
-                      className="w-full text-center pr-5 cursor-pointer"
-                      onClick={() => handleSort("progressBar")}
-                    >
-                      PROGRESSION
-                      {sortColumn === "progressBar" && (
-                        <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
-                      )}
-                    </div>
-                    <div className="w-full text-center px-5">INSTRUMENTS</div>
+                    {OPTIONAL_COLUMNS.filter((column) =>
+                      orderedVisibleColumns.includes(column.key),
+                    ).map((column) => (
+                      <div
+                        key={column.key}
+                        className="text-center"
+                        onClick={() =>
+                          column.sortable && handleSort(column.sortable)
+                        }
+                      >
+                        <span
+                          className={column.sortable ? "cursor-pointer" : ""}
+                        >
+                          {column.label}
+                          {column.sortable && sortColumn === column.sortable ? (
+                            <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                          ) : null}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
                   <div
                     className="text-center text-[10px] text-white font-bold rounded-b-md bg-[#000000]/60 cursor-pointer"
-                    onClick={() => setOptStatus(!optStatus)}
+                    onClick={toggleOptions}
                   >
                     {optStatus ? "HIDE OPTIONS" : "SHOW OPTIONS"}
                   </div>
@@ -174,13 +275,15 @@ function DashList2({ searchTerm = "", setSearchTerm = () => {} }) {
 
             <ul
               className={`min-h-0 flex-1 overflow-auto pb-60 z-0 ${
-                optStatus ? "mt-[43rem]" : "mt-2"
+                optStatus ? "mt-[63rem]" : "mt-2"
               }`}
             >
               <DashList2Items
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}
                 songs={displaySongs}
+                visibleColumns={orderedVisibleColumns}
+                gridTemplateColumns={listGridTemplateColumns}
               />
             </ul>
           </div>

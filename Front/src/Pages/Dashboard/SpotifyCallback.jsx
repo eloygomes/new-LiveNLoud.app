@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { exchangeCodeForToken } from "./spotifyAuth";
 import { FaSpotify } from "react-icons/fa";
+import { formatDisplayDate } from "../../Tools/dateFormat";
 
 export default function SpotifyCallback() {
   const [status, setStatus] = useState("Autenticando...");
@@ -147,7 +148,7 @@ export default function SpotifyCallback() {
 
         const playlistName =
           sessionStorage.getItem("spotify_playlist_name") ||
-          `LiveNLoud • ${new Date().toLocaleDateString("pt-BR")}`;
+          `LiveNLoud • ${formatDisplayDate(new Date())}`;
 
         const rawSongs = sessionStorage.getItem("spotify_playlist_songs");
         const songs = rawSongs ? JSON.parse(rawSongs) : [];

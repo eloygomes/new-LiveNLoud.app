@@ -10,12 +10,20 @@ import {
   GiMicrophone,
   GiPianoKeys,
 } from "react-icons/gi";
+import { FaCalendarPlus, FaHistory, FaVideo, FaVideoSlash } from "react-icons/fa";
+import { formatDisplayDate } from "../../Tools/dateFormat";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
 const LONG_PRESS_DELAY = 450;
 
-function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
+function DashList2Items({
+  sortColumn,
+  sortOrder,
+  songs: songsProp,
+  visibleColumns = ["progression", "instruments"],
+  gridTemplateColumns,
+}) {
   const [data, setData] = useState([]);
   const [isMobile, setIsMobile] = useState("");
   const [selectedSong, setSelectedSong] = useState(null);
@@ -120,6 +128,152 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
     );
   };
 
+  const getVideoLinks = (item) =>
+    Array.isArray(item.embedVideos)
+      ? item.embedVideos
+      : Array.isArray(item.embedLink)
+        ? item.embedLink
+        : [];
+
+  const getAddedDate = (item) =>
+    formatDisplayDate(item.createdAt || item.createIn || item.createdIn || item.addedIn || item.updateIn);
+
+  const getLastPlayDate = (item) => {
+    const candidates = [
+      item.lastPlayed,
+      item.lastPlay,
+      item.guitar01?.lastPlay,
+      item.guitar02?.lastPlay,
+      item.bass?.lastPlay,
+      item.keys?.lastPlay,
+      item.drums?.lastPlay,
+      item.voice?.lastPlay,
+    ]
+      .flat()
+      .filter(Boolean);
+
+    if (!candidates.length) return "not played yet";
+
+    const dates = candidates
+      .map((value) => new Date(value?.$date || value))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    return dates[0] ? formatDisplayDate(dates[0]) : "not played yet";
+  };
+
+  const optionalCellClass = "flex min-w-0 items-center justify-center px-2";
+
+  const renderOptionalCell = (item, columnKey) => {
+    if (columnKey === "progression") {
+      return (
+        <div className={optionalCellClass}>
+          <div className="w-full bg-gray-200 rounded-full input-neumorfismo">
+            <div
+              className="bg-[#DAA520] rounded text-center py-1 text-[8pt] leading-none text-black"
+              style={{ width: `${item.progressBar || 0}%` }}
+            >
+              {item.progressBar || 0}%
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (columnKey === "tags") {
+      const tags = Array.isArray(item.setlist) ? item.setlist : [];
+      return (
+        <div className="min-w-0 overflow-x-auto px-2">
+          <div className="flex w-max max-w-full gap-1">
+            {tags.length ? (
+              tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-black text-black"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="text-[11px] font-semibold text-gray-400">No tags</span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (columnKey === "videos") {
+      const videos = getVideoLinks(item);
+      return (
+        <div className={`${optionalCellClass} gap-1`}>
+          {videos.length ? (
+            videos.map((video, index) => (
+              <FaVideo
+                key={`${video}-${index}`}
+                className="text-[goldenrod]"
+                title={`Video ${index + 1}`}
+              />
+            ))
+          ) : (
+            <FaVideoSlash className="text-gray-400" title="No videos" />
+          )}
+        </div>
+      );
+    }
+
+    if (columnKey === "instruments") {
+      return (
+        <ul className="flex min-w-0 flex-row justify-center gap-4 px-2">
+          {instrumentLabels.map((instrument) => (
+            <li key={instrument.key} className="list-none z-10">
+              {item.instruments && item.instruments[instrument.key] ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      `/presentation/${encodeURIComponent(
+                        item.artist || "",
+                      )}/${encodeURIComponent(item.song || "")}/${encodeURIComponent(
+                        instrument.key,
+                      )}`,
+                    );
+                  }}
+                  className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
+                >
+                  {renderInstrumentIcon(instrument, true)}
+                </button>
+              ) : (
+                <span className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-400`}>
+                  {renderInstrumentIcon(instrument, false)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    if (columnKey === "addedDate") {
+      return (
+        <div className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}>
+          <FaCalendarPlus className="text-[goldenrod]" />
+          <span>{getAddedDate(item) || "-"}</span>
+        </div>
+      );
+    }
+
+    if (columnKey === "lastPlay") {
+      return (
+        <div className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}>
+          <FaHistory className="text-[goldenrod]" />
+          <span>{getLastPlayDate(item)}</span>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   const getSongKey = (item, index) =>
     `${item.artist || "unknown"}-${item.song || "unknown"}-${index}`;
 
@@ -141,9 +295,11 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
   };
 
   const startLongPress = (item) => {
+    window.getSelection?.().removeAllRanges?.();
     clearLongPressTimer();
     longPressTriggeredRef.current = false;
     longPressTimerRef.current = window.setTimeout(() => {
+      window.getSelection?.().removeAllRanges?.();
       longPressTriggeredRef.current = true;
       setTooltipSongKey(null);
       setSelectedSong(item);
@@ -234,16 +390,68 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                       >
                         {item.artist || "N/A"}
                       </div>
+                      {visibleColumns.includes("progression") ? (
                       <div className="mt-2 flex items-center">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-[#f5f5f5] px-2 py-1">
-                          <div className="h-4 w-4 rounded-full border-[3px] border-[#d7d7d7] border-t-[#d9ad26]" />
-                          <span className="text-[12px] font-bold text-[#5b5b5b]">
+                        <div className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-1.5 py-0.5">
+                          <div className="h-3 w-3 rounded-full border-2 border-[#d7d7d7] border-t-[#d9ad26]" />
+                          <span className="text-[10px] font-bold text-[#5b5b5b]">
                             {item.progressBar || 0}%
                           </span>
                         </div>
                       </div>
+                      ) : null}
+                      <div className="mt-2 flex max-w-full gap-2 overflow-x-auto">
+                        {visibleColumns.includes("videos") ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                            {getVideoLinks(item).length ? (
+                              <>
+                                <FaVideo className="text-[goldenrod]" />
+                                {getVideoLinks(item).length}
+                              </>
+                            ) : (
+                              <>
+                                <FaVideoSlash className="text-gray-400" />
+                                0
+                              </>
+                            )}
+                          </span>
+                        ) : null}
+                        {visibleColumns.includes("addedDate") ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                            <FaCalendarPlus className="text-[goldenrod]" />
+                            {getAddedDate(item) || "-"}
+                          </span>
+                        ) : null}
+                        {visibleColumns.includes("lastPlay") ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                            <FaHistory className="text-[goldenrod]" />
+                            {getLastPlayDate(item)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {visibleColumns.includes("tags") ? (
+                        <div className="mt-2 max-w-full overflow-x-auto">
+                          <div className="flex w-max max-w-full gap-1">
+                            {Array.isArray(item.setlist) && item.setlist.length ? (
+                              item.setlist.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-black text-black"
+                                >
+                                  {tag}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="shrink-0 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-500">
+                                No tags
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5 self-center">
+                    {visibleColumns.includes("instruments") ? (
+                    <div className="grid grid-cols-3 gap-3 self-center">
                       {instrumentLabels.map((instrument) => (
                         <span
                           key={instrument.key}
@@ -263,6 +471,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                         </span>
                       ))}
                     </div>
+                    ) : null}
                   </div>
                 </button>
 
@@ -276,7 +485,7 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
           ))}
 
           {selectedSong ? (
-            <div className="fixed inset-0 z-[120] flex items-end bg-black/30 px-3 pb-24 pt-8">
+            <div className="fixed inset-0 z-[12200] flex items-end bg-black/45 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-8">
               <button
                 type="button"
                 className="absolute inset-0"
@@ -284,7 +493,17 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                 onClick={() => setSelectedSong(null)}
               />
 
-              <div className="relative z-[121] w-full rounded-[28px] bg-[#f0f0f0] p-4 shadow-[0_-18px_40px_rgba(0,0,0,0.18)]">
+              <div
+                className="relative z-[12201] w-full select-none rounded-[28px] bg-[#f0f0f0] p-4 shadow-[0_-18px_40px_rgba(0,0,0,0.18)]"
+                style={{
+                  WebkitTouchCallout: "none",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                }}
+                onContextMenu={(event) => event.preventDefault()}
+                onTouchStart={() => window.getSelection?.().removeAllRanges?.()}
+                onMouseDown={() => window.getSelection?.().removeAllRanges?.()}
+              >
                 <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-[#c8c8c8]" />
 
                 <div className="rounded-[22px] bg-[#e8e8e8] p-4 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
@@ -407,59 +626,36 @@ function DashList2Items({ sortColumn, sortOrder, songs: songsProp }) {
                   localStorage.setItem("artist", item.artist || "");
                 }}
               />
-              <div className="flex flex-row items-center p-3 border-b border-gray-400 cursor-pointer hover:bg-gray-200 z-0">
-                <div className="w-[10%] text-center px-5">{index + 1}</div>
+              <div
+                className="grid items-center gap-3 border-b border-gray-400 p-3 cursor-pointer hover:bg-gray-200 z-0"
+                style={{
+                  gridTemplateColumns:
+                    gridTemplateColumns ||
+                    `0.35fr 1.35fr 1.25fr${
+                      visibleColumns.length
+                        ? ` repeat(${visibleColumns.length}, minmax(7rem, 1fr))`
+                        : ""
+                    }`,
+                }}
+              >
+                <div className="text-center">{index + 1}</div>
                 <div
-                  className="w-full px-5 overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="overflow-hidden text-ellipsis whitespace-nowrap px-2"
                   title={item.song || ""}
                 >
                   {item.song || "N/A"}
                 </div>
                 <div
-                  className="w-full pl-5 overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="overflow-hidden text-ellipsis whitespace-nowrap px-2"
                   title={item.artist || ""}
                 >
                   {item.artist || "N/A"}
                 </div>
-                <div className="w-full flex items-center justify-center">
-                  <div className="w-10/12 bg-gray-200 rounded-full input-neumorfismo">
-                    <div
-                      className="bg-[#DAA520] rounded text-center py-1 text-[8pt] leading-none text-black"
-                      style={{ width: `${item.progressBar || 0}%` }}
-                    >
-                      {item.progressBar || 0}%
-                    </div>
+                {visibleColumns.map((columnKey) => (
+                  <div key={columnKey} className="min-w-0">
+                    {renderOptionalCell(item, columnKey)}
                   </div>
-                </div>
-                <ul className="w-full text-center px-5 flex flex-row justify-between space-x-2">
-                  {instrumentLabels.map((instrument) => (
-                    <li key={instrument.key} className="list-none z-10">
-                      {item.instruments && item.instruments[instrument.key] ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(
-                              `/presentation/${encodeURIComponent(
-                                item.artist || "",
-                              )}/${encodeURIComponent(
-                                item.song || "",
-                              )}/${encodeURIComponent(instrument.key)}`,
-                            );
-                          }}
-                          className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
-                        >
-                          {renderInstrumentIcon(instrument, true)}
-                        </button>
-                      ) : (
-                        <span
-                          className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-400`}
-                        >
-                          {renderInstrumentIcon(instrument, false)}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                ))}
               </div>
             </div>
           ))}

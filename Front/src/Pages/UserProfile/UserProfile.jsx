@@ -23,6 +23,7 @@ import {
 import PasswordResetModal from "./PasswordResetModal";
 import UsernameEditModal from "./UsernameEditModal";
 import DeleteAccountModal from "./DeleteAccountModal"; // Importar o novo modal
+import { formatDisplayDateTime } from "../../Tools/dateFormat";
 
 const MOBILE_MENU_OPTIONS = [
   "USER INFO",
@@ -862,7 +863,7 @@ function UserProfile() {
                 className="rounded-[16px] bg-white/5 px-4 py-3 font-mono text-[12px] leading-5 text-white"
               >
                 <span className="text-[goldenrod]">
-                  [{new Date(log.createdAt).toLocaleString()}]
+                  [{formatDisplayDateTime(log.createdAt)}]
                 </span>{" "}
                 <span>{log.message}</span>
               </div>
@@ -1173,7 +1174,7 @@ function UserProfile() {
                           )
                         );
 
-                        return mostRecentDate.toLocaleString();
+                        return formatDisplayDateTime(mostRecentDate);
                       })()}
                     </div>
                   </div>

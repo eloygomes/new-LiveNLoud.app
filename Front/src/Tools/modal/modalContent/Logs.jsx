@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCurrentUserProfile, fetchUserLogs } from "../../../Tools/Controllers";
-
-function formatLogDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
-}
+import { formatDisplayDateTime } from "../../../Tools/dateFormat";
 
 export default function Logs() {
   const [logs, setLogs] = useState([]);
@@ -56,7 +50,7 @@ export default function Logs() {
       },
       {
         label: "Last Action",
-        value: latestLog ? formatLogDate(latestLog.createdAt) : "No actions",
+        value: latestLog ? formatDisplayDateTime(latestLog.createdAt) : "No actions",
       },
       {
         label: "Friends",
@@ -109,7 +103,7 @@ export default function Logs() {
                     className="rounded-2xl bg-white/5 px-4 py-3 font-mono text-[12px] leading-5"
                   >
                     <span className="text-[goldenrod]">
-                      [{formatLogDate(log.createdAt)}]
+                      [{formatDisplayDateTime(log.createdAt)}]
                     </span>{" "}
                     <span>{log.message}</span>
                   </div>

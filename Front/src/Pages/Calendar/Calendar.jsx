@@ -10,6 +10,11 @@ import {
   respondToCalendarEvent,
   updateCalendarEvent,
 } from "../../Tools/Controllers";
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  formatDisplayTime,
+} from "../../Tools/dateFormat";
 
 const VIEW_OPTIONS = ["month", "week", "year"];
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -55,21 +60,11 @@ function formatDayKey(date) {
 }
 
 function formatReadableDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
+  return formatDisplayDateTime(value);
 }
 
 function formatCompactDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString([], {
-    month: "numeric",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDisplayDateTime(value);
 }
 
 function toLowercaseEmail(email) {
@@ -145,24 +140,14 @@ function groupEventsByDay(events) {
 }
 
 function formatTime(value) {
-  return new Date(value).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDisplayTime(value);
 }
 
 function getWeekLabel(viewDate) {
   const first = startOfWeek(viewDate);
   const last = addDays(first, 6);
 
-  return `${first.toLocaleString(undefined, {
-    month: "long",
-    day: "numeric",
-  })} - ${last.toLocaleString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  })}`;
+  return `${formatDisplayDate(first)} - ${formatDisplayDate(last)}`;
 }
 
 function getYearMonths(viewDate) {
@@ -440,10 +425,7 @@ export default function Calendar() {
       ? getWeekLabel(viewDate)
       : viewMode === "year"
         ? String(viewDate.getFullYear())
-        : viewDate.toLocaleString(undefined, {
-            month: "long",
-            year: "numeric",
-          });
+        : formatDisplayDate(viewDate);
 
   useEffect(() => {
     const inviteEventId = searchParams.get("inviteEvent");
@@ -853,7 +835,7 @@ export default function Calendar() {
                         onDoubleClick={() => openNewEventModal(monthDate)}
                       >
                         <h3 className="text-base font-bold uppercase mb-2">
-                          {monthDate.toLocaleString(undefined, { month: "long" })}
+                          {formatDisplayDate(monthDate)}
                         </h3>
                         <div className="grid grid-cols-7 gap-y-1 text-center text-[9px] text-gray-500 uppercase mb-1.5">
                           {WEEKDAY_LABELS.map((label) => (
@@ -912,7 +894,7 @@ export default function Calendar() {
                   <div>
                     <h2 className="text-xl font-bold uppercase">Selected Day</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      {selectedDay.toLocaleDateString()}
+                      {formatDisplayDate(selectedDay)}
                     </p>
                   </div>
                   <div className="rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase text-gray-600">

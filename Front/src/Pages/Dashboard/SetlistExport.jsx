@@ -8,45 +8,40 @@ function SetlistExport({
   VscJson,
 }) {
   return (
-    <div className="neuphormism-b m-2 p-2">
-      <div className="px-4 py-1 flex flex-col neuphormism-b m-2 ">
-        <h1 className=" pb-2 text-sm pt-3 font-bold text-md uppercase">
-          Export
-        </h1>
-        <p className=" text-[11px] pb-3">
-          Use os botões de exportação para baixar a lista de músicas visíveis em
-          formato TXT ou JSON.
+    <section className="neuphormism-b p-4">
+      <div>
+        <h1 className="text-sm font-black uppercase">Export</h1>
+        <p className="mt-1 text-[11px] font-semibold text-gray-500">
+          Download the visible songs as TXT or JSON
         </p>
-        <div className="flex flex-row py-3 ">
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleExportText}
-              disabled={!visibleSongs.length}
-              className={`neuphormism-b-btn flex items-center gap-2 px-5 py-5 rounded-md text-sm font-semibold text-[9ca3af] transition-transform ${
-                visibleSongs.length
-                  ? " border   hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
-                  : "bg-red-400 cursor-not-allowed"
-              }`}
-            >
-              <FiFileText /> TXT
-            </button>
-            <button
-              type="button"
-              onClick={handleExportJson}
-              disabled={!visibleSongs.length}
-              className={`neuphormism-b-btn flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold text-[9ca3af] transition-transform ${
-                visibleSongs.length
-                  ? " border  hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
-                  : "bg-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <VscJson /> JSON
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={handleExportText}
+          disabled={!visibleSongs.length}
+          className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-5 py-4 text-sm font-black transition-transform ${
+            visibleSongs.length
+              ? "hover:bg-[goldenrod] hover:text-black active:scale-95"
+              : "cursor-not-allowed opacity-50"
+          }`}
+        >
+          <FiFileText /> TXT
+        </button>
+        <button
+          type="button"
+          onClick={handleExportJson}
+          disabled={!visibleSongs.length}
+          className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-5 py-4 text-sm font-black transition-transform ${
+            visibleSongs.length
+              ? "hover:bg-[goldenrod] hover:text-black active:scale-95"
+              : "cursor-not-allowed opacity-50"
+          }`}
+        >
+          <VscJson /> JSON
+        </button>
+      </div>
+    </section>
   );
 }
 

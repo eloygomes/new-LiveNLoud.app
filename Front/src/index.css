@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 .fake {
   background-color: #4158d0;
   background-image: linear-gradient(
@@ -22,11 +35,11 @@ main{
 
 @keyframes blink {
   50% {
-    opacity: 0;
+    background: #e4bd48;
   }
 }
 .blinking-icon {
-  animation: blink 0.5s infinite alternate; /* Adjust animation duration as needed */
+  animation: blink 2.8s ease-in-out infinite alternate;
 }
 
 .button-neuphormism-a {

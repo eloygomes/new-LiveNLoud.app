@@ -32,12 +32,19 @@ export default function UserProfileModal() {
   useEffect(() => {
     const handleOpenUserHubSection = (event) => {
       const nextSection = event?.detail?.section || "USER INFO";
+      window.dispatchEvent(new CustomEvent("close-all-modals"));
       setModalOptionChoose(nextSection);
       setOpen(true);
+      window.dispatchEvent(new CustomEvent("userhub-visibility-change", {
+        detail: { open: true },
+      }));
     };
 
     const handleCloseAllModals = () => {
       setOpen(false);
+      window.dispatchEvent(new CustomEvent("userhub-visibility-change", {
+        detail: { open: false },
+      }));
     };
 
     window.addEventListener("open-userhub-section", handleOpenUserHubSection);
@@ -52,8 +59,19 @@ export default function UserProfileModal() {
       };
   }, []);
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleOpen = () => {
+    window.dispatchEvent(new CustomEvent("close-all-modals"));
+    setOpen(true);
+    window.dispatchEvent(new CustomEvent("userhub-visibility-change", {
+      detail: { open: true },
+    }));
+  };
+  const handleClose = () => {
+    setOpen(false);
+    window.dispatchEvent(new CustomEvent("userhub-visibility-change", {
+      detail: { open: false },
+    }));
+  };
   const signOut = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("token");
@@ -78,7 +96,7 @@ export default function UserProfileModal() {
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50"
+          className="fixed inset-0 z-[11000] flex items-center justify-center bg-black bg-opacity-50"
           onClick={handleClose}
         >
           <div
