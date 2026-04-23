@@ -367,24 +367,30 @@ export default function PlaylistExport({ visibleSongs = [] }) {
   return (
     <section className="neuphormism-b p-4">
       <div className="flex flex-col">
-        <h1 className="text-sm font-black uppercase">Playlists</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-sm font-black uppercase">Playlists</h1>
+            <p className="mt-1 text-[11px] font-semibold text-gray-500">
+              Create a playlist with the visible songs.
+            </p>
+          </div>
+          <div className="rounded-full bg-black/5 px-3 py-1 text-[11px] font-black text-gray-600">
+            {visibleSongs?.length || 0} songs
+          </div>
+        </div>
 
         {mode === "idle" && (
           <>
-            <p className="mt-1 pb-3 text-[11px] font-semibold text-gray-500">
-              Create a playlist automatically with the visible songs.
-            </p>
-
             {!!statusLine && (
-              <p className="text-[11px] pb-3 text-gray-500">{statusLine}</p>
+              <p className="mt-3 text-[11px] text-gray-500">{statusLine}</p>
             )}
 
-            <div className="flex flex-row flex-wrap gap-3 pt-1">
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => goToNaming("spotify")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black transition-transform
+                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-white"
@@ -399,7 +405,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("youtube")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black transition-transform
+                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-white"

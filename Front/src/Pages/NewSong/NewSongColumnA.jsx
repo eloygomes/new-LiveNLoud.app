@@ -775,7 +775,7 @@ function NewSongColumnA({
                 tomData={tomData}
                 tunerData={tunerData}
                 fistTime={addedInDATE}
-                lastTime={addedInDATE}
+                lastTime=""
                 touchLayout
               />
             </div>
@@ -935,7 +935,7 @@ function NewSongColumnA({
         tomData={tomData}
         tunerData={tunerData}
         fistTime={addedInDATE}
-        lastTime={addedInDATE}
+        lastTime=""
       />
       <GeralProgressBar geralPercentage={geralPercentage} />
 

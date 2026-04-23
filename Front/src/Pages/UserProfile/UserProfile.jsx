@@ -23,7 +23,11 @@ import {
 import PasswordResetModal from "./PasswordResetModal";
 import UsernameEditModal from "./UsernameEditModal";
 import DeleteAccountModal from "./DeleteAccountModal"; // Importar o novo modal
-import { formatDisplayDateTime } from "../../Tools/dateFormat";
+import {
+  formatDisplayDate,
+  formatDisplayDateTime,
+  parseDateValue,
+} from "../../Tools/dateFormat";
 
 const MOBILE_MENU_OPTIONS = [
   "USER INFO",
@@ -1098,7 +1102,7 @@ function UserProfile() {
                   <div className=" mt-2 pt-2 pl-2">Added in</div>
                   <div className="flex flex-row justify-between py-3">
                     <div className=" text-md  pb-2 pl-2">
-                      {data[0]?.addedIn || "N/A"}
+                      {formatDisplayDate(data[0]?.addedIn) || "N/A"}
                     </div>
                   </div>
                 </div>
@@ -1125,42 +1129,15 @@ function UserProfile() {
 
                         data.forEach((entry) => {
                           instrumentNames.forEach((instrument) => {
-                            let lastPlay = entry[instrument]?.lastPlay;
-                            if (lastPlay) {
-                              if (Array.isArray(lastPlay)) {
-                                // lastPlay é um array
-                                lastPlay.forEach((lp) => {
-                                  let date;
-                                  if (
-                                    typeof lp === "string" ||
-                                    typeof lp === "number" ||
-                                    lp instanceof Date
-                                  ) {
-                                    date = new Date(lp);
-                                  } else if (lp && lp["$date"]) {
-                                    date = new Date(lp["$date"]);
-                                  }
-                                  if (date && !isNaN(date)) {
-                                    allLastPlayDates.push(date);
-                                  }
-                                });
-                              } else {
-                                // lastPlay é um único valor
-                                let date;
-                                if (
-                                  typeof lastPlay === "string" ||
-                                  typeof lastPlay === "number" ||
-                                  lastPlay instanceof Date
-                                ) {
-                                  date = new Date(lastPlay);
-                                } else if (lastPlay && lastPlay["$date"]) {
-                                  date = new Date(lastPlay["$date"]);
-                                }
-                                if (date && !isNaN(date)) {
-                                  allLastPlayDates.push(date);
-                                }
-                              }
-                            }
+                            const lastPlayValues = [
+                              entry.lastPlayed,
+                              entry[instrument]?.lastPlay,
+                            ].flat();
+
+                            lastPlayValues.forEach((lastPlay) => {
+                              const date = parseDateValue(lastPlay);
+                              if (date) allLastPlayDates.push(date);
+                            });
                           });
                         });
 
@@ -1174,7 +1151,7 @@ function UserProfile() {
                           )
                         );
 
-                        return formatDisplayDateTime(mostRecentDate);
+                        return formatDisplayDate(mostRecentDate);
                       })()}
                     </div>
                   </div>

@@ -969,11 +969,16 @@ app.put("/api/lastPlay", async (req, res) => {
       { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] },
     );
 
-    // 5) Agora sim, dá o push com segurança
+    // 5) Agora sim, dá o push com segurança e atualiza o resumo da música.
+    const playedAt = new Date();
     const updateResult = await collection.updateOne(
       { email, "userdata.song": song, "userdata.artist": artist },
       {
-        $push: { [`userdata.$[elem].${instrument}.lastPlay`]: new Date() },
+        $push: { [`userdata.$[elem].${instrument}.lastPlay`]: playedAt },
+        $set: {
+          "userdata.$[elem].lastPlayed": playedAt,
+          "userdata.$[elem].updateIn": playedAt.toISOString().split("T")[0],
+        },
       },
       { arrayFilters: [{ "elem.song": song, "elem.artist": artist }] },
     );
@@ -1270,6 +1275,7 @@ const userDataCollection = authDatabase.collection("data");
 const notificationsCollection = authDatabase.collection("notifications");
 const invitationsCollection = authDatabase.collection("invitations");
 const calendarEventsCollection = authDatabase.collection("calendarEvents");
+const setlistSharesCollection = authDatabase.collection("setlistShares");
 const userLogsCollection = authDatabase.collection("userLogs");
 const FRONTEND_BASE_URL =
   process.env.FRONTEND_BASE_URL || "https://www.live.eloygomes.com";
@@ -1531,6 +1537,18 @@ function serializeCalendarEvent(event = {}) {
     pendingInvitedUsers: Array.isArray(event.pendingInvitedUsers)
       ? event.pendingInvitedUsers
       : [],
+  };
+}
+
+function serializeSetlistShare(share = {}) {
+  return {
+    ...share,
+    _id: share._id?.toString?.() || String(share._id || ""),
+    createdAt: share.createdAt || null,
+    updatedAt: share.updatedAt || null,
+    respondedAt: share.respondedAt || null,
+    songs: Array.isArray(share.songs) ? share.songs : [],
+    setlistNames: Array.isArray(share.setlistNames) ? share.setlistNames : [],
   };
 }
 
@@ -2774,6 +2792,358 @@ app.delete("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
   } catch (error) {
     console.error("DELETE /api/calendar/events/:id error:", error);
     return res.status(500).json({ message: "Erro ao remover evento." });
+  }
+});
+
+app.post("/api/setlist-shares", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const recipientEmail = normalizeEmail(req.body?.recipientEmail || "");
+    const setlistNames = Array.from(
+      new Set(
+        (Array.isArray(req.body?.setlistNames) ? req.body.setlistNames : [])
+          .map((tag) => String(tag || "").trim())
+          .filter(Boolean),
+      ),
+    );
+
+    if (!recipientEmail || !setlistNames.length) {
+      return res.status(400).json({
+        message: "Recipient email and selected setlists are required.",
+      });
+    }
+
+    const targetUser = await findUserByEmail(recipientEmail);
+    if (!targetUser) {
+      return res.status(404).json({ message: "Destination user not found." });
+    }
+
+    if (targetUser.email === currentUser.email) {
+      return res
+        .status(400)
+        .json({ message: "You cannot share a setlist with yourself." });
+    }
+
+    if (!areUsersFriends(currentUser, targetUser.email)) {
+      return res.status(403).json({
+        message: `You can only share setlists with accepted friends. ${targetUser.email} is not your friend yet.`,
+      });
+    }
+
+    const senderDoc = await userDataCollection.findOne({
+      email: currentUser.email,
+    });
+
+    const selectedSet = new Set(setlistNames.map((tag) => tag.toLowerCase()));
+    const songs = (Array.isArray(senderDoc?.userdata) ? senderDoc.userdata : [])
+      .filter((song) =>
+        (Array.isArray(song?.setlist) ? song.setlist : []).some((tag) =>
+          selectedSet.has(String(tag || "").trim().toLowerCase()),
+        ),
+      )
+      .map((song) => {
+        const { _id, id, email, username, fullName, ...rest } = song || {};
+        const sharedTags = (Array.isArray(song?.setlist) ? song.setlist : [])
+          .map((tag) => String(tag || "").trim())
+          .filter((tag) => selectedSet.has(tag.toLowerCase()));
+
+        return {
+          ...rest,
+          setlist: sharedTags.length ? sharedTags : setlistNames,
+        };
+      });
+
+    if (!songs.length) {
+      return res.status(400).json({
+        message: "No songs were found for the selected setlists.",
+      });
+    }
+
+    const now = new Date();
+    const share = {
+      senderEmail: currentUser.email,
+      senderUsername: currentUser.usernameDisplay,
+      senderFullName: currentUser.fullName || "",
+      recipientEmail: targetUser.email,
+      recipientUsername: targetUser.usernameDisplay,
+      recipientFullName: targetUser.fullName || "",
+      setlistNames,
+      songs,
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await setlistSharesCollection.insertOne(share);
+    const savedShare = { ...share, _id: result.insertedId };
+    const title =
+      setlistNames.length === 1
+        ? setlistNames[0]
+        : `${setlistNames.length} setlists`;
+
+    await createNotification({
+      recipient: targetUser,
+      actor: currentUser,
+      type: "setlist_share",
+      title: "Setlist shared with you",
+      message: `${currentUser.usernameDisplay} shared "${title}" with you.`,
+      meta: {
+        shareId: savedShare._id.toString(),
+        setlistNames,
+        songCount: songs.length,
+        action: "setlist_share_response",
+      },
+    });
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "setlist_share_sent",
+      message: `Shared ${title} with ${targetUser.email}.`,
+      meta: {
+        shareId: savedShare._id.toString(),
+        targetEmail: targetUser.email,
+        setlistNames,
+        songCount: songs.length,
+      },
+    });
+
+    return res.status(201).json(serializeSetlistShare(savedShare));
+  } catch (error) {
+    console.error("POST /api/setlist-shares error:", error);
+    return res.status(500).json({ message: "Erro ao compartilhar setlist." });
+  }
+});
+
+app.get("/api/setlist-shares/:id", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const shareId = req.params.id;
+    if (!ObjectId.isValid(shareId)) {
+      return res.status(400).json({ message: "Invalid setlist share id." });
+    }
+
+    const share = await setlistSharesCollection.findOne({
+      _id: new ObjectId(shareId),
+    });
+
+    if (!share) {
+      return res.status(404).json({ message: "Setlist share not found." });
+    }
+
+    if (
+      normalizeEmail(share.senderEmail) !== currentUser.email &&
+      normalizeEmail(share.recipientEmail) !== currentUser.email
+    ) {
+      return res
+        .status(403)
+        .json({ message: "You do not have access to this setlist share." });
+    }
+
+    return res.json(serializeSetlistShare(share));
+  } catch (error) {
+    console.error("GET /api/setlist-shares/:id error:", error);
+    return res.status(500).json({ message: "Erro ao buscar setlist share." });
+  }
+});
+
+app.put("/api/setlist-shares/:id/respond", authenticateJWT, async (req, res) => {
+  try {
+    const currentUser = await getCurrentUserProfile(req);
+    if (!currentUser) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const shareId = req.params.id;
+    const status = String(req.body?.status || "")
+      .trim()
+      .toLowerCase();
+
+    if (!ObjectId.isValid(shareId)) {
+      return res.status(400).json({ message: "Invalid setlist share id." });
+    }
+
+    if (!["accepted", "declined"].includes(status)) {
+      return res.status(400).json({ message: "Invalid response status." });
+    }
+
+    const share = await setlistSharesCollection.findOne({
+      _id: new ObjectId(shareId),
+      recipientEmail: currentUser.email,
+    });
+
+    if (!share) {
+      return res.status(404).json({ message: "Setlist share not found." });
+    }
+
+    if (share.status !== "pending") {
+      return res.status(409).json({ message: "This share was already handled." });
+    }
+
+    let importedCount = 0;
+    let mergedCount = 0;
+    const now = new Date();
+
+    if (status === "accepted") {
+      const userDoc =
+        (await userDataCollection.findOne({
+          email: currentUser.email,
+        })) || { email: currentUser.email, userdata: [], availableSetlists: [] };
+
+      const currentUserdata = Array.isArray(userDoc.userdata)
+        ? [...userDoc.userdata]
+        : [];
+      let nextId = currentUserdata.reduce(
+        (max, song) => Math.max(max, Number(song?.id || 0)),
+        0,
+      );
+      const setlistNames = Array.isArray(share.setlistNames)
+        ? share.setlistNames
+        : [];
+
+      for (const sharedSong of Array.isArray(share.songs) ? share.songs : []) {
+        const songTitle = String(sharedSong?.song || "").trim();
+        const artist = String(sharedSong?.artist || "").trim();
+        if (!songTitle || !artist) continue;
+
+        const sharedTags = Array.from(
+          new Set(
+            (Array.isArray(sharedSong?.setlist)
+              ? sharedSong.setlist
+              : setlistNames
+            )
+              .map((tag) => String(tag || "").trim())
+              .filter(Boolean),
+          ),
+        );
+
+        const existingIndex = currentUserdata.findIndex(
+          (song) =>
+            normalizeName(song?.artist || "") === normalizeName(artist) &&
+            normalizeName(song?.song || "") === normalizeName(songTitle),
+        );
+
+        if (existingIndex >= 0) {
+          const existing = currentUserdata[existingIndex];
+          currentUserdata[existingIndex] = {
+            ...existing,
+            setlist: Array.from(
+              new Set([
+                ...(Array.isArray(existing.setlist) ? existing.setlist : []),
+                ...sharedTags,
+              ]),
+            ),
+            instruments: {
+              ...(existing.instruments || {}),
+              ...(sharedSong.instruments || {}),
+            },
+            updateIn: now.toISOString().split("T")[0],
+          };
+          mergedCount += 1;
+          continue;
+        }
+
+        const { _id, id, email, username, fullName, ...rest } =
+          sharedSong || {};
+
+        currentUserdata.push({
+          ...rest,
+          id: ++nextId,
+          email: currentUser.email,
+          username: currentUser.usernameDisplay,
+          fullName: currentUser.fullName || "",
+          setlist: sharedTags,
+          addedIn: now.toISOString().split("T")[0],
+          updateIn: now.toISOString().split("T")[0],
+        });
+        importedCount += 1;
+      }
+
+      const availableSetlists = Array.from(
+        new Set([
+          ...(Array.isArray(userDoc.availableSetlists)
+            ? userDoc.availableSetlists
+            : []),
+          ...setlistNames,
+          ...currentUserdata.flatMap((song) =>
+            Array.isArray(song?.setlist) ? song.setlist : [],
+          ),
+        ]),
+      ).filter(Boolean);
+
+      await userDataCollection.updateOne(
+        { email: currentUser.email },
+        {
+          $set: {
+            email: currentUser.email,
+            userdata: currentUserdata,
+            availableSetlists,
+          },
+        },
+        { upsert: true },
+      );
+    }
+
+    const updatedShare = await setlistSharesCollection.findOneAndUpdate(
+      { _id: share._id },
+      {
+        $set: {
+          status,
+          importedCount,
+          mergedCount,
+          respondedAt: now,
+          updatedAt: now,
+        },
+      },
+      { returnDocument: "after" },
+    );
+
+    const senderUser = await findUserByEmail(share.senderEmail);
+    if (senderUser) {
+      await createNotification({
+        recipient: senderUser,
+        actor: currentUser,
+        type: "setlist_share_response",
+        title: "Setlist share updated",
+        message: `${currentUser.usernameDisplay} ${status} your setlist share.`,
+        meta: {
+          shareId,
+          status,
+          importedCount,
+          mergedCount,
+        },
+      });
+    }
+
+    await addUserLog({
+      userEmail: currentUser.email,
+      action: "setlist_share_response",
+      message: `${status === "accepted" ? "Accepted" : "Declined"} setlist share from ${share.senderEmail}.`,
+      meta: {
+        shareId,
+        status,
+        importedCount,
+        mergedCount,
+        setlistNames: share.setlistNames || [],
+      },
+    });
+
+    return res.json({
+      share: serializeSetlistShare(updatedShare),
+      status,
+      importedCount,
+      mergedCount,
+    });
+  } catch (error) {
+    console.error("PUT /api/setlist-shares/:id/respond error:", error);
+    return res.status(500).json({ message: "Erro ao responder setlist share." });
   }
 });
 // ======================= JWT LOGIN END ============================

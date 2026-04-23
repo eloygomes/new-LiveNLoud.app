@@ -523,6 +523,29 @@ export async function respondToCalendarEvent(eventId, status) {
   return data;
 }
 
+export async function shareSetlists({ recipientEmail, setlistNames = [] }) {
+  const { data } = await axiosApi.post("/api/setlist-shares", {
+    recipientEmail,
+    setlistNames,
+  });
+  return data;
+}
+
+export async function fetchSetlistShare(shareId) {
+  const { data } = await axiosApi.get(
+    `/api/setlist-shares/${encodeURIComponent(shareId)}`,
+  );
+  return data;
+}
+
+export async function respondToSetlistShare(shareId, status) {
+  const { data } = await axiosApi.put(
+    `/api/setlist-shares/${encodeURIComponent(shareId)}/respond`,
+    { status },
+  );
+  return data;
+}
+
 /* =========================
    Avatar helpers
    ========================= */

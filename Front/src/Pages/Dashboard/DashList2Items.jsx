@@ -11,7 +11,7 @@ import {
   GiPianoKeys,
 } from "react-icons/gi";
 import { FaCalendarPlus, FaHistory, FaVideo, FaVideoSlash } from "react-icons/fa";
-import { formatDisplayDate } from "../../Tools/dateFormat";
+import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
@@ -155,8 +155,8 @@ function DashList2Items({
     if (!candidates.length) return "not played yet";
 
     const dates = candidates
-      .map((value) => new Date(value?.$date || value))
-      .filter((date) => !Number.isNaN(date.getTime()))
+      .map((value) => parseDateValue(value))
+      .filter(Boolean)
       .sort((a, b) => b.getTime() - a.getTime());
 
     return dates[0] ? formatDisplayDate(dates[0]) : "not played yet";

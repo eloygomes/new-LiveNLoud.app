@@ -8,6 +8,27 @@ import { deleteOneSong, updateSongData } from "../../Tools/Controllers"; // Sua 
 import { useNavigate } from "react-router-dom";
 import EditSongSetlist from "./EditSongSetlist";
 import { getAllUserSetlists } from "../../Tools/Controllers";
+import { parseDateValue } from "../../Tools/dateFormat";
+
+const getLatestLastPlayValue = (songData) => {
+  const candidates = [
+    songData.lastPlayed,
+    songData.lastPlay,
+    songData.guitar01?.lastPlay,
+    songData.guitar02?.lastPlay,
+    songData.bass?.lastPlay,
+    songData.keys?.lastPlay,
+    songData.drums?.lastPlay,
+    songData.voice?.lastPlay,
+  ]
+    .flat()
+    .filter(Boolean);
+
+  return candidates
+    .map((value) => ({ value, date: parseDateValue(value) }))
+    .filter((item) => item.date)
+    .sort((left, right) => right.date.getTime() - left.date.getTime())[0]?.value;
+};
 
 function EditSongColumnA({
   dataFromAPI,
@@ -192,7 +213,7 @@ function EditSongColumnA({
         setGeralPercentage(parsedData.progressBar || 0);
         setEmbedLink(parsedData.embedVideos || []);
         setFirstPlay(parsedData.addedIn);
-        setLastPlay(parsedData.lastPlayed);
+        setLastPlay(getLatestLastPlayValue(parsedData) || "");
 
         // Se o backend já tiver um array de setlists, salve no estado
         if (parsedData.setlist && Array.isArray(parsedData.setlist)) {

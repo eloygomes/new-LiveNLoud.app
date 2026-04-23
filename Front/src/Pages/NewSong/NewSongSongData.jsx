@@ -1,4 +1,6 @@
 /* eslint-disable react/prop-types */
+import { formatDisplayDate } from "../../Tools/dateFormat";
+
 function NewSongSongData({
   songName,
   artistName,
@@ -9,6 +11,9 @@ function NewSongSongData({
   lastTime,
   touchLayout = false,
 }) {
+  const addedDate = formatDisplayDate(fistTime) || "-";
+  const lastPlayDate = formatDisplayDate(lastTime) || "not played yet";
+
   if (touchLayout) {
     return (
       <div className="w-full">
@@ -33,6 +38,16 @@ function NewSongSongData({
             <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
               <div className="text-[11px] font-bold uppercase text-gray-500">Tuning</div>
               <div className="mt-1 text-sm font-bold text-black">{tunerData || "-"}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+              <div className="text-[11px] font-bold uppercase text-gray-500">Added</div>
+              <div className="mt-1 text-sm font-bold text-black">{addedDate}</div>
+            </div>
+            <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+              <div className="text-[11px] font-bold uppercase text-gray-500">Last play</div>
+              <div className="mt-1 text-sm font-bold text-black">{lastPlayDate}</div>
             </div>
           </div>
         </div>
@@ -69,11 +84,11 @@ function NewSongSongData({
         <div className="flex flex-row mt-5 justify-between">
           <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3  mr-5">
             <p className="text-sm py-1 font-bold">ADDEDED</p>
-            <div className="text-sm">{fistTime}</div>
+            <div className="text-sm">{addedDate}</div>
           </div>
           <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3 ">
             <p className="text-sm py-1 font-bold">LAST PLAY</p>
-            <div className="text-sm">{lastTime}</div>
+            <div className="text-sm">{lastPlayDate}</div>
           </div>
         </div>
       </div>

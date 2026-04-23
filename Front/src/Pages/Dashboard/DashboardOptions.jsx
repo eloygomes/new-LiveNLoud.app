@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiFileText } from "react-icons/fi";
 import { VscJson } from "react-icons/vsc";
-import { IoClose } from "react-icons/io5";
+import { IoChevronDown, IoClose } from "react-icons/io5";
 
 import {
   loadSelectedSetlists,
@@ -17,17 +17,17 @@ import Insights from "./Insights";
 import Tags from "./Tags";
 
 const instrumentLabels = [
-  { key: "guitar01", label: "G1" },
-  { key: "guitar02", label: "G2" },
-  { key: "bass", label: "B" },
-  { key: "keys", label: "K" },
-  { key: "drums", label: "D" },
-  { key: "voice", label: "V" },
+  { key: "guitar01", label: "Guitar 1" },
+  { key: "guitar02", label: "Guitar 2" },
+  { key: "bass", label: "Bass" },
+  { key: "keys", label: "Keys" },
+  { key: "drums", label: "Drums" },
+  { key: "voice", label: "Voice" },
 ];
 
 const columnOptions = [
   { key: "progression", label: "Progression" },
-  { key: "tags", label: "Tags / Setlists" },
+  { key: "tags", label: "Setlists" },
   { key: "videos", label: "Videos" },
   { key: "instruments", label: "Instruments" },
   { key: "addedDate", label: "Date added" },
@@ -50,47 +50,70 @@ function ColumnsData({
       <div>
         <h1 className="text-sm font-black uppercase">Columns Data</h1>
         <p className="mt-1 text-[11px] font-semibold text-gray-500">
-          Number, song and artist are always visible
+          Select which columns to display in the dashboard.
         </p>
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {columnOptions.map(({ key, label }) => {
           const checked = visibleColumns.includes(key);
-          const disabled = !checked && (allColumnsSelected || maxColumnsReached);
+          const disabled =
+            !checked && (allColumnsSelected || maxColumnsReached);
 
           return (
-          <label
-            key={key}
-            className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
-              disabled ? "opacity-50" : "cursor-pointer"
-            }`}
-          >
-            <span className="text-[12px] font-black uppercase text-gray-700">
-              {label}
-            </span>
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={checked}
-              disabled={disabled}
-              onChange={() => onToggleColumn(key)}
-            />
-            <span
-              className={`relative inline-flex h-6 w-11 items-center rounded-full shadow-inner ${
-                checked ? "bg-[goldenrod]" : "bg-gray-400"
+            <label
+              key={key}
+              className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
+                disabled ? "opacity-50" : "cursor-pointer"
               }`}
             >
-              <span
-                className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                  checked ? "translate-x-6" : "translate-x-1"
-                }`}
+              <span className="text-[12px] font-black uppercase text-gray-700">
+                {label}
+              </span>
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={checked}
+                disabled={disabled}
+                onChange={() => onToggleColumn(key)}
               />
-            </span>
-          </label>
+              <span
+                className={`relative inline-flex h-6 w-11 items-center rounded-full shadow-inner ${
+                  checked ? "bg-[goldenrod]" : "bg-gray-400"
+                }`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    checked ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </span>
+            </label>
           );
         })}
       </div>
+    </section>
+  );
+}
+
+function CollapsiblePanel({ title, children }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section className="neuphormism-b overflow-hidden">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="text-sm font-black uppercase text-gray-900">
+          {title}
+        </span>
+        <IoChevronDown
+          className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open ? <div className="px-3 pb-3">{children}</div> : null}
     </section>
   );
 }
@@ -301,7 +324,7 @@ export default function DashboardOptions({
   } ${
     isSmallScreen
       ? "inset-0 bg-black/25 px-3 pb-24 pt-[5.5rem]"
-      : "left-1/2 top-[80px] flex max-h-[calc(100vh-6rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14]"
+      : "left-1/2 top-[80px] flex h-[calc(100vh-7rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14]"
   }`;
 
   return (
@@ -369,53 +392,95 @@ export default function DashboardOptions({
           className={
             isSmallScreen
               ? "flex-1 overflow-y-auto px-4 pb-6 pt-4"
-              : "overflow-y-auto rounded-b-lg bg-[#e6e6e6] px-5 py-4"
+              : "min-h-0 flex-1 overflow-y-auto rounded-b-lg bg-[#e6e6e6] px-4 py-3"
           }
         >
           <div
             className={
-              isSmallScreen ? "flex flex-col gap-4" : "grid grid-cols-2 gap-4"
+              isSmallScreen ? "flex flex-col gap-3" : "flex flex-col gap-3"
             }
           >
-            <div className={isSmallScreen ? "hidden" : "col-span-2"}>
-              <Insights dashboardMetrics={dashboardMetrics} />
-            </div>
+            {isSmallScreen ? (
+              <>
+                <CollapsiblePanel title="Insights">
+                  <Insights dashboardMetrics={dashboardMetrics} />
+                </CollapsiblePanel>
 
-            <div>
-              <Tags
-                setlists={setlists}
-                selectedSetlists={selectedSetlists}
-                toggleTag={toggleTag}
-                handleDeleteSetlist={handleDeleteSetlist}
-                handleAddSetlist={handleAddSetlist}
-                RiDeleteBin6Line={RiDeleteBin6Line}
-              />
-            </div>
+                <CollapsiblePanel title="Tags / Setlists">
+                  <Tags
+                    setlists={setlists}
+                    selectedSetlists={selectedSetlists}
+                    toggleTag={toggleTag}
+                    handleDeleteSetlist={handleDeleteSetlist}
+                    handleAddSetlist={handleAddSetlist}
+                    RiDeleteBin6Line={RiDeleteBin6Line}
+                  />
+                </CollapsiblePanel>
 
-            <ColumnsData
-              visibleColumns={visibleColumns}
-              onToggleColumn={onToggleColumn}
-              canSelectAllColumns={canSelectAllColumns}
-            />
+                <CollapsiblePanel title="Columns Data">
+                  <ColumnsData
+                    visibleColumns={visibleColumns}
+                    onToggleColumn={onToggleColumn}
+                    canSelectAllColumns={canSelectAllColumns}
+                  />
+                </CollapsiblePanel>
 
-            <div>
-              <SetlistExport
-                handleExportText={handleExportText}
-                visibleSongs={visibleSongs}
-                FiFileText={FiFileText}
-                handleExportJson={handleExportJson}
-                VscJson={VscJson}
-              />
-            </div>
+                <CollapsiblePanel title="Export">
+                  <SetlistExport
+                    handleExportText={handleExportText}
+                    visibleSongs={visibleSongs}
+                    FiFileText={FiFileText}
+                    handleExportJson={handleExportJson}
+                    VscJson={VscJson}
+                  />
+                </CollapsiblePanel>
 
-            <div>
-              <PlaylistExport
-                visibleSongs={visibleSongs}
-                onCreateSpotifyPlaylist={(songs) => {
-                  console.log("Criar playlist Spotify com:", songs);
-                }}
-              />
-            </div>
+                <CollapsiblePanel title="Playlists">
+                  <PlaylistExport visibleSongs={visibleSongs} />
+                </CollapsiblePanel>
+              </>
+            ) : (
+              <>
+                <Insights dashboardMetrics={dashboardMetrics} />
+
+                <div className="grid grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.88fr)] items-stretch gap-3">
+                  <div className="h-full [&>section]:h-full">
+                    <Tags
+                      setlists={setlists}
+                      selectedSetlists={selectedSetlists}
+                      toggleTag={toggleTag}
+                      handleDeleteSetlist={handleDeleteSetlist}
+                      handleAddSetlist={handleAddSetlist}
+                      RiDeleteBin6Line={RiDeleteBin6Line}
+                    />
+                  </div>
+
+                  <div className="h-full [&>section]:h-full">
+                    <ColumnsData
+                      visibleColumns={visibleColumns}
+                      onToggleColumn={onToggleColumn}
+                      canSelectAllColumns={canSelectAllColumns}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.88fr)] items-stretch gap-3">
+                  <div className="h-full [&>section]:h-full">
+                    <SetlistExport
+                      handleExportText={handleExportText}
+                      visibleSongs={visibleSongs}
+                      FiFileText={FiFileText}
+                      handleExportJson={handleExportJson}
+                      VscJson={VscJson}
+                    />
+                  </div>
+
+                  <div className="h-full [&>section]:h-full">
+                    <PlaylistExport visibleSongs={visibleSongs} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

@@ -44,18 +44,28 @@ function DashList2({ searchTerm = "" }) {
     }
   });
 
+  const loadSongs = useCallback(async () => {
+    const { songs, fullName, username } = await fetchUserSongs();
+
+    setSongs(songs);
+    setFilteredSongs(songs);
+
+    localStorage.setItem("fullName", fullName);
+    localStorage.setItem("username", username);
+  }, []);
+
   // Carrega as músicas da API
   useEffect(() => {
-    (async () => {
-      const { songs, fullName, username } = await fetchUserSongs();
+    loadSongs();
+  }, [loadSongs]);
 
-      setSongs(songs);
-      setFilteredSongs(songs);
+  useEffect(() => {
+    window.addEventListener("dashboard-refresh-songs", loadSongs);
 
-      localStorage.setItem("fullName", fullName);
-      localStorage.setItem("username", username);
-    })();
-  }, []);
+    return () => {
+      window.removeEventListener("dashboard-refresh-songs", loadSongs);
+    };
+  }, [loadSongs]);
 
   // Detecta se é mobile
   useEffect(() => {

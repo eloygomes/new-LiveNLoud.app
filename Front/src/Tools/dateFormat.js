@@ -1,10 +1,31 @@
+export function parseDateValue(value) {
+  if (!value) return null;
+
+  const raw = value?.$date || value;
+
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? null : raw;
+  }
+
+  if (typeof raw === "string") {
+    const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+      const [, year, month, day] = dateOnlyMatch;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+  }
+
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function formatDisplayDate(value) {
   if (!value) return "";
 
   const raw = value?.$date || value;
-  const date = new Date(raw);
+  const date = parseDateValue(raw);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date) {
     return String(raw);
   }
 
@@ -18,10 +39,9 @@ export function formatDisplayDate(value) {
 export function formatDisplayTime(value) {
   if (!value) return "";
 
-  const raw = value?.$date || value;
-  const date = new Date(raw);
+  const date = parseDateValue(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date) {
     return "";
   }
 
