@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>#Sustenido App Documentation</title>
+    <style>
+      :root {
+        --paper: #fffdf8;
+        --ink: #17202a;
+        --muted: #5f6b7a;
+        --line: #d8d4ca;
+        --accent: #b7831d;
+        --accent-soft: #f4e3bc;
+        --panel: #f7f4ed;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: #ede8de;
+        color: var(--ink);
+        font: 14px/1.55 Arial, Helvetica, sans-serif;
+      }
+
+      main {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        background: var(--paper);
+        padding: 18mm 16mm 20mm;
+      }
+
+      h1, h2, h3 {
+        margin: 0 0 10px;
+        line-height: 1.2;
+        color: #101820;
+        page-break-after: avoid;
+      }
+
+      h1 { font-size: 30px; letter-spacing: 0.01em; }
+      h2 {
+        margin-top: 28px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid var(--accent-soft);
+        font-size: 20px;
+      }
+      h3 { margin-top: 18px; font-size: 15px; color: #6f4d0f; }
+
+      p { margin: 0 0 10px; }
+      ul, ol { margin: 8px 0 14px 22px; padding: 0; }
+      li { margin: 4px 0; }
+
+      code {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: #efede8;
+        font-family: SFMono-Regular, Consolas, Menlo, monospace;
+        font-size: 0.92em;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 18px;
+        page-break-inside: avoid;
+      }
+
+      th, td {
+        border: 1px solid var(--line);
+        padding: 8px 9px;
+        vertical-align: top;
+        text-align: left;
+      }
+
+      th {
+        background: var(--accent-soft);
+        color: #3d2b0d;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        margin-bottom: 22px;
+        padding: 20px 22px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: linear-gradient(135deg, #fff8e7 0%, #f0e3ca 100%);
+      }
+
+      .kicker {
+        margin-bottom: 8px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .subtle { color: var(--muted); font-size: 12px; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 12px 0;
+      }
+
+      .card {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        page-break-inside: avoid;
+      }
+
+      .tag {
+        display: inline-block;
+        margin-bottom: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #6f4d0f;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .note {
+        margin: 12px 0;
+        padding: 10px 12px;
+        border-left: 4px solid var(--accent);
+        background: #fff7e5;
+        page-break-inside: avoid;
+      }
+
+      .break-before { page-break-before: always; }
+
+      @media print {
+        body { background: white; }
+        main { width: auto; margin: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="kicker">Application Documentation</div>
+        <h1>#Sustenido / LiveNLoud App Documentation</h1>
+        <p>
+          Internal product and technical documentation for the application in
+          <code>/Users/eloygomes/Documents/GitHub/new-LiveNLoud</code>.
+        </p>
+        <p class="subtle">
+          Generated on April 23, 2026. Frontend package version: <strong>0.62.0.0</strong>.
+        </p>
+      </section>
+
+      <h2>1. Product Overview</h2>
+      <p>
+        #Sustenido is a music preparation and performance workspace for musicians.
+        The app helps users maintain a personal song library, organize songs into
+        setlists, track learning progress by instrument, export playlists to music
+        platforms, and use live performance tools such as presentation mode,
+        metronome, tuner, and calendar scheduling.
+      </p>
+      <p>
+        The codebase still contains the historical LiveNLoud name in folders and
+        backend identifiers, while the active product identity in the frontend is
+        #Sustenido.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <div class="tag">Primary Audience</div>
+          <p>
+            Individual musicians and collaborators who need to prepare, organize,
+            rehearse, and perform song libraries across several instruments.
+          </p>
+        </div>
+        <div class="card">
+          <div class="tag">Core Workflow</div>
+          <p>
+            Add songs, enrich them with links and instrument data, organize them
+            into setlists, filter the dashboard, rehearse, export, and share with
+            accepted friends.
+          </p>
+        </div>
+      </div>
+
+      <h2>2. Main Application Areas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Purpose</th>
+            <th>Key Files</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Dashboard</td>
+            <td>Song list, search, sort, column visibility, insights, tag filtering, setlist sharing, TXT/JSON export, Spotify and YouTube playlist export.</td>
+            <td><code>Front/src/Pages/Dashboard</code></td>
+          </tr>
+          <tr>
+            <td>New Song / Edit Song</td>
+            <td>Create and update song metadata, instrument links, embedded videos, progress, and setlist tags.</td>
+            <td><code>Front/src/Pages/NewSong</code>, <code>Front/src/Pages/EditSong</code></td>
+          </tr>
+          <tr>
+            <td>Presentation</td>
+            <td>Live performance view with chord/lyrics rendering, toolbox controls, video tools, scrolling, and chord support.</td>
+            <td><code>Front/src/Pages/Presentation</code></td>
+          </tr>
+          <tr>
+            <td>Calendar</td>
+            <td>Events, friend-only invitations, notifications, invitation response flow, and shared rehearsal scheduling.</td>
+            <td><code>Front/src/Pages/Calendar</code></td>
+          </tr>
+          <tr>
+            <td>Profile / Friends</td>
+            <td>User profile, avatar, account settings, friendship invitations, accepted friends, and friend revocation.</td>
+            <td><code>Front/src/Pages/UserProfile</code>, <code>Front/src/Tools/modal/modalContent/Invitations.jsx</code></td>
+          </tr>
+          <tr>
+            <td>Tools</td>
+            <td>Tuner, metronome, chord library, and utility routes.</td>
+            <td><code>Front/src/Pages/Tuner</code>, <code>Front/src/Pages/Metronome</code>, <code>Front/src/Pages/ChordLibrary</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Architecture</h2>
+      <p>
+        The application is split into a React frontend, a Node.js API, Python
+        scraping/services, MongoDB persistence, and supporting Socket.IO
+        communication.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Technology</th>
+            <th>Responsibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Frontend</td>
+            <td>React, Vite, Tailwind CSS, Axios, Socket.IO client</td>
+            <td>Authenticated user interface, dashboard, tools, notifications, calendar, song editing, and playlist export flows.</td>
+          </tr>
+          <tr>
+            <td>Backend API</td>
+            <td>Node.js, Express, MongoDB driver, JWT, Socket.IO</td>
+            <td>Authentication, user data, song library operations, friendship system, notifications, calendar events, setlist shares, and YouTube integration routes.</td>
+          </tr>
+          <tr>
+            <td>Scraper Services</td>
+            <td>Python</td>
+            <td>Scrape and normalize external song/chord/lyrics data from supported providers.</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>MongoDB</td>
+            <td>Stores auth users, song libraries, notifications, invitations, calendar events, setlist shares, user logs, and general song data.</td>
+          </tr>
+          <tr>
+            <td>Browser Extension</td>
+            <td>Chrome Extension</td>
+            <td>Captures song information from supported sites and sends structured song drafts into the platform.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>4. Dashboard Options</h2>
+      <p>
+        The dashboard options panel is the main control surface for filtering,
+        inspecting, exporting, and sharing the visible song library.
+      </p>
+      <h3>Desktop Layout</h3>
+      <ol>
+        <li>First row: Insights.</li>
+        <li>Second row: Tags / Setlists on the left and Columns Data on the right.</li>
+        <li>Third row: Export on the left and Playlists on the right.</li>
+      </ol>
+      <h3>Mobile and Tablet Layout</h3>
+      <p>
+        On iPhone and iPad sized screens, every option section is rendered as a
+        closed accordion by default. Users expand only the section they need,
+        reducing the height of the filter panel.
+      </p>
+
+      <h2>5. Insights</h2>
+      <p>The Insights box summarizes the current visible song set:</p>
+      <ul>
+        <li>Total visible songs.</li>
+        <li>Average progress ratio.</li>
+        <li>Ready songs at 100% progression.</li>
+        <li>Not-started songs at 0% progression.</li>
+        <li>Main instrument based on the visible songs.</li>
+        <li>Instrument counts for Guitar 1, Guitar 2, Bass, Keys, Drums, and Voice.</li>
+      </ul>
+
+      <h2>6. Tags and Setlists</h2>
+      <p>
+        Tags and setlists are currently represented through the song
+        <code>setlist</code> array. Dashboard filters use these tags to decide
+        which songs should remain visible.
+      </p>
+      <p>The Tags / Setlists box has two tabs:</p>
+      <ul>
+        <li><strong>Tags:</strong> create, edit, remove, and select setlist tags for filtering.</li>
+        <li><strong>Share:</strong> share the selected setlists with accepted friends.</li>
+      </ul>
+      <div class="note">
+        Any tag selected in the Tags tab automatically appears in the Share tab.
+        When no tags are selected, the share tab treats all available setlists as
+        exportable candidates.
+      </div>
+
+      <h2>7. Setlist Sharing</h2>
+      <p>
+        Setlist sharing follows the same trust model as Calendar invitations:
+        users can only share setlists with accepted friends.
+      </p>
+      <h3>Sender Flow</h3>
+      <ol>
+        <li>User opens Dashboard Options.</li>
+        <li>User selects one or more setlist tags in the Tags tab.</li>
+        <li>User opens the Share tab.</li>
+        <li>The email input suggests accepted friends from the current user profile.</li>
+        <li>User selects or types the destination friend email.</li>
+        <li>User clicks Send.</li>
+        <li>The frontend calls <code>POST /api/setlist-shares</code>.</li>
+      </ol>
+      <h3>Backend Share Creation</h3>
+      <p>The server validates the request and builds the shared payload from trusted stored data:</p>
+      <ul>
+        <li>Checks that the sender is authenticated.</li>
+        <li>Checks that the recipient exists.</li>
+        <li>Blocks sharing to self.</li>
+        <li>Checks that sender and recipient are accepted friends.</li>
+        <li>Finds sender songs containing the selected setlist tags.</li>
+        <li>Stores a pending setlist share record in MongoDB.</li>
+        <li>Creates a notification for the recipient.</li>
+      </ul>
+      <h3>Recipient Flow</h3>
+      <ol>
+        <li>Recipient receives a notification.</li>
+        <li>Recipient clicks the notification.</li>
+        <li>A modal shows the sender, setlist names, and song count.</li>
+        <li>Recipient accepts or declines.</li>
+        <li>On accept, the server imports the songs into the recipient library.</li>
+        <li>The modal closes and the page reloads so the new setlist appears immediately.</li>
+      </ol>
+      <h3>Import Behavior</h3>
+      <ul>
+        <li>If a received song does not exist in the recipient library, it is inserted.</li>
+        <li>If the song already exists by same artist and song title, the setlist tag is merged into the existing song.</li>
+        <li>Received setlist names are added to the recipient available setlists.</li>
+        <li>Sender receives a notification when the share is accepted or declined.</li>
+      </ul>
+
+      <h2>8. Notifications</h2>
+      <p>
+        Notifications are loaded from <code>/api/notifications</code> and also
+        pushed live through Socket.IO using the user email as the room. Current
+        notification categories include:
+      </p>
+      <ul>
+        <li>Friendship invitations and responses.</li>
+        <li>Calendar invites and event updates.</li>
+        <li>Setlist share requests and share responses.</li>
+      </ul>
+      <p>
+        Notification click handling routes calendar invitations to the calendar
+        page and opens the setlist share modal for setlist-share notifications.
+      </p>
+
+      <h2>9. Calendar and Friendship Model</h2>
+      <p>
+        The calendar feature introduced the accepted-friends permission model
+        now reused by setlist sharing. A user can only invite another user to a
+        calendar event or share a setlist when the recipient is already in their
+        accepted friendship list.
+      </p>
+      <p>The friendship flow includes:</p>
+      <ul>
+        <li>Search registered users.</li>
+        <li>Send friend invitations.</li>
+        <li>Accept or decline invitations.</li>
+        <li>Persist accepted friendships on both users.</li>
+        <li>Notify both sides about relevant friendship changes.</li>
+      </ul>
+
+      <h2>10. Playlist Export</h2>
+      <p>
+        The dashboard Playlists box creates external playlists from the currently
+        visible songs. It supports Spotify and YouTube flows.
+      </p>
+      <ul>
+        <li>Spotify export uses OAuth and stores payload in session storage during redirect.</li>
+        <li>YouTube export uses popup OAuth and posts normalized songs to the backend YouTube endpoint.</li>
+        <li>The playlist name defaults to a date/count based name.</li>
+      </ul>
+
+      <h2>11. Visible Song Export</h2>
+      <p>
+        The Export box downloads visible dashboard songs as TXT or JSON. This is
+        separate from setlist sharing:
+      </p>
+      <ul>
+        <li><strong>TXT:</strong> lightweight ordered list for quick sharing or printing.</li>
+        <li><strong>JSON:</strong> structured export of the visible song objects.</li>
+      </ul>
+
+      <h2>12. Backend API Highlights</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GET /api/me</code></td><td>Returns the authenticated safe user profile.</td></tr>
+          <tr><td><code>GET /api/users/search</code></td><td>Search registered users by email.</td></tr>
+          <tr><td><code>GET /api/notifications</code></td><td>Lists current user notifications.</td></tr>
+          <tr><td><code>PUT /api/notifications/:id/read</code></td><td>Marks one notification as read.</td></tr>
+          <tr><td><code>POST /api/invitations</code></td><td>Sends a friendship invitation.</td></tr>
+          <tr><td><code>PUT /api/invitations/:id/respond</code></td><td>Accepts or declines a friendship invitation.</td></tr>
+          <tr><td><code>POST /api/calendar/events</code></td><td>Creates an event and sends friend-only calendar invites.</td></tr>
+          <tr><td><code>PUT /api/calendar/events/:id/respond</code></td><td>Accepts or declines a calendar invite.</td></tr>
+          <tr><td><code>POST /api/setlist-shares</code></td><td>Creates a pending setlist share and notifies the recipient.</td></tr>
+          <tr><td><code>GET /api/setlist-shares/:id</code></td><td>Fetches a share for sender or recipient.</td></tr>
+          <tr><td><code>PUT /api/setlist-shares/:id/respond</code></td><td>Accepts or declines a setlist share.</td></tr>
+          <tr><td><code>PUT /api/updateSetlists</code></td><td>Synchronizes available setlists and removes deleted tags from songs.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>13. Data Model Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Collection</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>authUsers</code></td><td>Authentication records and accepted friendship metadata.</td></tr>
+          <tr><td><code>data</code></td><td>Main user song library documents. Each document stores <code>email</code>, <code>userdata</code>, and setlist metadata.</td></tr>
+          <tr><td><code>notifications</code></td><td>Notification records shown in the notification bell and pushed through Socket.IO.</td></tr>
+          <tr><td><code>invitations</code></td><td>Friendship invitation lifecycle records.</td></tr>
+          <tr><td><code>calendarEvents</code></td><td>Calendar events and pending/accepted invited users.</td></tr>
+          <tr><td><code>setlistShares</code></td><td>Pending, accepted, and declined setlist sharing records with shared song payloads.</td></tr>
+          <tr><td><code>userLogs</code></td><td>Auditable user activity logs for profile/log views.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>14. Frontend Routing</h2>
+      <p>The React app defines protected routes for the main workspace:</p>
+      <ul>
+        <li><code>/</code> Dashboard</li>
+        <li><code>/newsong</code> New song</li>
+        <li><code>/editsong/:artist/:song</code> Edit song</li>
+        <li><code>/presentation/:artist/:song/:instrument</code> Presentation</li>
+        <li><code>/calendar</code> Calendar</li>
+        <li><code>/metronome</code> Metronome</li>
+        <li><code>/tuner</code> Tuner</li>
+        <li><code>/chordlibrary</code> Chord library</li>
+        <li><code>/userprofile/:userid</code> User profile</li>
+      </ul>
+
+      <h2>15. Development Commands</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Command</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Frontend</td><td><code>npm run dev</code></td><td>Starts Vite dev server.</td></tr>
+          <tr><td>Frontend</td><td><code>npm run build</code></td><td>Builds production frontend assets.</td></tr>
+          <tr><td>Frontend</td><td><code>npm run lint</code></td><td>Runs ESLint. Currently blocked by invalid <code>.eslintrc.cjs</code> key <code>REMOVED_MONGO_USER</code>.</td></tr>
+          <tr><td>Node API</td><td><code>npm start</code></td><td>Starts the Express API from <code>Server/liveNloud/node</code>.</td></tr>
+          <tr><td>Server syntax</td><td><code>node --check Server/liveNloud/node/index.js</code></td><td>Checks Node server syntax.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>16. Current Verification Status</h2>
+      <ul>
+        <li><code>npm run build</code> passes for the frontend.</li>
+        <li><code>node --check Server/liveNloud/node/index.js</code> passes.</li>
+        <li><code>npm run lint</code> is blocked by an existing invalid ESLint config property: <code>REMOVED_MONGO_USER</code>.</li>
+      </ul>
+
+      <h2>17. Recommended Next Improvements</h2>
+      <ul>
+        <li>Fix the ESLint configuration so linting can run again.</li>
+        <li>Add automated tests for setlist sharing accept/decline behavior.</li>
+        <li>Add a share history view for sent and received setlists.</li>
+        <li>Add a clear imported-success screen after accepting a setlist instead of relying only on page reload.</li>
+        <li>Consider moving large dashboard components into smaller subcomponents as the options panel grows.</li>
+        <li>Add backend indexes for <code>setlistShares.recipientEmail</code>, <code>setlistShares.senderEmail</code>, and <code>setlistShares.status</code>.</li>
+      </ul>
+
+      <section class="break-before">
+        <h2>18. Recent Change Summary</h2>
+        <ul>
+          <li>Refined dashboard options into a three-row desktop layout.</li>
+          <li>Added mobile/tablet closed-by-default accordions for filter sections.</li>
+          <li>Improved Insights presentation and instrument labels.</li>
+          <li>Added Tags and Share tabs inside Tags / Setlists.</li>
+          <li>Connected selected tags to the Share tab.</li>
+          <li>Added friend suggestions to the share email input.</li>
+          <li>Implemented full backend setlist share lifecycle.</li>
+          <li>Added notification modal for accepting or declining received setlists.</li>
+          <li>Imported accepted setlist songs into the receiver library and reloaded the page after acceptance.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
