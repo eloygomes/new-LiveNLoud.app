@@ -10,9 +10,18 @@ const Stopwatch = () => {
   const lapStartTimeRef = useRef(null);
 
   const formatTime = (time) => {
+    const hours = Math.floor(time / 3600000);
     const minutes = Math.floor(time / 60000);
     const seconds = Math.floor((time % 60000) / 1000);
     const hundredths = Math.floor((time % 1000) / 10);
+
+    if (hours > 0) {
+      const remainingMinutes = Math.floor((time % 3600000) / 60000);
+      return `${hours}:${remainingMinutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
+    }
+
     return `${minutes.toString().padStart(2, "0")}:${seconds
       .toString()
       .padStart(2, "0")}:${hundredths.toString().padStart(2, "0")}`;
@@ -52,30 +61,30 @@ const Stopwatch = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col mb-5 rounded-md neuphormism-b">
-      <div className="flex flex-col justify-start mx-auto rounded-md mb-2">
-        <div className="w-full flex flex-col justify-between">
+    <div className="flex h-full min-h-0 w-full flex-col rounded-[30px] neuphormism-b p-6">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="w-full flex-shrink-0">
           <div className="w-full mx-auto text-center">
-            <h1 className="sm:text-[80px] md:text-[60px] lg:text-[80px] xl:text-[80px] 2xl:text-[80px] font-mono pt-5">
+            <h1 className="pt-4 text-[4rem] font-bold text-center leading-[0.9] tracking-[-0.03em] text-black">
               {formatTime(stopwatchTime)}
             </h1>
-            <p className="text-lg text-gray-500 font-mono py-5 font-bold">
+            <p className="py-5 text-md font-bold tracking-[0.28em] text-gray-500">
               {formatTime(lapTime)}
             </p>
           </div>
-          <div className="flex flex-row w-full">
-            <div className="w-full p-5">
+          <div className="flex w-full flex-row gap-4 pb-5">
+            <div className="w-full">
               <button
-                className="w-full flex items-center justify-center neuphormism-b-se px-6 py-4"
+                className="neuphormism-b-se flex w-full items-center justify-center rounded-[18px] px-6 py-4 text-xl font-bold"
                 type="button"
                 onClick={handleLapOrReset}
               >
                 {isStopwatchRunning ? "Lap" : "Reset!"}
               </button>
             </div>
-            <div className="w-full p-5">
+            <div className="w-full">
               <button
-                className="w-full flex items-center justify-center neuphormism-b-se px-6 py-4"
+                className="neuphormism-b-se flex w-full items-center justify-center rounded-[18px] px-6 py-4 text-xl font-bold"
                 type="button"
                 onClick={handleStopwatchStartStop}
               >
@@ -85,22 +94,36 @@ const Stopwatch = () => {
           </div>
         </div>
         {laps.length > 0 && (
-          <div className="p-2 w-full flex flex-col justify-start mx-auto rounded-md mb-2">
-            <div className="grid grid-cols-3 gap-4 font-semibold border-b pb-2 border-gray-300">
-              <div>Lap</div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] neuphormism-d p-3">
+            <div className="grid grid-cols-3 gap-4 border-b border-gray-300 pb-3 text-sm font-bold uppercase tracking-[0.2em] text-gray-500">
+              <div className="pl-3">Lap</div>
               <div>Split</div>
               <div>Total</div>
             </div>
-            {laps.map((lap, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-3 gap-4 py-2 border-b border-gray-300 text-sm"
-              >
-                <div className="pl-3">{lap.lapNumber}</div>
-                <div>{formatTime(lap.split)}</div>
-                <div>{formatTime(lap.totalTime)}</div>
-              </div>
-            ))}
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
+              {laps.map((lap, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-3 gap-4 border-b border-gray-200 py-3 text-xs font-bold text-black"
+                >
+                  <div className="pl-3">{lap.lapNumber}</div>
+                  <div>{formatTime(lap.split)}</div>
+                  <div>{formatTime(lap.totalTime)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {!laps.length && (
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-[22px] neuphormism-d">
+            <div className="text-center">
+              <p className="text-sm font-black uppercase tracking-[0.24em] text-gray-400">
+                Laps
+              </p>
+              <p className="mt-3 text-lg font-bold text-gray-500">
+                Saved splits will appear here.
+              </p>
+            </div>
           </div>
         )}
       </div>

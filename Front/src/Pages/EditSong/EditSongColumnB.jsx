@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {
+  FaChevronDown,
+  FaChevronUp,
   FaTimes,
   FaDrum,
   FaGuitar,
@@ -138,6 +140,7 @@ function EditSongColumnB({
   };
 
   const [activeInstrument, setActiveInstrument] = useState(null);
+  const [touchInstrumentsOpen, setTouchInstrumentsOpen] = useState(false);
   const instrumentCards = [
     { key: "guitar01", label: "Guitar 01", short: "G1", icon: FaGuitar, link: guitar01 },
     { key: "guitar02", label: "Guitar 02", short: "G2", icon: FaGuitar, link: guitar02 },
@@ -150,41 +153,57 @@ function EditSongColumnB({
 
   if (touchLayout) {
     return (
-      <div className="mt-4 rounded-[20px] bg-[#e0e0e0] p-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[1.55rem] font-black tracking-tight text-black">Instruments</h2>
-          <span className="text-xs font-black uppercase tracking-[0.08em] text-gray-500">
-            {addedCount}/6 Added
-          </span>
-        </div>
+      <div className="mt-4 rounded-[20px] neuphormism-b p-3">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between"
+          onClick={() => setTouchInstrumentsOpen((current) => !current)}
+        >
+          <div className="text-left">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              Song Workspace
+            </p>
+            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Input Links</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-black uppercase tracking-[0.08em] text-gray-500">
+              {addedCount}/6 Added
+            </span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
+              {touchInstrumentsOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
+            </span>
+          </div>
+        </button>
 
-        <div className="grid grid-cols-2 gap-3">
-          {instrumentCards.map(({ key: instrumentKey, label, short, icon: Icon, link: instrumentLink }) => {
-            const isOpen = activeInstrument === instrumentKey;
-            return (
-              <button
-                key={instrumentKey}
-                type="button"
-                className="rounded-[18px] bg-[#f8f8f8] p-3 text-left shadow-[0_6px_16px_rgba(0,0,0,0.04)]"
-                onClick={() => setActiveInstrument(isOpen ? null : instrumentKey)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ececec] text-black">
-                    <Icon className="text-[14px]" />
+        {touchInstrumentsOpen ? (
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {instrumentCards.map(({ key: instrumentKey, label, short, icon: Icon, link: instrumentLink }) => {
+              const isOpen = activeInstrument === instrumentKey;
+              return (
+                <button
+                  key={instrumentKey}
+                  type="button"
+                  className="rounded-[18px] neuphormism-b-se p-3 text-left"
+                  onClick={() => setActiveInstrument(isOpen ? null : instrumentKey)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full neuphormism-b-avatar text-black">
+                      <Icon className="text-[14px]" />
+                    </div>
+                    <span className="text-xs font-black uppercase text-gray-500">{short}</span>
                   </div>
-                  <span className="text-xs font-black uppercase text-gray-500">{short}</span>
-                </div>
-                <div className="mt-4 text-[1.15rem] font-black text-black">{label}</div>
-                <div className={`mt-1 text-xs font-bold ${instrumentLink ? "text-[#2f6f3e]" : "text-gray-500"}`}>
-                  {instrumentLink ? "Link added" : "No URL yet"}
-                </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {isOpen ? "Tap to close" : "Tap to add"}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                  <div className="mt-4 text-[1.15rem] font-black text-black">{label}</div>
+                  <div className={`mt-1 text-xs font-bold ${instrumentLink ? "text-[#2f6f3e]" : "text-gray-500"}`}>
+                    {instrumentLink ? "Link added" : "No URL yet"}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {isOpen ? "Tap to close" : "Tap to add"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {activeInstrument ? (
           <div className="fixed inset-0 z-[110] bg-black/25">
@@ -228,9 +247,12 @@ function EditSongColumnB({
   }
 
   return (
-    <div className="flex flex-row p-5 my-5  neuphormism-b">
+    <div className="flex flex-row p-5 my-5 neuphormism-b rounded-[30px]">
       <div className="flex flex-col w-full">
-        <h1 className="text-xl font-bold">Input Links</h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+          Song Workspace
+        </p>
+        <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Input Links</h1>
         <EditSongInputLinkBox
           instrumentName="guitar01"
           link={guitar01}

@@ -124,8 +124,11 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
   };
 
   return (
-    <div className="flex flex-col neuphormism-b p-5 my-5 mr-5">
-      <h1 className="text-xl pb-2 font-bold">Videos</h1>
+    <div className="flex flex-col neuphormism-b rounded-[30px] p-5 my-5 mr-5">
+      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+        Song Workspace
+      </p>
+      <h1 className="mt-2 text-[1.9rem] pb-2 font-black leading-none tracking-tight text-black">Videos</h1>
 
       {selectedVideo && (
         <div className="mb-4 p-3 border border-gray-300 rounded-md bg-gray-100">

@@ -535,21 +535,20 @@ export default function Tuner() {
         isTouchLayout ? "pb-28" : ""
       }`}
     >
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 lg:gap-5">
-        <section className="bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-6 neuphormism-b">
-          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
-            # sustenido
-          </p>
-          <h1 className="mt-3 text-3xl font-black uppercase tracking-tight text-black sm:text-[2.4rem]">
-            Tuner
-          </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[#697180] sm:text-[15px]">
-            Live pitch detection with a clean gauge, frequency readout, and a
-            quick standard tuning reference.
-          </p>
-        </section>
+      <div className="container mx-auto">
+        <div className="w-full pb-10 md:mx-auto md:w-11/12 2xl:w-9/12">
+          <div className="mb-5 flex items-center gap-6 neuphormism-b p-5">
+            <div>
+              <h1 className="text-4xl font-bold">TUNER</h1>
+            </div>
+            <div className="ml-auto">
+              <h4 className="max-w-[420px] text-right text-sm">
+                Live pitch detection with a clean gauge, frequency readout, and a quick standard tuning reference.
+              </h4>
+            </div>
+          </div>
 
-        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
+          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
           <section className="order-1 flex min-h-[680px] flex-col rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:min-h-[760px] sm:p-5 neuphormism-b">
             <div className="flex flex-col gap-4">
               <div className="rounded-[24px] bg-[linear-gradient(145deg,#f4f4f4,#dddddd)] px-4 py-4 shadow-[6px_6px_14px_rgba(190,190,190,0.55),-6px_-6px_14px_rgba(255,255,255,0.9)] sm:px-5">
@@ -725,6 +724,7 @@ export default function Tuner() {
             </div>
           </section>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -169,9 +169,17 @@ function EditSongSetlist({
     //   </div>
     // </div>
 
-    <div className="my-4 p-3 border rounded   neuphormism-b p-5 my-5 mr-5">
+    <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold mb-2">Setlists</h2>
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            Song Workspace
+          </p>
+          <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Setlist</h2>
+          <p className="mt-1 text-sm font-medium text-gray-500">
+            Update song tags without leaving the edit flow.
+          </p>
+        </div>
         <div className="flex gap-2">
           {!isEditing ? (
             <button
@@ -203,29 +211,40 @@ function EditSongSetlist({
         </div>
       </div>
 
-      <div className="mt-4">
-        <label htmlFor="newSetlistName" className="block mb-1 font-semibold">
+      <div className="mt-5">
+        <label htmlFor="newSetlistName" className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
           Criar um novo setlist:
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-row items-center gap-2">
           <input
             id="newSetlistName"
             type="text"
-            className="border rounded p-1 w-full"
+            className="w-full rounded-[18px] border-0 neuphormism-b-se px-4 py-3 outline-none"
             placeholder="Ex: 'Show2023' ou 'Ensaios'"
             value={newSetlistName}
             onChange={(e) => setNewSetlistName(e.target.value)}
-            // onBlur={() => handleAddNew()}
-            onBlur={() => handleAddNewTag()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddNewTag();
+              }
+            }}
           />
+          <button
+            type="button"
+            className="px-3 py-2 text-sm neuphormism-b-btn"
+            onClick={handleAddNewTag}
+          >
+            Add
+          </button>
         </div>
       </div>
 
-      <div className="mt-4">
-        <h1 className="px-0 font-bold text-md">Setlists disponíveis:</h1>
+      <div className="mt-5">
+        <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Setlists disponíveis</h1>
         <div className="w-full pr-2">
           {setlistOptions.length === 0 ? (
-            <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
+            <p className="mt-3 italic text-sm text-gray-500">Nenhuma setlist cadastrada.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {setlistOptions.map((tag, index) => {

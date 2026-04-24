@@ -7,7 +7,7 @@ import SnackBar from "../../Tools/SnackBar";
 function EditSong() {
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
-  const [songDataOpen, setSongDataOpen] = useState(false);
+  const [songDataOpen, setSongDataOpen] = useState(true);
   const [dataFromAPI, setDataFromAPI] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
@@ -56,13 +56,16 @@ function EditSong() {
 
   if (isTouchLayout) {
     return (
-      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
+      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-0">
         <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
           <SnackBar snackbarMessage={snackbarMessage} />
         </div>
 
-        <div className="origin-top ">
-          <div className="rounded-[20px] bg-[#e0e0e0] px-4 py-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+        <div className="origin-top">
+          <div className="neuphormism-b rounded-[28px] px-5 py-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              Song Workspace
+            </p>
             <div className="text-[1.9rem] font-black tracking-tight text-black">
               EDIT SONG
             </div>
@@ -117,18 +120,27 @@ function EditSong() {
   }
 
   return (
-    <div className=" flex justify-center h-screen ">
+    <div className="min-h-screen bg-[#f0f0f0] px-6 pb-24 pt-8">
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
       </div>
-      <div className="container mx-auto">
-        <div className="h-screen w-11/12 2xl:w-9/12 mx-auto ">
-          <div className="flex flex-row my-5 neuphormism-b p-5">
-            <h1 className="text-4xl font-bold">EDIT SONG</h1>
-            <h4 className="ml-auto mt-auto text-sm">Edit your song here</h4>
+      <div className="mx-auto w-full max-w-7xl">
+        <section className="neuphormism-b rounded-[28px] px-5 py-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              Song Workspace
+            </p>
+            <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
+              Edit Song
+            </h1>
+            <p className="mt-3 max-w-3xl text-base font-medium text-gray-500">
+              Update song info, revise links, and keep the current setlist structure without leaving context.
+            </p>
           </div>
-          <div className="flex flex-row">
-            <div className="left-column w-1/2">
+        </section>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
+            <div className="left-column min-w-0">
               <EditSongColumnA
                 dataFromAPI={dataFromAPI}
                 progGuitar01={progGuitar01}
@@ -142,7 +154,7 @@ function EditSong() {
                 setIsDirty={setIsDirty}
               />
             </div>
-            <div className="right-column w-1/2">
+            <div className="right-column min-w-0">
               <EditSongColumnB
                 dataFromAPI={dataFromAPI}
                 progGuitar01={progGuitar01}
@@ -162,7 +174,6 @@ function EditSong() {
                 setShowSnackBar={setShowSnackBar}
                 setSnackbarMessage={setSnackbarMessage}
               />
-            </div>
           </div>
         </div>
       </div>

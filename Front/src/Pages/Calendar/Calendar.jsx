@@ -68,7 +68,9 @@ function formatCompactDate(value) {
 }
 
 function toLowercaseEmail(email) {
-  return String(email || "").trim().toLowerCase();
+  return String(email || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getColorFromEmail(email) {
@@ -103,7 +105,8 @@ function getParticipantEmails(event) {
     .filter(Boolean);
 
   return emails.filter(
-    (email, index, array) => array.findIndex((candidate) => candidate === email) === index,
+    (email, index, array) =>
+      array.findIndex((candidate) => candidate === email) === index,
   );
 }
 
@@ -240,7 +243,10 @@ function InviteResponseModal({
                 Invited Emails
               </div>
               <div className="mt-2">
-                {[...(event.pendingInvitedUsers || []), ...(event.invitedUsers || [])]
+                {[
+                  ...(event.pendingInvitedUsers || []),
+                  ...(event.invitedUsers || []),
+                ]
                   .map((user) => user.email)
                   .join(", ") || "No guests."}
               </div>
@@ -347,7 +353,9 @@ export default function Calendar() {
   const upcomingEvents = useMemo(
     () =>
       [...events]
-        .sort((left, right) => new Date(left.startsAt) - new Date(right.startsAt))
+        .sort(
+          (left, right) => new Date(left.startsAt) - new Date(right.startsAt),
+        )
         .slice(0, 8),
     [events],
   );
@@ -410,13 +418,15 @@ export default function Calendar() {
 
     if (viewMode === "year") {
       setViewDate(
-        (current) => new Date(current.getFullYear() + direction, current.getMonth(), 1),
+        (current) =>
+          new Date(current.getFullYear() + direction, current.getMonth(), 1),
       );
       return;
     }
 
     setViewDate(
-      (current) => new Date(current.getFullYear(), current.getMonth() + direction, 1),
+      (current) =>
+        new Date(current.getFullYear(), current.getMonth() + direction, 1),
     );
   };
 
@@ -575,7 +585,9 @@ export default function Calendar() {
         canDelete={Boolean(
           editingEvent?._id && editingEvent?.ownerEmail === profile?.email,
         )}
-        canEdit={editingEvent ? canEditEvent(editingEvent) && modalForceEdit : true}
+        canEdit={
+          editingEvent ? canEditEvent(editingEvent) && modalForceEdit : true
+        }
         readOnlyMessage={readOnlyMessage}
         defaultDate={newEventDate}
       />
@@ -583,12 +595,16 @@ export default function Calendar() {
       <div className="container mx-auto">
         <div
           className={`${
-            isTouchLayout ? "w-full px-3 pb-10" : "w-11/12 2xl:w-9/12 mx-auto pb-10"
+            isTouchLayout
+              ? "w-full px-3 pb-10"
+              : "w-11/12 2xl:w-9/12 mx-auto pb-10"
           }`}
         >
           <div
-            className={`my-5 neuphormism-b ${
-              isTouchLayout ? "p-4" : "flex flex-row p-5"
+            className={`mb-5 neuphormism-b ${
+              isTouchLayout
+                ? "p-4"
+                : "flex flex-row items-center gap-6 p-5 mt-5"
             }`}
           >
             <div>
@@ -602,18 +618,20 @@ export default function Calendar() {
               >
                 CALENDAR
               </h1>
-              <h4 className="text-sm mt-2">
-                Schedule rehearsals, sessions, and invite other users with
-                their email.
-              </h4>
             </div>
             <div
               className={`${
                 isTouchLayout
                   ? "mt-4 flex flex-col gap-3"
-                  : "ml-auto mt-auto flex items-center gap-3"
+                  : "ml-auto flex items-center gap-4"
               }`}
             >
+              {!isTouchLayout ? (
+                <h4 className="max-w-[360px] text-right text-sm">
+                  Schedule rehearsals, sessions, and invite other users with
+                  their email.
+                </h4>
+              ) : null}
               <div className="flex rounded-full bg-white p-1">
                 {VIEW_OPTIONS.map((option) => (
                   <button
@@ -644,7 +662,9 @@ export default function Calendar() {
             </div>
           </div>
 
-          {error ? <div className="neuphormism-b p-4 text-red-600">{error}</div> : null}
+          {error ? (
+            <div className="neuphormism-b p-4 text-red-600">{error}</div>
+          ) : null}
 
           <div
             className={`grid grid-cols-1 gap-5 items-stretch ${
@@ -663,7 +683,9 @@ export default function Calendar() {
                   Prev
                 </button>
                 <div className="text-center">
-                  <h2 className="text-xl font-bold uppercase">{currentLabel}</h2>
+                  <h2 className="text-xl font-bold uppercase">
+                    {currentLabel}
+                  </h2>
                   <p className="text-[11px] text-gray-500 uppercase mt-1">
                     Double-click any event card to edit it.
                   </p>
@@ -699,11 +721,15 @@ export default function Calendar() {
                           onClick={() => setSelectedDay(day)}
                           onDoubleClick={() => openNewEventModal(day)}
                           className={`h-[96px] min-h-[96px] rounded-3xl p-3 text-left transition overflow-hidden ${
-                            isSelected ? "bg-black text-white" : "bg-white/80 text-black"
+                            isSelected
+                              ? "bg-black text-white"
+                              : "bg-white/80 text-black"
                           } ${!isCurrentMonth ? "opacity-45" : ""}`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold">{day.getDate()}</span>
+                            <span className="text-sm font-bold">
+                              {day.getDate()}
+                            </span>
                             {isToday ? (
                               <span className="text-[10px] uppercase text-[goldenrod]">
                                 Today
@@ -725,9 +751,7 @@ export default function Calendar() {
                                   setSelectedDay(day);
                                 }}
                                 className={`h-2.5 w-2.5 rounded-full ${
-                                  isSelected
-                                    ? "bg-[goldenrod]"
-                                    : "bg-gray-300"
+                                  isSelected ? "bg-[goldenrod]" : "bg-gray-300"
                                 }`}
                                 title={`${event.title} • ${formatReadableDate(event.startsAt)}`}
                                 aria-label={event.title}
@@ -800,7 +824,9 @@ export default function Calendar() {
                                   <div className="text-[11px] uppercase font-bold opacity-70">
                                     {formatTime(event.startsAt)}
                                   </div>
-                                  <div className="font-bold mt-1">{event.title}</div>
+                                  <div className="font-bold mt-1">
+                                    {event.title}
+                                  </div>
                                   {event.description ? (
                                     <div className="text-xs mt-2 opacity-80 line-clamp-3">
                                       {event.description}
@@ -820,69 +846,73 @@ export default function Calendar() {
               {viewMode === "year" ? (
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                  {yearMonths.map((monthDate) => {
-                    const miniGrid = getMiniMonthGrid(monthDate);
-                    return (
-                      <button
-                        type="button"
-                        key={monthDate.toISOString()}
-                        className="rounded-[24px] bg-white/80 p-3 text-left"
-                        onClick={() => {
-                          setViewMode("month");
-                          setViewDate(monthDate);
-                          setSelectedDay(monthDate);
-                        }}
-                        onDoubleClick={() => openNewEventModal(monthDate)}
-                      >
-                        <h3 className="text-base font-bold uppercase mb-2">
-                          {formatDisplayDate(monthDate)}
-                        </h3>
-                        <div className="grid grid-cols-7 gap-y-1 text-center text-[9px] text-gray-500 uppercase mb-1.5">
-                          {WEEKDAY_LABELS.map((label) => (
-                            <div key={label}>{label.slice(0, 1)}</div>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-7 gap-y-1 text-center text-[13px]">
-                          {miniGrid.map((day) => {
-                            const dayEvents = eventsByDay[formatDayKey(day)] || [];
-                            const participantColors = dayEvents
-                              .flatMap((event) =>
-                                getParticipantEmails(event).map((email) =>
-                                  getColorFromEmail(email),
-                                ),
-                              )
-                              .filter(
-                                (color, index, array) =>
-                                  array.findIndex((candidate) => candidate === color) === index,
-                              )
-                              .slice(0, 4);
-                            return (
-                              <div
-                                key={day.toISOString()}
-                                className={`mx-auto flex h-8 w-8 flex-col items-center justify-center rounded-full ${
-                                  sameDay(day, new Date()) && sameMonth(day, monthDate)
-                                    ? "bg-black text-white"
-                                    : ""
-                                } ${sameMonth(day, monthDate) ? "" : "opacity-30"}`}
-                              >
-                                <span>{day.getDate()}</span>
-                                {participantColors.length ? (
-                                  <span className="mt-0.5 flex items-center justify-center gap-[2px]">
-                                    {participantColors.map((color) => (
-                                      <span
-                                        key={`${day.toISOString()}-${color}`}
-                                        className={`h-1 w-1 rounded-full ${color}`}
-                                      />
-                                    ))}
-                                  </span>
-                                ) : null}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </button>
-                    );
-                  })}
+                    {yearMonths.map((monthDate) => {
+                      const miniGrid = getMiniMonthGrid(monthDate);
+                      return (
+                        <button
+                          type="button"
+                          key={monthDate.toISOString()}
+                          className="rounded-[24px] bg-white/80 p-3 text-left"
+                          onClick={() => {
+                            setViewMode("month");
+                            setViewDate(monthDate);
+                            setSelectedDay(monthDate);
+                          }}
+                          onDoubleClick={() => openNewEventModal(monthDate)}
+                        >
+                          <h3 className="text-base font-bold uppercase mb-2">
+                            {formatDisplayDate(monthDate)}
+                          </h3>
+                          <div className="grid grid-cols-7 gap-y-1 text-center text-[9px] text-gray-500 uppercase mb-1.5">
+                            {WEEKDAY_LABELS.map((label) => (
+                              <div key={label}>{label.slice(0, 1)}</div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-7 gap-y-1 text-center text-[13px]">
+                            {miniGrid.map((day) => {
+                              const dayEvents =
+                                eventsByDay[formatDayKey(day)] || [];
+                              const participantColors = dayEvents
+                                .flatMap((event) =>
+                                  getParticipantEmails(event).map((email) =>
+                                    getColorFromEmail(email),
+                                  ),
+                                )
+                                .filter(
+                                  (color, index, array) =>
+                                    array.findIndex(
+                                      (candidate) => candidate === color,
+                                    ) === index,
+                                )
+                                .slice(0, 4);
+                              return (
+                                <div
+                                  key={day.toISOString()}
+                                  className={`mx-auto flex h-8 w-8 flex-col items-center justify-center rounded-full ${
+                                    sameDay(day, new Date()) &&
+                                    sameMonth(day, monthDate)
+                                      ? "bg-black text-white"
+                                      : ""
+                                  } ${sameMonth(day, monthDate) ? "" : "opacity-30"}`}
+                                >
+                                  <span>{day.getDate()}</span>
+                                  {participantColors.length ? (
+                                    <span className="mt-0.5 flex items-center justify-center gap-[2px]">
+                                      {participantColors.map((color) => (
+                                        <span
+                                          key={`${day.toISOString()}-${color}`}
+                                          className={`h-1 w-1 rounded-full ${color}`}
+                                        />
+                                      ))}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
@@ -892,7 +922,9 @@ export default function Calendar() {
               <div className="neuphormism-b p-5">
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-bold uppercase">Selected Day</h2>
+                    <h2 className="text-xl font-bold uppercase">
+                      Selected Day
+                    </h2>
                     <p className="text-sm text-gray-600 mt-1">
                       {formatDisplayDate(selectedDay)}
                     </p>
@@ -904,10 +936,14 @@ export default function Calendar() {
 
                 <div
                   className={`space-y-4 mt-5 ${
-                    selectedEvents.length > 2 ? "max-h-[360px] overflow-y-auto pr-1" : ""
+                    selectedEvents.length > 2
+                      ? "max-h-[360px] overflow-y-auto pr-1"
+                      : ""
                   }`}
                 >
-                  {loading ? <p className="text-sm">Loading events...</p> : null}
+                  {loading ? (
+                    <p className="text-sm">Loading events...</p>
+                  ) : null}
                   {!loading && selectedEvents.length === 0 ? (
                     <div className="rounded-3xl bg-white p-4 text-sm text-gray-500">
                       No events scheduled for this day.
@@ -929,7 +965,9 @@ export default function Calendar() {
                               </p>
                             </div>
                             <span className="text-[10px] uppercase font-bold text-[goldenrod]">
-                              {event.ownerEmail === profile?.email ? "Owner" : "Guest"}
+                              {event.ownerEmail === profile?.email
+                                ? "Owner"
+                                : "Guest"}
                             </span>
                           </div>
                           {event.description ? (
@@ -939,7 +977,8 @@ export default function Calendar() {
                           ) : null}
                           {event.invitedUsers?.length ? (
                             <p className="text-[11px] text-gray-500 mt-3 break-all">
-                              Guests: {event.invitedUsers
+                              Guests:{" "}
+                              {event.invitedUsers
                                 .map((user) => toLowercaseEmail(user.email))
                                 .join(", ")}
                             </p>
@@ -971,7 +1010,9 @@ export default function Calendar() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="font-bold truncate">{event.title}</div>
+                            <div className="font-bold truncate">
+                              {event.title}
+                            </div>
                             <div className="text-[11px] text-gray-500 mt-1">
                               {formatCompactDate(event.startsAt)}
                             </div>

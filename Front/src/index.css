@@ -15,6 +15,11 @@ body,
   overflow-x: hidden;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 .fake {
   background-color: #4158d0;
   background-image: linear-gradient(
@@ -189,6 +194,12 @@ main{
   border-radius: 5px;
   background: #e0e0e0;
   box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
+}
+
+.neuphormism-d-bg-black {
+  border-radius: 5px;
+  background: #000;
+  box-shadow: inset 5px 5px 10px #6c6c6c, inset -5px -5px 10px #000;
 }
 
 
@@ -697,4 +708,74 @@ input[type="range"].range-golden::-moz-range-thumb {
 
 input[type="range"].range-golden::-moz-range-thumb:active {
   transform: scale(1.1);
+}
+
+input[type="range"].range-golden.range-golden-thin::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    #7f8ea3 var(--range-progress, 50%),
+    #ffffff var(--range-progress, 50%)
+  );
+  border-color: #ffffff;
+}
+
+input[type="range"].range-golden.range-golden-thin::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  background: #556274;
+  border-color: #d9ad26;
+  margin-top: -8px;
+}
+
+input[type="range"].range-golden.range-golden-thin::-moz-range-track {
+  height: 4px;
+  background: #ffffff;
+}
+
+input[type="range"].range-golden.range-golden-thin::-moz-range-progress {
+  height: 4px;
+  background: #7f8ea3;
+}
+
+input[type="range"].range-golden.range-golden-thin::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #556274;
+  border-color: #d9ad26;
+}
+
+input[type="range"].range-golden.range-golden-vertical {
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+
+input[type="range"].range-golden.range-golden-vertical::-webkit-slider-runnable-track {
+  width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    to top,
+    #7f8ea3 var(--range-progress, 50%),
+    #ffffff var(--range-progress, 50%)
+  );
+  border: 1px solid #ffffff;
+}
+
+input[type="range"].range-golden.range-golden-vertical::-webkit-slider-thumb {
+  margin-top: 0;
+  margin-left: -7px;
+}
+
+input[type="range"].range-golden.range-golden-vertical::-moz-range-track {
+  width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+input[type="range"].range-golden.range-golden-vertical::-moz-range-progress {
+  width: 6px;
+  border-radius: 999px;
+  background: #7f8ea3;
 }

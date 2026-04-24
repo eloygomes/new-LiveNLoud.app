@@ -165,6 +165,7 @@ function EditSongColumnA({
 
   const navigate = useNavigate();
   const initialSnapshotRef = useRef("");
+  const [touchMediaOpen, setTouchMediaOpen] = useState(false);
   const [touchVideosOpen, setTouchVideosOpen] = useState(false);
   const [touchSetlistsOpen, setTouchSetlistsOpen] = useState(false);
 
@@ -483,14 +484,19 @@ function EditSongColumnA({
 
   return touchLayout ? (
     <>
-      <div className="rounded-[20px] bg-[#e0e0e0] p-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+      <div className="rounded-[20px] neuphormism-b p-3">
         <button
           type="button"
           className="flex w-full items-center justify-between"
           onClick={onToggleSongData}
         >
-          <h2 className="text-[1.55rem] font-black tracking-tight text-black">Song Data</h2>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f8f8f8] text-black">
+          <div className="text-left">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              Song Workspace
+            </p>
+            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Song Data</h2>
+          </div>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
             {songDataOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
           </span>
         </button>
@@ -516,24 +522,48 @@ function EditSongColumnA({
         ) : null}
       </div>
 
-      <div className="mt-4 [&_.neuphormism-b-se]:!m-0 [&_.neuphormism-b-se]:!rounded-[20px] [&_.neuphormism-b-se]:!border-0 [&_.neuphormism-b-se]:!bg-[#e0e0e0] [&_.neuphormism-b-se]:!px-3 [&_.neuphormism-b-se]:!py-3 [&_.neuphormism-b-se]:!shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+      <div className="mt-4 flex justify-center [&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!mr-0 [&_.neuphormism-b]:!w-full [&_.neuphormism-b]:!max-w-[420px]">
         <GeralProgressBar geralPercentage={geralPercentage} />
       </div>
 
       {middleContent}
 
-      <div className="mt-4 rounded-[20px] bg-[#e0e0e0] p-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
-        <h2 className="text-[1.55rem] font-black tracking-tight text-black">Media & Setlist</h2>
+      <div className="mt-4 rounded-[20px] neuphormism-b p-3">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between"
+          onClick={() =>
+            setTouchMediaOpen((current) => {
+              const next = !current;
+              if (!next) {
+                setTouchVideosOpen(false);
+                setTouchSetlistsOpen(false);
+              }
+              return next;
+            })
+          }
+        >
+          <div className="text-left">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              Song Workspace
+            </p>
+            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Media & Setlist</h2>
+          </div>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
+            {touchMediaOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
+          </span>
+        </button>
 
-        <div className="mt-3 space-y-3">
-          <div className="rounded-[18px] bg-[#f8f8f8] p-3">
+        {touchMediaOpen ? (
+          <div className="mt-3 space-y-3">
+            <div className="rounded-[18px] neuphormism-b-se p-3">
             <button
               type="button"
               className="flex w-full items-center justify-between"
               onClick={() => setTouchVideosOpen((current) => !current)}
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ececec] text-black">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full neuphormism-b-avatar text-black">
                   <FaVideo className="text-sm" />
                 </div>
                 <div className="text-left">
@@ -547,14 +577,14 @@ function EditSongColumnA({
             </button>
           </div>
 
-          <div className="rounded-[18px] bg-[#f8f8f8] p-3">
+            <div className="rounded-[18px] neuphormism-b-se p-3">
             <button
               type="button"
               className="flex w-full items-center justify-between"
               onClick={() => setTouchSetlistsOpen((current) => !current)}
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ececec] text-black">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full neuphormism-b-avatar text-black">
                   <FaListUl className="text-sm" />
                 </div>
                 <div className="text-left">
@@ -566,8 +596,9 @@ function EditSongColumnA({
               </div>
               {touchSetlistsOpen ? <FaChevronUp className="text-sm text-gray-500" /> : <FaChevronDown className="text-sm text-gray-500" />}
             </button>
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       {touchVideosOpen ? (
@@ -649,13 +680,13 @@ function EditSongColumnA({
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <button
-          className="rounded-[16px] border border-[#f0b6ae] bg-[#fff4f2] px-4 py-3 text-lg font-black text-[#d13b2f]"
+          className="neuphormism-b-btn-red-cancel rounded-[16px] px-4 py-3 text-base font-black sm:text-lg"
           onClick={handleDelete}
         >
           Discard
         </button>
         <button
-          className="rounded-[16px] bg-[goldenrod] px-4 py-3 text-lg font-black text-black disabled:opacity-50"
+          className="neuphormism-b-btn-green-save rounded-[16px] px-4 py-3 text-base font-black disabled:opacity-50 sm:text-lg"
           onClick={handleUpdate}
           disabled={isDirty === undefined ? !hasPendingChanges : !isDirty}
         >
@@ -706,7 +737,7 @@ function EditSongColumnA({
 
       <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">
         <button
-          className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-[16px] px-5 py-3 text-base font-black neuphormism-b-btn-green-save disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleUpdate}
           disabled={isDirty === undefined ? !hasPendingChanges : !isDirty}
         >
@@ -714,7 +745,7 @@ function EditSongColumnA({
         </button>
 
         <button
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded neuphormism-b-btn-red-discard ml-5"
+          className="ml-5 rounded-[16px] px-5 py-3 text-base font-black neuphormism-b-btn-red-cancel"
           onClick={handleDelete}
         >
           Delete

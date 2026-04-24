@@ -56,39 +56,51 @@ function NewSongSongData({
   }
 
   return (
-    <div className="flex flex-row neuphormism-b-btn-flat p-5 my-5 mr-5">
+    <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex flex-col w-full">
-        <h1 className="text-xl font-bold">Song Data</h1>
-        <div className="flex flex-col mt-2 w-full neuphormism-b-btn p-2 px-3 ">
-          <span className="text-sm py-1 font-bold ">SONG</span>
-          <div className="text-sm">{songName}</div>
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            Song Workspace
+          </p>
+          <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+            Song Data
+          </h1>
         </div>
-        <div className="flex flex-col my-5 w-full neuphormism-b-btn py-2 px-3">
-          <span className="text-sm py-1 font-bold ">ARTIST</span>
-          <div className="text-sm">{artistName}</div>
-        </div>
-        <div className="flex flex-row  justify-between">
-          <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3  mr-5">
-            <p className="text-sm py-1 font-bold">CAPO</p>
-            <div className="text-sm">{capoData}</div>
+
+        <div className="mt-5 grid gap-4">
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Song</span>
+            <div className="mt-2 text-base font-black text-black">{songName || "-"}</div>
           </div>
-          <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3  mr-5">
-            <p className="text-sm py-1 font-bold">TOM</p>
-            <div className="text-sm">{tomData}</div>
-          </div>
-          <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3 bg-pink-300 hover:bg-gray-900">
-            <p className="text-sm py-1 font-bold">TUNER</p>
-            <div className="text-sm">{tunerData}</div>
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Artist</span>
+            <div className="mt-2 text-base font-black text-black">{artistName || "-"}</div>
           </div>
         </div>
-        <div className="flex flex-row mt-5 justify-between">
-          <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3  mr-5">
-            <p className="text-sm py-1 font-bold">ADDEDED</p>
-            <div className="text-sm">{addedDate}</div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Capo</p>
+            <div className="mt-2 text-sm font-bold text-black">{capoData || "-"}</div>
           </div>
-          <div className="w-full flex flex-col pr-2 neuphormism-b-btn py-2 px-3 ">
-            <p className="text-sm py-1 font-bold">LAST PLAY</p>
-            <div className="text-sm">{lastPlayDate}</div>
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Tom</p>
+            <div className="mt-2 text-sm font-bold text-black">{tomData || "-"}</div>
+          </div>
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Tuning</p>
+            <div className="mt-2 text-sm font-bold text-black">{tunerData || "-"}</div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Added</p>
+            <div className="mt-2 text-sm font-bold text-black">{addedDate}</div>
+          </div>
+          <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Last play</p>
+            <div className="mt-2 text-sm font-bold text-black">{lastPlayDate}</div>
           </div>
         </div>
       </div>

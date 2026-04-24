@@ -336,20 +336,20 @@ function ChordLibrary() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-10 pt-4 sm:px-5 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 lg:gap-5">
-        <section className=" bg-[#e0e0e0] p-5 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-6 neuphormism-b">
-          <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
-            # sustenido
-          </p>
-          <h1 className="mt-3 text-3xl font-black uppercase tracking-tight text-black sm:text-[2.4rem]">
-            Chord Library
-          </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[#697180] sm:text-[15px]">
-            Build the chord by root, major / minor mode, quality, and bass note.
-          </p>
-        </section>
+      <div className="container mx-auto">
+        <div className="w-full pb-10 md:mx-auto md:w-11/12 2xl:w-9/12">
+          <div className="mb-5 flex items-center gap-6 neuphormism-b p-5">
+            <div>
+              <h1 className="text-4xl font-bold">CHORD LIBRARY</h1>
+            </div>
+            <div className="ml-auto">
+              <h4 className="max-w-[360px] text-right text-sm">
+                Build the chord by root, major / minor mode, quality, and bass note.
+              </h4>
+            </div>
+          </div>
 
-        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
+          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
           <section className="order-2 hidden rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-5 xl:order-1 xl:block neuphormism-b">
             <p className="text-lg font-black uppercase text-black">
               Build chord
@@ -514,6 +514,7 @@ function ChordLibrary() {
             </button>
           </section>
         </div>
+      </div>
       </div>
     </div>
   );

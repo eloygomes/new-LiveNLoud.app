@@ -24,6 +24,12 @@ export default function RootLayouts() {
   const location = useLocation();
   const isDashboardRoute = location.pathname === "/";
   const isToolsRoute = location.pathname === "/tools";
+  const isToolDetailRoute = [
+    "/chordlibrary",
+    "/tuner",
+    "/metronome",
+    "/calendar",
+  ].includes(location.pathname);
   const isNewSongRoute = location.pathname === "/newsong";
   const isEditSongRoute = location.pathname.startsWith("/editsong/");
   const isPresentationRoute = location.pathname.startsWith("/presentation/");
@@ -36,7 +42,14 @@ export default function RootLayouts() {
       : ""
   }`;
   const hideFilterOnTouchRoute =
-    isToolsRoute || isNewSongRoute || isEditSongRoute;
+    isToolsRoute || isToolDetailRoute || isNewSongRoute || isEditSongRoute;
+  const hideMobileHeader =
+    isNewSongRoute || isEditSongRoute || (isPresentationRoute && hideMobileChrome);
+  const needsTouchTopOffset =
+    isTouchDashboardLayout &&
+    !isPresentationRoute &&
+    !isToolDetailRoute &&
+    !hideMobileHeader;
   const mobileTabs = [
     { to: "/", label: "Songlist", icon: FaListUl },
     { to: "/newsong", label: "Plus", icon: FaPlusCircle },
@@ -101,7 +114,9 @@ export default function RootLayouts() {
       {/* HEADER */}
       <header>
         {/* Mobile */}
-        {window.innerWidth <= 1024 && !isPresentationRoute && (
+        {window.innerWidth <= 1024 &&
+        !isToolDetailRoute &&
+        !hideMobileHeader ? (
           <nav className="fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -140,7 +155,7 @@ export default function RootLayouts() {
               ) : null}
             </div>
           </nav>
-        )}
+        ) : null}
 
         {/* Desktop */}
         {window.innerWidth >= 1025 && (
@@ -225,7 +240,7 @@ export default function RootLayouts() {
               ? "overflow-y-hidden"
               : "overflow-y-auto"
           } ${
-            isTouchDashboardLayout && !isPresentationRoute
+            needsTouchTopOffset
               ? "pt-[5.25rem]"
               : "pt-0"
           } ${

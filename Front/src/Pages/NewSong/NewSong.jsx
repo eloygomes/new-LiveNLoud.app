@@ -7,7 +7,7 @@ import { requestData } from "../../Tools/Controllers"; // ⬅️ importa do Cont
 function NewSong() {
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
-  const [songDataOpen, setSongDataOpen] = useState(false);
+  const [songDataOpen, setSongDataOpen] = useState(true);
   // Column A
   const [artistExtractedFromUrl, setArtistExtractedFromUrl] = useState();
   const [songExtractedFromUrl, setSongExtractedFromUrl] = useState();
@@ -92,9 +92,12 @@ function NewSong() {
           <SnackBar snackbarMessage={snackbarMessage} />
         </div>
 
-        <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
+        <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-0">
           <div className="origin-top">
-            <div className="rounded-[20px] bg-[#e0e0e0] px-4 py-3 shadow-[0_10px_18px_rgba(0,0,0,0.05)]">
+            <div className="neuphormism-b rounded-[28px] px-5 py-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                Song Workspace
+              </p>
               <div className="text-[1.9rem] font-black tracking-tight text-black">
                 NEW SONG
               </div>
@@ -187,19 +190,27 @@ function NewSong() {
   return (
     <>
       {window.innerWidth <= 926 && window.innerWidth > 426 && (
-        <div className="flex justify-center h-screen">
+        <div className="min-h-screen bg-[#f0f0f0] px-4 pb-24 pt-6">
           <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
             <SnackBar snackbarMessage={snackbarMessage} />
           </div>
-          <div className="h-screen w-screen px-6">
-            <div className="flex flex-row my-5 neuphormism-b p-5">
-              <h1 className="text-4xl font-bold">Add new song</h1>
-              <h4 className="ml-auto mt-auto text-sm">
-                Register new song here
-              </h4>
-            </div>
-            <div className="flex flex-row">
-              <div className="left-column w-1/2">
+          <div className="mx-auto w-full max-w-6xl">
+            <section className="neuphormism-b rounded-[28px] px-5 py-4">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  Song Workspace
+                </p>
+                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                  Add New Song
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm font-medium text-gray-500">
+                  Register the song, organize setlists, and attach instrument links in one flow.
+                </p>
+              </div>
+            </section>
+
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
+              <div className="left-column min-w-0">
                 <NewSongColumnA
                   dataFromUrl={dataFromUrl}
                   artistExtractedFromUrl={artistExtractedFromUrl}
@@ -224,7 +235,7 @@ function NewSong() {
                   scrapeStatus={scrapeStatus}
                 />
               </div>
-              <div className="right-column w-1/2">
+              <div className="right-column min-w-0">
                 <NewSongColumnB
                   guitar01={guitar01}
                   setGuitar01={setGuitar01}
@@ -271,21 +282,28 @@ function NewSong() {
         </div>
       )}
 
-      {window.innerWidth >= 926 && (
-        <div className="flex justify-center h-screen ">
+      {window.innerWidth > 926 && (
+        <div className="min-h-screen bg-[#f0f0f0] px-6 pb-24 pt-8">
           <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
             <SnackBar snackbarMessage={snackbarMessage} />
           </div>
-          <div className="container mx-auto">
-            <div className="h-screen w-11/12 2xl:w-9/12 mx-auto">
-              <div className="flex flex-row my-5 neuphormism-b p-5">
-                <h1 className="text-4xl font-bold">NEW SONG</h1>
-                <h4 className="ml-auto mt-auto text-sm">
-                  Register new song here
-                </h4>
+          <div className="mx-auto w-full max-w-7xl">
+            <section className="neuphormism-b rounded-[28px] px-5 py-4">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  Song Workspace
+                </p>
+                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
+                  Add New Song
+                </h1>
+                <p className="mt-3 max-w-3xl text-base font-medium text-gray-500">
+                  Bring the song data, instrument sources, videos, and setlists together without leaving the page.
+                </p>
               </div>
-              <div className="flex flex-row">
-                <div className="left-column w-1/2">
+            </section>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
+                <div className="left-column min-w-0">
                   <NewSongColumnA
                     dataFromUrl={dataFromUrl}
                     artistExtractedFromUrl={artistExtractedFromUrl}
@@ -314,7 +332,7 @@ function NewSong() {
                     scrapeStatus={scrapeStatus}
                   />
                 </div>
-                <div className="right-column w-1/2">
+                <div className="right-column min-w-0">
                   <NewSongColumnB
                     guitar01={guitar01}
                     setGuitar01={setGuitar01}
@@ -358,7 +376,6 @@ function NewSong() {
                   />
                 </div>
               </div>
-            </div>
           </div>
         </div>
       )}
