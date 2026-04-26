@@ -1,6 +1,11 @@
 import { NavLink } from "react-router-dom";
 
 function NavMenuItems() {
+  const navItemClassName = ({ isActive }) =>
+    `pb-2 text-sm pt-3 font-bold uppercase cursor-pointer ${
+      isActive ? "text-[goldenrod]" : "text-gray-500 hover:text-[goldenrod]"
+    }`;
+
   return (
     <>
       {/* {window.innerWidth <= 926 && window.innerWidth > 426 && ( */}
@@ -9,28 +14,22 @@ function NavMenuItems() {
           <div className="flex space-x-4 my-4 ml-2">
             <NavLink
               to="/chordlibrary"
-              // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+              className={navItemClassName}
             >
               Chord Library
             </NavLink>
             <NavLink
               to="/tuner"
-              // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+              className={navItemClassName}
             >
               Tuner
             </NavLink>
-            <NavLink
-              to="/calendar"
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
-            >
+            <NavLink to="/calendar" className={navItemClassName}>
               Calendar
             </NavLink>
             <NavLink
               to="/metronome"
-              // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+              className={navItemClassName}
             >
               Metronome
             </NavLink>
@@ -42,28 +41,22 @@ function NavMenuItems() {
           <div className="flex space-x-10">
             <NavLink
               to="/chordlibrary"
-              // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+              className={navItemClassName}
             >
               Chord Library
             </NavLink>
             <NavLink
               to="/tuner"
-              // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+              className={navItemClassName}
             >
               Tuner
             </NavLink>
-            <NavLink
-              to="/calendar"
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
-            >
+            <NavLink to="/calendar" className={navItemClassName}>
               Calendar
             </NavLink>
             <NavLink
               to="/metronome"
-              // className="rounded-md px-3 py-2 text-sm font-medium  text-gray-500 hover:text-gray-900 "
-              className="pb-2 text-sm pt-3 font-bold uppercase text-gray-500 hover:text-[goldenrod] cursor-pointer"
+              className={navItemClassName}
             >
               Metronome
             </NavLink>

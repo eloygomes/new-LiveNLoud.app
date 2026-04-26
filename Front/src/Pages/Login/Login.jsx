@@ -56,6 +56,7 @@ function Login() {
       subtitle="Sign in to your workspace"
       panelTitle="Practice starts before the first note."
       panelCopy="Access your dashboard, manage charts, plan rehearsals and keep your collaborators aligned in the same environment."
+      hideHeader
     >
       <form className="space-y-5" noValidate onSubmit={handleLogin}>
         <div className="space-y-2">

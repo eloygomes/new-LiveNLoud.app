@@ -57,6 +57,16 @@ export default function RootLayouts() {
     { to: "/userprofile/1", label: "User", icon: FaUser },
   ];
 
+  const isMobileTabActive = (to) => {
+    if (to === "/") return location.pathname === "/";
+    if (to === "/newsong") return location.pathname === "/newsong";
+    if (to === "/tools") return location.pathname === "/tools";
+    if (to.startsWith("/userprofile/")) {
+      return location.pathname.startsWith("/userprofile/");
+    }
+    return location.pathname === to;
+  };
+
   useEffect(() => {
     const handleVisibilityChange = (event) => {
       setHideMobileChrome(Boolean(event.detail?.hidden));
@@ -263,9 +273,11 @@ export default function RootLayouts() {
                 <NavLink
                   key={to}
                   to={to}
-                  className={({ isActive }) =>
+                  className={() =>
                     `flex flex-col items-center justify-center gap-1 rounded-[14px] py-2 text-[11px] font-bold ${
-                      isActive ? "text-[goldenrod]" : "text-[#9d9d9d]"
+                      isMobileTabActive(to)
+                        ? "text-[goldenrod]"
+                        : "text-[#9d9d9d]"
                     }`
                   }
                 >

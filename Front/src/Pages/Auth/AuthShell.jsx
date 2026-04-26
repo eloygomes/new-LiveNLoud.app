@@ -6,24 +6,27 @@ export default function AuthShell({
   subtitle,
   panelTitle,
   panelCopy,
+  hideHeader = false,
   children,
 }) {
   return (
     <div className="min-h-screen px-4 lg:h-screen lg:overflow-hidden lg:px-8">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 lg:h-full lg:min-h-0">
-        <div className="hidden neuphormism-b items-center justify-between px-6 lg:flex">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              # sustenido
+        {!hideHeader ? (
+          <div className="hidden neuphormism-b items-center justify-between px-6 lg:flex">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+                # sustenido
+              </div>
+              <h1 className="mt-1 text-2xl font-black uppercase tracking-tight sm:text-3xl">
+                {title}
+              </h1>
             </div>
-            <h1 className="mt-1 text-2xl font-black uppercase tracking-tight sm:text-3xl">
-              {title}
-            </h1>
+            <div className="hidden text-right text-sm text-gray-500 md:block">
+              Keep the same access flow.
+            </div>
           </div>
-          <div className="hidden text-right text-sm text-gray-500 md:block">
-            Keep the same access flow.
-          </div>
-        </div>
+        ) : null}
 
         <div className="grid flex-1 grid-cols-1 place-items-center gap-4 py-6 lg:min-h-0 lg:grid-cols-[0.85fr,0.9fr] lg:py-0">
           <section className="hidden lg:flex neuphormism-b max-h-full min-h-0 flex-col overflow-hidden">
