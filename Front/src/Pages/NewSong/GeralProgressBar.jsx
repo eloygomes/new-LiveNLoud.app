@@ -4,15 +4,15 @@ function GeralProgressBar({ geralPercentage }) {
     <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-            Song Workspace
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+            Progress
           </p>
-          <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Progress</h1>
+
           <p className="mt-1 text-sm font-medium text-gray-500">
             Overall completion based on instrument links.
           </p>
         </div>
-        <h1 className="rounded-full neuphormism-b-se px-4 py-2 text-2xl font-black text-black">
+        <h1 className="rounded-full px-4 py-2 text-2xl font-black text-black">
           {geralPercentage ? geralPercentage : 0}%
         </h1>
       </div>

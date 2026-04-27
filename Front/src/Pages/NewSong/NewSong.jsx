@@ -204,7 +204,8 @@ function NewSong() {
                   Add New Song
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm font-medium text-gray-500">
-                  Register the song, organize setlists, and attach instrument links in one flow.
+                  Register the song, organize setlists, and attach instrument
+                  links in one flow.
                 </p>
               </div>
             </section>
@@ -288,94 +289,90 @@ function NewSong() {
             <SnackBar snackbarMessage={snackbarMessage} />
           </div>
           <div className="mx-auto w-full max-w-7xl">
-            <section className="neuphormism-b rounded-[28px] px-5 py-4">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                  Song Workspace
-                </p>
-                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
-                  Add New Song
-                </h1>
-                <p className="mt-3 max-w-3xl text-base font-medium text-gray-500">
-                  Bring the song data, instrument sources, videos, and setlists together without leaving the page.
-                </p>
-              </div>
+            <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row justify-between">
+              <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
+                New Song
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
+                Bring the song data, instrument sources, videos, and setlists
+                together without leaving the page.
+              </p>
             </section>
 
             <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
-                <div className="left-column min-w-0">
-                  <NewSongColumnA
-                    dataFromUrl={dataFromUrl}
-                    artistExtractedFromUrl={artistExtractedFromUrl}
-                    songExtractedFromUrl={songExtractedFromUrl}
-                    guitar01={guitar01}
-                    guitar02={guitar02}
-                    bass={bass}
-                    keyboard={key}
-                    drums={drums}
-                    voice={voice}
-                    progBarG01={progBarG01}
-                    progBarG02={progBarG02}
-                    progBarBass={progBarBass}
-                    progBarKey={progBarKey}
-                    progBarDrums={progBarDrums}
-                    progBarVoice={progBarVoice}
-                    setSongScrapado={setSongScrapado}
-                    songScrapado={songScrapado}
-                    setArtistScrapado={setArtistScrapado}
-                    artistScrapado={artistScrapado}
-                    cifraExiste={cifraExiste}
-                    setCifraFROMDB={setCifraFROMDB}
-                    cifraFROMDB={cifraFROMDB}
-                    setShowSnackBar={setShowSnackBar}
-                    setSnackbarMessage={setSnackbarMessage}
-                    scrapeStatus={scrapeStatus}
-                  />
-                </div>
-                <div className="right-column min-w-0">
-                  <NewSongColumnB
-                    guitar01={guitar01}
-                    setGuitar01={setGuitar01}
-                    guitar02={guitar02}
-                    setGuitar02={setGuitar02}
-                    bass={bass}
-                    setBass={setBass}
-                    keyboard={key}
-                    setKey={setKey}
-                    drums={drums}
-                    setDrums={setDrums}
-                    voice={voice}
-                    setVoice={setVoice}
-                    progBarG01={progBarG01}
-                    setProgBarG01={setProgBarG01}
-                    progBarG02={progBarG02}
-                    setProgBarG02={setProgBarG02}
-                    progBarBass={progBarBass}
-                    setProgBarBass={setProgBarBass}
-                    progBarKey={progBarKey}
-                    setProgBarKey={setProgBarKey}
-                    progBarDrums={progBarDrums}
-                    setProgBarDrums={setProgBarDrums}
-                    progBarVoice={progBarVoice}
-                    setProgBarVoice={setProgBarVoice}
-                    setArtistExtractedFromUrl={setArtistExtractedFromUrl}
-                    setSongExtractedFromUrl={setSongExtractedFromUrl}
-                    gettingSongData={gettingSongData} // mantém prop
-                    setShowSnackBar={setShowSnackBar}
-                    setSnackbarMessage={setSnackbarMessage}
-                    dataFromUrl={dataFromUrl}
-                    setSongScrapado={setSongScrapado}
-                    songScrapado={songScrapado}
-                    setArtistScrapado={setArtistScrapado}
-                    artistScrapado={artistScrapado}
-                    artistName={artistName}
-                    setArtistName={setArtistName}
-                    songName={songName}
-                    setSongName={setSongName}
-                    setScrapeStatus={handleScrapeStatus}
-                  />
-                </div>
+              <div className="left-column min-w-0">
+                <NewSongColumnA
+                  dataFromUrl={dataFromUrl}
+                  artistExtractedFromUrl={artistExtractedFromUrl}
+                  songExtractedFromUrl={songExtractedFromUrl}
+                  guitar01={guitar01}
+                  guitar02={guitar02}
+                  bass={bass}
+                  keyboard={key}
+                  drums={drums}
+                  voice={voice}
+                  progBarG01={progBarG01}
+                  progBarG02={progBarG02}
+                  progBarBass={progBarBass}
+                  progBarKey={progBarKey}
+                  progBarDrums={progBarDrums}
+                  progBarVoice={progBarVoice}
+                  setSongScrapado={setSongScrapado}
+                  songScrapado={songScrapado}
+                  setArtistScrapado={setArtistScrapado}
+                  artistScrapado={artistScrapado}
+                  cifraExiste={cifraExiste}
+                  setCifraFROMDB={setCifraFROMDB}
+                  cifraFROMDB={cifraFROMDB}
+                  setShowSnackBar={setShowSnackBar}
+                  setSnackbarMessage={setSnackbarMessage}
+                  scrapeStatus={scrapeStatus}
+                />
               </div>
+              <div className="right-column min-w-0">
+                <NewSongColumnB
+                  guitar01={guitar01}
+                  setGuitar01={setGuitar01}
+                  guitar02={guitar02}
+                  setGuitar02={setGuitar02}
+                  bass={bass}
+                  setBass={setBass}
+                  keyboard={key}
+                  setKey={setKey}
+                  drums={drums}
+                  setDrums={setDrums}
+                  voice={voice}
+                  setVoice={setVoice}
+                  progBarG01={progBarG01}
+                  setProgBarG01={setProgBarG01}
+                  progBarG02={progBarG02}
+                  setProgBarG02={setProgBarG02}
+                  progBarBass={progBarBass}
+                  setProgBarBass={setProgBarBass}
+                  progBarKey={progBarKey}
+                  setProgBarKey={setProgBarKey}
+                  progBarDrums={progBarDrums}
+                  setProgBarDrums={setProgBarDrums}
+                  progBarVoice={progBarVoice}
+                  setProgBarVoice={setProgBarVoice}
+                  setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+                  setSongExtractedFromUrl={setSongExtractedFromUrl}
+                  gettingSongData={gettingSongData} // mantém prop
+                  setShowSnackBar={setShowSnackBar}
+                  setSnackbarMessage={setSnackbarMessage}
+                  dataFromUrl={dataFromUrl}
+                  setSongScrapado={setSongScrapado}
+                  songScrapado={songScrapado}
+                  setArtistScrapado={setArtistScrapado}
+                  artistScrapado={artistScrapado}
+                  artistName={artistName}
+                  setArtistName={setArtistName}
+                  songName={songName}
+                  setSongName={setSongName}
+                  setScrapeStatus={handleScrapeStatus}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

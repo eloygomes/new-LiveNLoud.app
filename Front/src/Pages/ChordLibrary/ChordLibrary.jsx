@@ -94,6 +94,20 @@ function getNoteAtFret(openNote, fretNo) {
   return (openIndex + fretNo) % 12;
 }
 
+function getPlayableBassFret(openNote, bassIndex) {
+  for (let fretNo = 0; fretNo <= 4; fretNo += 1) {
+    if (getNoteAtFret(openNote, fretNo) === bassIndex) return fretNo;
+  }
+
+  return null;
+}
+
+function getGeneratedBassSymbol(fretNo) {
+  if (fretNo === 0) return null;
+  if (fretNo <= 2) return "T";
+  return String(Math.min(fretNo, 4));
+}
+
 function buildBassVariation(variation, bass) {
   if (!variation || bass === "None") return variation;
 
@@ -114,16 +128,40 @@ function buildBassVariation(variation, bass) {
     })
     .filter(Boolean);
 
-  const firstBassString = soundingStrings.find(
+  const bassCandidates = soundingStrings.filter(
     (string) => string.pitchClass === bassIndex,
   );
 
-  if (!firstBassString) return null;
+  variation.strings.forEach((string, index) => {
+    const note = Array.isArray(string) && string.length > 0 ? string[0] : null;
+    if (note && !note.isMuted) return;
+
+    const fretNo = getPlayableBassFret(STRING_OPEN_NOTES[index], bassIndex);
+    if (fretNo === null) return;
+
+    bassCandidates.push({
+      index,
+      note: {
+        fretNo,
+        isGeneratedBass: true,
+        symbol: getGeneratedBassSymbol(fretNo),
+      },
+    });
+  });
+
+  const bassString = bassCandidates.reduce(
+    (lowest, candidate) =>
+      !lowest || candidate.index > lowest.index ? candidate : lowest,
+    null,
+  );
+
+  if (!bassString) return null;
 
   return {
     ...variation,
     strings: variation.strings.map((string, index) => {
-      if (index <= firstBassString.index) return string;
+      if (index < bassString.index) return string;
+      if (index === bassString.index) return [bassString.note];
 
       const note =
         Array.isArray(string) && string.length > 0 ? string[0] : null;
@@ -209,11 +247,12 @@ function getFingering(variation) {
       if (typeof symbol === "string" && /^\d$/.test(symbol)) {
         return parseInt(symbol, 10);
       }
+      if (symbol === "T") return symbol;
     }
     return 0;
   });
 
-  return { frets, fingers };
+  return { frets, fingers, firstFret: variation.firstFret };
 }
 
 function ChoiceChip({ label, selected, onClick }) {

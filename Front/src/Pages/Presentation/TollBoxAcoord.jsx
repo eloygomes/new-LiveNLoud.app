@@ -45,6 +45,7 @@ export default function TollBoxAcoord({
   toggleTabsVisibility,
   hideChords,
   setHideChords,
+  selectContenttoShow,
   setSelectContenttoShow,
   isEditing,
   isSavingCifra,
@@ -140,11 +141,14 @@ export default function TollBoxAcoord({
       {chunkedInstruments.map((row, rowIndex) => (
         <li
           key={rowIndex}
-          className={isTouchLayout ? "contents" : "hover:font-semibold flex flex-row"}
+          className={
+            isTouchLayout ? "contents" : "hover:font-semibold flex flex-row"
+          }
         >
           {row.map((instrument) => {
             const { key, label } = instrument;
             const isActive = instLinkPageStatus[key];
+            const isSelected = key === instrumentSelected;
             const sharedClass = isTouchLayout
               ? "rounded-[14px] px-3 py-3 text-sm font-black"
               : "w-1/2 p-2 m-2 text-sm";
@@ -154,7 +158,13 @@ export default function TollBoxAcoord({
                 onClick={() => {
                   window.location.href = `/presentation/${artistFromURL}/${songFromURL}/${key}`;
                 }}
-                className={`${sharedClass} ${isTouchLayout ? "bg-[goldenrod] text-black" : "neuphormism-b-btn flex justify-center items-center rounded text-center"}`}
+                className={`${sharedClass} ${
+                  isSelected
+                    ? "bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.28)]"
+                    : isTouchLayout
+                      ? "bg-[#ececec] text-black"
+                      : "neuphormism-b-btn"
+                } flex justify-center items-center rounded text-center`}
               >
                 {label}
               </button>
@@ -178,10 +188,19 @@ export default function TollBoxAcoord({
   const renderVideosContent = () => (
     <ul>
       {embedLinks.map((link, index) => (
-        <li key={index} className={isTouchLayout ? "mb-2" : "hover:font-semibold flex flex-row"}>
+        <li
+          key={index}
+          className={
+            isTouchLayout ? "mb-2" : "hover:font-semibold flex flex-row"
+          }
+        >
           <button
             type="button"
-            className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full m-2 text-sm"}
+            className={
+              isTouchLayout
+                ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
+                : "neuphormism-b-se  py-2 w-full m-2 text-sm"
+            }
             onClick={() => handlePlayClick(link)}
           >
             video {index + 1}
@@ -191,70 +210,62 @@ export default function TollBoxAcoord({
     </ul>
   );
 
-  const renderHighlightContent = () => (
-    <ul className={isTouchLayout ? "space-y-2" : "m-2"}>
-      <li className="hover:font-semibold">
-        <button
-          type="button"
-          className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
-          onClick={() => {
-            setSelectContenttoShow("full");
-          }}
-        >
-          original
-        </button>
-        <button
-          type="button"
-          className={isTouchLayout ? "mt-2 w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
-          onClick={() => {
-            setSelectContenttoShow("tabs");
-          }}
-        >
-          tabs
-        </button>
-      </li>
-      <li className="hover:font-semibold">
-        <button
-          type="button"
-          className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
-          onClick={() => {
-            setSelectContenttoShow("chords");
-          }}
-        >
-          notes
-        </button>
-      </li>
-      <li className="hover:font-semibold">
-        <button
-          type="button"
-          className={isTouchLayout ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black" : "neuphormism-b-se  py-2 w-full my-2"}
-          onClick={() => {
-            setSelectContenttoShow("lyrics");
-          }}
-        >
-          lyrics
-        </button>
-      </li>
-    </ul>
-  );
+  const renderHighlightContent = () => {
+    const activeHighlight = selectContenttoShow || "default";
+    const options = [
+      { value: "full", activeValues: ["default", "full"], label: "original" },
+      { value: "tabs", activeValues: ["tabs"], label: "tabs" },
+      { value: "chords", activeValues: ["chords"], label: "notes" },
+    ];
+
+    return (
+      <ul className={isTouchLayout ? "space-y-4" : "m-2 space-y-3"}>
+        {options.map((option) => {
+          const isSelected = option.activeValues.includes(activeHighlight);
+          return (
+            <li key={option.value} className="hover:font-semibold">
+              <button
+                type="button"
+                className={
+                  isSelected
+                    ? "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-left text-sm font-black text-black"
+                    : isTouchLayout
+                      ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
+                      : "neuphormism-b-se w-full rounded-[14px] px-3 py-3 text-left text-sm font-bold text-black"
+                }
+                onClick={() => {
+                  setSelectContenttoShow(option.value);
+                }}
+              >
+                {option.label}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
   const renderFontSizeContent = () => (
-    <div className={isTouchLayout ? "rounded-[16px] bg-[#ececec] p-2" : "m-2"}>
-      <div className="flex items-center gap-2">
+    <div className="rounded-[18px] px-1 py-3">
+      <div className=" flex h-9 w-full pb-8 pt-3  min-w-0 flex-1 items-center justify-center rounded-[14px] px-2 text-center text-[0.95rem] font-black leading-none tracking-tight text-black">
+        {touchFontSizeLabel}
+      </div>
+      <div className="flex items-center justify-between gap-1">
         <button
           type="button"
-          className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
+          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-black leading-none text-black active:scale-[0.98]"
           onClick={decreaseTouchFontSize}
+          aria-label="Decrease font size"
         >
           -
         </button>
-        <div className="flex-1 rounded-[14px] bg-white px-3 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]">
-          {touchFontSizeLabel}
-        </div>
+
         <button
           type="button"
-          className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
+          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-black leading-none text-black active:scale-[0.98]"
           onClick={increaseTouchFontSize}
+          aria-label="Increase font size"
         >
           +
         </button>
@@ -373,7 +384,7 @@ export default function TollBoxAcoord({
               onClick={handleTouchDiscard}
               disabled={isSavingCifra}
             >
-              Delete
+              Discard
             </button>
           </div>
         </div>
@@ -386,35 +397,23 @@ export default function TollBoxAcoord({
           <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
             Font Size
           </div>
-          <div className="rounded-[16px] bg-[#ececec] p-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
-                onClick={decreaseTouchFontSize}
-              >
-                -
-              </button>
-              <div className="flex-1 rounded-[14px] bg-white px-3 py-3 text-center text-sm font-black uppercase tracking-[0.08em] text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]">
-                {touchFontSizeLabel}
-              </div>
-              <button
-                type="button"
-                className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-white text-2xl font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
-                onClick={increaseTouchFontSize}
-              >
-                +
-              </button>
-            </div>
-          </div>
+          {renderFontSizeContent()}
         </div>
       );
     }
 
     const sections = [
       { id: "panel-editor", label: "Editor", content: renderEditorContent() },
-      { id: "panel-font", label: "Font Size", content: renderFontSizeContent() },
-      { id: "panel1", label: "Instruments", content: renderInstrumentsContent() },
+      {
+        id: "panel-font",
+        label: "Font Size",
+        content: renderFontSizeContent(),
+      },
+      {
+        id: "panel1",
+        label: "Instruments",
+        content: renderInstrumentsContent(),
+      },
       { id: "panel2", label: "Videos", content: renderVideosContent() },
       { id: "panel4", label: "Highlight", content: renderHighlightContent() },
       { id: "panel5", label: "Tools", content: renderToolsContent() },
@@ -449,9 +448,13 @@ export default function TollBoxAcoord({
                 }}
               >
                 <span>{section.label}</span>
-                <span className="text-2xl leading-none">{isOpen ? "−" : "+"}</span>
+                <span className="text-2xl leading-none">
+                  {isOpen ? "−" : "+"}
+                </span>
               </button>
-              {isOpen ? <div className="mt-2 px-1">{section.content}</div> : null}
+              {isOpen ? (
+                <div className="mt-2 px-1">{section.content}</div>
+              ) : null}
             </div>
           );
         })}

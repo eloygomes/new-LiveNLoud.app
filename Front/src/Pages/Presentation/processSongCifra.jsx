@@ -45,6 +45,43 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
   const isBlankLine = (line) => line.trim() === "";
   const isTabLine = (line) => /\|[-\s\d|]*\|?/.test(line);
   const isTomLine = (line) => line.toLowerCase().includes("tom");
+  const tabStringPrefixes = ["E|", "B|", "G|", "D|", "A|", "E|"];
+
+  function isSixLineTabGroup(tabBlock, startIndex) {
+    const group = tabBlock.slice(startIndex, startIndex + 6);
+    if (group.length < 6) return false;
+
+    const matchesStringLabels = group.every((line, index) =>
+      line.trimStart().startsWith(tabStringPrefixes[index])
+    );
+    const matchesBareTabs = group.every((line) =>
+      line.trimStart().startsWith("|")
+    );
+
+    return matchesStringLabels || matchesBareTabs;
+  }
+
+  function addSpacingBetweenTabGroups(tabBlock) {
+    const formatted = [];
+    let index = 0;
+
+    while (index < tabBlock.length) {
+      if (isSixLineTabGroup(tabBlock, index)) {
+        formatted.push(...tabBlock.slice(index, index + 6));
+        index += 6;
+
+        if (isSixLineTabGroup(tabBlock, index)) {
+          formatted.push("", "");
+        }
+        continue;
+      }
+
+      formatted.push(tabBlock[index]);
+      index++;
+    }
+
+    return formatted;
+  }
 
   const nonChordWords = [
     "Coração",
@@ -152,8 +189,9 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
         tabBlock.push(lines[j]);
       }
       const tabId = `tab${index}`;
+      const formattedTabBlock = addSpacingBetweenTabGroups(tabBlock);
       return {
-        html: `<pre id="${tabId}" class="tab">\n${tabBlock.join("\n")}</pre>`,
+        html: `<pre id="${tabId}" class="tab">\n${formattedTabBlock.join("\n")}</pre>`,
         nextIndex: j,
       };
     } else if (isChordLine(line)) {

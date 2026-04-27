@@ -27,7 +27,7 @@ function ToolBoxEditControls({
             onClick={handleDiscardDraft}
             disabled={isSavingCifra}
           >
-            Delete
+            Discard
           </button>
         </>
       ) : (

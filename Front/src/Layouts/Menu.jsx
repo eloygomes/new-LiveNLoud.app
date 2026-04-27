@@ -13,12 +13,16 @@ import NavMenuItems from "./NavMenuItems";
 import UserProfileModal from "../Tools/modal/UserProfileModal";
 import NotificationBell from "./NotificationBell";
 import SearchBox from "../Pages/Dashboard/SearchBox/SearchBox";
+import { loadSelectedSetlists } from "../Tools/Controllers";
 
 export default function RootLayouts() {
   // ===== ESTADO DA BUSCA (navbar) =====
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [hideMobileChrome, setHideMobileChrome] = useState(false);
+  const [hasActiveDashboardFilter, setHasActiveDashboardFilter] = useState(
+    () => loadSelectedSetlists().length > 0,
+  );
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,6 +44,9 @@ export default function RootLayouts() {
     hasActiveSearch
       ? "blinking-icon text-black"
       : ""
+  }`;
+  const filterButtonClassName = `relative z-[95] rounded-full p-3 neuphormism-b-btn ${
+    hasActiveDashboardFilter ? "blinking-icon text-black" : ""
   }`;
   const hideFilterOnTouchRoute =
     isToolsRoute || isToolDetailRoute || isNewSongRoute || isEditSongRoute;
@@ -98,6 +105,24 @@ export default function RootLayouts() {
   }, [isDashboardRoute]);
 
   useEffect(() => {
+    const handleFilterStateChange = (event) => {
+      setHasActiveDashboardFilter(Boolean(event.detail?.active));
+    };
+
+    window.addEventListener(
+      "dashboard-filter-state-change",
+      handleFilterStateChange,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "dashboard-filter-state-change",
+        handleFilterStateChange,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     const handleCloseAllModals = () => {
       setIsSearchOpen(false);
     };
@@ -152,7 +177,7 @@ export default function RootLayouts() {
                   ) : null}
                   <button
                     type="button"
-                    className="relative z-[95] rounded-full p-3 neuphormism-b-btn"
+                    className={filterButtonClassName}
                     onClick={openFilter}
                     aria-label="Open filters"
                   >

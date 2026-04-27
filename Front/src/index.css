@@ -290,6 +290,16 @@ main{
   box-sizing: border-box;
 }
 
+.presentation-tabs-only .tab + .tab,
+.presentation-tabs-only .presentation-tab + .presentation-tab,
+.presentation-tabs-only .presentation-tab-section + .presentation-tab-section {
+  margin-top: 1.5rem;
+}
+
+.presentation-tab-filter-block + .presentation-tab-filter-block {
+  margin-top: 1.5rem;
+}
+
 .notespresentation{
   color: goldenrod;
   cursor: pointer;
@@ -300,6 +310,23 @@ main{
 .notespresentation:hover{
   color: goldenrod;
   transform: translateY(-1px);
+}
+
+.presentation-cifra-editor .presentation-editor-chord {
+  cursor: text;
+}
+
+.presentation-cifra-editor .presentation-editor-chord:hover {
+  transform: none;
+}
+
+.presentation-cifra-editor p {
+  margin: 0;
+  min-height: 1.5em;
+}
+
+.presentation-cifra-editor p + p {
+  margin-top: 0.25rem;
 }
 
 .hide-chords .notespresentation {

@@ -23,6 +23,9 @@ import {
   unregisterScrollViewport,
 } from "./presentationScrollController";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { Extension } from "@tiptap/core";
+import { Plugin } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import ChordSheetJS from "chordsheetjs";
@@ -34,15 +37,92 @@ const plainTextToHtml = (text = "") =>
   text
     .split("\n")
     .map((line) => {
-      if (!line.length) {
+      const displayLine = line.trimStart();
+      if (!displayLine.length) {
         return "<p>&nbsp;</p>";
       }
-      const preservedSpaces = escapeHtml(line)
+      const preservedSpaces = escapeHtml(displayLine)
         .replace(/ /g, "&nbsp;")
         .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
       return `<p>${preservedSpaces}</p>`;
     })
     .join("");
+
+const editorNonChordWords = new Set([
+  "Coração",
+  "Dedilhado",
+  "Final",
+  "Estrofes",
+  "Frase",
+  "Casta_nhos",
+  "Escala",
+  "coração",
+  "dedilhado",
+  "final",
+  "estrofes",
+  "frase",
+  "casta_nhos",
+  "escala",
+  "Fontes",
+]);
+
+const editorChordRegexString =
+  "([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?(?:\\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?)?)";
+const editorChordValidationRegex = new RegExp(
+  "^" + editorChordRegexString + "$",
+);
+const editorChordPattern = new RegExp(
+  "(\\b|\\s|[-:])" + editorChordRegexString + "(?=\\s|$)",
+  "g",
+);
+
+function isEditorChord(value) {
+  return (
+    !editorNonChordWords.has(value) && editorChordValidationRegex.test(value)
+  );
+}
+
+const ChordHighlight = Extension.create({
+  name: "chordHighlight",
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        props: {
+          decorations(state) {
+            const decorations = [];
+
+            state.doc.descendants((node, position) => {
+              if (!node.isText || !node.text) return;
+
+              editorChordPattern.lastIndex = 0;
+              let match;
+
+              while ((match = editorChordPattern.exec(node.text)) !== null) {
+                const chord = match[2];
+                if (!isEditorChord(chord)) continue;
+
+                const chordStart = match.index + match[0].indexOf(chord);
+                decorations.push(
+                  Decoration.inline(
+                    position + chordStart,
+                    position + chordStart + chord.length,
+                    {
+                      class: "notespresentation presentation-editor-chord",
+                      "data-chord": chord,
+                    },
+                  ),
+                );
+              }
+            });
+
+            return DecorationSet.create(state.doc, decorations);
+          },
+        },
+      }),
+    ];
+  },
+});
 
 const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
@@ -136,7 +216,7 @@ function Presentation() {
       case "tabs":
         return songTabs;
       case "chords":
-        return songChords;
+        return songLyrics;
       case "lyrics":
         return songLyrics;
       case "full":
@@ -203,7 +283,8 @@ function Presentation() {
     () => Math.max(0.58, Math.min(1.18, 0.82 + touchFontSizeStep * 0.08)),
     [touchFontSizeStep],
   );
-  const touchFontSizeLabel = `${Math.round((touchFontSizeRem / 0.82) * 100)}%`;
+  const presentationFontScale = touchFontSizeRem / 0.82;
+  const touchFontSizeLabel = `${Math.round(presentationFontScale * 100)}%`;
 
   const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
     const length = String(value || "").trim().length;
@@ -693,13 +774,14 @@ function Presentation() {
         Placeholder.configure({
           placeholder: "Edite a cifra aqui...",
         }),
+        ChordHighlight,
       ],
       content: plainTextToHtml(draftCifra || ""),
       editable: isEditing,
       editorProps: {
         attributes: {
           class:
-            "min-h-[60vh] w-full whitespace-pre-wrap font-mono text-base leading-6 focus:outline-none",
+            "presentation-cifra-editor min-h-[60vh] w-full whitespace-pre-wrap font-mono text-base leading-6 focus:outline-none",
         },
       },
       onUpdate: ({ editor }) => {
@@ -803,6 +885,7 @@ function Presentation() {
           toggleTabsVisibility={toggleTabsVisibility}
           hideChords={hideChords}
           setHideChords={setHideChords}
+          selectContenttoShow={selectContenttoShow}
           setSelectContenttoShow={setSelectContenttoShow}
           isEditing={isEditing}
           isSavingCifra={isSavingCifra}
@@ -827,9 +910,7 @@ function Presentation() {
         />
       )}
       <div
-        className={`container mx-auto ${
-          effectiveLiveMode ? "max-w-none" : ""
-        }`}
+        className={`container mx-auto ${effectiveLiveMode ? "max-w-none" : ""}`}
       >
         <div
           className={`flex min-h-0 flex-col ${
@@ -843,9 +924,7 @@ function Presentation() {
           {!effectiveLiveMode && (
             <div
               className={`my-5 flex justify-between neuphormism-b ${
-                isTouchLayout
-                  ? "items-start gap-4 px-4 py-4"
-                  : "flex-row p-5"
+                isTouchLayout ? "items-start gap-4 px-4 py-4" : "flex-row p-5"
               }`}
             >
               <div className="min-w-0 flex-1 flex-col">
@@ -914,14 +993,13 @@ function Presentation() {
                 </button>
                 <div
                   className={`flex items-center justify-center neuphormism-b-btn ${
-                    isTouchLayout &&
-                    !toolBoxBtnStatus &&
-                    (isEditing || isVideoModalOpen || isTouchVideoActive)
+                    isEditing ||
+                    (isTouchLayout &&
+                      !toolBoxBtnStatus &&
+                      (isVideoModalOpen || isTouchVideoActive))
                       ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
                       : ""
-                  } ${
-                    isTouchLayout ? "px-4 py-3" : "p-6"
-                  }`}
+                  } ${isTouchLayout ? "px-4 py-3" : "p-6"}`}
                   onClick={() => {
                     if (isTouchLayout && isTouchVideoActive) {
                       setIsTouchVideoMenuOpen(true);
@@ -1021,14 +1099,18 @@ function Presentation() {
               effectiveLiveMode
                 ? "presentation-live-content"
                 : `neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
-            } ${hideChords ? "hide-chords" : ""}`}
+            } ${hideChords ? "hide-chords" : ""} ${
+              selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
+            }`}
             style={
-              !effectiveLiveMode && isTouchLayout
+              !effectiveLiveMode
                 ? {
                     "--touch-presentation-font-scale": String(
-                      touchFontSizeRem / 0.82,
+                      presentationFontScale,
                     ),
-                    fontSize: `${touchFontSizeRem}rem`,
+                    fontSize: isTouchLayout
+                      ? `${touchFontSizeRem}rem`
+                      : `${presentationFontScale}rem`,
                     lineHeight: 1.45,
                   }
                 : undefined
@@ -1061,6 +1143,11 @@ function Presentation() {
                 .map(({ block, index }, visibleIndex, visibleBlocks) => (
                   <div
                     key={index}
+                    className={
+                      selectContenttoShow === "tabs"
+                        ? "presentation-tab-filter-block"
+                        : undefined
+                    }
                     style={
                       !effectiveLiveMode &&
                       visibleIndex === visibleBlocks.length - 1

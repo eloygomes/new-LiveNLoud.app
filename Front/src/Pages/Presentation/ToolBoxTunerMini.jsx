@@ -1,268 +1,406 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import DraggableComponent from "./DraggableComponent";
+import {
+  INSTRUMENT_TUNINGS,
+  MAX_UI_FREQ,
+  MIN_UI_FREQ,
+  NOTE_FREQS,
+} from "../Tuner/TunerData";
 
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const DEFAULT_CFG = {
+  BUFFER_SIZE: 2048,
+  LOWCUT_HZ: 20,
+  HIGHCUT_HZ: 5000,
+};
 
-function frequencyToNoteData(frequency) {
-  if (!frequency || !Number.isFinite(frequency) || frequency <= 0) {
-    return null;
-  }
+function getClosestNote(frequency) {
+  let closestNote = null;
+  let closestFrequency = null;
+  let smallestDistance = Infinity;
 
-  const midi = Math.round(12 * Math.log2(frequency / 440) + 69);
-  const noteIndex = ((midi % 12) + 12) % 12;
-  const note = NOTE_NAMES[noteIndex];
-  const targetFrequency = 440 * 2 ** ((midi - 69) / 12);
-  const cents = Math.round(1200 * Math.log2(frequency / targetFrequency));
+  Object.entries(NOTE_FREQS).forEach(([note, noteFrequency]) => {
+    const distance = Math.abs(1200 * Math.log2(frequency / noteFrequency));
+    if (distance < smallestDistance) {
+      smallestDistance = distance;
+      closestNote = note;
+      closestFrequency = noteFrequency;
+    }
+  });
 
   return {
-    cents,
-    frequency,
-    note,
-    octave: Math.floor(midi / 12) - 1,
-    targetFrequency,
+    note: closestNote,
+    frequency: closestFrequency,
+    cents: 1200 * Math.log2(frequency / closestFrequency),
   };
 }
 
-function autoCorrelate(buffer, sampleRate) {
-  const size = buffer.length;
-  let rms = 0;
+function getCleanNoteName(note) {
+  if (!note) return "--";
+  return note.split("/")[0].replace(/[0-9]/g, "");
+}
 
-  for (let i = 0; i < size; i += 1) {
-    rms += buffer[i] * buffer[i];
-  }
+function getClosestString(frequency, strings) {
+  if (!Number.isFinite(frequency) || !strings.length) return null;
 
-  rms = Math.sqrt(rms / size);
-  if (rms < 0.01) {
-    return -1;
-  }
-
-  let r1 = 0;
-  let r2 = size - 1;
-  const threshold = 0.2;
-
-  for (let i = 0; i < size / 2; i += 1) {
-    if (Math.abs(buffer[i]) < threshold) {
-      r1 = i;
-      break;
+  return strings.reduce((closest, string, index) => {
+    const centsDistance = Math.abs(1200 * Math.log2(frequency / string.freq));
+    if (!closest || centsDistance < closest.centsDistance) {
+      return { ...string, index, centsDistance };
     }
-  }
+    return closest;
+  }, null);
+}
 
-  for (let i = 1; i < size / 2; i += 1) {
-    if (Math.abs(buffer[size - i]) < threshold) {
-      r2 = size - i;
-      break;
-    }
-  }
-
-  const trimmed = buffer.slice(r1, r2);
-  const trimmedSize = trimmed.length;
-  const correlations = new Array(trimmedSize).fill(0);
-
-  for (let offset = 0; offset < trimmedSize; offset += 1) {
-    let correlation = 0;
-    for (let i = 0; i < trimmedSize - offset; i += 1) {
-      correlation += trimmed[i] * trimmed[i + offset];
-    }
-    correlations[offset] = correlation;
-  }
-
-  let bestOffset = -1;
-  let bestCorrelation = 0;
-
-  for (let offset = 1; offset < trimmedSize; offset += 1) {
-    if (correlations[offset] > bestCorrelation) {
-      bestCorrelation = correlations[offset];
-      bestOffset = offset;
-    }
-  }
-
-  if (bestOffset <= 0) {
-    return -1;
-  }
-
-  const prev = correlations[bestOffset - 1] || 0;
-  const current = correlations[bestOffset] || 0;
-  const next = correlations[bestOffset + 1] || 0;
-  const shift = current ? (next - prev) / (2 * current) : 0;
-
-  return sampleRate / (bestOffset + shift);
+function getTuneMessage(centsValue, hasSignal) {
+  if (!hasSignal) return "Waiting";
+  if (Math.abs(centsValue) <= 5) return "In Tune";
+  return centsValue < 0 ? "Tune Up" : "Tune Down";
 }
 
 export default function ToolBoxTunerMini() {
-  const [isListening, setIsListening] = useState(false);
+  const [isTuning, setIsTuning] = useState(false);
   const [error, setError] = useState("");
-  const [detectedNote, setDetectedNote] = useState(null);
+  const [displayNote, setDisplayNote] = useState("");
+  const [liveFreq, setLiveFreq] = useState(null);
+  const [cents, setCents] = useState(0);
+  const [instrumentType, setInstrumentType] = useState("Guitar");
+  const [tuningName, setTuningName] = useState("Standard");
+  const [autoDetectString, setAutoDetectString] = useState(true);
+  const [selectedStringIndex, setSelectedStringIndex] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const sourceRef = useRef(null);
-  const streamRef = useRef(null);
-  const rafRef = useRef(null);
+  const workerRef = useRef(null);
+  const mediaRef = useRef({
+    stream: null,
+    audioContext: null,
+    source: null,
+    processor: null,
+  });
+  const tunerSettingsRef = useRef({
+    autoDetectString: true,
+    selectedStringIndex: 0,
+    strings: INSTRUMENT_TUNINGS.Guitar.Standard,
+  });
 
-  const stopListening = () => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+  const instrumentOptions = useMemo(() => Object.keys(INSTRUMENT_TUNINGS), []);
+  const tuningOptions = useMemo(
+    () => Object.keys(INSTRUMENT_TUNINGS[instrumentType] || {}),
+    [instrumentType],
+  );
+  const currentStrings = useMemo(
+    () => INSTRUMENT_TUNINGS[instrumentType]?.[tuningName] || [],
+    [instrumentType, tuningName],
+  );
+  const targetString = currentStrings[selectedStringIndex] || currentStrings[0];
+
+  useEffect(() => {
+    const tunings = INSTRUMENT_TUNINGS[instrumentType] || {};
+    if (!tunings[tuningName]) {
+      setTuningName(Object.keys(tunings)[0] || "Standard");
     }
+    setSelectedStringIndex(0);
+  }, [instrumentType, tuningName]);
 
-    if (sourceRef.current) {
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
+  useEffect(() => {
+    tunerSettingsRef.current = {
+      autoDetectString,
+      selectedStringIndex,
+      strings: currentStrings,
+    };
+  }, [autoDetectString, currentStrings, selectedStringIndex]);
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
+  const stopRecording = () => {
+    const { stream, audioContext, source, processor } = mediaRef.current;
 
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
+    try {
+      if (processor) processor.disconnect();
+      if (source) source.disconnect();
+      if (audioContext && audioContext.state !== "closed") audioContext.close();
+      if (stream) stream.getTracks().forEach((track) => track.stop());
+      if (workerRef.current) workerRef.current.terminate();
+    } catch {}
 
-    analyserRef.current = null;
-    setIsListening(false);
+    workerRef.current = null;
+    mediaRef.current = {
+      stream: null,
+      audioContext: null,
+      source: null,
+      processor: null,
+    };
+    setIsTuning(false);
+    setLiveFreq(null);
+    setDisplayNote("");
+    setCents(0);
   };
 
-  useEffect(() => stopListening, []);
+  useEffect(() => stopRecording, []);
 
-  const startListening = async () => {
+  const startRecording = async () => {
+    const { BUFFER_SIZE, LOWCUT_HZ, HIGHCUT_HZ } = DEFAULT_CFG;
+
+    if (!window.isSecureContext) {
+      setError("Use HTTPS or localhost");
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Mic unavailable");
+      return;
+    }
+
     try {
       setError("");
-
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
+          channelCount: 1,
+          sampleRate: 44100,
         },
       });
 
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const audioContext = new AudioContextClass();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
+      const worker = new Worker(new URL("../Tuner/audio-worker.js", import.meta.url), {
+        type: "module",
+      });
 
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
+      workerRef.current = worker;
+      worker.postMessage({
+        type: "INIT",
+        data: {
+          sampleRate: audioContext.sampleRate,
+          bufferSize: BUFFER_SIZE,
+        },
+      });
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      sourceRef.current = source;
-      streamRef.current = stream;
-      setIsListening(true);
+      worker.onmessage = (event) => {
+        if (event.data?.type !== "FREQUENCY_DETECTED") return;
 
-      const sampleBuffer = new Float32Array(analyser.fftSize);
-
-      const updatePitch = () => {
-        if (!analyserRef.current || !audioContextRef.current) {
+        const frequency = Number(event.data.data);
+        if (
+          !Number.isFinite(frequency) ||
+          frequency < MIN_UI_FREQ ||
+          frequency > MAX_UI_FREQ
+        ) {
           return;
         }
 
-        analyserRef.current.getFloatTimeDomainData(sampleBuffer);
-        const frequency = autoCorrelate(
-          sampleBuffer,
-          audioContextRef.current.sampleRate
-        );
+        const {
+          autoDetectString: autoDetect,
+          selectedStringIndex: stringIndex,
+          strings,
+        } = tunerSettingsRef.current;
+        const detectedString = autoDetect
+          ? getClosestString(frequency, strings)
+          : strings[stringIndex];
+        const closest = detectedString || getClosestNote(frequency);
+        const targetFrequency = closest.freq || closest.frequency;
+        const centsFromTarget = 1200 * Math.log2(frequency / targetFrequency);
 
-        if (frequency > 0) {
-          setDetectedNote(frequencyToNoteData(frequency));
+        if (autoDetect && detectedString) {
+          setSelectedStringIndex(detectedString.index);
         }
 
-        rafRef.current = requestAnimationFrame(updatePitch);
+        setDisplayNote(closest.note || closest.name);
+        setLiveFreq(frequency);
+        setCents(Math.max(-50, Math.min(50, centsFromTarget)));
       };
 
-      rafRef.current = requestAnimationFrame(updatePitch);
+      const source = audioContext.createMediaStreamSource(stream);
+      const highpass = audioContext.createBiquadFilter();
+      highpass.type = "highpass";
+      highpass.frequency.value = LOWCUT_HZ;
+      highpass.Q.value = 0.707;
+
+      const lowpass = audioContext.createBiquadFilter();
+      lowpass.type = "lowpass";
+      lowpass.frequency.value = HIGHCUT_HZ;
+      lowpass.Q.value = 0.707;
+
+      const processor = audioContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
+      processor.onaudioprocess = (event) => {
+        try {
+          const input = event.inputBuffer.getChannelData(0);
+          workerRef.current?.postMessage({
+            type: "PROCESS",
+            data: new Float32Array(input),
+          });
+        } catch {}
+      };
+
+      source.connect(highpass);
+      highpass.connect(lowpass);
+      lowpass.connect(processor);
+      processor.connect(audioContext.destination);
+
+      mediaRef.current = { stream, audioContext, source, processor };
+      setIsTuning(true);
+      setDisplayNote("");
+      setLiveFreq(null);
+      setCents(0);
     } catch (captureError) {
       console.error("Unable to start tuner microphone:", captureError);
       setError("Mic unavailable");
-      stopListening();
+      stopRecording();
     }
   };
 
-  const meterData = useMemo(() => {
-    const cents = detectedNote?.cents ?? 0;
-    const clamped = Math.max(-50, Math.min(50, cents));
-    const leftWidth = clamped < 0 ? `${Math.abs(clamped)}%` : "0%";
-    const rightWidth = clamped > 0 ? `${clamped}%` : "0%";
-    const status =
-      Math.abs(clamped) <= 5 ? "in tune" : clamped < 0 ? "flat" : "sharp";
+  const toggleTuner = () => {
+    if (isTuning) {
+      stopRecording();
+      return;
+    }
+    startRecording();
+  };
 
-    return { leftWidth, rightWidth, status };
-  }, [detectedNote]);
+  const noteLabel = getCleanNoteName(displayNote || targetString?.name);
+  const targetFrequency = targetString?.freq || null;
+  const indicatorLeft = Math.max(0, Math.min(100, ((cents + 50) / 100) * 100));
+  const tuneMessage = getTuneMessage(cents, Boolean(liveFreq));
+  const tunerStatus = isTuning ? "Listening" : "Idle";
+
+  const renderMeter = (heightClass = "h-3") => (
+    <div>
+      <div className={`relative ${heightClass}`}>
+        <div className="absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]" />
+        {[-50, -25, 0, 25, 50].map((mark) => (
+          <span
+            key={mark}
+            className={`absolute top-0 h-full w-[2px] rounded-full ${mark === 0 ? "bg-[goldenrod]" : "bg-[#697180]/50"}`}
+            style={{ left: `${((mark + 50) / 100) * 100}%` }}
+          />
+        ))}
+        <span
+          className="absolute top-[-3px] h-[calc(100%+6px)] w-[4px] -translate-x-1/2 rounded-full bg-black transition-all"
+          style={{ left: `${indicatorLeft}%` }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[8px] font-black uppercase tracking-[0.12em] text-[#697180]">
+        <span>Flat</span>
+        <span>{Math.round(cents)}c</span>
+        <span>Sharp</span>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      <div className="p-2 rounded-md mb-2 neuphormism-b">
+      <div className="mb-2 rounded-md p-2 neuphormism-b">
         <div className="flex min-h-44 flex-col justify-between gap-3">
           <button
             type="button"
-            className="flex flex-col items-center gap-2 rounded-md bg-white/60 py-3 text-center"
+            className="rounded-[18px] px-2 py-3 text-center neuphormism-b"
             onClick={() => setIsPreviewOpen(true)}
           >
-            <div className="text-2xl font-bold leading-none">
-              {detectedNote ? `${detectedNote.note}${detectedNote.octave}` : "--"}
+            <div className="text-[2.4rem] font-black leading-none tracking-[-0.08em] text-black">
+              {noteLabel}
             </div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wide">
-              {isListening ? meterData.status : "idle"}
+            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#697180]">
+              {tunerStatus} · {tuneMessage}
             </div>
           </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="neuphormism-b-btn h-8 rounded-[12px] bg-[#efefef] px-2 text-[10px] font-bold text-black outline-none"
+              value={instrumentType}
+              onChange={(event) => setInstrumentType(event.target.value)}
+            >
+              {instrumentOptions.map((instrument) => (
+                <option key={instrument} value={instrument}>
+                  {instrument}
+                </option>
+              ))}
+            </select>
+            <select
+              className="neuphormism-b-btn h-8 rounded-[12px] bg-[#efefef] px-2 text-[10px] font-bold text-black outline-none"
+              value={tuningName}
+              onChange={(event) => setTuningName(event.target.value)}
+            >
+              {tuningOptions.map((tuning) => (
+                <option key={tuning} value={tuning}>
+                  {tuning}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div
+            className="grid gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(${Math.min(currentStrings.length, 6)}, minmax(0, 1fr))`,
+            }}
+          >
+            {currentStrings.map((string, index) => {
+              const isSelected = index === selectedStringIndex;
+              return (
+                <button
+                  key={`${string.name}-${index}`}
+                  type="button"
+                  className={`rounded-[10px] px-1 py-1 text-[10px] font-black ${
+                    isSelected
+                      ? "neuphormism-b-btn-gold text-black"
+                      : "neuphormism-b-btn text-black"
+                  }`}
+                  onClick={() => {
+                    setAutoDetectString(false);
+                    setSelectedStringIndex(index);
+                    setDisplayNote(string.name);
+                    setCents(0);
+                  }}
+                >
+                  {getCleanNoteName(string.name)}
+                </button>
+              );
+            })}
+          </div>
+
+          {renderMeter()}
+
+          <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-[#697180]">
+            <div className="rounded-md px-2 py-1 text-center neuphormism-b">
+              {liveFreq ? `${liveFreq.toFixed(1)} Hz` : "No signal"}
+            </div>
+            <button
+              type="button"
+              className={`rounded-md px-2 py-1 text-center ${
+                autoDetectString
+                  ? "neuphormism-b-btn-gold text-black"
+                  : "neuphormism-b-btn text-black"
+              }`}
+              onClick={() => setAutoDetectString((current) => !current)}
+            >
+              {autoDetectString ? "Auto" : "Manual"}
+            </button>
+          </div>
 
           <button
             type="button"
-            className={`rounded-full px-3 py-1 text-[10px] font-semibold ${
-              isListening
-                ? "neuphormism-b-btn-red-discard"
-                : "neuphormism-b-btn-green"
+            className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] ${
+              isTuning
+                ? "bg-black text-[goldenrod] shadow-[0_8px_16px_rgba(0,0,0,0.16)]"
+                : "neuphormism-b-btn-gold text-black"
             }`}
-            onClick={isListening ? stopListening : startListening}
+            onClick={toggleTuner}
           >
-            {isListening ? "stop" : "listen"}
+            {isTuning ? "Stop" : "Start"}
           </button>
-
-          <div>
-            <div className="flex items-center justify-between text-[10px] text-gray-400">
-              <span>-50</span>
-              <span>0</span>
-              <span>+50</span>
-            </div>
-            <div className="relative mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
-              <div
-                className="absolute right-1/2 top-0 h-full bg-amber-400"
-                style={{ width: meterData.leftWidth }}
-              />
-              <div
-                className="absolute left-1/2 top-0 h-full bg-red-400"
-                style={{ width: meterData.rightWidth }}
-              />
-              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gray-700" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 text-[10px] text-gray-600">
-            <div className="rounded-md bg-white/70 px-2 py-1 text-center">
-              {detectedNote ? `${detectedNote.frequency.toFixed(1)} Hz` : "No signal"}
-            </div>
-            <div className="rounded-md bg-white/70 px-2 py-1 text-center">
-              {detectedNote ? `${detectedNote.cents > 0 ? "+" : ""}${detectedNote.cents} cents` : "Waiting"}
-            </div>
-          </div>
 
           {error ? <div className="text-[10px] text-red-500">{error}</div> : null}
         </div>
       </div>
 
       {isPreviewOpen ? (
-        <div className="fixed right-44 bottom-20 z-[60]" style={{ width: 280 }}>
+        <div className="fixed bottom-20 right-44 z-[60]" style={{ width: 320 }}>
           <DraggableComponent
             handle=".drag-handle"
             defaultPosition={{ x: 0, y: 0 }}
           >
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl">
-              <div className="drag-handle flex items-center justify-between border-b border-gray-200 px-4 py-3 text-sm font-bold cursor-move select-none">
+              <div className="drag-handle flex cursor-move select-none items-center justify-between border-b border-gray-200 px-4 py-3 text-sm font-bold">
                 <span>Tuner</span>
                 <button
                   type="button"
@@ -273,36 +411,25 @@ export default function ToolBoxTunerMini() {
                   <CloseIcon />
                 </button>
               </div>
-              <div className="flex flex-col items-center justify-center gap-3 bg-[#f7f7f7] p-6">
-                <div className="text-6xl font-bold leading-none">
-                  {detectedNote ? `${detectedNote.note}${detectedNote.octave}` : "--"}
+              <div className="flex flex-col items-center justify-center gap-4 bg-[#f7f7f7] p-6">
+                <div className="text-7xl font-black leading-none tracking-[-0.08em] text-black">
+                  {noteLabel}
                 </div>
-                <div className="text-xs uppercase tracking-[0.2em] text-gray-500">
-                  {isListening ? meterData.status : "idle"}
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                  {tunerStatus} · {tuneMessage}
                 </div>
-                <div className="w-full">
-                  <div className="relative h-2 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className="absolute right-1/2 top-0 h-full bg-amber-400"
-                      style={{ width: meterData.leftWidth }}
-                    />
-                    <div
-                      className="absolute left-1/2 top-0 h-full bg-red-400"
-                      style={{ width: meterData.rightWidth }}
-                    />
-                    <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gray-700" />
-                  </div>
-                </div>
+                <div className="w-full">{renderMeter("h-6")}</div>
                 <div className="grid w-full grid-cols-2 gap-2 text-xs text-gray-600">
                   <div className="rounded-md bg-white px-2 py-2 text-center">
-                    {detectedNote ? `${detectedNote.frequency.toFixed(1)} Hz` : "No signal"}
+                    {liveFreq ? `${liveFreq.toFixed(2)} Hz` : "No signal"}
                   </div>
                   <div className="rounded-md bg-white px-2 py-2 text-center">
-                    {detectedNote ? `${detectedNote.cents > 0 ? "+" : ""}${detectedNote.cents} cents` : "Waiting"}
+                    Target:{" "}
+                    {targetFrequency ? `${targetFrequency.toFixed(2)} Hz` : "--"}
                   </div>
                 </div>
               </div>
-              <div className="drag-handle bg-gray-500 px-3 py-1 text-center text-[8px] font-bold text-white cursor-move select-none">
+              <div className="drag-handle cursor-move select-none bg-gray-500 px-3 py-1 text-center text-[8px] font-bold text-white">
                 Click and hold to drag
               </div>
             </div>

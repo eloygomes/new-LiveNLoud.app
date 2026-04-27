@@ -6,8 +6,6 @@ import { VscJson } from "react-icons/vsc";
 import { IoChevronDown, IoClose } from "react-icons/io5";
 
 import {
-  loadSelectedSetlists,
-  saveSelectedSetlists,
   fetchDistinctSetlists,
   updateUserSetlists,
 } from "../../Tools/Controllers";
@@ -121,14 +119,14 @@ function CollapsiblePanel({ title, children }) {
 export default function DashboardOptions({
   optStatus,
   setOptStatus,
-  onFilterChange,
+  selectedSetlists = [],
+  setSelectedSetlists = () => {},
   visibleSongs = [],
   visibleColumns = [],
   onToggleColumn = () => {},
   canSelectAllColumns = false,
 }) {
   const [setlists, setSetlists] = useState([]);
-  const [selectedSetlists, setSelectedSetlists] = useState(null);
   const isSmallScreen =
     typeof window !== "undefined" && window.innerWidth <= 1024;
 
@@ -149,29 +147,13 @@ export default function DashboardOptions({
     };
   }, [setOptStatus]);
 
-  // 1) Carregar setlists selecionadas do localStorage na montagem
-  useEffect(() => {
-    if (selectedSetlists === null) {
-      const initial = loadSelectedSetlists();
-      setSelectedSetlists(initial);
-    }
-  }, [selectedSetlists]);
-
-  // 2) Buscar setlists distintas no backend
+  // 1) Buscar setlists distintas no backend
   useEffect(() => {
     (async () => {
       const distinct = await fetchDistinctSetlists();
       setSetlists(distinct);
     })();
   }, []);
-
-  // 3) Sempre que selectedSetlists mudar, persistir e emitir callback
-  useEffect(() => {
-    if (selectedSetlists !== null) {
-      saveSelectedSetlists(selectedSetlists);
-      onFilterChange?.(selectedSetlists);
-    }
-  }, [selectedSetlists, onFilterChange]);
 
   const downloadFile = (content, filename, mimeType) => {
     const blob = new Blob([content], { type: mimeType });
@@ -256,11 +238,6 @@ export default function DashboardOptions({
       })),
     };
   }, [visibleSongs, instrumentLabels]);
-
-  // Enquanto `selectedSetlists` for null, ainda estamos carregando
-  if (selectedSetlists === null) {
-    return <div>Carregando filtros...</div>;
-  }
 
   // Alternar inclusão/remoção da tag
   const toggleTag = (tag) => {

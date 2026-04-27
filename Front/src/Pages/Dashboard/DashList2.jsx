@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import DashList2Items from "./DashList2Items";
 import DashboardOptions from "./DashboardOptions";
-import { fetchUserSongs } from "../../Tools/Controllers";
+import {
+  fetchUserSongs,
+  loadSelectedSetlists,
+  saveSelectedSetlists,
+} from "../../Tools/Controllers";
 
 const DEFAULT_VISIBLE_COLUMNS = ["progression", "instruments"];
 const OPTIONAL_COLUMNS = [
@@ -19,7 +23,9 @@ function DashList2({ searchTerm = "" }) {
   const [sortOrder, setSortOrder] = useState("asc");
   const [optStatus, setOptStatus] = useState(false);
   const [songs, setSongs] = useState([]);
-  const [filteredSongs, setFilteredSongs] = useState([]);
+  const [selectedSetlists, setSelectedSetlists] = useState(() =>
+    loadSelectedSetlists(),
+  );
   const [isUserHubOpen, setIsUserHubOpen] = useState(false);
   const canSelectAllColumns =
     typeof window !== "undefined" && window.innerWidth >= 1280;
@@ -48,7 +54,6 @@ function DashList2({ searchTerm = "" }) {
     const { songs, fullName, username } = await fetchUserSongs();
 
     setSongs(songs);
-    setFilteredSongs(songs);
 
     localStorage.setItem("fullName", fullName);
     localStorage.setItem("username", username);
@@ -110,24 +115,29 @@ function DashList2({ searchTerm = "" }) {
     };
   }, []);
 
-  // Filtro por setlists (já existia)
-  const handleFilterChange = useCallback(
-    (filters) => {
-      const trimmedFilters = filters.map((f) => f.trim().toLowerCase());
-      if (trimmedFilters.length === 0) {
-        setFilteredSongs(songs);
-      } else {
-        const filtered = songs.filter((song) => {
-          const songSetlists = (song.setlist || []).map((s) =>
-            s.trim().toLowerCase(),
-          );
-          return trimmedFilters.some((filter) => songSetlists.includes(filter));
-        });
-        setFilteredSongs(filtered);
-      }
-    },
-    [songs],
-  );
+  useEffect(() => {
+    saveSelectedSetlists(selectedSetlists);
+    window.dispatchEvent(
+      new CustomEvent("dashboard-filter-state-change", {
+        detail: { active: selectedSetlists.length > 0 },
+      }),
+    );
+  }, [selectedSetlists]);
+
+  const filteredSongs = useMemo(() => {
+    const trimmedFilters = selectedSetlists.map((filter) =>
+      filter.trim().toLowerCase(),
+    );
+
+    if (!trimmedFilters.length) return songs;
+
+    return songs.filter((song) => {
+      const songSetlists = (song.setlist || []).map((setlist) =>
+        setlist.trim().toLowerCase(),
+      );
+      return trimmedFilters.some((filter) => songSetlists.includes(filter));
+    });
+  }, [selectedSetlists, songs]);
 
   // ===== NOVO: aplica busca em cima de filteredSongs =====
   const displaySongs = useMemo(() => {
@@ -190,7 +200,8 @@ function DashList2({ searchTerm = "" }) {
       <DashboardOptions
         optStatus={optStatus}
         setOptStatus={setOptStatus}
-        onFilterChange={handleFilterChange}
+        selectedSetlists={selectedSetlists}
+        setSelectedSetlists={setSelectedSetlists}
         visibleSongs={displaySongs}
         visibleColumns={visibleColumns}
         onToggleColumn={handleToggleColumn}
@@ -214,8 +225,8 @@ function DashList2({ searchTerm = "" }) {
         </div>
       ) : (
         // ----- MODO DESKTOP -----
-        <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden">
-          <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden ">
+          <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
             {!optStatus && !isUserHubOpen && (
               <div
                 className={`${optStatus ? "hidden" : "block"} sticky top-0 z-40 shrink-0`}

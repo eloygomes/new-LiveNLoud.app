@@ -3,6 +3,30 @@ import { useEffect, useMemo, useState } from "react";
 import ChordShapeData from "../ChordLibrary/ChordShapeData.json";
 import { PersonalChordLibrary } from "../ChordLibrary/PersonalChordLibrary";
 
+const visibleFretCount = 4;
+
+function getDisplayFirstFret(frets, firstFret) {
+  const playedFrets = frets.filter((fret) => fret > 0);
+  if (!playedFrets.length) return 1;
+
+  const minFret = Math.min(...playedFrets);
+  const maxFret = Math.max(...playedFrets);
+  if (typeof firstFret === "number" && firstFret > 1) return firstFret;
+  if (maxFret <= visibleFretCount) return 1;
+
+  return Math.max(1, minFret - 1);
+}
+
+function isFretVisible(fret, displayFirstFret) {
+  if (fret <= 0) return true;
+  if (displayFirstFret <= 1) return fret <= visibleFretCount;
+
+  return (
+    fret >= displayFirstFret &&
+    fret < displayFirstFret + visibleFretCount
+  );
+}
+
 function buildFingeringFromVariation(variation) {
   if (!variation?.strings) return null;
 
@@ -25,7 +49,7 @@ function buildFingeringFromVariation(variation) {
     return 0;
   });
 
-  return { frets, fingers };
+  return { frets, fingers, firstFret: variation.firstFret };
 }
 
 function buildFingeringFromPersonalChord(chord) {
@@ -43,7 +67,7 @@ function buildFingeringFromPersonalChord(chord) {
     return Number.isNaN(parsed) ? 0 : parsed;
   });
 
-  return { frets, fingers };
+  return { frets, fingers, firstFret: chord.firstFret };
 }
 
 function normalizeChordLabel(rawChord = "") {
@@ -201,9 +225,11 @@ function CompactChordDiagram({ fingering, size = 128 }) {
 
   if (!fingering) return null;
 
-  const playedFrets = fingering.frets.filter((fret) => fret > 0);
-  const minFret = playedFrets.length ? Math.min(...playedFrets) : 1;
-  const offset = Number.isFinite(minFret) && minFret > 1 ? minFret - 1 : 0;
+  const displayFirstFret = getDisplayFirstFret(
+    fingering.frets,
+    fingering.firstFret,
+  );
+  const offset = displayFirstFret > 1 ? displayFirstFret - 1 : 0;
 
   return (
     <svg
@@ -278,6 +304,8 @@ function CompactChordDiagram({ fingering, size = 128 }) {
           );
         }
 
+        if (!isFretVisible(fret, displayFirstFret)) return null;
+
         const y = pad + (fret - 0.5 - offset) * fretGap;
 
         return (
@@ -294,6 +322,7 @@ function CompactChordDiagram({ fingering, size = 128 }) {
       {fingering.fingers.map((finger, index) => {
         const fret = fingering.frets[index];
         if (!finger || fret <= 0) return null;
+        if (!isFretVisible(fret, displayFirstFret)) return null;
 
         const x = pad + index * stringGap;
         const y = pad + (fret - 0.5 - offset) * fretGap + size * 0.03;

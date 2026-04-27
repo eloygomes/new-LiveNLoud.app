@@ -19,6 +19,7 @@ function ToolBox({
   toggleTabsVisibility,
   hideChords,
   setHideChords,
+  selectContenttoShow,
   setSelectContenttoShow,
   isEditing,
   isSavingCifra,
@@ -117,6 +118,7 @@ function ToolBox({
               toggleTabsVisibility={toggleTabsVisibility}
               hideChords={hideChords}
               setHideChords={setHideChords}
+              selectContenttoShow={selectContenttoShow}
               setSelectContenttoShow={setSelectContenttoShow}
               isEditing={isEditing}
               isSavingCifra={isSavingCifra}
@@ -176,6 +178,7 @@ function ToolBox({
                 toggleTabsVisibility={toggleTabsVisibility}
                 hideChords={hideChords}
                 setHideChords={setHideChords}
+                selectContenttoShow={selectContenttoShow}
                 setSelectContenttoShow={setSelectContenttoShow}
                 isEditing={isEditing}
                 isSavingCifra={isSavingCifra}

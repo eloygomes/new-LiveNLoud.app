@@ -3,7 +3,10 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useMemo } from "react";
 import { MdAddCircle } from "react-icons/md";
-import { getAllUserSetlists, updateUserSetlists } from "../../Tools/Controllers";
+import {
+  getAllUserSetlists,
+  updateUserSetlists,
+} from "../../Tools/Controllers";
 import { IoClose } from "react-icons/io5";
 import { RiDeleteBin6Line } from "react-icons/ri";
 
@@ -60,7 +63,9 @@ function NewSongSetlist({
       setIsEditing(false);
       return;
     }
-    const nextOptions = setlistOptions.filter((tag) => !pendingRemovals.includes(tag));
+    const nextOptions = setlistOptions.filter(
+      (tag) => !pendingRemovals.includes(tag),
+    );
     const nextSetlist = setlist.filter((tag) => !pendingRemovals.includes(tag));
 
     setSetlistOptions(nextOptions);
@@ -114,9 +119,9 @@ function NewSongSetlist({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-            Song Workspace
+            Setlist
           </p>
-          <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Setlist</h2>
+
           <p className="mt-1 text-sm font-medium text-gray-500">
             Tag this song for rehearsal, show, or collection groups.
           </p>
@@ -153,14 +158,17 @@ function NewSongSetlist({
       </div>
 
       <div className="mt-5">
-        <label htmlFor="newSetlistName" className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+        <label
+          htmlFor="newSetlistName"
+          className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
+        >
           Criar um novo setlist:
         </label>
         <div className="flex flex-row items-center gap-2">
           <input
             id="newSetlistName"
             type="text"
-            className="w-full rounded-[18px] border-0 neuphormism-b-se px-4 py-3 outline-none"
+            className="w-full rounded border-0  px-2 py-1 outline-none text-sm"
             placeholder="Ex: 'Show2023' ou 'Ensaios'"
             value={newSetlistName}
             onChange={(e) => setNewSetlistName(e.target.value)}
@@ -182,10 +190,14 @@ function NewSongSetlist({
       </div>
 
       <div className="mt-5">
-        <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">Setlists disponíveis</h1>
+        <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+          Setlists disponíveis
+        </h1>
         <div className="w-full pr-2">
           {setlistOptions.length === 0 ? (
-            <p className="mt-3 italic text-sm text-gray-500">Nenhuma setlist cadastrada.</p>
+            <p className="mt-3 italic text-sm text-gray-500">
+              Nenhuma setlist cadastrada.
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {setlistOptions.map((tag, index) => {
@@ -211,7 +223,9 @@ function NewSongSetlist({
                       cursor: isEditing ? "default" : "pointer",
                       fontSize: "12px",
                       backgroundColor,
-                      border: willRemove ? "1px solid #dc2626" : "1px solid transparent",
+                      border: willRemove
+                        ? "1px solid #dc2626"
+                        : "1px solid transparent",
                       color: "#fff",
                       userSelect: "none",
                       ...tagAnimationStyle,

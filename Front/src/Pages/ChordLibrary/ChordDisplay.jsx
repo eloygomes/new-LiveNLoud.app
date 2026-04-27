@@ -172,6 +172,30 @@
 
 /* eslint-disable react/prop-types */
 
+const visibleFretCount = 4;
+
+function getDisplayFirstFret(frets, firstFret) {
+  const playedFrets = frets.filter((fret) => fret > 0);
+  if (!playedFrets.length) return 1;
+
+  const minFret = Math.min(...playedFrets);
+  const maxFret = Math.max(...playedFrets);
+  if (typeof firstFret === "number" && firstFret > 1) return firstFret;
+  if (maxFret <= visibleFretCount) return 1;
+
+  return Math.max(1, minFret - 1);
+}
+
+function isFretVisible(fret, displayFirstFret) {
+  if (fret <= 0) return true;
+  if (displayFirstFret <= 1) return fret <= visibleFretCount;
+
+  return (
+    fret >= displayFirstFret &&
+    fret < displayFirstFret + visibleFretCount
+  );
+}
+
 function ChordDiagram({ fingering }) {
   const size = 240;
   const pad = 20; // margem interna
@@ -197,9 +221,9 @@ function ChordDiagram({ fingering }) {
     );
   }
 
-  const { frets, fingers = [] } = fingering;
-  const minFret = Math.min(...frets.filter((f) => f > 0));
-  const offset = Number.isFinite(minFret) && minFret > 1 ? minFret - 1 : 0;
+  const { frets, fingers = [], firstFret } = fingering;
+  const displayFirstFret = getDisplayFirstFret(frets, firstFret);
+  const offset = displayFirstFret > 1 ? displayFirstFret - 1 : 0;
 
   return (
     <div className="flex justify-center items-center">
@@ -284,6 +308,8 @@ function ChordDiagram({ fingering }) {
             );
           }
 
+          if (!isFretVisible(fret, displayFirstFret)) return null;
+
           const y = pad + (fret - 0.5 - offset) * fretGap;
           return (
             <circle
@@ -300,6 +326,8 @@ function ChordDiagram({ fingering }) {
         {fingers.map((n, idx) => {
           const fret = frets[idx];
           if (!n || fret <= 0) return null;
+          if (!isFretVisible(fret, displayFirstFret)) return null;
+
           const x = pad + idx * stringGap;
           const y = pad + (fret - 0.5 - offset) * fretGap;
           return (
