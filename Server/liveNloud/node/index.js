@@ -592,52 +592,46 @@ app.post("/api/newsong", async (req, res) => {
     const database = client.db(databaseComing.trim());
     const collection = database.collection(collectionComing.trim());
 
+    if (!userdata?.email || !userdata?.artist || !userdata?.song) {
+      return res.status(400).json({
+        message: "Parâmetros obrigatórios: email, artist e song.",
+      });
+    }
+
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
 
     if (existingUser) {
       if (existingUser.userdata && Array.isArray(existingUser.userdata)) {
-        // Verificar se já existe um registro com o mesmo artista e música
-        let songIndex = existingUser.userdata.findIndex(
-          (song) =>
-            normalizeName(song.artist) === normalizeName(userdata.artist) &&
-            normalizeName(song.song) === normalizeName(userdata.song),
+        const matchingIndexes = existingUser.userdata.reduce(
+          (indexes, song, index) => {
+            if (
+              normalizeName(song.artist) === normalizeName(userdata.artist) &&
+              normalizeName(song.song) === normalizeName(userdata.song)
+            ) {
+              indexes.push(index);
+            }
+            return indexes;
+          },
+          [],
         );
 
-        if (songIndex !== -1) {
-          // Atualizar apenas os campos necessários do registro existente
-          const updatedSongData = {
-            ...existingUser.userdata[songIndex], // Mantenha os dados existentes
-            progressBar:
-              userdata.progressBar ||
-              existingUser.userdata[songIndex].progressBar,
-            embedVideos: Array.isArray(userdata.embedVideos)
-              ? userdata.embedVideos
-              : existingUser.userdata[songIndex].embedVideos || [],
-            // Adicione esta linha para armazenar o setlist vindo do front
-            setlist: Array.from(
-              new Set([
-                ...(existingUser.userdata[songIndex].setlist ?? []),
-                ...(userdata.setlist ?? []),
-              ]),
-            ),
-            instruments: {
-              ...existingUser.userdata[songIndex].instruments, // Mantenha os instrumentos existentes
-              [userdata.instrumentName]: {
-                ...existingUser.userdata[songIndex].instruments[
-                  userdata.instrumentName
-                ],
-                ...userdata[userdata.instrumentName],
-              },
-            },
-            updateIn: new Date().toISOString().split("T")[0], // Atualiza a data de atualização
-          };
+        if (matchingIndexes.length) {
+          const [songIndex] = matchingIndexes;
+          const duplicateEntries = matchingIndexes.map(
+            (index) => existingUser.userdata[index],
+          );
+          const updatedSongData = mergeSongEntries(...duplicateEntries, userdata);
+          updatedSongData.id = existingUser.userdata[songIndex].id || songIndex + 1;
 
-          existingUser.userdata[songIndex] = updatedSongData;
+          const nextUserdata = existingUser.userdata.filter(
+            (_song, index) => !matchingIndexes.slice(1).includes(index),
+          );
+          nextUserdata[songIndex] = updatedSongData;
 
           const updateResult = await collection.updateOne(
             { email: userdata.email },
-            { $set: { userdata: existingUser.userdata } },
+            { $set: { userdata: nextUserdata } },
           );
 
           console.log("Usuário atualizado com sucesso:", updateResult);
@@ -656,9 +650,10 @@ app.post("/api/newsong", async (req, res) => {
         } else {
           // Se não encontrar o registro correspondente, adicionar como novo
           userdata.id = existingUser.userdata.length + 1;
+          const newSongData = mergeSongEntries(userdata);
           const updateResult = await collection.updateOne(
             { email: userdata.email },
-            { $push: { userdata: userdata } },
+            { $push: { userdata: newSongData } },
           );
 
           console.log("Novo registro adicionado com sucesso:", updateResult);
@@ -681,10 +676,11 @@ app.post("/api/newsong", async (req, res) => {
         );
 
         userdata.id = 1;
+        const initialSongData = mergeSongEntries(userdata);
 
         const updateResult = await collection.updateOne(
           { email: userdata.email },
-          { $set: { userdata: [userdata] } },
+          { $set: { userdata: [initialSongData] } },
         );
 
         console.log(
@@ -708,10 +704,11 @@ app.post("/api/newsong", async (req, res) => {
       console.log("Email não existe, criando novo usuário...");
 
       userdata.id = 1;
+      const initialSongData = mergeSongEntries(userdata);
 
       const result = await collection.insertOne({
         email: userdata.email,
-        userdata: [userdata],
+        userdata: [initialSongData],
       });
 
       console.log("Usuário criado com sucesso:", result);
@@ -726,7 +723,7 @@ app.post("/api/newsong", async (req, res) => {
       return res.status(201).json({
         message: "Usuário criado com sucesso!",
         userId: result.insertedId,
-        user: userdata,
+        user: initialSongData,
       });
     }
   } catch (error) {
@@ -758,7 +755,9 @@ app.post("/api/allsongdata", async (req, res) => {
 
     // Busca a música específica no array 'userdata'
     const musicData = user.userdata.find(
-      (item) => item.artist === artist && item.song === song,
+      (item) =>
+        normalizeName(item.artist) === normalizeName(artist) &&
+        normalizeName(item.song) === normalizeName(song),
     );
 
     if (!musicData) {
@@ -3180,6 +3179,113 @@ function normalizeName(s = "") {
     .replace(/^-|-$/g, "");
 }
 
+const SONG_INSTRUMENT_KEYS = [
+  "guitar01",
+  "guitar02",
+  "bass",
+  "keys",
+  "drums",
+  "voice",
+];
+
+function uniqueArray(values = []) {
+  return Array.from(
+    new Set(
+      values
+        .filter((value) => value !== null && value !== undefined)
+        .map((value) => (typeof value === "string" ? value.trim() : value))
+        .filter(Boolean),
+    ),
+  );
+}
+
+function normalizeInstrumentFlags(entry = {}) {
+  return SONG_INSTRUMENT_KEYS.reduce((flags, key) => {
+    const currentFlag = entry.instruments?.[key];
+    const block = entry[key];
+    flags[key] = Boolean(
+      currentFlag === true ||
+        currentFlag?.active ||
+        block?.active ||
+        (typeof block?.link === "string" && block.link.trim()),
+    );
+    return flags;
+  }, {});
+}
+
+function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
+  if (!incomingBlock) {
+    return existingBlock || {};
+  }
+
+  if (incomingBlock === false) {
+    return {
+      ...(existingBlock || {}),
+      active: false,
+      link: "",
+      progress: 0,
+    };
+  }
+
+  return {
+    ...(existingBlock || {}),
+    ...incomingBlock,
+    active:
+      incomingBlock.active ??
+      existingBlock?.active ??
+      Boolean(incomingBlock.link || existingBlock?.link),
+  };
+}
+
+function mergeSongEntries(...entries) {
+  const today = new Date().toISOString().split("T")[0];
+  const merged = entries.reduce((acc, entry = {}) => {
+    const instrumentName = normalizeInstrument(entry.instrumentName);
+
+    acc = {
+      ...acc,
+      ...entry,
+      id: acc.id || entry.id,
+      addedIn: acc.addedIn || entry.addedIn || today,
+      progressBar: entry.progressBar ?? acc.progressBar ?? 0,
+      embedVideos: Array.isArray(entry.embedVideos)
+        ? entry.embedVideos
+        : acc.embedVideos || [],
+      setlist: uniqueArray([...(acc.setlist || []), ...(entry.setlist || [])]),
+      updateIn: today,
+    };
+
+    SONG_INSTRUMENT_KEYS.forEach((key) => {
+      const hasNestedInstrumentPayload =
+        !instrumentName &&
+        entry.instruments &&
+        Object.prototype.hasOwnProperty.call(entry.instruments, key);
+      const instrumentPayload =
+        entry[key] ||
+        (hasNestedInstrumentPayload &&
+        typeof entry.instruments[key] === "object"
+          ? entry.instruments[key]
+          : hasNestedInstrumentPayload
+          ? entry.instruments[key]
+          : null);
+      acc[key] = mergeInstrumentBlock(acc[key], instrumentPayload);
+    });
+
+    if (instrumentName && entry[instrumentName]) {
+      acc[instrumentName] = mergeInstrumentBlock(
+        acc[instrumentName],
+        entry[instrumentName],
+      );
+    }
+
+    acc.instruments = normalizeInstrumentFlags(acc);
+    return acc;
+  }, {});
+
+  merged.instruments = normalizeInstrumentFlags(merged);
+  return merged;
+}
+
 /** Normaliza link para comparação estável (sem http/https, sem www, minúsculo, sem barra final) */
 function normalizeLink(u) {
   try {
@@ -3376,54 +3482,40 @@ app.put("/api/song/updateExact", async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
 
-    const songIndex = userDoc.userdata.findIndex(
-      (entry) =>
-        normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
-        normalizeName(entry.song) === normalizeName(updatedSong.song),
+    const matchingIndexes = userDoc.userdata.reduce(
+      (indexes, entry, index) => {
+        if (
+          normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
+          normalizeName(entry.song) === normalizeName(updatedSong.song)
+        ) {
+          indexes.push(index);
+        }
+        return indexes;
+      },
+      [],
     );
 
-    if (songIndex === -1) {
+    if (!matchingIndexes.length) {
       return res
         .status(404)
         .json({ message: "Música não encontrada para este usuário." });
     }
 
-    const instrumentKeys = [
-      "guitar01",
-      "guitar02",
-      "bass",
-      "keys",
-      "drums",
-      "voice",
-    ];
+    const [songIndex] = matchingIndexes;
+    const duplicateEntries = matchingIndexes.map(
+      (index) => userDoc.userdata[index],
+    );
+    const mergedEntry = mergeSongEntries(...duplicateEntries, updatedSong);
+    mergedEntry.id = userDoc.userdata[songIndex].id || songIndex + 1;
 
-    const mergedEntry = {
-      ...userDoc.userdata[songIndex],
-      ...updatedSong,
-      instruments: {
-        ...(userDoc.userdata[songIndex].instruments || {}),
-        ...(updatedSong.instruments || {}),
-      },
-      updateIn:
-        updatedSong.updateIn ||
-        userDoc.userdata[songIndex].updateIn ||
-        new Date().toISOString().split("T")[0],
-    };
-
-    instrumentKeys.forEach((key) => {
-      if (updatedSong[key]) {
-        mergedEntry[key] = {
-          ...(userDoc.userdata[songIndex][key] || {}),
-          ...updatedSong[key],
-        };
-      }
-    });
-
-    userDoc.userdata[songIndex] = mergedEntry;
+    const nextUserdata = userDoc.userdata.filter(
+      (_song, index) => !matchingIndexes.slice(1).includes(index),
+    );
+    nextUserdata[songIndex] = mergedEntry;
 
     await collection.updateOne(
       { email },
-      { $set: { userdata: userDoc.userdata } },
+      { $set: { userdata: nextUserdata } },
     );
 
     await addUserLog({

@@ -1,4 +1,6 @@
 from datetime import datetime
+import re
+import unicodedata
 
 import requests
 from pymongo import MongoClient
@@ -14,6 +16,71 @@ INSTRUMENT_NAMES = ("guitar01", "guitar02", "bass", "keys", "drums", "voice")
 
 def _today_str() -> str:
     return datetime.today().strftime('%Y-%m-%d')
+
+
+def _normalize_name(value) -> str:
+    normalized = unicodedata.normalize("NFD", str(value or "").strip().lower())
+    without_accents = "".join(
+        char for char in normalized
+        if unicodedata.category(char) != "Mn"
+    )
+    return re.sub(r"(^-+|-+$)", "", re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", without_accents)))
+
+
+def _find_matching_song_indexes(userdata, artist, song):
+    artist_key = _normalize_name(artist)
+    song_key = _normalize_name(song)
+    return [
+        index for index, entry in enumerate(userdata)
+        if _normalize_name(entry.get("artist")) == artist_key
+        and _normalize_name(entry.get("song")) == song_key
+    ]
+
+
+def _merge_unique(left, right):
+    values = []
+    for value in [*(left or []), *(right or [])]:
+        if value and value not in values:
+            values.append(value)
+    return values
+
+
+def _merge_duplicate_entries(entries):
+    merged = {}
+    for entry in entries:
+        merged = {
+            **merged,
+            **entry,
+            "id": merged.get("id") or entry.get("id"),
+            "addedIn": merged.get("addedIn") or entry.get("addedIn") or _today_str(),
+            "updateIn": _today_str(),
+            "embedVideos": _merge_unique(
+                merged.get("embedVideos", []),
+                entry.get("embedVideos", []),
+            ),
+            "setlist": _merge_unique(
+                merged.get("setlist", []),
+                entry.get("setlist", []),
+            ),
+        }
+
+        instruments = {name: False for name in INSTRUMENT_NAMES}
+        instruments.update(merged.get("instruments") or {})
+        instruments.update(entry.get("instruments") or {})
+
+        for name in INSTRUMENT_NAMES:
+            current_block = merged.get(name) or {}
+            incoming_block = entry.get(name) or {}
+            merged[name] = {**current_block, **incoming_block}
+            instruments[name] = bool(
+                instruments.get(name)
+                or merged[name].get("active")
+                or str(merged[name].get("link") or "").strip()
+            )
+
+        merged["instruments"] = instruments
+
+    return merged
 
 
 def _build_instruments_dict(current_instrument: str) -> dict:
@@ -128,15 +195,18 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
             userdata = existing_user.get("userdata", [])
             first_song_info = song_data[0]
 
-            # find existing song entry
-            song_entry = next(
-                (
-                    e for e in userdata
-                    if e["artist"] == first_song_info["artist_name"]
-                    and e["song"] == first_song_info["song_title"]
-                ),
-                None
+            matching_indexes = _find_matching_song_indexes(
+                userdata,
+                first_song_info["artist_name"],
+                first_song_info["song_title"],
             )
+            song_entry = None
+            song_entry_index = None
+            if matching_indexes:
+                song_entry_index = matching_indexes[0]
+                song_entry = _merge_duplicate_entries(
+                    [userdata[index] for index in matching_indexes]
+                )
 
             if song_entry:
                 # ----------------------------------------------------------
@@ -162,6 +232,11 @@ def store_in_mongo(song_data, instrument, userEmail, instrument_progressbar, lin
                     safe_get=True,                # lyrics-only sources may omit capo/tuning/tab fields
                 )
 
+                userdata = [
+                    entry for index, entry in enumerate(userdata)
+                    if index not in matching_indexes[1:]
+                ]
+                userdata[song_entry_index] = song_entry
                 collection.update_one({"email": userEmail}, {"$set": {"userdata": userdata}})
                 print("Data updated successfully in MongoDB.")
                 send_to_generalCifras(song_entry, instrument, instrument_progressbar)

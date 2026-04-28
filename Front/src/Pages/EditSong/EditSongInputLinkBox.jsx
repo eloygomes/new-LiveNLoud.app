@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { FaRegFileAlt } from "react-icons/fa";
 import { api as axiosApi } from "../../Tools/Controllers";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:edit-auto-submit-voice";
@@ -21,6 +22,7 @@ function EditSongInputLinkBox({
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
   const isLocked = Boolean(link?.trim());
+  const hasLink = Boolean(link?.trim());
 
   const notify = useCallback(
     (title, message) => {
@@ -41,6 +43,16 @@ function EditSongInputLinkBox({
   const isLetrasLink = (raw) => {
     const host = getLinkHost(raw);
     return host === "letras.mus.br" || host === "letras.com";
+  };
+
+  const openInstrumentLink = () => {
+    const targetLink = (link || "").trim();
+    if (!targetLink) return;
+
+    const href = /^https?:\/\//i.test(targetLink)
+      ? targetLink
+      : `https://${targetLink}`;
+    window.open(href, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -141,16 +153,24 @@ function EditSongInputLinkBox({
         <span className="text-sm pb-2 font-bold">
           {instrumentName.charAt(0).toUpperCase() + instrumentName.slice(1)}
         </span>
-        <h6>{}</h6>
-        <div className="flex flex-row">
-          <span
-            className={`${
-              link ? "text-green-500" : "text-red-500"
-            } text-sm rounded-sm`}
-          >
-            {link ? "Online" : "Offline"}
-          </span>
-        </div>
+        <button
+          type="button"
+          aria-label={
+            hasLink
+              ? `Open ${instrumentName} link in a new tab`
+              : `${instrumentName} link not added`
+          }
+          title={hasLink ? "Open link" : "No link added"}
+          disabled={!hasLink}
+          onClick={openInstrumentLink}
+          className={`rounded-sm p-1 transition ${
+            hasLink
+              ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+              : "cursor-not-allowed text-gray-300 opacity-60"
+          }`}
+        >
+          <FaRegFileAlt aria-hidden="true" className="text-base" />
+        </button>
       </div>
 
       <div className="relative flex flex-row h-8">

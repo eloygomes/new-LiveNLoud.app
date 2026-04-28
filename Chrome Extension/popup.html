@@ -1,152 +1,140 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LiveNLoud Quick Add</title>
+    <title>#Sustenido Quick Add</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
     <main class="app-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">LiveNLoud</p>
+      <header class="brand-bar">
+        <div class="brand-mark" aria-hidden="true">#</div>
+        <div>
+          <p class="eyebrow">#Sustenido</p>
           <h1>QUICK ADD</h1>
-          <p class="subtitle">Register the current song page and send it straight to your library.</p>
-        </div>
-        <div class="hero-actions" aria-hidden="true">
-          <div class="hero-chip hero-chip-accent">♪</div>
-          <div class="hero-chip">+</div>
         </div>
       </header>
 
-      <section id="statusCard" class="card status-card">
-        <div class="status-dot" aria-hidden="true"></div>
-        <p id="statusText">Loading extension...</p>
+      <section id="statusCard" class="neumorphism status-card">
+        <span class="status-dot" aria-hidden="true"></span>
+        <p id="statusText">Carregando extensão...</p>
       </section>
 
-      <section id="loginView" class="card auth-card hidden">
-        <div class="section-title">
-          <h2>LOGIN</h2>
-          <p>Use your LiveNLoud account to continue.</p>
+      <section id="unavailableView" class="state-view hidden">
+        <div class="neumorphism state-card">
+          <div class="state-icon" aria-hidden="true">#</div>
+          <h2>Extensão não disponivel para esse site</h2>
         </div>
-        <form id="loginForm" class="form-stack">
-          <label class="field">
-            <span>Email</span>
-            <input id="emailInput" type="email" autocomplete="username" placeholder="you@email.com" required />
-          </label>
-          <label class="field">
-            <span>Password</span>
-            <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Your password" required />
-          </label>
-          <label class="checkbox-field">
-            <input id="rememberSessionInput" type="checkbox" />
-            <span>Stay connected</span>
-          </label>
-          <button id="loginButton" class="primary-button" type="submit">Login</button>
-        </form>
       </section>
 
-      <section id="songView" class="card hidden">
+      <section id="loginView" class="state-view hidden">
+        <div class="neumorphism state-card">
+          <div class="section-title">
+            <p class="eyebrow accent">LOGIN</p>
+            <!-- <h2>#Sustenido</h2> -->
+          </div>
+
+          <form id="loginForm" class="form-stack">
+            <label class="field">
+              <span>Email</span>
+              <input id="emailInput" type="email" autocomplete="username" placeholder="you@email.com" required />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Your password" required />
+            </label>
+            <label class="checkbox-field">
+              <input id="rememberSessionInput" type="checkbox" />
+              <span>Stay connected</span>
+            </label>
+            <button id="loginButton" class="primary-button" type="submit">LOGIN</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="songView" class="state-view hidden">
         <div id="compatibilityNotice" class="notice hidden"></div>
 
         <div id="songContent" class="song-content">
-          <div class="song-header-card">
-            <div class="section-title">
-              <h2>NEW SONG</h2>
-              <p>Capture the current tab and organize it before saving.</p>
+          <section class="neumorphism summary-card">
+            <div>
+              <p class="eyebrow accent">ADD SONG</p>
+              <h2 id="songValue"></h2>
+              <p id="artistValue" class="summary-artist"></p>
             </div>
-            <button id="copyLinkButton" class="copy-link-button" type="button">
-              <span class="copy-link-icon" aria-hidden="true">↗</span>
-              <span>Copy Link</span>
+            <button id="copyLinkButton" class="icon-button" type="button" aria-label="Copy source link">↗</button>
+          </section>
+
+          <section class="neumorphism form-card">
+            <button class="source-row" type="button" id="copyLinkButtonProxy">
+              <span>
+                <small>Source Link</small>
+                <strong id="linkValue"></strong>
+              </span>
+              <b aria-hidden="true">⧉</b>
             </button>
-          </div>
 
-          <div class="panel-card">
-            <div class="panel-head">
-              <h3>Song Data</h3>
-              <div class="panel-badge">Live Tab</div>
-            </div>
-
-            <div class="details-stack song-data-grid">
-              <div class="meta-row meta-row-hero">
-                <span class="meta-label">Song</span>
-                <p id="songValue" class="meta-value"></p>
+            <div class="details-grid">
+              <div class="mini-card">
+                <small>Capo</small>
+                <h4 id="capoValue"></h4>
               </div>
-              <div class="meta-row meta-row-hero">
-                <span class="meta-label">Artist</span>
-                <p id="artistValue" class="meta-value"></p>
+              <div class="mini-card">
+                <small>Tom</small>
+                <h4 id="tomValue"></h4>
               </div>
-              <button class="meta-row meta-row-link meta-row-button full-span" type="button" id="copyLinkButtonProxy">
-                <div class="meta-row-head">
-                  <span class="meta-label">Source Link</span>
-                  <span class="copy-icon" aria-hidden="true">⧉</span>
-                </div>
-                <p id="linkValue" class="meta-value static-link"></p>
-              </button>
-              <div class="field instrument-field full-span">
-                <span>Instrument</span>
-                <select id="instrumentSelect">
-                  <option value="guitar01">Guitar 01</option>
-                  <option value="guitar02">Guitar 02</option>
-                  <option value="bass">Bass</option>
-                  <option value="keys">Keys</option>
-                  <option value="drums">Drums</option>
-                  <option value="voice">Voice</option>
-                </select>
-              </div>
-              <div class="metrics-grid full-span">
-                <div class="meta-row">
-                  <span class="meta-label">Capo</span>
-                  <p id="capoValue" class="meta-value"></p>
-                </div>
-                <div class="meta-row">
-                  <span class="meta-label">Tom</span>
-                  <p id="tomValue" class="meta-value"></p>
-                </div>
-                <div class="meta-row">
-                  <span class="meta-label">Tuning</span>
-                  <p id="tunerValue" class="meta-value"></p>
-                </div>
+              <div class="mini-card">
+                <small>Tuning</small>
+                <h4 id="tunerValue"></h4>
               </div>
             </div>
 
-            <div class="form-grid compact-grid">
-              <label class="field full progress-field">
-                <div class="progress-head">
-                  <span>Progress</span>
-                  <strong id="progressValue">0%</strong>
-                </div>
-                <input id="progressInput" type="range" min="0" max="100" step="5" value="0" />
-              </label>
-              <label class="field full">
-                <span>Video links</span>
-                <textarea id="videosInput" rows="4" placeholder="Paste one or more links separated by line breaks, commas, or spaces"></textarea>
-              </label>
-              <label class="field full">
-                <span>Existing setlist</span>
-                <select id="setlistSelect">
-                  <option value="">No setlist</option>
-                </select>
-              </label>
+            <label class="field instrument-field">
+              <span>Instrument</span>
+              <select id="instrumentSelect">
+                <option value="guitar01">Guitar 01</option>
+                <option value="guitar02">Guitar 02</option>
+                <option value="bass">Bass</option>
+                <option value="keys">Keys</option>
+                <option value="drums">Drums</option>
+                <option value="voice">Voice</option>
+              </select>
+            </label>
+
+            <label class="field progress-field">
+              <span>Progress <strong id="progressValue">0%</strong></span>
+              <input id="progressInput" type="range" min="0" max="100" step="5" value="0" />
+            </label>
+
+            <label class="field">
+              <span>Video links</span>
+              <textarea id="videosInput" rows="3" placeholder="Paste video links"></textarea>
+            </label>
+
+            <div class="field">
+              <span>Tags</span>
+              <div id="setlistTags" class="setlist-tags"></div>
             </div>
 
             <div class="actions">
-              <button id="discardButton" class="ghost-button" type="button">Discard</button>
-              <button id="saveButton" class="primary-button" type="button">Save Song</button>
+              <button id="discardButton" class="ghost-button" type="button">DISCARD</button>
+              <button id="saveButton" class="primary-button" type="button">ADD</button>
             </div>
-          </div>
+          </section>
         </div>
 
-        <div class="session-bar footer-bar">
-          <div class="user-strip">
-            <span class="user-strip-label">Connected as</span>
-            <p id="userBadge" class="muted compact-user"></p>
-          </div>
+        <footer class="session-bar">
+          <p><span>Connected as</span><strong id="userBadge"></strong></p>
           <button id="logoutButton" class="ghost-button compact-button" type="button">Logout</button>
-        </div>
+        </footer>
+      </section>
 
-        <p id="finalMessage" class="final-message hidden"></p>
+      <section id="successView" class="state-view hidden">
+        <div class="neumorphism state-card">
+          <div class="state-icon success" aria-hidden="true">✓</div>
+          <h2 id="finalMessage">Cifra adicionada com sucesso</h2>
+        </div>
       </section>
     </main>
 

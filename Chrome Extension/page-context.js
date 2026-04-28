@@ -1,15 +1,15 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
-const DEBUG_PREFIX = "[LiveNLoud Extension]";
-const NOT_AVAILABLE = "The information is not avabiable";
+const DEBUG_PREFIX = "[#Sustenido Extension]";
+const NOT_AVAILABLE = "N/A";
 const SUPPORTED_HOSTS = [
   {
     id: "cifraclub",
-    pattern: /(^|\.)cifraclub\.com\.br$/i,
+    pattern: /(^|\.)(cifraclub|cifralub)\.com\.br$/i,
   },
   {
     id: "ultimate_guitar",
-    pattern: /(^|\.)ultimate-guitar\.com$/i,
+    pattern: /(^|\.)(ultimate-guitar|ultimateguitar)\.com$/i,
   },
   {
     id: "letrasmus",
@@ -86,7 +86,7 @@ function parseLetrasUrl(urlString) {
 
     return {
       artist: slugToTitle(segments[0]),
-      song: "",
+      song: /^\d+$/.test(segments[1]) ? "" : slugToTitle(segments[1]),
     };
   } catch (_error) {
     return null;
@@ -165,7 +165,7 @@ function getLetrasSong() {
       document.querySelector(".cnt-head_title h1")?.textContent ||
       document.querySelector("h1")?.textContent,
   );
-  return title;
+  return title || parseLetrasUrl(window.location.href)?.song || "";
 }
 
 function getLetrasArtist() {

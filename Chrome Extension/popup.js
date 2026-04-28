@@ -1,10 +1,15 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
 const API_BASE = "https://api.live.eloygomes.com";
-const NOT_AVAILABLE = "The information is not avabiable";
+const NOT_AVAILABLE = "N/A";
 const PAGE_RETRY_DELAY_MS = 2000;
 const PAGE_RETRY_MAX_ATTEMPTS = 6;
-const IDLE_STATUSES = new Set(["", "Pronto para adicionar.", "Pronto para adicionar", "Pronto para salvar."]);
+const IDLE_STATUSES = new Set([
+  "",
+  "Pronto para adicionar.",
+  "Pronto para adicionar",
+  "Pronto para salvar.",
+]);
 const STORAGE_KEYS = {
   accessToken: "livenloud_access_token",
   refreshToken: "livenloud_refresh_token",
@@ -43,14 +48,17 @@ const emptyPageContext = {
 const state = {
   pageContext: { ...emptyPageContext },
   selectedInstrument: "guitar01",
+  availableSetlists: [],
+  selectedSetlists: [],
 };
 
 const elements = {
-  hero: document.querySelector(".hero"),
   statusCard: document.getElementById("statusCard"),
   statusText: document.getElementById("statusText"),
+  unavailableView: document.getElementById("unavailableView"),
   loginView: document.getElementById("loginView"),
   songView: document.getElementById("songView"),
+  successView: document.getElementById("successView"),
   songContent: document.getElementById("songContent"),
   loginForm: document.getElementById("loginForm"),
   emailInput: document.getElementById("emailInput"),
@@ -70,14 +78,14 @@ const elements = {
   progressInput: document.getElementById("progressInput"),
   progressValue: document.getElementById("progressValue"),
   videosInput: document.getElementById("videosInput"),
-  setlistSelect: document.getElementById("setlistSelect"),
+  setlistTags: document.getElementById("setlistTags"),
   saveButton: document.getElementById("saveButton"),
   discardButton: document.getElementById("discardButton"),
   logoutButton: document.getElementById("logoutButton"),
   finalMessage: document.getElementById("finalMessage"),
 };
 
-const DEBUG_PREFIX = "[LiveNLoud Extension]";
+const DEBUG_PREFIX = "[#Sustenido Extension]";
 
 function debugLog(step, details) {
   if (details === undefined) {
@@ -93,14 +101,19 @@ function debugError(step, error) {
 }
 
 function cleanText(value) {
-  return String(value || "").replace(/\s+/g, " ").trim();
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function setStatus(message) {
   const normalized = cleanText(message);
   debugLog("STATUS", normalized);
   elements.statusText.textContent = normalized;
-  elements.statusCard.classList.toggle("is-idle", IDLE_STATUSES.has(normalized));
+  elements.statusCard.classList.toggle(
+    "is-idle",
+    IDLE_STATUSES.has(normalized),
+  );
 
   if (!elements.songView.classList.contains("hidden")) {
     setNotice(normalized);
@@ -112,7 +125,9 @@ function showFinalMessage(message, type) {
   elements.finalMessage.textContent = normalized;
   elements.finalMessage.classList.remove("hidden", "is-success", "is-error");
   if (type) {
-    elements.finalMessage.classList.add(type === "success" ? "is-success" : "is-error");
+    elements.finalMessage.classList.add(
+      type === "success" ? "is-success" : "is-error",
+    );
   }
 }
 
@@ -122,32 +137,36 @@ function hideFinalMessage() {
   elements.finalMessage.classList.remove("is-success", "is-error");
 }
 
-function showFinalOnly(message, type) {
-  if (elements.hero) {
-    elements.hero.classList.add("hidden");
-  }
-
-  elements.statusCard.classList.add("hidden");
+function hideAllViews() {
+  elements.unavailableView.classList.add("hidden");
   elements.loginView.classList.add("hidden");
-  elements.songView.classList.remove("hidden");
+  elements.songView.classList.add("hidden");
+  elements.successView.classList.add("hidden");
+}
 
-  Array.from(elements.songView.children).forEach((child) => {
-    if (child !== elements.finalMessage) {
-      child.classList.add("hidden");
-    }
-  });
-
+function showFinalOnly(message, type) {
+  hideAllViews();
+  elements.statusCard.classList.add("hidden");
+  elements.successView.classList.remove("hidden");
   showFinalMessage(message, type);
 }
 
 function showLogin() {
+  hideAllViews();
+  elements.statusCard.classList.remove("hidden");
   elements.loginView.classList.remove("hidden");
-  elements.songView.classList.add("hidden");
 }
 
 function showSongView() {
+  hideAllViews();
+  elements.statusCard.classList.remove("hidden");
   elements.songView.classList.remove("hidden");
-  elements.loginView.classList.add("hidden");
+}
+
+function showUnavailableSite() {
+  hideAllViews();
+  elements.statusCard.classList.add("hidden");
+  elements.unavailableView.classList.remove("hidden");
 }
 
 function setStaticValue(element, value, fallback = NOT_AVAILABLE) {
@@ -195,9 +214,9 @@ function setCompatibleLayout(isCompatible) {
 function isPageSaveable(pageContext) {
   return Boolean(
     pageContext.compatible &&
-      cleanText(pageContext.link) &&
-      cleanText(pageContext.song) &&
-      cleanText(pageContext.artist),
+    cleanText(pageContext.link) &&
+    cleanText(pageContext.song) &&
+    cleanText(pageContext.artist),
   );
 }
 
@@ -206,7 +225,9 @@ function updateSaveButton(pageContext) {
 }
 
 function getSelectedInstrument() {
-  return elements.instrumentSelect.value || state.selectedInstrument || "guitar01";
+  return (
+    elements.instrumentSelect.value || state.selectedInstrument || "guitar01"
+  );
 }
 
 function getEmptyInstrumentsMap() {
@@ -299,7 +320,12 @@ async function readSessionState() {
   };
 }
 
-async function writeSessionState({ accessToken, refreshToken, email, rememberSession }) {
+async function writeSessionState({
+  accessToken,
+  refreshToken,
+  email,
+  rememberSession,
+}) {
   const payload = {
     [STORAGE_KEYS.accessToken]: accessToken,
     [STORAGE_KEYS.refreshToken]: refreshToken || "",
@@ -307,9 +333,15 @@ async function writeSessionState({ accessToken, refreshToken, email, rememberSes
   };
 
   await Promise.all([
-    clearFromStorageArea(extensionApi.storage.local, Object.values(STORAGE_KEYS)),
+    clearFromStorageArea(
+      extensionApi.storage.local,
+      Object.values(STORAGE_KEYS),
+    ),
     extensionApi.storage.session
-      ? clearFromStorageArea(extensionApi.storage.session, Object.values(STORAGE_KEYS))
+      ? clearFromStorageArea(
+          extensionApi.storage.session,
+          Object.values(STORAGE_KEYS),
+        )
       : Promise.resolve(),
   ]);
 
@@ -326,9 +358,15 @@ async function writeSessionState({ accessToken, refreshToken, email, rememberSes
 
 async function clearSessionState() {
   await Promise.all([
-    clearFromStorageArea(extensionApi.storage.local, Object.values(STORAGE_KEYS)),
+    clearFromStorageArea(
+      extensionApi.storage.local,
+      Object.values(STORAGE_KEYS),
+    ),
     extensionApi.storage.session
-      ? clearFromStorageArea(extensionApi.storage.session, Object.values(STORAGE_KEYS))
+      ? clearFromStorageArea(
+          extensionApi.storage.session,
+          Object.values(STORAGE_KEYS),
+        )
       : Promise.resolve(),
   ]);
 }
@@ -365,7 +403,10 @@ async function getPageContext() {
         throw error;
       }
 
-      debugLog("Injecting page context script", { tabId: tab.id, url: tab.url });
+      debugLog("Injecting page context script", {
+        tabId: tab.id,
+        url: tab.url,
+      });
       await injectPageContextScript(tab.id);
       context = await requestPageContext(tab.id);
     }
@@ -436,18 +477,44 @@ async function fetchDistinctSetlists(email, accessToken) {
 }
 
 function fillSetlists(setlists) {
-  elements.setlistSelect.innerHTML = "";
+  state.availableSetlists = Array.isArray(setlists) ? [...setlists] : [];
+  renderSetlistTags();
+}
 
-  const empty = document.createElement("option");
-  empty.value = "";
-  empty.textContent = "No setlist";
-  elements.setlistSelect.appendChild(empty);
+function toggleSetlistTag(tag) {
+  const normalizedTag = cleanText(tag);
+  if (!normalizedTag) return;
 
-  setlists.forEach((setlist) => {
-    const option = document.createElement("option");
-    option.value = setlist;
-    option.textContent = setlist;
-    elements.setlistSelect.appendChild(option);
+  const isSelected = state.selectedSetlists.includes(normalizedTag);
+  state.selectedSetlists = isSelected
+    ? state.selectedSetlists.filter((item) => item !== normalizedTag)
+    : [...state.selectedSetlists, normalizedTag];
+
+  renderSetlistTags();
+}
+
+function renderSetlistTags() {
+  if (!elements.setlistTags) return;
+
+  elements.setlistTags.innerHTML = "";
+
+  if (!state.availableSetlists.length) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "setlist-tags-empty";
+    emptyState.textContent = "No tags available.";
+    elements.setlistTags.appendChild(emptyState);
+    return;
+  }
+
+  state.availableSetlists.forEach((tag) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `setlist-tag${
+      state.selectedSetlists.includes(tag) ? " is-active" : ""
+    }`;
+    button.textContent = tag;
+    button.addEventListener("click", () => toggleSetlistTag(tag));
+    elements.setlistTags.appendChild(button);
   });
 }
 
@@ -462,14 +529,22 @@ function renderPageContext(pageContext) {
 
   setStaticValue(elements.linkValue, state.pageContext.link, NOT_AVAILABLE);
   setStaticValue(elements.songValue, state.pageContext.song, defaults.song);
-  setStaticValue(elements.artistValue, state.pageContext.artist, defaults.artist);
+  setStaticValue(
+    elements.artistValue,
+    state.pageContext.artist,
+    defaults.artist,
+  );
   setStaticValue(elements.capoValue, state.pageContext.capo, defaults.capo);
   setStaticValue(elements.tomValue, state.pageContext.tom, defaults.tom);
-  setStaticValue(elements.tunerValue, state.pageContext.tuning, defaults.tuning);
+  setStaticValue(
+    elements.tunerValue,
+    state.pageContext.tuning,
+    defaults.tuning,
+  );
 
   if (!state.pageContext.compatible) {
     setCompatibleLayout(false);
-    setNotice("Esse site não é compativel com a extensão");
+    setNotice("Extensão não disponivel para esse site");
     setNoticeState("error");
     setStatus("");
   } else if (!isPageSaveable(state.pageContext)) {
@@ -550,8 +625,7 @@ function normalizeScrapeDoc(scraped) {
       tuning: cleanText(pythonSongData.tuning),
       tom: cleanText(pythonSongData.tom || pythonSongData.key),
       link: cleanText(pythonSongData.source_url),
-      songCifra:
-        pythonSongData.song_cifra || pythonSongData.songLyrics || "",
+      songCifra: pythonSongData.song_cifra || pythonSongData.songLyrics || "",
     };
   }
 
@@ -565,7 +639,9 @@ function normalizeScrapeDoc(scraped) {
     scraped,
   ].filter(Boolean);
 
-  let doc = candidates.find((candidate) => candidate?.artist && candidate?.song) || null;
+  let doc =
+    candidates.find((candidate) => candidate?.artist && candidate?.song) ||
+    null;
   if (!doc) {
     const nested = candidates.find(
       (candidate) =>
@@ -575,7 +651,9 @@ function normalizeScrapeDoc(scraped) {
     );
 
     if (nested) {
-      doc = Object.values(nested).find((value) => value?.artist && value?.song) || null;
+      doc =
+        Object.values(nested).find((value) => value?.artist && value?.song) ||
+        null;
     }
   }
 
@@ -616,7 +694,9 @@ async function scrapeSong(session, pageContext) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.details || data?.message || "Could not scrape song data.");
+    throw new Error(
+      data?.details || data?.message || "Could not scrape song data.",
+    );
   }
 
   return normalizeScrapeDoc(data);
@@ -631,7 +711,6 @@ function buildSongPayload(email, scrapedDoc = null) {
   const mergedCapo = cleanText(scrapedDoc?.capo || pageContext.capo);
   const mergedTom = cleanText(scrapedDoc?.tom || pageContext.tom);
   const mergedTuning = cleanText(scrapedDoc?.tuning || pageContext.tuning);
-  const selectedSetlist = cleanText(elements.setlistSelect.value);
   const embedVideos = parseVideoLinks(elements.videosInput.value);
   const progress = getProgressValue();
   const today = new Date().toISOString().split("T")[0];
@@ -675,7 +754,7 @@ function buildSongPayload(email, scrapedDoc = null) {
       drums: instrumentBlocks.drums,
       voice: instrumentBlocks.voice,
       embedVideos,
-      setlist: selectedSetlist ? [selectedSetlist] : [],
+      setlist: [...state.selectedSetlists],
       addedIn: today,
       updateIn: today,
       email,
@@ -709,7 +788,7 @@ async function ensureSession() {
 
   if (!accessToken || !email) {
     showLogin();
-    setStatus("Login required.");
+    setStatus("Login necessário.");
     return null;
   }
 
@@ -720,7 +799,7 @@ async function ensureSession() {
     debugError("Session validation failed", error);
     await clearSessionState();
     showLogin();
-    setStatus("Session expired. Login again.");
+    setStatus("Sessão expirada. Faça login novamente.");
     return null;
   }
 }
@@ -728,17 +807,25 @@ async function ensureSession() {
 async function loadSongView(session) {
   setStatus("Carregando página...");
   hideFinalMessage();
+  state.selectedSetlists = [];
 
   const [pageData, setlists] = await Promise.all([
     getPageContext(),
     fetchDistinctSetlists(session.email, session.accessToken),
   ]);
 
+  if (!pageData.compatible) {
+    showUnavailableSite();
+    return;
+  }
+
   fillSetlists(setlists);
   renderProgressValue();
   showSongView();
   renderPageContext(pageData);
-  state.selectedInstrument = shouldForceVoice(pageData) ? "voice" : getSelectedInstrument();
+  state.selectedInstrument = shouldForceVoice(pageData)
+    ? "voice"
+    : getSelectedInstrument();
   syncInstrumentUi(pageData);
   elements.userBadge.textContent = session.email;
 
@@ -750,7 +837,7 @@ async function loadSongView(session) {
 elements.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideFinalMessage();
-  setStatus("Signing in...");
+  setStatus("Entrando...");
 
   try {
     const email = cleanText(elements.emailInput.value);
@@ -788,24 +875,26 @@ elements.instrumentSelect.addEventListener("change", () => {
   state.selectedInstrument = getSelectedInstrument();
 });
 
-elements.copyLinkButton.addEventListener("click", async () => {
-  const link = cleanText(state.pageContext.link);
-  if (!link) return;
+if (elements.copyLinkButton) {
+  elements.copyLinkButton.addEventListener("click", async () => {
+    const link = cleanText(state.pageContext.link);
+    if (!link) return;
 
-  try {
-    await navigator.clipboard.writeText(link);
-    setNotice("Link copiado.");
-    setNoticeState("success");
-  } catch (error) {
-    debugError("Copy link failed", error);
-    setNotice("Nao foi possivel copiar o link.");
-    setNoticeState("error");
-  }
-});
+    try {
+      await navigator.clipboard.writeText(link);
+      setNotice("Link copiado.");
+      setNoticeState("success");
+    } catch (error) {
+      debugError("Copy link failed", error);
+      setNotice("Nao foi possivel copiar o link.");
+      setNoticeState("error");
+    }
+  });
+}
 
 if (elements.copyLinkButtonProxy) {
   elements.copyLinkButtonProxy.addEventListener("click", () => {
-    elements.copyLinkButton.click();
+    elements.copyLinkButton?.click();
   });
 }
 
@@ -817,13 +906,13 @@ elements.saveButton.addEventListener("click", async () => {
   const freshPageContext = await waitForPageMetadata();
 
   if (!freshPageContext.compatible) {
-    setNotice("Esse site não é compativel com a extensão");
-    setNoticeState("error");
+    showUnavailableSite();
     return;
   }
 
   if (!isPageSaveable(freshPageContext)) {
-    const errorMessage = "Não foi possivel adicionar a cifra no momento, tente mais tarde";
+    const errorMessage =
+      "Não foi possivel adicionar a cifra no momento, tente mais tarde";
     setNotice(errorMessage);
     setNoticeState("error");
     showFinalMessage(errorMessage, "error");
@@ -846,7 +935,8 @@ elements.saveButton.addEventListener("click", async () => {
     }, 5000);
   } catch (error) {
     debugError("Save song failed", error);
-    const errorMessage = "Não foi possivel adicionar a cifra no momento, tente mais tarde";
+    const errorMessage =
+      "Não foi possivel adicionar a cifra no momento, tente mais tarde";
     setNotice(errorMessage);
     setNoticeState("error");
     showFinalOnly(errorMessage, "error");
@@ -869,11 +959,18 @@ elements.discardButton.addEventListener("click", () => {
 elements.logoutButton.addEventListener("click", async () => {
   await clearSessionState();
   showLogin();
-  setStatus("Logged out.");
+  setStatus("Sessão encerrada.");
 });
 
 async function boot() {
   setStatus("");
+  const initialPageContext = await getPageContext();
+  if (!initialPageContext.compatible) {
+    showUnavailableSite();
+    return;
+  }
+
+  renderPageContext(initialPageContext);
   const storedSession = await readSessionState();
   elements.rememberSessionInput.checked = storedSession.rememberSession;
   state.selectedInstrument = getSelectedInstrument();

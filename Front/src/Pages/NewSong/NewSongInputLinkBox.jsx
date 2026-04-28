@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FaRegFileAlt } from "react-icons/fa";
 import { checkCifraExists, scrapeCifra } from "../../Tools/Controllers";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
@@ -132,6 +133,7 @@ function NewSongInputLinkBox({
   const inFlightRef = useRef(false);
   const blurTimer = useRef(null);
   const isLocked = Boolean(instrument?.trim());
+  const hasLink = Boolean(instrument?.trim());
 
   const buildUserErrorMessage = useCallback(() => {
     return "Não foi possivel adicionar o link, tente mais tarde";
@@ -148,6 +150,16 @@ function NewSongInputLinkBox({
     },
     [instrumentName, setScrapeStatus]
   );
+
+  const openInstrumentLink = () => {
+    const targetLink = (instrument || "").trim();
+    if (!targetLink) return;
+
+    const href = /^https?:\/\//i.test(targetLink)
+      ? targetLink
+      : `https://${targetLink}`;
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
 
   const guard = (cond, title, message) => {
     if (!cond) {
@@ -421,13 +433,24 @@ function NewSongInputLinkBox({
         <span className="text-sm font-bold">
           {instrumentName[0].toUpperCase() + instrumentName.slice(1)}
         </span>
-        <span
-          className={`text-sm ${
-            instrument ? "text-green-500" : "text-red-500"
+        <button
+          type="button"
+          aria-label={
+            hasLink
+              ? `Open ${instrumentName} link in a new tab`
+              : `${instrumentName} link not added`
+          }
+          title={hasLink ? "Open link" : "No link added"}
+          disabled={!hasLink}
+          onClick={openInstrumentLink}
+          className={`rounded-sm p-1 transition ${
+            hasLink
+              ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+              : "cursor-not-allowed text-gray-300 opacity-60"
           }`}
         >
-          {instrument ? "Online" : "Offline"}
-        </span>
+          <FaRegFileAlt aria-hidden="true" className="text-base" />
+        </button>
       </div>
 
       {/* Link input */}
