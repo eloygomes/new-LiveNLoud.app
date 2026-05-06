@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { FaEdit } from "react-icons/fa";
 import { FaUserFriends } from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
@@ -224,17 +223,15 @@ function UserProfile() {
       setUploading(true);
       setUploadError("");
 
-      const response = await axios.post(
+      const response = await fetch(
         "https://api.live.eloygomes.com/api/uploadProfileImage",
-        formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          method: "POST",
+          body: formData,
         }
       );
 
-      if (response.status === 200) {
+      if (response.ok) {
         alert("Imagem enviada com sucesso!");
 
         // Atualizar o estado para notificar o UserProfileAvatar

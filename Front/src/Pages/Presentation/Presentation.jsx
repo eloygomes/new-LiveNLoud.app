@@ -1,10 +1,12 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { FaGear } from "react-icons/fa6";
+import { FaGear, FaPenToSquare } from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
 import ToolBox from "./ToolBox";
 import {
   allDataFromOneSong,
+  fetchUserSongs,
+  loadSelectedSetlists,
   updateLastPlayed,
   updateSongEntry,
 } from "../../Tools/Controllers";
@@ -128,6 +130,38 @@ const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
 };
 
+const PRESENTATION_INSTRUMENTS = [
+  { key: "guitar01", label: "Guitar 1" },
+  { key: "guitar02", label: "Guitar 2" },
+  { key: "bass", label: "Bass" },
+  { key: "keys", label: "Keys" },
+  { key: "drums", label: "Drums" },
+  { key: "voice", label: "Voice" },
+];
+
+const instrumentHasPresentationContent = (instrumentData) => {
+  if (!instrumentData) return false;
+
+  return ["songCifra", "songChords", "songTabs", "songLyrics"].some(
+    (field) => {
+      const value = instrumentData[field];
+      return (
+        typeof value === "string" &&
+        value.trim() !== "" &&
+        value !== "Loading..."
+      );
+    },
+  );
+};
+
+const isInstrumentRegistered = (songData, instrumentKey) =>
+  Boolean(
+    songData?.instruments?.[instrumentKey] ||
+      songData?.[instrumentKey]?.active === true ||
+      songData?.[instrumentKey]?.active === "true" ||
+      instrumentHasPresentationContent(songData?.[instrumentKey]),
+  );
+
 function Presentation() {
   const [toolBoxBtnStatus, setToolBoxBtnStatus] = useState(false);
   const [artistFromURL, setArtistFromURL] = useState("");
@@ -149,6 +183,7 @@ function Presentation() {
   const [draftCifra, setDraftCifra] = useState("");
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [setlistSongs, setSetlistSongs] = useState([]);
   const [touchFontSizeStep, setTouchFontSizeStep] = useState(0);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
@@ -256,6 +291,45 @@ function Presentation() {
     return songDataFetched[instrumentSelected] || {};
   }, [songDataFetched, instrumentSelected]);
 
+  const availableInstrumentOptions = useMemo(() => {
+    if (!songDataFetched) return [];
+
+    return PRESENTATION_INSTRUMENTS.filter(
+      (instrument) =>
+        isInstrumentRegistered(songDataFetched, instrument.key) &&
+        instrumentHasPresentationContent(songDataFetched[instrument.key]),
+    );
+  }, [songDataFetched]);
+
+  const isCurrentInstrumentUnavailable = Boolean(
+    songDataFetched &&
+      instrumentSelected &&
+      (!isInstrumentRegistered(songDataFetched, instrumentSelected) ||
+        !instrumentHasPresentationContent(songDataFetched[instrumentSelected])),
+  );
+
+  const goToInstrument = useCallback(
+    (instrumentKey) => {
+      if (!instrumentKey) return;
+
+      window.location.href = `/presentation/${encodeURIComponent(
+        artistFromURL || "",
+      )}/${encodeURIComponent(songFromURL || "")}/${encodeURIComponent(
+        instrumentKey,
+      )}`;
+    },
+    [artistFromURL, songFromURL],
+  );
+
+  const goToEditSong = useCallback(() => {
+    localStorage.setItem("song", songFromURL || "");
+    localStorage.setItem("artist", artistFromURL || "");
+
+    window.location.href = `/editsong/${encodeURIComponent(
+      artistFromURL || "",
+    )}/${encodeURIComponent(songFromURL || "")}`;
+  }, [artistFromURL, songFromURL]);
+
   const startEditingCifra = () => {
     setSaveError("");
     setIsEditing(true);
@@ -285,6 +359,42 @@ function Presentation() {
   );
   const presentationFontScale = touchFontSizeRem / 0.82;
   const touchFontSizeLabel = `${Math.round(presentationFontScale * 100)}%`;
+
+  const currentSetlistSongIndex = useMemo(() => {
+    const normalizedArtist = artistFromURL.trim().toLowerCase();
+    const normalizedSong = songFromURL.trim().toLowerCase();
+
+    if (!normalizedArtist || !normalizedSong) return -1;
+
+    return setlistSongs.findIndex(
+      (song) =>
+        (song.artist || "").trim().toLowerCase() === normalizedArtist &&
+        (song.song || "").trim().toLowerCase() === normalizedSong,
+    );
+  }, [artistFromURL, setlistSongs, songFromURL]);
+
+  const previousSetlistSong =
+    currentSetlistSongIndex > 0
+      ? setlistSongs[currentSetlistSongIndex - 1]
+      : null;
+  const nextSetlistSong =
+    currentSetlistSongIndex >= 0 &&
+    currentSetlistSongIndex < setlistSongs.length - 1
+      ? setlistSongs[currentSetlistSongIndex + 1]
+      : null;
+
+  const goToSetlistSong = useCallback(
+    (song) => {
+      if (!song) return;
+
+      window.location.href = `/presentation/${encodeURIComponent(
+        song.artist || "",
+      )}/${encodeURIComponent(song.song || "")}/${encodeURIComponent(
+        instrumentSelected,
+      )}`;
+    },
+    [instrumentSelected],
+  );
 
   const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
     const length = String(value || "").trim().length;
@@ -574,6 +684,34 @@ function Presentation() {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const loadSetlistNavigation = async () => {
+      const selectedSetlists = loadSelectedSetlists().map((setlist) =>
+        setlist.trim().toLowerCase(),
+      );
+
+      const { songs } = await fetchUserSongs();
+      if (!selectedSetlists.length) {
+        setSetlistSongs(songs);
+        return;
+      }
+
+      const filteredSongs = songs.filter((song) => {
+        const songSetlists = (song.setlist || []).map((setlist) =>
+          setlist.trim().toLowerCase(),
+        );
+
+        return selectedSetlists.some((setlist) =>
+          songSetlists.includes(setlist),
+        );
+      });
+
+      setSetlistSongs(filteredSongs);
+    };
+
+    loadSetlistNavigation();
   }, []);
 
   useEffect(() => {
@@ -924,7 +1062,9 @@ function Presentation() {
           {!effectiveLiveMode && (
             <div
               className={`my-5 flex justify-between neuphormism-b ${
-                isTouchLayout ? "items-start gap-4 px-4 py-4" : "flex-row p-5"
+                isTouchLayout
+                  ? "items-end gap-4 px-4 py-3"
+                  : "flex-row items-end p-4"
               }`}
             >
               <div className="min-w-0 flex-1 flex-col">
@@ -974,44 +1114,98 @@ function Presentation() {
                 )}
               </div>
               <div
-                className={`flex ${
+                className={`flex flex-col ${
                   isTouchLayout
-                    ? "flex-col items-stretch justify-start gap-2 self-start"
-                    : "flex-row items-center gap-3"
+                    ? "items-stretch justify-start gap-2 self-start"
+                    : "items-stretch gap-2"
                 }`}
               >
-                <button
-                  type="button"
-                  className={`neuphormism-b-btn-gold font-bold text-black ${
-                    isTouchLayout
-                      ? "px-4 py-3 text-sm tracking-[0.08em]"
-                      : "p-6 text-lg"
-                  }`}
-                  onClick={enterLiveMode}
-                >
-                  LIVE
-                </button>
                 <div
-                  className={`flex items-center justify-center neuphormism-b-btn ${
-                    isEditing ||
-                    (isTouchLayout &&
-                      !toolBoxBtnStatus &&
-                      (isVideoModalOpen || isTouchVideoActive))
-                      ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
-                      : ""
-                  } ${isTouchLayout ? "px-4 py-3" : "p-6"}`}
-                  onClick={() => {
-                    if (isTouchLayout && isTouchVideoActive) {
-                      setIsTouchVideoMenuOpen(true);
-                      return;
-                    }
-                    toolBoxBtnStatusChange(
-                      toolBoxBtnStatus,
-                      setToolBoxBtnStatus,
-                    );
-                  }}
+                  className={
+                    isTouchLayout
+                      ? "grid grid-cols-2 gap-2"
+                      : "flex flex-row items-stretch gap-3"
+                  }
                 >
-                  <FaGear className={isTouchLayout ? "h-5 w-5" : "w-8 h-8"} />
+                  <button
+                    type="button"
+                    className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
+                      isTouchLayout
+                        ? "col-span-2 px-4 py-2.5 text-sm tracking-[0.1em]"
+                        : "min-w-[6.5rem] px-6 py-3 text-base"
+                    }`}
+                    onClick={enterLiveMode}
+                  >
+                    LIVE
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                      isEditing ||
+                      (isTouchLayout &&
+                        !toolBoxBtnStatus &&
+                        (isVideoModalOpen || isTouchVideoActive))
+                        ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
+                        : ""
+                    } ${isTouchLayout ? "px-3 py-2 text-xs" : "px-4 py-3 text-sm"}`}
+                    onClick={() => {
+                      if (isTouchLayout && isTouchVideoActive) {
+                        setIsTouchVideoMenuOpen(true);
+                        return;
+                      }
+                      toolBoxBtnStatusChange(
+                        toolBoxBtnStatus,
+                        setToolBoxBtnStatus,
+                      );
+                    }}
+                  >
+                    <FaGear
+                      className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"}
+                    />
+                    <span className={isTouchLayout ? "sr-only" : ""}>
+                      Options
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                      isTouchLayout ? "px-3 py-2 text-xs" : "px-4 py-3 text-sm"
+                    }`}
+                    onClick={goToEditSong}
+                  >
+                    <FaPenToSquare
+                      className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                    />
+                    <span>Edit Song</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 opacity-80">
+                  <button
+                    type="button"
+                    disabled={!previousSetlistSong}
+                    className={`neuphormism-b-btn font-black text-black disabled:cursor-not-allowed disabled:opacity-35 ${
+                      isTouchLayout
+                        ? "px-2 py-1 text-[11px]"
+                        : "px-3 py-1.5 text-xs"
+                    }`}
+                    onClick={() => goToSetlistSong(previousSetlistSong)}
+                    aria-label="Previous song in selected setlist"
+                  >
+                    &lt;&lt;
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!nextSetlistSong}
+                    className={`neuphormism-b-btn font-black text-black disabled:cursor-not-allowed disabled:opacity-35 ${
+                      isTouchLayout
+                        ? "px-2 py-1 text-[11px]"
+                        : "px-3 py-1.5 text-xs"
+                    }`}
+                    onClick={() => goToSetlistSong(nextSetlistSong)}
+                    aria-label="Next song in selected setlist"
+                  >
+                    &gt;&gt;
+                  </button>
                 </div>
                 {isTouchLayout ? (
                   <style>{`
@@ -1032,26 +1226,50 @@ function Presentation() {
               </div>
             </div>
           )}
-          {isTouchLayout && effectiveLiveMode ? (
-            <div className="px-3 pb-1 pt-2">
-              <div className="flex items-start justify-between gap-3 rounded-[18px] border border-white/10 bg-black px-3 py-2 shadow-[0_12px_24px_rgba(0,0,0,0.24)]">
+          {effectiveLiveMode ? (
+            <div
+              className={
+                isTouchLayout ? "px-3 pb-1 pt-2" : "px-8 pb-2 pt-6"
+              }
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-white/10 bg-black pb-3">
                 <div className="min-w-0">
-                  <div className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
-                    # sustenido live
-                  </div>
-                  <div className="mt-1 text-[1.02rem] font-black leading-[1.05rem] text-white">
+                  {isTouchLayout ? (
+                    <div className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
+                      # sustenido live
+                    </div>
+                  ) : null}
+                  <div
+                    className={
+                      isTouchLayout
+                        ? "mt-1 text-[1.02rem] font-black leading-[1.05rem] text-white"
+                        : "truncate text-3xl font-bold leading-tight text-white"
+                    }
+                  >
                     {songFromURL}
                   </div>
-                  <div className="mt-0.5 text-[0.82rem] font-bold leading-[0.92rem] text-white/80">
+                  <div
+                    className={
+                      isTouchLayout
+                        ? "mt-0.5 text-[0.82rem] font-bold leading-[0.92rem] text-white/80"
+                        : "truncate text-xl font-bold leading-tight text-white/80"
+                    }
+                  >
                     {artistFromURL}
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-white"
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 font-black uppercase tracking-[0.1em] text-white ${
+                    isTouchLayout
+                      ? "px-2.5 py-1.5 text-[10px]"
+                      : "px-4 py-2 text-xs"
+                  }`}
                   onClick={exitLiveMode}
                 >
-                  <IoClose className="h-3.5 w-3.5" />
+                  <IoClose
+                    className={isTouchLayout ? "h-3.5 w-3.5" : "h-4 w-4"}
+                  />
                   Close
                 </button>
               </div>
@@ -1102,21 +1320,67 @@ function Presentation() {
             } ${hideChords ? "hide-chords" : ""} ${
               selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
             }`}
-            style={
-              !effectiveLiveMode
-                ? {
-                    "--touch-presentation-font-scale": String(
-                      presentationFontScale,
-                    ),
-                    fontSize: isTouchLayout
-                      ? `${touchFontSizeRem}rem`
-                      : `${presentationFontScale}rem`,
-                    lineHeight: 1.45,
-                  }
-                : undefined
-            }
+            style={{
+              "--touch-presentation-font-scale": String(
+                presentationFontScale,
+              ),
+              fontSize: isTouchLayout
+                ? `${touchFontSizeRem}rem`
+                : `${presentationFontScale}rem`,
+              lineHeight: 1.45,
+            }}
           >
-            {isEditing ? (
+            {isCurrentInstrumentUnavailable ? (
+              <div
+                className={`flex min-h-[18rem] flex-col items-center justify-center px-4 text-center ${
+                  effectiveLiveMode ? "text-white" : "text-black"
+                }`}
+              >
+                <div className="max-w-xl">
+                  <div
+                    className={`text-xs font-black uppercase tracking-[0.18em] ${
+                      effectiveLiveMode ? "text-[goldenrod]" : "text-[#a27b13]"
+                    }`}
+                  >
+                    Instrumento indisponível
+                  </div>
+                  <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
+                    Esta música ainda não tem cifra para {instrumentSelected}.
+                  </h2>
+                  <p
+                    className={`mt-3 text-sm font-bold sm:text-base ${
+                      effectiveLiveMode ? "text-white/70" : "text-black/60"
+                    }`}
+                  >
+                    Abra um dos instrumentos cadastrados com cifra para esta
+                    música.
+                  </p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                    {availableInstrumentOptions.length ? (
+                      availableInstrumentOptions.map((instrument) => (
+                        <button
+                          key={instrument.key}
+                          type="button"
+                          className="neuphormism-b-btn-gold px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black"
+                          onClick={() => goToInstrument(instrument.key)}
+                        >
+                          {instrument.label}
+                        </button>
+                      ))
+                    ) : (
+                      <div
+                        className={`text-sm font-bold ${
+                          effectiveLiveMode ? "text-white/60" : "text-black/50"
+                        }`}
+                      >
+                        Nenhum instrumento cadastrado com cifra foi encontrado
+                        para esta música.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : isEditing ? (
               editor ? (
                 <EditorContent editor={editor} />
               ) : (

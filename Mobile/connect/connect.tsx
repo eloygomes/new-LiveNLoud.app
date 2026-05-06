@@ -1,6 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
-import axios from "axios";
 
 // Get list of music
 
@@ -358,101 +357,7 @@ async function authFetch(path: string, init: RequestInit = {}, retry = true) {
   return response;
 }
 
-function requestBodyToAxiosData(body?: BodyInit | null) {
-  if (!body) return undefined;
-  if (typeof body !== "string") return body;
-
-  try {
-    return JSON.parse(body);
-  } catch {
-    return body;
-  }
-}
-
-function isWriteRequest(init: RequestInit = {}) {
-  const method = String(init.method || "GET").toUpperCase();
-  return !["GET", "HEAD"].includes(method);
-}
-
-async function authAxiosJson<T>(
-  path: string,
-  init: RequestInit = {},
-  retry = true,
-): Promise<T> {
-  const token = await getStoredToken();
-  const method = String(init.method || "GET").toUpperCase();
-  const headers = {
-    "Content-Type": "application/json",
-    ...(init.headers || {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  debugLog("authAxios", "request", {
-    path,
-    method,
-    hasToken: Boolean(token),
-    timeoutMs: ANDROID_WRITE_TIMEOUT_MS,
-  });
-
-  const response = await axios({
-    url: `${API_BASE_URL}${path}`,
-    method,
-    headers,
-    data: requestBodyToAxiosData(init.body),
-    timeout: ANDROID_WRITE_TIMEOUT_MS,
-    validateStatus: () => true,
-  });
-
-  debugLog("authAxios", "status", { path, status: response.status });
-
-  if (retry && [401, 403].includes(response.status) && !path.startsWith("/auth/")) {
-    debugWarn("authAxios", "retrying with refresh token", {
-      path,
-      status: response.status,
-    });
-    const nextToken = await refreshAccessToken();
-    const retryResponse = await axios({
-      url: `${API_BASE_URL}${path}`,
-      method,
-      headers: {
-        ...headers,
-        Authorization: `Bearer ${nextToken}`,
-      },
-      data: requestBodyToAxiosData(init.body),
-      timeout: ANDROID_WRITE_TIMEOUT_MS,
-      validateStatus: () => true,
-    });
-
-    debugLog("authAxios", "retry status", {
-      path,
-      status: retryResponse.status,
-    });
-
-    if (retryResponse.status >= 400) {
-      const message =
-        retryResponse.data?.message ||
-        retryResponse.data?.error ||
-        `HTTP ${retryResponse.status}`;
-      throw new Error(message);
-    }
-
-    return retryResponse.data as T;
-  }
-
-  if (response.status >= 400) {
-    const message =
-      response.data?.message || response.data?.error || `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-
-  return response.data as T;
-}
-
 async function authJson<T>(path: string, init: RequestInit = {}) {
-  if (Platform.OS === "android" && isWriteRequest(init)) {
-    return authAxiosJson<T>(path, init);
-  }
-
   const response = await authFetch(path, init);
   return readJsonOrThrow(response) as Promise<T>;
 }

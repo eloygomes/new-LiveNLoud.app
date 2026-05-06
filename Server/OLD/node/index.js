@@ -1,7 +1,6 @@
 // require("dotenv").config();
 
 // const express = require("express");
-// const axios = require("axios");
 // const { MongoClient, Binary, ObjectId } = require("mongodb");
 // const multer = require("multer");
 // const path = require("path");
@@ -366,7 +365,6 @@
 //     const pyPayload = { artist, song, instrument, email, instrument_progressbar, link };
 //     console.log("[LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK] :", link)
 //     console.time("[SCRAPE] python request");
-//     const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload);
 //     console.timeEnd("[SCRAPE] python request");
 //     console.log("[SCRAPE] python resp:", response.status, response.data);
 
@@ -1473,7 +1471,6 @@
 // require("dotenv").config();
 
 // const express = require("express");
-// const axios = require("axios");
 // const { MongoClient, Binary, ObjectId } = require("mongodb");
 // const multer = require("multer");
 // const path = require("path");
@@ -1838,7 +1835,6 @@
 //     const pyPayload = { artist, song, instrument, email, instrument_progressbar, link };
 //     console.log("[LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK][LINK] :", link)
 //     console.time("[SCRAPE] python request");
-//     const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload);
 //     console.timeEnd("[SCRAPE] python request");
 //     console.log("[SCRAPE] python resp:", response.status, response.data);
 
@@ -2945,7 +2941,6 @@
 require("dotenv").config();
 
 const express = require("express");
-const axios = require("axios");
 const { MongoClient, Binary, ObjectId } = require("mongodb");
 const multer = require("multer");
 const path = require("path");
@@ -2971,6 +2966,23 @@ const uri = "REMOVED_MONGO_URI";
 const client = new MongoClient(uri);
 
 const pythonApiUrl = process.env.PYTHON_API_URL || "http://python_scraper:8000";
+
+async function postJson(url, payload) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.error || `HTTP ${response.status}`);
+    error.response = { status: response.status, data };
+    throw error;
+  }
+
+  return { status: response.status, data };
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -3387,7 +3399,7 @@ app.post("/api/scrape", async (req, res) => {
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
     console.time(requestLabel);
-    const response = await axios.post(`${pythonApiUrl}/scrape`, pyPayload);
+    const response = await postJson(`${pythonApiUrl}/scrape`, pyPayload);
     console.timeEnd(requestLabel);
     console.log("[SCRAPE] python resp:", response.status, response.data);
 

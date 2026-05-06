@@ -19,7 +19,6 @@
     "@tiptap/extension-placeholder": "^2.7.2",
     "@tiptap/react": "^2.7.2",
     "@tiptap/starter-kit": "^2.7.2",
-    "axios": "^1.7.4",
     "chordsheetjs": "^14.0.0",
     "https": "^1.0.0",
     "react": "^18.3.1",

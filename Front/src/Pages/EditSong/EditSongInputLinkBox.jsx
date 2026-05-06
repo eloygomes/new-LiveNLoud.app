@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { FaRegFileAlt } from "react-icons/fa";
-import { api as axiosApi } from "../../Tools/Controllers";
+import { api } from "../../Tools/Controllers";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:edit-auto-submit-voice";
 
@@ -124,7 +124,7 @@ function EditSongInputLinkBox({
 
     try {
       notify("Load", "Carregando...");
-      await axiosApi.post("/api/scrape", {
+      await api.post("/api/scrape", {
         artist: "",
         song: "",
         email: userEmail,

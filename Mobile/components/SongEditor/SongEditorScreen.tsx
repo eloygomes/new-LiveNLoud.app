@@ -14,7 +14,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import axios from "axios";
 import {
   getAllUserData,
   getCurrentUserEmail,
@@ -92,6 +91,23 @@ const emptyProgress: Record<InstrumentKey, number> = {
 
 const uniqueStrings = (values: string[]) =>
   [...new Set(values.map((item) => item.trim()).filter(Boolean))];
+
+async function postJson<T>(url: string, payload: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.error || `HTTP ${response.status}`);
+    (error as any).response = { status: response.status, data };
+    throw error;
+  }
+
+  return data as T;
+}
 
 const SongEditorScreen = ({ mode }: Props) => {
   const sheetRef = useRef<ActionSheetRef>(null);
@@ -302,15 +318,15 @@ const SongEditorScreen = ({ mode }: Props) => {
       let directDoc: SongDoc | null = null;
 
       try {
-        const res = await axios.post(`${API_BASE_URL}/generalCifra`, {
+        const data = await postJson<SongDoc | SongDoc[]>(`${API_BASE_URL}/generalCifra`, {
           instrument,
           link: linkValue,
         });
 
-        if (res?.data && typeof res.data === "object") {
-          directDoc = Array.isArray(res.data)
-            ? extractLatestSong(res.data) ?? null
-            : (res.data as SongDoc);
+        if (data && typeof data === "object") {
+          directDoc = Array.isArray(data)
+            ? extractLatestSong(data) ?? null
+            : (data as SongDoc);
         }
       } catch (error: any) {
         const status = error?.response?.status;
@@ -319,7 +335,7 @@ const SongEditorScreen = ({ mode }: Props) => {
           throw error;
         }
 
-        await axios.post(`${API_BASE_URL}/scrape`, {
+        await postJson(`${API_BASE_URL}/scrape`, {
           artist: "",
           song: "",
           email,
@@ -462,7 +478,7 @@ const SongEditorScreen = ({ mode }: Props) => {
 
     try {
       for (const instrument of activeInstruments) {
-        await axios.post(`${API_BASE_URL}/newsong`, {
+        await postJson(`${API_BASE_URL}/newsong`, {
           databaseComing: "liveNloud_",
           collectionComing: "data",
           userdata: buildUserData(instrument.key),

@@ -344,13 +344,10 @@ main{
 .presentation-live-content {
   height: 100vh;
   overflow-y: auto;
-  /* padding: 48px 56px 72px; */
   padding: 14px;
   background: #000;
   color: #fff;
   font-family: "Courier New", Courier, monospace;
-  font-size: 1.65rem;
-  line-height: 1.65;
   white-space: pre-wrap;
   outline: none;
   overflow-x: hidden;
@@ -397,7 +394,6 @@ main{
 .presentation-live-content .solo pre,
 .presentation-live-content .bridge pre,
 .presentation-live-content .section pre {
-  font-size: 10pt;
   line-height: inherit;
   font-weight: inherit;
 }

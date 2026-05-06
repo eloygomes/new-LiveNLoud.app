@@ -1,5 +1,4 @@
 // Controllers.js
-import axios from "axios";
 
 /* =========================
    Config & HTTP client
@@ -30,20 +29,98 @@ const LOCAL_API_BASE =
 
 const API_BASE = ENV_BASE || LOCAL_API_BASE || "https://api.live.eloygomes.com";
 
-const axiosApi = axios.create({
-  baseURL: API_BASE,
-  headers: { "Content-Type": "application/json" },
-});
+function buildUrl(path, params) {
+  const url = new URL(path, API_BASE);
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.set(key, value);
+      }
+    });
+  }
+  return url.toString();
+}
 
-// lê token “na hora”
-axiosApi.interceptors.request.use((config) => {
+async function parseResponseBody(response, responseType) {
+  if (responseType === "blob") return response.blob();
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function createHttpError(response, data) {
+  const message = data?.message || data?.error || `HTTP ${response.status}`;
+  const error = new Error(message);
+  error.response = { status: response.status, data };
+  return error;
+}
+
+async function request(path, options = {}, retry = true) {
+  const {
+    method = "GET",
+    data,
+    body,
+    headers = {},
+    params,
+    responseType,
+    skipAuth = false,
+  } = options;
+  const requestHeaders = new Headers(headers);
+
+  if (!requestHeaders.has("Content-Type") && !(data instanceof FormData)) {
+    requestHeaders.set("Content-Type", "application/json");
+  }
+
   const t =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  if (t && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${t}`;
+  if (!skipAuth && t && !requestHeaders.has("Authorization")) {
+    requestHeaders.set("Authorization", `Bearer ${t}`);
   }
-  return config;
-});
+
+  const response = await fetch(buildUrl(path, params), {
+    method,
+    headers: requestHeaders,
+    body:
+      body ??
+      (data instanceof FormData
+        ? data
+        : data !== undefined
+          ? JSON.stringify(data)
+          : undefined),
+  });
+  const responseData = await parseResponseBody(response, responseType);
+
+  if (
+    retry &&
+    [401, 403].includes(response.status) &&
+    !String(path).includes("/api/auth/")
+  ) {
+    try {
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
+
+      const nextAccessToken = await refreshPromise;
+      requestHeaders.set("Authorization", `Bearer ${nextAccessToken}`);
+      return request(path, { ...options, headers: requestHeaders }, false);
+    } catch (refreshError) {
+      logoutUser();
+      throw refreshError;
+    }
+  }
+
+  if (!response.ok) {
+    throw createHttpError(response, responseData);
+  }
+
+  return { data: responseData, status: response.status, headers: response.headers };
+}
 
 let refreshPromise = null;
 
@@ -57,11 +134,11 @@ async function refreshAccessToken() {
     throw new Error("Refresh token not found.");
   }
 
-  const { data } = await axios.post(
-    `${API_BASE}/api/auth/refresh`,
-    { refreshToken },
-    { headers: { "Content-Type": "application/json" } },
-  );
+  const { data } = await request("/api/auth/refresh", {
+    method: "POST",
+    data: { refreshToken },
+    skipAuth: true,
+  }, false);
 
   if (!data?.accessToken) {
     throw new Error("Access token refresh failed.");
@@ -74,45 +151,17 @@ async function refreshAccessToken() {
   return data.accessToken;
 }
 
-axiosApi.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error?.config;
-    const status = error?.response?.status;
-    const isAuthRoute = originalRequest?.url?.includes("/api/auth/");
-
-    if (
-      !originalRequest ||
-      originalRequest._retry ||
-      isAuthRoute ||
-      ![401, 403].includes(status)
-    ) {
-      return Promise.reject(error);
-    }
-
-    try {
-      originalRequest._retry = true;
-
-      if (!refreshPromise) {
-        refreshPromise = refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-      }
-
-      const nextAccessToken = await refreshPromise;
-      originalRequest.headers = originalRequest.headers || {};
-      originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
-
-      return axiosApi(originalRequest);
-    } catch (refreshError) {
-      logoutUser();
-      return Promise.reject(refreshError);
-    }
-  },
-);
+const fetchApi = {
+  get: (url, config = {}) => request(url, { ...config, method: "GET" }),
+  post: (url, data, config = {}) =>
+    request(url, { ...config, method: "POST", data }),
+  put: (url, data, config = {}) =>
+    request(url, { ...config, method: "PUT", data }),
+  delete: (url, config = {}) => request(url, { ...config, method: "DELETE" }),
+};
 
 // Alias para compatibilidade (alguns trechos usam `api`)
-export const api = axiosApi;
+export const api = fetchApi;
 export { API_BASE };
 
 /* =========================
@@ -172,7 +221,7 @@ export function normalizeLink(u) {
 
 export const requestData = async (email) => {
   try {
-    const { data } = await axiosApi.get(`/api/alldata/${email}`);
+    const { data } = await fetchApi.get(`/api/alldata/${email}`);
     return JSON.stringify(data);
   } catch (error) {
     console.error("Error fetching song data:", error);
@@ -182,7 +231,7 @@ export const requestData = async (email) => {
 export const fetchAllSongData = async (email, artist, song) => {
   const url = "/api/allsongdata";
   try {
-    const { data } = await axiosApi.post(url, { email, artist, song });
+    const { data } = await fetchApi.post(url, { email, artist, song });
     return JSON.stringify(data);
   } catch (error) {
     console.error(`Error fetching song data from ${API_BASE + url}`, error);
@@ -193,7 +242,7 @@ export const fetchAllSongData = async (email, artist, song) => {
 export const deleteOneSong = async (artist, song) => {
   const url = "/api/deleteonesong";
   try {
-    const { data } = await axiosApi.post(url, {
+    const { data } = await fetchApi.post(url, {
       email: getUserEmail(),
       artist,
       song,
@@ -208,7 +257,7 @@ export const deleteOneSong = async (artist, song) => {
 export const allDataFromOneSong = async (artist, song) => {
   const url = "/api/allsongdata";
   try {
-    const { data } = await axiosApi.post(url, {
+    const { data } = await fetchApi.post(url, {
       email: getUserEmail(),
       artist,
       song,
@@ -239,7 +288,7 @@ export const updateSongData = async (updatedData) => {
   };
 
   try {
-    const { data } = await axiosApi.post("/api/newsong", payload);
+    const { data } = await fetchApi.post("/api/newsong", payload);
     return data;
   } catch (error) {
     console.error("Error updating song data:", error);
@@ -257,7 +306,7 @@ export const updateSongEntry = async (updatedSong = {}) => {
   }
 
   try {
-    const { data } = await axiosApi.put("/api/song/updateExact", {
+    const { data } = await fetchApi.put("/api/song/updateExact", {
       email,
       updatedSong,
     });
@@ -275,7 +324,7 @@ export const updateUserName = async (newName) => {
   };
 
   try {
-    const { data } = await axiosApi.put("/api/updateUsername", payload);
+    const { data } = await fetchApi.put("/api/updateUsername", payload);
     return data;
   } catch (error) {
     console.error("Error updating song data:", error);
@@ -304,7 +353,7 @@ export const updateLastPlayed = async (song, artist, instrument) => {
   const payload = { email, song, artist, instrument: normalizedInstrument };
 
   try {
-    const { data } = await axiosApi.put("/api/lastPlay", payload);
+    const { data } = await fetchApi.put("/api/lastPlay", payload);
     return data;
   } catch (error) {
     console.error("[updateLastPlayed:PUT]", {
@@ -321,7 +370,7 @@ export const downloadUserData = async () => {
   if (!email) return;
 
   try {
-    const resp = await axiosApi.get(`/api/downloadUserData/${email}`, {
+    const resp = await fetchApi.get(`/api/downloadUserData/${email}`, {
       responseType: "blob",
     });
 
@@ -341,7 +390,7 @@ export const deleteAllUserSongs = async () => {
   const url = "/api/deleteAllUserSongs";
 
   try {
-    const { data } = await axiosApi.post(url, { email: getUserEmail() });
+    const { data } = await fetchApi.post(url, { email: getUserEmail() });
     return data;
   } catch (error) {
     console.error(
@@ -356,7 +405,7 @@ export const deleteUserAccountOnDb = async (password) => {
   const url = "/api/deleteUserAccount";
 
   try {
-    const { data } = await axiosApi.post(url, {
+    const { data } = await fetchApi.post(url, {
       email: getUserEmail(),
       password,
     });
@@ -374,7 +423,7 @@ export const deleteUserAccount = async ({ password, email = getUserEmail() }) =>
   const url = "/api/deleteUserAccount";
 
   try {
-    const { data } = await axiosApi.post(url, { email, password });
+    const { data } = await fetchApi.post(url, { email, password });
     return data;
   } catch (error) {
     console.error(
@@ -411,7 +460,7 @@ export async function getAllUserSetlists() {
 
 export async function login(userEmail, userPassword) {
   try {
-    const { data } = await axiosApi.post("/api/auth/login", {
+    const { data } = await fetchApi.post("/api/auth/login", {
       email: userEmail,
       password: userPassword,
     });
@@ -432,45 +481,45 @@ export async function login(userEmail, userPassword) {
 }
 
 export async function fetchCurrentUserProfile() {
-  const { data } = await axiosApi.get("/api/me");
+  const { data } = await fetchApi.get("/api/me");
   syncStoredUserProfile(data);
   return data;
 }
 
 export async function searchUsers(query) {
-  const { data } = await axiosApi.get("/api/users/search", {
+  const { data } = await fetchApi.get("/api/users/search", {
     params: { q: query },
   });
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchNotifications() {
-  const { data } = await axiosApi.get("/api/notifications");
+  const { data } = await fetchApi.get("/api/notifications");
   return Array.isArray(data) ? data : [];
 }
 
 export async function markNotificationAsRead(notificationId) {
-  const { data } = await axiosApi.put(`/api/notifications/${notificationId}/read`);
+  const { data } = await fetchApi.put(`/api/notifications/${notificationId}/read`);
   return data;
 }
 
 export async function markAllNotificationsAsRead() {
-  const { data } = await axiosApi.put("/api/notifications/read-all");
+  const { data } = await fetchApi.put("/api/notifications/read-all");
   return data;
 }
 
 export async function fetchInvitations() {
-  const { data } = await axiosApi.get("/api/invitations");
+  const { data } = await fetchApi.get("/api/invitations");
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchUserLogs() {
-  const { data } = await axiosApi.get("/api/logs");
+  const { data } = await fetchApi.get("/api/logs");
   return Array.isArray(data) ? data : [];
 }
 
 export async function createInvitation({ identifier, message = "" }) {
-  const { data } = await axiosApi.post("/api/invitations", {
+  const { data } = await fetchApi.post("/api/invitations", {
     email: identifier,
     message,
   });
@@ -478,53 +527,53 @@ export async function createInvitation({ identifier, message = "" }) {
 }
 
 export async function respondToInvitation(invitationId, status) {
-  const { data } = await axiosApi.put(`/api/invitations/${invitationId}/respond`, {
+  const { data } = await fetchApi.put(`/api/invitations/${invitationId}/respond`, {
     status,
   });
   return data;
 }
 
 export async function revokeFriendship(counterpartEmail) {
-  const { data } = await axiosApi.delete(
+  const { data } = await fetchApi.delete(
     `/api/friends/${encodeURIComponent(counterpartEmail)}`,
   );
   return data;
 }
 
 export async function fetchCalendarEvents() {
-  const { data } = await axiosApi.get("/api/calendar/events");
+  const { data } = await fetchApi.get("/api/calendar/events");
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchCalendarEvent(eventId) {
-  const { data } = await axiosApi.get(`/api/calendar/events/${eventId}`);
+  const { data } = await fetchApi.get(`/api/calendar/events/${eventId}`);
   return data;
 }
 
 export async function createCalendarEvent(payload) {
-  const { data } = await axiosApi.post("/api/calendar/events", payload);
+  const { data } = await fetchApi.post("/api/calendar/events", payload);
   return data;
 }
 
 export async function updateCalendarEvent(eventId, payload) {
-  const { data } = await axiosApi.put(`/api/calendar/events/${eventId}`, payload);
+  const { data } = await fetchApi.put(`/api/calendar/events/${eventId}`, payload);
   return data;
 }
 
 export async function deleteCalendarEvent(eventId) {
-  const { data } = await axiosApi.delete(`/api/calendar/events/${eventId}`);
+  const { data } = await fetchApi.delete(`/api/calendar/events/${eventId}`);
   return data;
 }
 
 export async function respondToCalendarEvent(eventId, status) {
-  const { data } = await axiosApi.put(`/api/calendar/events/${eventId}/respond`, {
+  const { data } = await fetchApi.put(`/api/calendar/events/${eventId}/respond`, {
     status,
   });
   return data;
 }
 
 export async function shareSetlists({ recipientEmail, setlistNames = [] }) {
-  const { data } = await axiosApi.post("/api/setlist-shares", {
+  const { data } = await fetchApi.post("/api/setlist-shares", {
     recipientEmail,
     setlistNames,
   });
@@ -532,14 +581,14 @@ export async function shareSetlists({ recipientEmail, setlistNames = [] }) {
 }
 
 export async function fetchSetlistShare(shareId) {
-  const { data } = await axiosApi.get(
+  const { data } = await fetchApi.get(
     `/api/setlist-shares/${encodeURIComponent(shareId)}`,
   );
   return data;
 }
 
 export async function respondToSetlistShare(shareId, status) {
-  const { data } = await axiosApi.put(
+  const { data } = await fetchApi.put(
     `/api/setlist-shares/${encodeURIComponent(shareId)}/respond`,
     { status },
   );
@@ -559,7 +608,7 @@ export async function getProfileImageObjectURL(cacheKey = "0") {
   )}?_v=${encodeURIComponent(cacheKey)}`;
 
   try {
-    const resp = await axios.get(url, {
+    const resp = await fetchApi.get(url, {
       responseType: "blob",
       headers: { "Cache-Control": "no-cache" },
     });
@@ -646,7 +695,7 @@ export async function updateUserSetlists(nextSetlists = []) {
   };
 
   try {
-    const { data } = await axiosApi.put("/api/updateSetlists", payload);
+    const { data } = await fetchApi.put("/api/updateSetlists", payload);
     return data;
   } catch (error) {
     console.error("[updateUserSetlists] Erro ao atualizar setlists:", {
@@ -767,7 +816,7 @@ export async function createNewSongOnServer({
     userdata,
   };
 
-  const resp = await axiosApi.post("/api/newsong", payload);
+  const resp = await fetchApi.post("/api/newsong", payload);
   return resp.data;
 }
 
@@ -791,16 +840,13 @@ export async function uploadProfileImage(file, opts = {}) {
   formData.append("profileImage", file);
   formData.append("email", email);
 
-  return axios.post(`${API_BASE}/api/uploadProfileImage`, formData, {
-    onUploadProgress: (e) => {
-      if (!e.total) return;
-      const percent = Math.round((e.loaded * 100) / e.total);
-      if (typeof onProgress === "function") onProgress(percent);
-    },
+  const response = await fetchApi.post(`${API_BASE}/api/uploadProfileImage`, formData, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
     },
   });
+  if (typeof onProgress === "function") onProgress(100);
+  return response;
 }
 
 /* =========================
@@ -813,7 +859,7 @@ export async function checkCifraExists({ instrumentName, link }) {
   console.log("[checkCifraExists] →", { instrumentName, link, linkNorm });
 
   try {
-    const res = await axiosApi.get("/api/generalCifra", {
+    const res = await fetchApi.get("/api/generalCifra", {
       params: { instrument: instrumentName, link: linkNorm },
     });
     console.log("[checkCifraExists] ✔ encontrado:", res.data);
@@ -854,7 +900,7 @@ export async function scrapeCifra({
 
   console.log("[scrapeCifra] → payload", payload);
 
-  const res = await axiosApi.post("/api/scrape", payload);
+  const res = await fetchApi.post("/api/scrape", payload);
 
   console.log("[scrapeCifra] ← resposta", {
     status: res.status,
@@ -923,7 +969,7 @@ export async function saveToGeneralCifra({
   };
 
   try {
-    const { data } = await axiosApi.post("/api/generalCifra", payload);
+    const { data } = await fetchApi.post("/api/generalCifra", payload);
     return data; // 201 criado | 200 atualizado
   } catch (err) {
     const status = err?.response?.status;
@@ -957,19 +1003,19 @@ export async function updatePassword({ email, currentPassword, newPassword }) {
   // 👉 Se sua rota for /api/updatePassword, troque abaixo:
   const url = "/api/auth/updatePassword";
 
-  const { data } = await axiosApi.put(url, payload);
+  const { data } = await fetchApi.put(url, payload);
   return data;
 }
 
 export async function requestPasswordReset(email) {
-  const { data } = await axiosApi.post("/api/auth/request-password-reset", {
+  const { data } = await fetchApi.post("/api/auth/request-password-reset", {
     email,
   });
   return data;
 }
 
 export async function resetPassword({ email, token, newPassword }) {
-  const { data } = await axiosApi.post("/api/auth/reset-password", {
+  const { data } = await fetchApi.post("/api/auth/reset-password", {
     email,
     token,
     newPassword,

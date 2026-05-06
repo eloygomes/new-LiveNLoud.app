@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { DEFAULT_IMAGE_BASE64 } from "./defaultProfileImage";
 
 // 👉 Cria a estrutura completa esperada pela API
@@ -52,6 +51,23 @@ function UserRegistrationForm() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const postJson = async (url, payload) => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = new Error(data?.message || data?.error || `HTTP ${response.status}`);
+      error.response = { status: response.status, data };
+      throw error;
+    }
+
+    return data;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -69,7 +85,7 @@ function UserRegistrationForm() {
 
     try {
       // 1️⃣ Criação na autenticação JWT
-      await axios.post("https://api.live.eloygomes.com/api/auth/signup", {
+      await postJson("https://api.live.eloygomes.com/api/auth/signup", {
         email,
         password,
       });
@@ -77,7 +93,7 @@ function UserRegistrationForm() {
       // 2️⃣ Cadastro inicial de estrutura vazia com dados do usuário
       const userdata = createDefaultUserdata(email, username, fullName);
 
-      await axios.post("https://api.live.eloygomes.com/api/newsong", {
+      await postJson("https://api.live.eloygomes.com/api/newsong", {
         databaseComing: "liveNloud_",
         collectionComing: "data",
         userdata,
@@ -94,13 +110,16 @@ function UserRegistrationForm() {
         new File([blob], "default.jpeg", { type: "image/jpeg" })
       );
 
-      await axios.post(
+      const uploadResponse = await fetch(
         "https://api.live.eloygomes.com/api/uploadProfileImage",
-        formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          method: "POST",
+          body: formData,
         }
       );
+      if (!uploadResponse.ok) {
+        throw new Error(`HTTP ${uploadResponse.status}`);
+      }
 
       alert("Cadastro realizado com sucesso!");
       navigate("/login");
