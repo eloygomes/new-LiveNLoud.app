@@ -8,10 +8,38 @@ import {
 } from "react-icons/fa";
 
 const TOOL_LINKS = [
-  { to: "/chordlibrary", label: "Chord Library", icon: FaGuitar },
-  { to: "/tuner", label: "Tuner", icon: FaWaveSquare },
-  { to: "/metronome", label: "Metronome", icon: FaMicrochip },
-  { to: "/calendar", label: "Calendar", icon: FaCalendarAlt },
+  {
+    to: "/chordlibrary",
+    label: "Chord Library",
+    detail:
+      "Browse chord shapes and variations before opening a song. Useful for checking finger positions and comparing alternate voicings.",
+    icon: FaGuitar,
+    accent: "bg-[goldenrod]",
+  },
+  {
+    to: "/tuner",
+    label: "Tuner",
+    detail:
+      "Use the microphone tuner to tune quickly before rehearsal, practice, or live mode. Works best in a quiet room.",
+    icon: FaWaveSquare,
+    accent: "bg-black",
+  },
+  {
+    to: "/metronome",
+    label: "Metronome",
+    detail:
+      "Set tempo, tap BPM, and practice with a steady click. Built for repeated practice without leaving the app.",
+    icon: FaMicrochip,
+    accent: "bg-[#6b7280]",
+  },
+  {
+    to: "/calendar",
+    label: "Calendar",
+    detail:
+      "Keep rehearsals, shows, reminders, and shared music commitments organized in one mobile-friendly view.",
+    icon: FaCalendarAlt,
+    accent: "bg-[#d9ad26]",
+  },
 ];
 
 export default function ToolsHub() {
@@ -25,35 +53,36 @@ export default function ToolsHub() {
   }
 
   return (
-    <div className="h-[calc(100vh-11.25rem)] px-3 pt-3 flex items-center justify-center overflow-hidden">
-      <div className="flex items-center justify-center h-full w-full overflow-hidden">
-        <div className="w-full max-w-[760px] rounded-[30px] bg-[#171717] px-5 pb-8 pt-5 shadow-[0_18px_34px_rgba(0,0,0,0.18)] overflow-hidden">
-          <div className="text-[2rem] font-black uppercase tracking-tight text-white">
-            TOOLS
-          </div>
-          <div className="mt-2 text-sm leading-5 text-gray-400">
-            Choose a music tool or open your calendar.
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3">
-            {TOOL_LINKS.map(({ to, label, icon: Icon }) => (
-              <button
-                key={to}
-                type="button"
-                className="flex min-h-[62px] items-center gap-3 rounded-[18px] bg-black px-4 py-3 text-left shadow-[0_10px_20px_rgba(0,0,0,0.18)]"
-                onClick={() => navigate(to)}
-              >
-                <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[14px] bg-[goldenrod] text-[#111]">
-                  <Icon className="text-[18px]" />
+    <div className="h-[calc(100vh-8.5rem)] overflow-hidden bg-[#f0f0f0] px-3 pb-24 pt-3">
+      <div className="mx-auto flex h-full w-full max-w-[760px] flex-col justify-center">
+        <section className="flex flex-col justify-center gap-5">
+          {TOOL_LINKS.map(({ to, label, detail, icon: Icon, accent }) => (
+            <button
+              key={to}
+              type="button"
+              className="neuphormism-b-btn relative flex min-h-[132px] items-center gap-4 overflow-hidden rounded-[26px] px-4 py-4 text-left text-black active:scale-[0.98]"
+              onClick={() => navigate(to)}
+            >
+              <div className={`absolute left-0 top-0 h-full w-1.5 ${accent}`} />
+              <div className="neuphormism-b-avatar flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] text-black">
+                <Icon className="text-[1.35rem]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[1.05rem] font-black leading-tight">
+                    {label}
+                  </div>
+                  <div className="neuphormism-b-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] text-gray-600">
+                    <FaChevronRight className="text-[0.8rem]" />
+                  </div>
                 </div>
-                <div className="flex-1 text-[15px] font-extrabold text-white">
-                  {label}
+                <div className="mt-2 text-[0.82rem] font-semibold leading-[1.1rem] text-gray-600">
+                  {detail}
                 </div>
-                <FaChevronRight className="text-[16px] text-[#777]" />
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
+            </button>
+          ))}
+        </section>
       </div>
     </div>
   );

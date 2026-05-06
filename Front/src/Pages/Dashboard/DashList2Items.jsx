@@ -10,7 +10,12 @@ import {
   GiMicrophone,
   GiPianoKeys,
 } from "react-icons/gi";
-import { FaCalendarPlus, FaHistory, FaVideo, FaVideoSlash } from "react-icons/fa";
+import {
+  FaCalendarPlus,
+  FaHistory,
+  FaVideo,
+  FaVideoSlash,
+} from "react-icons/fa";
 import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
 
 const INSTRUMENT_ICON_SIZE = 26;
@@ -136,7 +141,13 @@ function DashList2Items({
         : [];
 
   const getAddedDate = (item) =>
-    formatDisplayDate(item.createdAt || item.createIn || item.createdIn || item.addedIn || item.updateIn);
+    formatDisplayDate(
+      item.createdAt ||
+        item.createIn ||
+        item.createdIn ||
+        item.addedIn ||
+        item.updateIn,
+    );
 
   const getLastPlayDate = (item) => {
     const candidates = [
@@ -189,13 +200,15 @@ function DashList2Items({
               tags.map((tag) => (
                 <span
                   key={tag}
-                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-black text-black"
+                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-medium text-black"
                 >
                   {tag}
                 </span>
               ))
             ) : (
-              <span className="text-[11px] font-semibold text-gray-400">No tags</span>
+              <span className="text-[11px] font-semibold text-gray-400">
+                No tags
+              </span>
             )}
           </div>
         </div>
@@ -255,7 +268,9 @@ function DashList2Items({
 
     if (columnKey === "addedDate") {
       return (
-        <div className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}>
+        <div
+          className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}
+        >
           <FaCalendarPlus className="text-[goldenrod]" />
           <span>{getAddedDate(item) || "-"}</span>
         </div>
@@ -264,7 +279,9 @@ function DashList2Items({
 
     if (columnKey === "lastPlay") {
       return (
-        <div className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}>
+        <div
+          className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}
+        >
           <FaHistory className="text-[goldenrod]" />
           <span>{getLastPlayDate(item)}</span>
         </div>
@@ -391,14 +408,14 @@ function DashList2Items({
                         {item.artist || "N/A"}
                       </div>
                       {visibleColumns.includes("progression") ? (
-                      <div className="mt-2 flex items-center">
-                        <div className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-1.5 py-0.5">
-                          <div className="h-3 w-3 rounded-full border-2 border-[#d7d7d7] border-t-[#d9ad26]" />
-                          <span className="text-[10px] font-bold text-[#5b5b5b]">
-                            {item.progressBar || 0}%
-                          </span>
+                        <div className="mt-2 flex items-center">
+                          <div className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-1.5 py-0.5">
+                            <div className="h-3 w-3 rounded-full border-2 border-[#d7d7d7] border-t-[#d9ad26]" />
+                            <span className="text-[10px] font-bold text-[#5b5b5b]">
+                              {item.progressBar || 0}%
+                            </span>
+                          </div>
                         </div>
-                      </div>
                       ) : null}
                       <div className="mt-2 flex max-w-full gap-2 overflow-x-auto">
                         {visibleColumns.includes("videos") ? (
@@ -410,8 +427,7 @@ function DashList2Items({
                               </>
                             ) : (
                               <>
-                                <FaVideoSlash className="text-gray-400" />
-                                0
+                                <FaVideoSlash className="text-gray-400" />0
                               </>
                             )}
                           </span>
@@ -432,17 +448,18 @@ function DashList2Items({
                       {visibleColumns.includes("tags") ? (
                         <div className="mt-2 max-w-full overflow-x-auto">
                           <div className="flex w-max max-w-full gap-1">
-                            {Array.isArray(item.setlist) && item.setlist.length ? (
+                            {Array.isArray(item.setlist) &&
+                            item.setlist.length ? (
                               item.setlist.map((tag) => (
                                 <span
                                   key={tag}
-                                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-black text-black"
+                                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-medium text-black"
                                 >
                                   {tag}
                                 </span>
                               ))
                             ) : (
-                              <span className="shrink-0 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-500">
+                              <span className="shrink-0 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-medium text-gray-500">
                                 No tags
                               </span>
                             )}
@@ -451,26 +468,27 @@ function DashList2Items({
                       ) : null}
                     </div>
                     {visibleColumns.includes("instruments") ? (
-                    <div className="grid grid-cols-3 gap-3 self-center">
-                      {instrumentLabels.map((instrument) => (
-                        <span
-                          key={instrument.key}
-                          className={`flex h-7 w-7 items-center justify-center rounded-[8px] ${
-                            item.instruments && item.instruments[instrument.key]
-                              ? "bg-[goldenrod] text-black"
-                              : "bg-[#f5f5f5] text-[#9a9a9a]"
-                          }`}
-                        >
-                          {renderInstrumentIcon(
-                            instrument,
-                            Boolean(
+                      <div className="grid grid-cols-3 gap-3 self-center">
+                        {instrumentLabels.map((instrument) => (
+                          <span
+                            key={instrument.key}
+                            className={`flex h-7 w-7 items-center justify-center rounded-[8px] ${
                               item.instruments &&
+                              item.instruments[instrument.key]
+                                ? "bg-[goldenrod] text-black"
+                                : "bg-[#f5f5f5] text-[#9a9a9a]"
+                            }`}
+                          >
+                            {renderInstrumentIcon(
+                              instrument,
+                              Boolean(
+                                item.instruments &&
                                 item.instruments[instrument.key],
-                            ),
-                          )}
-                        </span>
-                      ))}
-                    </div>
+                              ),
+                            )}
+                          </span>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
                 </button>
@@ -494,7 +512,7 @@ function DashList2Items({
               />
 
               <div
-                className="relative z-[12201] w-full select-none rounded-[28px] bg-[#f0f0f0] p-4 shadow-[0_-18px_40px_rgba(0,0,0,0.18)]"
+                className="relative z-[12201] w-full select-none rounded-[18px] bg-[#f0f0f0] p-4 shadow-[0_-18px_40px_rgba(0,0,0,0.18)]"
                 style={{
                   WebkitTouchCallout: "none",
                   WebkitUserSelect: "none",
@@ -553,7 +571,7 @@ function DashList2Items({
                 </div>
 
                 <div className="mt-3 px-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[goldenrod]">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[goldenrod] mt-10">
                     Open presentation
                   </div>
                   <div className="mt-1 text-[12px] font-bold text-[#626878]">
@@ -561,7 +579,7 @@ function DashList2Items({
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2 my-10">
                   {instrumentLabels.map((instrument) => {
                     const isEnabled = Boolean(
                       selectedSong.instruments?.[instrument.key],

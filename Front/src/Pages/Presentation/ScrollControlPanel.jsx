@@ -19,6 +19,8 @@ import {
 const MIN_SPEED = 1;
 const MAX_SPEED = 10;
 const DEFAULT_SPEED = 3;
+const TOUCH_MAX_SPEED = 15;
+const TOUCH_DEFAULT_SPEED = 8;
 const DEFAULT_MODE = "page";
 const AUTO_SCROLL_INTERVAL = 45;
 const AUTO_SCROLL_BASE_STEP = 4;
@@ -35,6 +37,23 @@ const SPEED_LABELS = [
   "fast",
   "faster",
   "rapid",
+];
+const TOUCH_SPEED_LABELS = [
+  "barely moving",
+  "ultra slow",
+  "very slow",
+  "slowest",
+  "extra slow",
+  "slower",
+  "slow",
+  "easy",
+  "steady",
+  "medium",
+  "mid fast",
+  "fast",
+  "faster",
+  "rapid",
+  "max",
 ];
 
 function isScrollable(node) {
@@ -83,17 +102,19 @@ function scrollViewportTo(position, behavior = "smooth") {
   window.scrollTo({ top: position, behavior });
 }
 
-function getAutoScrollStep(speed) {
-  const distanceFromTop = MAX_SPEED - speed;
+function getAutoScrollStep(speed, maxSpeed = MAX_SPEED) {
+  const distanceFromTop = maxSpeed - speed;
   return (
     MAX_AUTO_SCROLL_STEP *
     Math.pow(1 - VELOCITY_REDUCTION_PER_STEP, distanceFromTop)
   );
 }
 
-export default function ScrollControlPanel() {
+export default function ScrollControlPanel({ isTouchLayout = false }) {
   const [state, setState] = useState(() => getScrollControllerState());
   const intervalRef = useRef(null);
+  const maxSpeed = isTouchLayout ? TOUCH_MAX_SPEED : MAX_SPEED;
+  const defaultSpeed = isTouchLayout ? TOUCH_DEFAULT_SPEED : DEFAULT_SPEED;
 
   useEffect(() => subscribeToScrollController(setState), []);
 
@@ -107,9 +128,9 @@ export default function ScrollControlPanel() {
   }, []);
 
   const setSpeed = useCallback((nextSpeed) => {
-    const clampedSpeed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, nextSpeed));
+    const clampedSpeed = Math.max(MIN_SPEED, Math.min(maxSpeed, nextSpeed));
     updateScrollControllerState({ speed: clampedSpeed });
-  }, []);
+  }, [maxSpeed]);
 
   const adjustSpeed = useCallback(
     (delta) => {
@@ -152,9 +173,9 @@ export default function ScrollControlPanel() {
     updateScrollControllerState({ autoScrollActive: true });
     intervalRef.current = window.setInterval(() => {
       const { speed } = getScrollControllerState();
-      scrollViewportBy(getAutoScrollStep(speed), "auto");
+      scrollViewportBy(getAutoScrollStep(speed, maxSpeed), "auto");
     }, AUTO_SCROLL_INTERVAL);
-  }, []);
+  }, [maxSpeed]);
 
   const toggleAutoScroll = useCallback(() => {
     if (getScrollControllerState().autoScrollActive) {
@@ -166,8 +187,9 @@ export default function ScrollControlPanel() {
   }, [startAutoScroll, stopAutoScroll]);
 
   useEffect(() => {
+    const currentSpeed = getScrollControllerState().speed || defaultSpeed;
     updateScrollControllerState({
-      speed: getScrollControllerState().speed || DEFAULT_SPEED,
+      speed: Math.max(MIN_SPEED, Math.min(maxSpeed, currentSpeed)),
       verticalMode: getScrollControllerState().verticalMode || DEFAULT_MODE,
     });
 
@@ -189,6 +211,8 @@ export default function ScrollControlPanel() {
   }, [
     adjustSpeed,
     handleVerticalAction,
+    defaultSpeed,
+    maxSpeed,
     startAutoScroll,
     stopAutoScroll,
     toggleAutoScroll,
@@ -249,9 +273,97 @@ export default function ScrollControlPanel() {
   }, [adjustSpeed, handleVerticalAction, stopAutoScroll, toggleAutoScroll]);
 
   const speedPercent = useMemo(
-    () => ((state.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100,
-    [state.speed],
+    () => ((state.speed - MIN_SPEED) / (maxSpeed - MIN_SPEED)) * 100,
+    [maxSpeed, state.speed],
   );
+
+  if (isTouchLayout) {
+    const speedLabel =
+      TOUCH_SPEED_LABELS[
+        Math.min(TOUCH_SPEED_LABELS.length - 1, state.speed - 1)
+      ];
+
+    return (
+      <div className="space-y-5 text-black">
+        <section className="neuphormism-b rounded-[22px] bg-[#ececec] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[0.72rem] font-black uppercase tracking-[0.2em] text-gray-500">
+                Auto scroll
+              </div>
+              <div className="mt-1 text-2xl font-black leading-none">
+                {state.autoScrollActive ? "Running" : "Stopped"}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={toggleAutoScroll}
+              className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] text-black shadow-[0_10px_22px_rgba(0,0,0,0.1)] ${
+                state.autoScrollActive
+                  ? "neuphormism-b-btn-gold bg-[goldenrod]"
+                  : "neuphormism-b-btn bg-white"
+              }`}
+              aria-label={
+                state.autoScrollActive ? "Stop auto scroll" : "Start auto scroll"
+              }
+            >
+              {state.autoScrollActive ? (
+                <PauseRoundedIcon fontSize="large" />
+              ) : (
+                <PlayArrowRoundedIcon fontSize="large" />
+              )}
+            </button>
+          </div>
+        </section>
+
+        <section className="neuphormism-b rounded-[22px] bg-[#ececec] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[0.72rem] font-black uppercase tracking-[0.2em] text-gray-500">
+                Speed
+              </div>
+              <div className="mt-1 text-xl font-black capitalize leading-none">
+                {speedLabel}
+              </div>
+            </div>
+            <div className="rounded-full bg-white px-3 py-1.5 text-sm font-black text-gray-600 shadow-[0_6px_14px_rgba(0,0,0,0.07)]">
+              {state.speed}/{maxSpeed}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => adjustSpeed(-1)}
+              className="neuphormism-b-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
+              aria-label="Decrease speed"
+            >
+              <RemoveRoundedIcon />
+            </button>
+            <input
+              type="range"
+              min={MIN_SPEED}
+              max={maxSpeed}
+              step="1"
+              value={state.speed}
+              onChange={(event) => setSpeed(Number(event.target.value))}
+              className="mobile-scroll-range"
+              aria-label="Auto scroll speed"
+              style={{ "--scroll-speed-percent": `${speedPercent}%` }}
+            />
+            <button
+              type="button"
+              onClick={() => adjustSpeed(1)}
+              className="neuphormism-b-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
+              aria-label="Increase speed"
+            >
+              <AddRoundedIcon />
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto  ">

@@ -62,16 +62,13 @@ function EditSong() {
         </div>
 
         <div className="origin-top">
-          <div className="neuphormism-b rounded-[28px] px-5 py-4">
+          <div className="px-1 py-2">
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-              Song Workspace
+              Edit
             </p>
-            <div className="text-[1.9rem] font-black tracking-tight text-black">
-              EDIT SONG
-            </div>
-            <div className="mt-1 text-sm font-semibold text-gray-500">
-              Update the song and its instrument links here.
-            </div>
+            <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+              Update Song
+            </h1>
           </div>
 
           <div className="mt-4">

@@ -406,13 +406,104 @@ main{
   .presentation-chord-lyrics,
   .presentation-combined-tab-chords,
   .presentation-tab,
-  .presentation-tab-section {
+  .presentation-tab-section,
+  .intro,
+  .verse,
+  .chorus,
+  .solo,
+  .bridge,
+  .section {
     width: 100%;
     max-width: 100%;
     font-size: calc(clamp(0.68rem, 1.95vw, 0.9rem) * var(--touch-presentation-font-scale, 1));
     line-height: 1.45;
     letter-spacing: -0.02em;
     white-space: pre;
+  }
+
+  .intro pre,
+  .verse pre,
+  .chorus pre,
+  .solo pre,
+  .bridge pre,
+  .section pre {
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .presentation-cifra-editor {
+    color: #000000;
+    font-family: "Courier New", Courier, monospace;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: -0.02em;
+  }
+
+  .presentation-cifra-editor p {
+    color: #000000;
+    font-size: inherit;
+    line-height: inherit;
+    margin: 0;
+    min-height: 1.45em;
+    white-space: pre;
+  }
+
+  .presentation-cifra-editor .presentation-editor-chord {
+    color: goldenrod;
+    font-weight: 700;
+  }
+
+  .mobile-scroll-range {
+    width: 100%;
+    height: 42px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    touch-action: pan-y;
+  }
+
+  .mobile-scroll-range::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      goldenrod 0%,
+      goldenrod var(--scroll-speed-percent, 0%),
+      #d3d3d3 var(--scroll-speed-percent, 0%),
+      #d3d3d3 100%
+    );
+  }
+
+  .mobile-scroll-range::-webkit-slider-thumb {
+    width: 34px;
+    height: 34px;
+    margin-top: -12px;
+    border: 0;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    -webkit-appearance: none;
+  }
+
+  .mobile-scroll-range::-moz-range-track {
+    height: 10px;
+    border-radius: 999px;
+    background: #d3d3d3;
+  }
+
+  .mobile-scroll-range::-moz-range-progress {
+    height: 10px;
+    border-radius: 999px;
+    background: goldenrod;
+  }
+
+  .mobile-scroll-range::-moz-range-thumb {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
   }
 
   .tab {

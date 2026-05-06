@@ -94,16 +94,13 @@ function NewSong() {
 
         <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-0">
           <div className="origin-top">
-            <div className="neuphormism-b rounded-[28px] px-5 py-4">
+            <div className="px-1 py-2">
               <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                Song Workspace
+                Plus
               </p>
-              <div className="text-[1.9rem] font-black tracking-tight text-black">
-                NEW SONG
-              </div>
-              <div className="mt-1 text-sm font-semibold text-gray-500">
-                Register the song and its instrument links here.
-              </div>
+              <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                Add New Song
+              </h1>
             </div>
 
             <div className="mt-4">

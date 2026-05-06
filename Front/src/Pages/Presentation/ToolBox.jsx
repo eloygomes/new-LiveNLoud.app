@@ -40,11 +40,26 @@ function ToolBox({
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
+  const [activeTouchPanel, setActiveTouchPanel] = useState(null);
 
   // dimensões aproximadas apenas para layout; não afetam o drag
   const BOX_WIDTH = 180;
 
   if (!toolBoxBtnStatus && !videoModalStatus && !chordModalStatus) return null;
+
+  const closeTouchToolBox = () => {
+    setActiveTouchPanel(null);
+    toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus);
+  };
+
+  const handleTouchHeaderClose = () => {
+    if (activeTouchPanel) {
+      setActiveTouchPanel(null);
+      return;
+    }
+
+    closeTouchToolBox();
+  };
 
   return (
     <>
@@ -83,22 +98,20 @@ function ToolBox({
           <button
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
-            onClick={() =>
-              toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
-            }
+            onClick={closeTouchToolBox}
             aria-label="Close toolbox"
           />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+          <div className=" absolute inset-x-0 bottom-0 rounded-t-[18px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <h1 className="text-[2rem] font-black tracking-tight text-black">
                 ToolBox
               </h1>
               <button
-                className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-2xl font-semibold text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
-                onClick={() =>
-                  toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
+                className="neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-2xl font-semibold text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                onClick={handleTouchHeaderClose}
+                aria-label={
+                  activeTouchPanel ? "Back to toolbox" : "Close toolbox"
                 }
-                aria-label="Close toolbox"
                 type="button"
               >
                 X
@@ -131,9 +144,9 @@ function ToolBox({
               touchFontSizeLabel={touchFontSizeLabel}
               decreaseTouchFontSize={decreaseTouchFontSize}
               increaseTouchFontSize={increaseTouchFontSize}
-              closeToolBox={() =>
-                toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
-              }
+              closeToolBox={closeTouchToolBox}
+              activeTouchPanel={activeTouchPanel}
+              setActiveTouchPanel={setActiveTouchPanel}
             />
           </div>
         </div>
@@ -156,7 +169,10 @@ function ToolBox({
                 <button
                   className="text-2xl font-semibold hover:font-black"
                   onClick={() =>
-                    toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
+                    toolBoxBtnStatusChange(
+                      toolBoxBtnStatus,
+                      setToolBoxBtnStatus,
+                    )
                   }
                   aria-label="Close toolbox"
                   type="button"

@@ -323,11 +323,28 @@ export default function Tuner() {
     >
       <div className="container mx-auto">
         <div className="w-full pb-10 md:mx-auto md:w-11/12 lg:pb-0 2xl:w-9/12">
-          <div className="mb-5 flex items-center gap-6 neuphormism-b p-5">
+          <div
+            className={`mb-5 ${
+              isTouchLayout
+                ? "px-1 py-2"
+                : "flex items-center gap-6 neuphormism-b p-5"
+            }`}
+          >
             <div>
-              <h1 className="text-4xl font-bold">TUNER</h1>
+              {isTouchLayout ? (
+                <>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                    Tuner
+                  </p>
+                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                    Tune The Sound
+                  </h1>
+                </>
+              ) : (
+                <h1 className="text-4xl font-bold">TUNER</h1>
+              )}
             </div>
-            <div className="ml-auto">
+            <div className={`ml-auto ${isTouchLayout ? "hidden" : ""}`}>
               <h4 className="max-w-[320px] text-right text-sm">
                 Keep it tuned.
               </h4>

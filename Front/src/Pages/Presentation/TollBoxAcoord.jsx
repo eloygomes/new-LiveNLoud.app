@@ -56,14 +56,14 @@ export default function TollBoxAcoord({
   startEditingCifra,
   isTouchLayout = false,
   closeToolBox,
+  activeTouchPanel,
+  setActiveTouchPanel,
   touchFontSizeLabel = "100%",
   decreaseTouchFontSize,
   increaseTouchFontSize,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
-  const [showEditorDetails, setShowEditorDetails] = useState(false);
-  const [showFontSizeDetails, setShowFontSizeDetails] = useState(false);
 
   // Estados para controlar qual ferramenta está ativa
   const [TunerStatus, setTunerStatus] = useState(false);
@@ -105,23 +105,19 @@ export default function TollBoxAcoord({
     if (!isEditing && songCifraData) {
       startEditingCifra();
     }
-    setShowEditorDetails(true);
+    setActiveTouchPanel?.("panel-editor");
   };
 
   const handleTouchSave = async () => {
     await handleSaveCifra();
-    setShowEditorDetails(false);
+    setActiveTouchPanel?.(null);
     closeToolBox?.();
   };
 
   const handleTouchDiscard = () => {
     handleDiscardDraft();
-    setShowEditorDetails(false);
+    setActiveTouchPanel?.(null);
     closeToolBox?.();
-  };
-
-  const openTouchFontSizeDetails = () => {
-    setShowFontSizeDetails(true);
   };
 
   const renderEditorContent = () => (
@@ -357,13 +353,40 @@ export default function TollBoxAcoord({
   );
 
   const renderScrollingContent = () => (
-    <div className={isTouchLayout ? "rounded-[16px] bg-[#ececec] p-3" : "my-4"}>
-      <ScrollControlPanel />
+    <div className={isTouchLayout ? "" : "my-4"}>
+      <ScrollControlPanel isTouchLayout={isTouchLayout} />
     </div>
   );
 
   if (isTouchLayout) {
-    if (showEditorDetails) {
+    const sections = [
+      {
+        id: "panel-editor",
+        label: "Editor",
+        content: renderEditorContent(),
+        open: openTouchEditorDetails,
+      },
+      {
+        id: "panel-font",
+        label: "Font Size",
+        content: renderFontSizeContent(),
+      },
+      {
+        id: "panel1",
+        label: "Instruments",
+        content: renderInstrumentsContent(),
+      },
+      { id: "panel2", label: "Videos", content: renderVideosContent() },
+      { id: "panel4", label: "Highlight", content: renderHighlightContent() },
+      { id: "panel5", label: "Tools", content: renderToolsContent() },
+      { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
+    ];
+
+    const activeSection = sections.find(
+      (section) => section.id === activeTouchPanel,
+    );
+
+    if (activeSection?.id === "panel-editor") {
       return (
         <div className="space-y-4">
           <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
@@ -391,70 +414,43 @@ export default function TollBoxAcoord({
       );
     }
 
-    if (showFontSizeDetails) {
+    if (activeSection) {
       return (
         <div className="space-y-4">
           <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
-            Font Size
+            {activeSection.label}
           </div>
-          {renderFontSizeContent()}
+          {activeSection.content}
         </div>
       );
     }
 
-    const sections = [
-      { id: "panel-editor", label: "Editor", content: renderEditorContent() },
-      {
-        id: "panel-font",
-        label: "Font Size",
-        content: renderFontSizeContent(),
-      },
-      {
-        id: "panel1",
-        label: "Instruments",
-        content: renderInstrumentsContent(),
-      },
-      { id: "panel2", label: "Videos", content: renderVideosContent() },
-      { id: "panel4", label: "Highlight", content: renderHighlightContent() },
-      { id: "panel5", label: "Tools", content: renderToolsContent() },
-      { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
-    ];
-
     return (
       <div className="space-y-3">
         {sections.map((section) => {
-          const isOpen = expanded === section.id;
           const shouldBlinkEditor =
-            section.id === "panel-editor" && isEditing && !showEditorDetails;
+            section.id === "panel-editor" &&
+            isEditing &&
+            activeTouchPanel !== "panel-editor";
           return (
             <div key={section.id}>
               <button
                 type="button"
-                className={`flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-lg font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] ${
+                className={`neuphormism-b-btn flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-lg font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] ${
                   shouldBlinkEditor
                     ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite] bg-[#ececec]"
                     : "bg-[#ececec]"
                 }`}
                 onClick={() => {
-                  if (section.id === "panel-editor") {
-                    openTouchEditorDetails();
-                    return;
+                  section.open?.();
+                  if (!section.open) {
+                    setActiveTouchPanel?.(section.id);
                   }
-                  if (section.id === "panel-font") {
-                    openTouchFontSizeDetails();
-                    return;
-                  }
-                  setExpanded(isOpen ? false : section.id);
                 }}
               >
                 <span>{section.label}</span>
-                <span className="text-2xl leading-none">
-                  {isOpen ? "−" : "+"}
-                </span>
+                <span className="text-2xl leading-none">+</span>
               </button>
-              {isOpen ? (
-                <div className="mt-2 px-1">{section.content}</div>
-              ) : null}
             </div>
           );
         })}

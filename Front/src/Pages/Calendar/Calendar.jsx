@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { FaPlus } from "react-icons/fa";
 import EventModal from "./EventModal";
 import {
   createCalendarEvent,
@@ -280,6 +281,7 @@ function InviteResponseModal({
 export default function Calendar() {
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
+  const longPressTimerRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
@@ -436,6 +438,34 @@ export default function Calendar() {
       : viewMode === "year"
         ? String(viewDate.getFullYear())
         : formatDisplayDate(viewDate);
+  const mobileCurrentLabel =
+    isTouchLayout && viewMode === "month"
+      ? viewDate.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })
+      : currentLabel;
+
+  const clearDayLongPress = () => {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const startDayLongPress = (day, dayEvents) => {
+    clearDayLongPress();
+    longPressTimerRef.current = window.setTimeout(() => {
+      if (dayEvents[0]) {
+        openEventEditor(dayEvents[0]);
+      } else {
+        openNewEventModal(day);
+      }
+      longPressTimerRef.current = null;
+    }, 550);
+  };
+
+  useEffect(() => clearDayLongPress, []);
 
   useEffect(() => {
     const inviteEventId = searchParams.get("inviteEvent");
@@ -596,33 +626,40 @@ export default function Calendar() {
         <div
           className={`${
             isTouchLayout
-              ? "w-full px-3 pb-10"
+              ? "w-full px-3 pb-4"
               : "w-11/12 2xl:w-9/12 mx-auto pb-10"
           }`}
         >
           <div
             className={`mb-5 neuphormism-b ${
               isTouchLayout
-                ? "p-4"
+                ? "flex flex-col gap-4 p-4"
                 : "flex flex-row items-center gap-6 p-5 mt-5"
             }`}
           >
-            <div>
-              {isTouchLayout ? (
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                  # sustenido
-                </div>
-              ) : null}
+            {!isTouchLayout ? (
+              <div>
               <h1
                 className={`${isTouchLayout ? "mt-2 text-[2rem]" : "text-4xl"} font-bold`}
               >
                 CALENDAR
               </h1>
-            </div>
+              </div>
+            ) : null}
+            {isTouchLayout ? (
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  Calendar
+                </p>
+                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                  Plan The Session
+                </h1>
+              </div>
+            ) : null}
             <div
               className={`${
                 isTouchLayout
-                  ? "mt-4 flex flex-col gap-3"
+                  ? "flex items-center justify-between gap-3"
                   : "ml-auto flex items-center gap-4"
               }`}
             >
@@ -650,14 +687,15 @@ export default function Calendar() {
               </div>
               <button
                 type="button"
-                className={`neuphormism-b-btn-gold px-5 py-3 text-xs font-bold uppercase ${
-                  isTouchLayout ? "w-full" : ""
+                className={`neuphormism-b-btn-gold flex items-center justify-center px-5 py-3 text-xs font-bold uppercase ${
+                  isTouchLayout ? "h-11 w-11 rounded-full p-0 text-[1.35rem]" : ""
                 }`}
                 onClick={() => {
                   openNewEventModal(new Date());
                 }}
+                aria-label="New event"
               >
-                New Event
+                {isTouchLayout ? <FaPlus /> : "New Event"}
               </button>
             </div>
           </div>
@@ -680,13 +718,13 @@ export default function Calendar() {
                   className="neuphormism-b-btn px-4 py-2 text-xs font-bold uppercase"
                   onClick={() => movePeriod(-1)}
                 >
-                  Prev
+                  {isTouchLayout ? "<" : "Prev"}
                 </button>
                 <div className="text-center">
                   <h2 className="text-xl font-bold uppercase">
-                    {currentLabel}
+                    {isTouchLayout ? mobileCurrentLabel : currentLabel}
                   </h2>
-                  <p className="text-[11px] text-gray-500 uppercase mt-1">
+                  <p className={`text-[11px] text-gray-500 uppercase mt-1 ${isTouchLayout ? "hidden" : ""}`}>
                     Double-click any event card to edit it.
                   </p>
                 </div>
@@ -695,18 +733,24 @@ export default function Calendar() {
                   className="neuphormism-b-btn px-4 py-2 text-xs font-bold uppercase"
                   onClick={() => movePeriod(1)}
                 >
-                  Next
+                  {isTouchLayout ? ">" : "Next"}
                 </button>
               </div>
 
               {viewMode === "month" ? (
                 <>
-                  <div className="grid grid-cols-7 gap-3 text-center text-xs font-bold uppercase text-gray-500 mb-3">
+                  <div className={`grid grid-cols-7 text-center text-xs font-bold uppercase text-gray-500 mb-3 ${
+                    isTouchLayout ? "gap-1" : "gap-3"
+                  }`}>
                     {WEEKDAY_LABELS.map((label) => (
-                      <div key={label}>{label}</div>
+                      <div key={label}>{isTouchLayout ? label.slice(0, 1) : label}</div>
                     ))}
                   </div>
-                  <div className="grid grid-cols-7 grid-rows-6 gap-3">
+                  <div
+                    className={`grid grid-cols-7 grid-rows-6 ${
+                      isTouchLayout ? "gap-1.5" : "gap-3"
+                    }`}
+                  >
                     {monthDays.map((day) => {
                       const key = formatDayKey(day);
                       const dayEvents = eventsByDay[key] || [];
@@ -719,26 +763,46 @@ export default function Calendar() {
                           type="button"
                           key={key}
                           onClick={() => setSelectedDay(day)}
+                          onPointerDown={() =>
+                            isTouchLayout
+                              ? startDayLongPress(day, dayEvents)
+                              : undefined
+                          }
+                          onPointerUp={clearDayLongPress}
+                          onPointerLeave={clearDayLongPress}
+                          onPointerCancel={clearDayLongPress}
                           onDoubleClick={() => openNewEventModal(day)}
-                          className={`h-[96px] min-h-[96px] rounded-3xl p-3 text-left transition overflow-hidden ${
+                          className={`text-left transition overflow-hidden ${
+                            isTouchLayout
+                              ? "h-[54px] min-h-[54px] rounded-[14px] p-1.5"
+                              : "h-[96px] min-h-[96px] rounded-3xl p-3"
+                          } ${
                             isSelected
                               ? "bg-black text-white"
                               : "bg-white/80 text-black"
                           } ${!isCurrentMonth ? "opacity-45" : ""}`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold">
+                            <span
+                              className={`font-bold ${
+                                isTouchLayout ? "text-[13px]" : "text-sm"
+                              }`}
+                            >
                               {day.getDate()}
                             </span>
-                            {isToday ? (
+                            {isToday && !isTouchLayout ? (
                               <span className="text-[10px] uppercase text-[goldenrod]">
                                 Today
                               </span>
                             ) : null}
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {dayEvents.slice(0, 4).map((event) => (
+                          <div
+                            className={`flex flex-wrap ${
+                              isTouchLayout ? "mt-2 gap-1" : "mt-3 gap-1.5"
+                            }`}
+                          >
+                            {dayEvents.slice(0, isTouchLayout ? 3 : 4).map((event) => (
                               <button
                                 type="button"
                                 key={event._id}
@@ -750,16 +814,16 @@ export default function Calendar() {
                                   eventClick.stopPropagation();
                                   setSelectedDay(day);
                                 }}
-                                className={`h-2.5 w-2.5 rounded-full ${
-                                  isSelected ? "bg-[goldenrod]" : "bg-gray-300"
-                                }`}
+                                className={`rounded-full ${
+                                  isTouchLayout ? "h-1.5 w-3" : "h-2.5 w-2.5"
+                                } ${getColorFromEmail(event.ownerEmail)}`}
                                 title={`${event.title} • ${formatReadableDate(event.startsAt)}`}
                                 aria-label={event.title}
                               />
                             ))}
-                            {dayEvents.length > 4 ? (
+                            {dayEvents.length > (isTouchLayout ? 3 : 4) ? (
                               <div className="text-[10px] font-bold uppercase">
-                                +{dayEvents.length - 4}
+                                +{dayEvents.length - (isTouchLayout ? 3 : 4)}
                               </div>
                             ) : null}
                           </div>
@@ -956,6 +1020,16 @@ export default function Calendar() {
                           key={event._id}
                           className="w-full rounded-3xl bg-white p-4 text-left"
                           onDoubleClick={() => openEventEditor(event)}
+                          onPointerDown={() =>
+                            isTouchLayout
+                              ? startDayLongPress(new Date(event.startsAt), [
+                                  event,
+                                ])
+                              : undefined
+                          }
+                          onPointerUp={clearDayLongPress}
+                          onPointerLeave={clearDayLongPress}
+                          onPointerCancel={clearDayLongPress}
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div>
@@ -989,6 +1063,7 @@ export default function Calendar() {
                 </div>
               </div>
 
+              {!isTouchLayout ? (
               <div className="neuphormism-b p-5 flex-1 min-h-0 flex flex-col">
                 <h2 className="text-xl font-bold uppercase">Upcoming</h2>
                 <div className="mt-5 flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
@@ -1026,6 +1101,7 @@ export default function Calendar() {
                   )}
                 </div>
               </div>
+              ) : null}
             </div>
           </div>
         </div>

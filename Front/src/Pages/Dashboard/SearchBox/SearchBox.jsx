@@ -10,7 +10,7 @@ function SearchBox({
 }) {
   return (
     <div className={className}>
-      <div className="flex items-center justify-between  px-5   ">
+      <div className="flex items-center justify-between  px-5 my-2  ">
         <h1 className="text-sm font-bold uppercase">Search</h1>
         {onClose ? (
           <button

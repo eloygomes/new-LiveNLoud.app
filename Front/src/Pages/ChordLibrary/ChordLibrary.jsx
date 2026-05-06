@@ -331,6 +331,8 @@ function MobileSelectField({ label, value, options, onChange }) {
 }
 
 function ChordLibrary() {
+  const isTouchLayout =
+    typeof window !== "undefined" && window.innerWidth <= 1024;
   const [root, setRoot] = useState(roots[0] || "C");
   const [mode, setMode] = useState("Major");
   const [quality, setQuality] = useState("None");
@@ -377,11 +379,28 @@ function ChordLibrary() {
     <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-10 pt-4 sm:px-5 lg:px-8">
       <div className="container mx-auto">
         <div className="w-full pb-10 md:mx-auto md:w-11/12 2xl:w-9/12">
-          <div className="mb-5 flex items-center gap-6 neuphormism-b p-5">
+          <div
+            className={`mb-5 ${
+              isTouchLayout
+                ? "px-1 py-2"
+                : "flex items-center gap-6 neuphormism-b p-5"
+            }`}
+          >
             <div>
-              <h1 className="text-4xl font-bold">CHORD LIBRARY</h1>
+              {isTouchLayout ? (
+                <>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                    Chord Library
+                  </p>
+                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                    Shape The Harmony
+                  </h1>
+                </>
+              ) : (
+                <h1 className="text-4xl font-bold">CHORD LIBRARY</h1>
+              )}
             </div>
-            <div className="ml-auto">
+            <div className={`ml-auto ${isTouchLayout ? "hidden" : ""}`}>
               <h4 className="max-w-[360px] text-right text-sm">
                 Build the chord by root, major / minor mode, quality, and bass note.
               </h4>

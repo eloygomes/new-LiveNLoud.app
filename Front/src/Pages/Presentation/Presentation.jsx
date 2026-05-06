@@ -1063,11 +1063,15 @@ function Presentation() {
             <div
               className={`my-5 flex justify-between neuphormism-b ${
                 isTouchLayout
-                  ? "items-end gap-4 px-4 py-3"
+                  ? "items-stretch gap-3 px-4 py-3"
                   : "flex-row items-end p-4"
               }`}
             >
-              <div className="min-w-0 flex-1 flex-col">
+              <div
+                className={`flex min-w-0 flex-1 flex-col ${
+                  isTouchLayout ? "pr-1" : ""
+                }`}
+              >
                 {isTouchLayout && isTouchVideoActive ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
@@ -1095,91 +1099,69 @@ function Presentation() {
                     <h1
                       className={`font-bold text-black ${
                         isTouchLayout
-                          ? getMobileTitleSizeClass(songFromURL, "song")
+                          ? `${getMobileTitleSizeClass(songFromURL, "song")} truncate`
                           : "text-4xl"
                       }`}
+                      title={songFromURL}
                     >
                       {songFromURL}
                     </h1>
                     <h1
                       className={`font-bold text-black ${
                         isTouchLayout
-                          ? getMobileTitleSizeClass(artistFromURL, "artist")
+                          ? `${getMobileTitleSizeClass(artistFromURL, "artist")} truncate`
                           : "text-4xl"
                       }`}
+                      title={artistFromURL}
                     >
                       {artistFromURL}
                     </h1>
                   </>
                 )}
+                {isTouchLayout ? (
+                  <div className="mt-8 flex items-stretch gap-1.5 opacity-80">
+                    <button
+                      type="button"
+                      disabled={!previousSetlistSong}
+                      className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
+                      onClick={() => goToSetlistSong(previousSetlistSong)}
+                      aria-label="Previous song in selected setlist"
+                    >
+                      &lt;&lt;
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!nextSetlistSong}
+                      className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
+                      onClick={() => goToSetlistSong(nextSetlistSong)}
+                      aria-label="Next song in selected setlist"
+                    >
+                      &gt;&gt;
+                    </button>
+                  </div>
+                ) : null}
               </div>
               <div
                 className={`flex flex-col ${
                   isTouchLayout
-                    ? "items-stretch justify-start gap-2 self-start"
+                    ? "shrink-0 items-stretch justify-start gap-2"
                     : "items-stretch gap-2"
                 }`}
               >
                 <div
                   className={
                     isTouchLayout
-                      ? "grid grid-cols-2 gap-2"
-                      : "flex flex-row items-stretch gap-3"
+                      ? "flex h-full flex-col items-stretch justify-between gap-3"
+                      : "flex flex-col gap-2"
                   }
                 >
-                  <button
-                    type="button"
-                    className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
+                  <div
+                    className={
                       isTouchLayout
-                        ? "col-span-2 px-4 py-2.5 text-sm tracking-[0.1em]"
-                        : "min-w-[6.5rem] px-6 py-3 text-base"
-                    }`}
-                    onClick={enterLiveMode}
+                        ? "hidden"
+                        : "order-2 grid grid-cols-2 gap-1.5 opacity-80"
+                    }
                   >
-                    LIVE
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                      isEditing ||
-                      (isTouchLayout &&
-                        !toolBoxBtnStatus &&
-                        (isVideoModalOpen || isTouchVideoActive))
-                        ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
-                        : ""
-                    } ${isTouchLayout ? "px-3 py-2 text-xs" : "px-4 py-3 text-sm"}`}
-                    onClick={() => {
-                      if (isTouchLayout && isTouchVideoActive) {
-                        setIsTouchVideoMenuOpen(true);
-                        return;
-                      }
-                      toolBoxBtnStatusChange(
-                        toolBoxBtnStatus,
-                        setToolBoxBtnStatus,
-                      );
-                    }}
-                  >
-                    <FaGear
-                      className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"}
-                    />
-                    <span className={isTouchLayout ? "sr-only" : ""}>
-                      Options
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                      isTouchLayout ? "px-3 py-2 text-xs" : "px-4 py-3 text-sm"
-                    }`}
-                    onClick={goToEditSong}
-                  >
-                    <FaPenToSquare
-                      className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                    />
-                    <span>Edit Song</span>
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 opacity-80">
                   <button
                     type="button"
                     disabled={!previousSetlistSong}
@@ -1206,6 +1188,69 @@ function Presentation() {
                   >
                     &gt;&gt;
                   </button>
+                  </div>
+                  <div
+                    className={
+                      isTouchLayout
+                        ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
+                        : "order-1 flex flex-row items-stretch gap-3"
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                        toolBoxBtnStatus ||
+                        isEditing ||
+                        (isTouchLayout &&
+                          !toolBoxBtnStatus &&
+                          (isVideoModalOpen || isTouchVideoActive))
+                          ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
+                          : ""
+                      } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
+                      onClick={() => {
+                        if (isTouchLayout && isTouchVideoActive) {
+                          setIsTouchVideoMenuOpen(true);
+                          return;
+                        }
+                        toolBoxBtnStatusChange(
+                          toolBoxBtnStatus,
+                          setToolBoxBtnStatus,
+                        );
+                      }}
+                      aria-label="Options"
+                      title="Open presentation options"
+                    >
+                      <FaGear
+                        className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"}
+                      />
+                      <span className="sr-only">Options</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                        isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
+                      }`}
+                      onClick={goToEditSong}
+                      aria-label="Edit song"
+                      title="Open this song in the editor"
+                    >
+                      <FaPenToSquare
+                        className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                      />
+                      <span className="sr-only">Edit Song</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
+                        isTouchLayout
+                          ? "h-10 w-16 px-3 text-xs tracking-[0.08em]"
+                          : "min-w-[6.5rem] px-6 py-3 text-base"
+                      }`}
+                      onClick={enterLiveMode}
+                    >
+                      LIVE
+                    </button>
+                  </div>
                 </div>
                 {isTouchLayout ? (
                   <style>{`

@@ -37,21 +37,24 @@ export default function RootLayouts() {
   const isNewSongRoute = location.pathname === "/newsong";
   const isEditSongRoute = location.pathname.startsWith("/editsong/");
   const isPresentationRoute = location.pathname.startsWith("/presentation/");
+  const isUserProfileRoute = location.pathname.startsWith("/userprofile/");
   const isTouchDashboardLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
   const hasActiveSearch = searchTerm.trim().length > 0;
   const searchButtonClassName = `rounded-full p-3 neuphormism-b-btn ${
-    hasActiveSearch
-      ? "blinking-icon text-black"
-      : ""
+    hasActiveSearch ? "blinking-icon text-black" : ""
   }`;
   const filterButtonClassName = `relative z-[95] rounded-full p-3 neuphormism-b-btn ${
     hasActiveDashboardFilter ? "blinking-icon text-black" : ""
   }`;
   const hideFilterOnTouchRoute =
-    isToolsRoute || isToolDetailRoute || isNewSongRoute || isEditSongRoute;
+    isToolsRoute ||
+    isToolDetailRoute ||
+    isNewSongRoute ||
+    isEditSongRoute ||
+    isUserProfileRoute;
   const hideMobileHeader =
-    isNewSongRoute || isEditSongRoute || (isPresentationRoute && hideMobileChrome);
+    isNewSongRoute || isEditSongRoute || isPresentationRoute;
   const needsTouchTopOffset =
     isTouchDashboardLayout &&
     !isPresentationRoute &&
@@ -67,12 +70,20 @@ export default function RootLayouts() {
   const isMobileTabActive = (to) => {
     if (to === "/") return location.pathname === "/";
     if (to === "/newsong") return location.pathname === "/newsong";
-    if (to === "/tools") return location.pathname === "/tools";
+    if (to === "/tools") return isToolsRoute || isToolDetailRoute;
     if (to.startsWith("/userprofile/")) {
       return location.pathname.startsWith("/userprofile/");
     }
     return location.pathname === to;
   };
+
+  const mobileHeaderCopy = isDashboardRoute
+    ? { eyebrow: "Songlist", title: "Your Songs" }
+    : isToolsRoute
+      ? { eyebrow: "Tools", title: "Practice Utilities" }
+      : isUserProfileRoute
+        ? { eyebrow: "User Hub", title: "Account & Settings" }
+        : { eyebrow: "Sustenido", title: "Your Routine" };
 
   useEffect(() => {
     const handleVisibilityChange = (event) => {
@@ -155,12 +166,14 @@ export default function RootLayouts() {
           <nav className="fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1
-                  className="font-black text-[2rem] tracking-tight"
-                  onClick={() => navigate("/")}
-                >
-                  {isDashboardRoute ? "SONGLIST" : "SUSTENIDO"}
-                </h1>
+                <div className="cursor-pointer" onClick={() => navigate("/")}>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                    {mobileHeaderCopy.eyebrow}
+                  </p>
+                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                    {mobileHeaderCopy.title}
+                  </h1>
+                </div>
               </div>
 
               {!hideFilterOnTouchRoute ? (
@@ -251,7 +264,7 @@ export default function RootLayouts() {
               setSearchTerm={setSearchTerm}
               onClose={() => setIsSearchOpen(false)}
               autoFocus
-              className="relative z-[12101] w-full max-w-[420px] rounded-[18px] bg-[#f0f0f0] pb-5 shadow-[0_24px_60px_rgba(0,0,0,0.2)]"
+              className="relative z-[12101] w-full max-w-[420px] rounded-[18px] bg-[#f0f0f0] pb-5 shadow-[0_24px_60px_rgba(0,0,0,0.2)] my-5"
             />
           </div>
         ) : (
@@ -274,11 +287,7 @@ export default function RootLayouts() {
             (isToolsRoute && isTouchDashboardLayout)
               ? "overflow-y-hidden"
               : "overflow-y-auto"
-          } ${
-            needsTouchTopOffset
-              ? "pt-[5.25rem]"
-              : "pt-0"
-          } ${
+          } ${needsTouchTopOffset ? "pt-[5.25rem]" : "pt-0"} ${
             hideMobileChrome && isPresentationRoute ? "pb-0" : "pb-24"
           } md:pb-0 md:pt-16`}
           style={{ maxHeight: isTouchDashboardLayout ? "none" : "100vh" }}

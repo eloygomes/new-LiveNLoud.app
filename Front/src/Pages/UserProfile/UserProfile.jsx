@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEdit } from "react-icons/fa";
+import { FaEdit, FaSyncAlt } from "react-icons/fa";
 import { FaUserFriends } from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatarBig from "./UserProfileAvatarBig";
@@ -476,7 +476,7 @@ function UserProfile() {
   };
 
   const renderMobileFieldCard = (label, value, onPress) => (
-    <div className="rounded-[20px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+    <div className="neuphormism-b rounded-[20px] p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
@@ -489,7 +489,7 @@ function UserProfile() {
         {onPress ? (
           <button
             type="button"
-            className="rounded-full bg-white p-3 shadow-[0_8px_16px_rgba(0,0,0,0.06)]"
+            className="neuphormism-b-btn rounded-full bg-white p-3"
             onClick={onPress}
           >
             <FaEdit className="text-black" />
@@ -501,7 +501,7 @@ function UserProfile() {
 
   const renderMobileUserInfo = () => (
     <div className="flex flex-col gap-4">
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="flex flex-col items-center text-center">
           <label htmlFor="mobileProfileImage" className="cursor-pointer">
             <UserProfileAvatarBig size={120} imageUpdated={imageUpdated} />
@@ -522,7 +522,7 @@ function UserProfile() {
           <button
             type="button"
             onClick={handleUpload}
-            className="mt-4 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
+            className="neuphormism-b-btn-gold mt-4 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
             disabled={uploading}
           >
             {uploading ? "Uploading..." : "Upload Photo"}
@@ -545,7 +545,7 @@ function UserProfile() {
 
   const renderMobileUserData = () => (
     <div className="flex flex-col gap-4">
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           User Data
         </div>
@@ -554,14 +554,14 @@ function UserProfile() {
         </div>
         <button
           type="button"
-          className="mt-4 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black shadow-[0_8px_16px_rgba(0,0,0,0.05)]"
+          className="neuphormism-b-btn mt-4 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
           onClick={() => downloadUserData()}
         >
           Download
         </button>
       </div>
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Platform User Data
         </div>
@@ -570,14 +570,14 @@ function UserProfile() {
         </div>
         <button
           type="button"
-          className="mt-4 w-full rounded-[16px] bg-[#f7d7d7] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-[#8f1d1d]"
+          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white"
           onClick={handleDelete}
         >
           Delete Songs
         </button>
       </div>
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           User Account
         </div>
@@ -586,7 +586,7 @@ function UserProfile() {
         </div>
         <button
           type="button"
-          className="mt-4 w-full rounded-[16px] bg-[#f7d7d7] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-[#8f1d1d]"
+          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white"
           onClick={handleDeleteAccountClick}
         >
           Delete Account
@@ -597,7 +597,7 @@ function UserProfile() {
 
   const renderMobileFriends = () => (
     <div className="flex flex-col gap-4">
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Invite A Friend
         </div>
@@ -610,18 +610,18 @@ function UserProfile() {
           value={inviteEmail}
           onChange={(event) => setInviteEmail(event.target.value.toLowerCase())}
           placeholder="friend@email.com"
-          className="mt-4 w-full rounded-[16px] border border-gray-300 bg-white px-4 py-3 text-sm outline-none"
+          className="neuphormism-b-btn mt-4 w-full rounded-[16px] border-0 bg-white px-4 py-3 text-sm outline-none"
         />
         <input
           type="text"
           value={inviteMessage}
           onChange={(event) => setInviteMessage(event.target.value)}
           placeholder="Optional message"
-          className="mt-3 w-full rounded-[16px] border border-gray-300 bg-white px-4 py-3 text-sm outline-none"
+          className="neuphormism-b-btn mt-3 w-full rounded-[16px] border-0 bg-white px-4 py-3 text-sm outline-none"
         />
         <button
           type="button"
-          className="mt-4 w-full rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
+          className="neuphormism-b-btn-gold mt-4 w-full rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
           disabled={friendActionLoading}
           onClick={handleSendFriendInvite}
         >
@@ -635,7 +635,7 @@ function UserProfile() {
         ) : null}
       </div>
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Pending Requests
         </div>
@@ -644,7 +644,7 @@ function UserProfile() {
             <p className="text-sm text-gray-500">No pending requests.</p>
           ) : (
             incomingInvitations.map((invitation) => (
-              <div key={invitation._id} className="rounded-[18px] bg-white p-4">
+              <div key={invitation._id} className="neuphormism-b-se rounded-[18px] p-4">
                 <div className="break-all text-sm font-bold text-black">
                   {invitation.senderEmail?.toLowerCase()}
                 </div>
@@ -656,7 +656,7 @@ function UserProfile() {
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    className="rounded-[14px] bg-[goldenrod] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black"
+                    className="neuphormism-b-btn-gold rounded-[14px] bg-[goldenrod] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black"
                     onClick={() =>
                       handleInvitationResponse(invitation._id, "accepted")
                     }
@@ -665,7 +665,7 @@ function UserProfile() {
                   </button>
                   <button
                     type="button"
-                    className="rounded-[14px] bg-[#f7d7d7] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8f1d1d]"
+                    className="neuphormism-b-btn-red rounded-[14px] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white"
                     onClick={() =>
                       handleInvitationResponse(invitation._id, "declined")
                     }
@@ -679,7 +679,7 @@ function UserProfile() {
         </div>
       </div>
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Sent Requests
         </div>
@@ -688,7 +688,7 @@ function UserProfile() {
             <p className="text-sm text-gray-500">No sent requests.</p>
           ) : (
             sentInvitations.map((invitation) => (
-              <div key={invitation._id} className="rounded-[18px] bg-white p-4">
+              <div key={invitation._id} className="neuphormism-b-se rounded-[18px] p-4">
                 <div className="break-all text-sm font-bold text-black">
                   {invitation.receiverEmail?.toLowerCase()}
                 </div>
@@ -701,7 +701,7 @@ function UserProfile() {
         </div>
       </div>
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Actual Friends
         </div>
@@ -712,7 +712,7 @@ function UserProfile() {
             mobileFriends.map((friend) => (
               <div
                 key={`${friend.counterpartEmail}-${friend.invitationId || ""}`}
-                className="rounded-[18px] bg-white p-4"
+                className="neuphormism-b-se rounded-[18px] p-4"
               >
                 <div className="break-all text-sm font-bold text-black">
                   {friend.counterpartEmail?.toLowerCase()}
@@ -724,7 +724,7 @@ function UserProfile() {
                 </div>
                 <button
                   type="button"
-                  className="mt-3 rounded-[14px] bg-[#f7d7d7] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#8f1d1d]"
+                  className="neuphormism-b-btn-red mt-3 rounded-[14px] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white"
                   disabled={revokingEmail === friend.counterpartEmail}
                   onClick={() => handleRevokeFriendship(friend.counterpartEmail)}
                 >
@@ -758,7 +758,7 @@ function UserProfile() {
       ].map((item) => (
         <div
           key={item.title}
-          className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]"
+          className="neuphormism-b rounded-[24px] p-4"
         >
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -769,22 +769,20 @@ function UserProfile() {
             </div>
             <button
               type="button"
-              className={`h-8 w-14 rounded-full p-1 transition ${
-                item.value ? "bg-[goldenrod]" : "bg-gray-300"
+              className={`neuphormism-b-btn h-11 w-16 rounded-[14px] text-[10px] font-black uppercase tracking-[0.12em] transition ${
+                item.value
+                  ? "bg-[goldenrod] text-black"
+                  : "bg-white text-gray-500"
               }`}
               onClick={() => item.onChange(!item.value)}
             >
-              <span
-                className={`block h-6 w-6 rounded-full bg-white transition ${
-                  item.value ? "translate-x-6" : "translate-x-0"
-                }`}
-              />
+              {item.value ? "ON" : "OFF"}
             </button>
           </div>
         </div>
       ))}
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Language
         </div>
@@ -795,8 +793,8 @@ function UserProfile() {
               type="button"
               className={`rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] ${
                 language === item
-                  ? "bg-[goldenrod] text-black"
-                  : "bg-white text-gray-500"
+                  ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                  : "neuphormism-b-btn bg-white text-gray-500"
               }`}
               onClick={() => setLanguage(item)}
             >
@@ -811,7 +809,7 @@ function UserProfile() {
   const renderMobileLogs = () => (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-[20px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+        <div className="neuphormism-b rounded-[20px] p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
             Songs
           </div>
@@ -819,7 +817,7 @@ function UserProfile() {
             {data.length}
           </div>
         </div>
-        <div className="rounded-[20px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+        <div className="neuphormism-b rounded-[20px] p-4">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
             Progress
           </div>
@@ -829,7 +827,7 @@ function UserProfile() {
         </div>
       </div>
 
-      <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_10px_22px_rgba(0,0,0,0.05)]">
+      <div className="neuphormism-b rounded-[24px] p-4">
         <div className="text-[16px] font-black uppercase text-black">
           Songs By Instruments
         </div>
@@ -837,7 +835,7 @@ function UserProfile() {
           {instrumentMeta.map((instrument) => (
             <div
               key={instrument.key}
-              className="rounded-[16px] bg-white px-3 py-4 text-center"
+              className="neuphormism-b-se rounded-[16px] px-3 py-4 text-center"
             >
               <div className="text-[11px] font-black uppercase text-gray-500">
                 {instrument.short}
@@ -850,18 +848,18 @@ function UserProfile() {
         </div>
       </div>
 
-      <div className="rounded-[24px] bg-[#171717] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
-        <div className="text-[16px] font-black uppercase text-white">
+      <div className="neuphormism-b rounded-[24px] p-4">
+        <div className="text-[16px] font-black uppercase text-black">
           Activity Feed
         </div>
         <div className="mt-4 flex max-h-[22rem] flex-col gap-2 overflow-y-auto pr-1">
           {mobileLogs.length === 0 ? (
-            <div className="text-sm text-gray-400">No activity logs yet.</div>
+            <div className="text-sm text-gray-500">No activity logs yet.</div>
           ) : (
             mobileLogs.map((log) => (
               <div
                 key={log._id}
-                className="rounded-[16px] bg-white/5 px-4 py-3 font-mono text-[12px] leading-5 text-white"
+                className="neuphormism-b-se rounded-[16px] px-4 py-3 font-mono text-[12px] leading-5 text-black"
               >
                 <span className="text-[goldenrod]">
                   [{formatDisplayDateTime(log.createdAt)}]
@@ -895,7 +893,7 @@ function UserProfile() {
 
   if (isTouchLayout) {
     return (
-      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
+      <div className="min-h-[calc(100vh-5.25rem)] bg-[#f0f0f0] px-3 pb-28 pt-3">
         <PasswordResetModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -912,23 +910,8 @@ function UserProfile() {
           onSubmit={handleDeleteAccount}
         />
 
-        <div className="rounded-[24px] bg-[#e0e0e0] px-4 py-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[1.9rem] font-black tracking-tight text-black">
-                USER HUB
-              </div>
-              <div className="mt-1 text-sm font-semibold text-gray-500">
-                Hello @{mobileProfileSummary.username}
-              </div>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-[#f0f0f0]">
-              <FaUserFriends className="text-black" />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+        <div className="mx-auto flex min-h-[calc(100vh-12.25rem)] w-full max-w-[760px] flex-col justify-center">
+        <div className="neuphormism-b rounded-[24px] p-4">
           <div className="text-[13px] font-black uppercase tracking-[0.18em] text-black">
             Menu
           </div>
@@ -941,8 +924,8 @@ function UserProfile() {
                   type="button"
                   className={`rounded-[16px] px-4 py-3 text-[11px] font-black uppercase tracking-[0.12em] ${
                     active
-                      ? "bg-[goldenrod] text-black"
-                      : "bg-[#f0f0f0] text-gray-500"
+                      ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                      : "neuphormism-b-btn bg-[#f0f0f0] text-gray-500"
                   }`}
                   onClick={() => setSelectedMobileTab(option)}
                 >
@@ -955,7 +938,7 @@ function UserProfile() {
 
         <div className="mt-4">
           {mobileLoading && !mobileRefreshing ? (
-            <div className="rounded-[24px] bg-[#e0e0e0] p-6 text-center text-sm text-gray-500 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+            <div className="neuphormism-b rounded-[24px] p-6 text-center text-sm text-gray-500">
               Loading user hub...
             </div>
           ) : (
@@ -963,21 +946,23 @@ function UserProfile() {
           )}
         </div>
 
-        <div className="mt-4 rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+        <div className="neuphormism-b mt-4 rounded-[24px] p-4">
           <button
             type="button"
-            className="w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
+            className="neuphormism-b-btn flex w-full items-center justify-center gap-2 rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
             onClick={handleMobileRefresh}
           >
-            {mobileRefreshing ? "Refreshing..." : "Refresh"}
+            <FaSyncAlt className={mobileRefreshing ? "animate-spin" : ""} />
+            <span>{mobileRefreshing ? "Refreshing..." : "Refresh"}</span>
           </button>
           <button
             type="button"
-            className="mt-3 w-full rounded-[16px] bg-black px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white"
+            className="neuphormism-b-btn mt-3 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-red-600"
             onClick={handleSignOut}
           >
             Sign Out
           </button>
+        </div>
         </div>
       </div>
     );
