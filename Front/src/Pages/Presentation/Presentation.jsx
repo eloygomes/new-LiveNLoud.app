@@ -8,6 +8,7 @@ import {
   fetchUserSongs,
   loadSelectedSetlists,
   updateLastPlayed,
+  updateInstrumentNotes,
   updateSongEntry,
 } from "../../Tools/Controllers";
 import { useRef } from "react";
@@ -349,6 +350,8 @@ function Presentation() {
   const [touchVideoLink, setTouchVideoLink] = useState("");
   const [isTouchVideoActive, setIsTouchVideoActive] = useState(false);
   const [isTouchVideoMenuOpen, setIsTouchVideoMenuOpen] = useState(false);
+  const [notesModalStatus, setNotesModalStatus] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
   const liveModeRootRef = useRef(null);
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth <= 1024;
@@ -992,6 +995,66 @@ function Presentation() {
     setIsTouchVideoMenuOpen(false);
   }, []);
 
+  const instrumentNotes = currentInstrumentData?.notes || "";
+
+  const handleInstrumentNotesChange = useCallback(
+    (plainText) => {
+      setSongDataFetched((prev) => {
+        if (!prev || !instrumentSelected) return prev;
+        return {
+          ...prev,
+          [instrumentSelected]: {
+            ...(prev[instrumentSelected] || {}),
+            notes: String(plainText || ""),
+          },
+        };
+      });
+    },
+    [instrumentSelected],
+  );
+
+  const handleSaveInstrumentNotes = useCallback(
+    async (plainText) => {
+      if (!artistFromURL || !songFromURL || !instrumentSelected) {
+        pushSnackbarMessage("Erro", "Sem dados da música para salvar notas.");
+        return;
+      }
+
+      try {
+        setIsSavingNotes(true);
+        const result = await updateInstrumentNotes({
+          artist: artistFromURL,
+          song: songFromURL,
+          instrument: instrumentSelected,
+          notes: plainText,
+        });
+        if (result?.song) {
+          setSongDataFetched(result.song);
+        } else {
+          handleInstrumentNotesChange(plainText);
+        }
+        pushSnackbarMessage("Salvo", "Notas salvas com sucesso.");
+      } catch (error) {
+        console.error("Erro ao salvar notas:", error);
+        pushSnackbarMessage("Erro", "Não foi possível salvar as notas.");
+      } finally {
+        setIsSavingNotes(false);
+      }
+    },
+    [
+      artistFromURL,
+      handleInstrumentNotesChange,
+      instrumentSelected,
+      pushSnackbarMessage,
+      songFromURL,
+    ],
+  );
+
+  const openInstrumentNotesWindow = useCallback(() => {
+    setNotesModalStatus(true);
+    pushSnackbarMessage("Notes", "Notas abertas para este instrumento.");
+  }, [pushSnackbarMessage]);
+
   return (
     <div
       ref={liveModeRootRef}
@@ -1045,6 +1108,13 @@ function Presentation() {
           setLinktoplay={setTouchVideoLink}
           videoModalStatus={isTouchVideoActive}
           setVideoModalStatus={setIsTouchVideoActive}
+          instrumentNotes={instrumentNotes}
+          onInstrumentNotesChange={handleInstrumentNotesChange}
+          onSaveInstrumentNotes={handleSaveInstrumentNotes}
+          notesModalStatus={notesModalStatus}
+          setNotesModalStatus={setNotesModalStatus}
+          onOpenInstrumentNotes={openInstrumentNotesWindow}
+          isSavingNotes={isSavingNotes}
         />
       )}
       <div

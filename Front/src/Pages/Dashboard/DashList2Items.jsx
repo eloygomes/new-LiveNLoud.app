@@ -13,6 +13,7 @@ import {
 import {
   FaCalendarPlus,
   FaHistory,
+  FaRegStickyNote,
   FaVideo,
   FaVideoSlash,
 } from "react-icons/fa";
@@ -173,6 +174,12 @@ function DashList2Items({
     return dates[0] ? formatDisplayDate(dates[0]) : "not played yet";
   };
 
+  const hasInstrumentNotes = (item) =>
+    instrumentLabels.some((instrument) => {
+      const value = item?.[instrument.key]?.notes;
+      return typeof value === "string" && value.trim() !== "";
+    });
+
   const optionalCellClass = "flex min-w-0 items-center justify-center px-2";
 
   const renderOptionalCell = (item, columnKey) => {
@@ -230,6 +237,18 @@ function DashList2Items({
           ) : (
             <FaVideoSlash className="text-gray-400" title="No videos" />
           )}
+        </div>
+      );
+    }
+
+    if (columnKey === "notes") {
+      const hasNotes = hasInstrumentNotes(item);
+      return (
+        <div className={optionalCellClass}>
+          <FaRegStickyNote
+            className={hasNotes ? "text-[goldenrod]" : "text-gray-400"}
+            title={hasNotes ? "Notes registered" : "No notes"}
+          />
         </div>
       );
     }
@@ -430,6 +449,18 @@ function DashList2Items({
                                 <FaVideoSlash className="text-gray-400" />0
                               </>
                             )}
+                          </span>
+                        ) : null}
+                        {visibleColumns.includes("notes") ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                            <FaRegStickyNote
+                              className={
+                                hasInstrumentNotes(item)
+                                  ? "text-[goldenrod]"
+                                  : "text-gray-400"
+                              }
+                            />
+                            {hasInstrumentNotes(item) ? "notes" : "no notes"}
                           </span>
                         ) : null}
                         {visibleColumns.includes("addedDate") ? (

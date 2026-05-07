@@ -1,7 +1,20 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaRegFileAlt } from "react-icons/fa";
-import { checkCifraExists, scrapeCifra } from "../../Tools/Controllers";
+import {
+  FaExternalLinkAlt,
+  FaPaste,
+  FaPlay,
+  FaRegFileAlt,
+  FaRegStickyNote,
+  FaTrashAlt,
+} from "react-icons/fa";
+import {
+  checkCifraExists,
+  scrapeCifra,
+  updateInstrumentNotes,
+} from "../../Tools/Controllers";
+import SongInstrumentNotes from "../SongInstrumentNotes";
+import { lockPageScroll } from "../../Tools/scrollLock";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 
@@ -128,8 +141,13 @@ function NewSongInputLinkBox({
   setCifraFROMDB,
   setScrapeStatus,
   onLinkAdded,
+  notes = "",
+  onNotesChange,
+  touchLayout = false,
 }) {
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesSaving, setNotesSaving] = useState(false);
   const inFlightRef = useRef(false);
   const blurTimer = useRef(null);
   const isLocked = Boolean(instrument?.trim());
@@ -159,6 +177,77 @@ function NewSongInputLinkBox({
       ? targetLink
       : `https://${targetLink}`;
     window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  const openPresentation = () => {
+    const artist = (artistName || localStorage.getItem("artist") || "").trim();
+    const song = (songName || localStorage.getItem("song") || "").trim();
+
+    if (!hasLink || !artist || !song) {
+      notify("Error", "Adicione um link antes de abrir a apresentação.");
+      return;
+    }
+
+    window.location.href = `/presentation/${encodeURIComponent(
+      artist,
+    )}/${encodeURIComponent(song)}/${encodeURIComponent(instrumentName)}`;
+  };
+
+  const pasteLinkFromClipboard = async () => {
+    if (!navigator?.clipboard?.readText) {
+      notify("Error", "Clipboard não disponível neste navegador.");
+      return;
+    }
+
+    try {
+      const clipboardText = (await navigator.clipboard.readText()).trim();
+      if (!clipboardText) {
+        notify("Info", "Clipboard vazio.");
+        return;
+      }
+      setInstrument?.(clipboardText);
+      primeArtistSongFromLink(clipboardText);
+      setTimeout(() => handleSubmit(clipboardText), 0);
+    } catch (error) {
+      console.error("Clipboard read failed:", error);
+      notify("Error", "Não foi possível ler o clipboard.");
+    }
+  };
+
+  const openNotes = () => {
+    if (!hasLink) {
+      notify("Error", "Adicione um link antes de escrever notas.");
+      return;
+    }
+    setNotesOpen(true);
+  };
+
+  const saveNotes = async (plainText) => {
+    const artist = (artistName || localStorage.getItem("artist") || "").trim();
+    const song = (songName || localStorage.getItem("song") || "").trim();
+
+    if (!hasLink || !artist || !song) {
+      notify("Error", "Adicione um link antes de salvar notas.");
+      return;
+    }
+
+    try {
+      setNotesSaving(true);
+      await updateInstrumentNotes({
+        artist,
+        song,
+        instrument: instrumentName,
+        notes: plainText,
+      });
+      onNotesChange?.(plainText);
+      notify("Success", "Notas salvas com sucesso!");
+      setNotesOpen(false);
+    } catch (error) {
+      console.error("Error updating instrument notes:", error);
+      notify("Error", "Não foi possível salvar as notas.");
+    } finally {
+      setNotesSaving(false);
+    }
   };
 
   const guard = (cond, title, message) => {
@@ -426,41 +515,117 @@ function NewSongInputLinkBox({
     };
   }, [handleSubmit, instrumentName, primeArtistSongFromLink, setInstrument]);
 
+  useEffect(() => {
+    if (!touchLayout || !notesOpen) return undefined;
+    return lockPageScroll();
+  }, [notesOpen, touchLayout]);
+
+  const rangeProgress = `${Number(progress || 0)}%`;
+
   return (
-    <div className="flex flex-col mt-3 w-full neuphormism-b px-5 py-3">
+    <div
+      className={`flex w-full flex-col ${
+        touchLayout
+          ? "mt-0 rounded-[18px] bg-transparent px-0 py-0"
+          : `mt-3 neuphormism-b px-5 py-3 ${
+              hasLink ? "bg-[goldenrod]/15" : ""
+            }`
+      }`}
+    >
       {/* Header */}
-      <div className="flex justify-between">
-        <span className="text-sm font-bold">
-          {instrumentName[0].toUpperCase() + instrumentName.slice(1)}
-        </span>
-        <button
-          type="button"
-          aria-label={
-            hasLink
-              ? `Open ${instrumentName} link in a new tab`
-              : `${instrumentName} link not added`
-          }
-          title={hasLink ? "Open link" : "No link added"}
-          disabled={!hasLink}
-          onClick={openInstrumentLink}
-          className={`rounded-sm p-1 transition ${
-            hasLink
-              ? "text-gray-700 hover:bg-gray-200 hover:text-black"
-              : "cursor-not-allowed text-gray-300 opacity-60"
+      <div
+        className={`flex justify-between ${
+          touchLayout ? "mb-3 items-center" : ""
+        }`}
+      >
+        <span
+          className={`font-bold ${
+            touchLayout ? "text-[1.05rem] text-black" : "text-sm"
           }`}
         >
-          <FaRegFileAlt aria-hidden="true" className="text-base" />
-        </button>
+          {instrumentName[0].toUpperCase() + instrumentName.slice(1)}
+        </span>
+        {!touchLayout ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label={
+                hasLink
+                  ? `Open ${instrumentName} notes`
+                  : `${instrumentName} notes disabled until link is added`
+              }
+              title={hasLink ? "Notes" : "Add a link before notes"}
+              disabled={!hasLink}
+              onClick={openNotes}
+              className={`rounded-sm p-1 transition ${
+                hasLink
+                  ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+                  : "cursor-not-allowed text-gray-300 opacity-60"
+              }`}
+            >
+              <FaRegStickyNote aria-hidden="true" className="text-base" />
+            </button>
+            <button
+              type="button"
+              aria-label={
+                hasLink
+                  ? `Open ${instrumentName} presentation`
+                  : `${instrumentName} presentation disabled until link is added`
+              }
+              title={hasLink ? "Play presentation" : "No link added"}
+              disabled={!hasLink}
+              onClick={openPresentation}
+              className={`rounded-sm p-1 transition ${
+                hasLink
+                  ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+                  : "cursor-not-allowed text-gray-300 opacity-60"
+              }`}
+            >
+              <FaPlay aria-hidden="true" className="text-base" />
+            </button>
+            <button
+              type="button"
+              aria-label={
+                hasLink
+                  ? `Open ${instrumentName} link in a new tab`
+                  : `${instrumentName} link not added`
+              }
+              title={hasLink ? "Open link" : "No link added"}
+              disabled={!hasLink}
+              onClick={openInstrumentLink}
+              className={`rounded-sm p-1 transition ${
+                hasLink
+                  ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+                  : "cursor-not-allowed text-gray-300 opacity-60"
+              }`}
+            >
+              <FaRegFileAlt aria-hidden="true" className="text-base" />
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Link input */}
-      <div className="relative mt-2">
+      {touchLayout && !hasLink ? (
+        <button
+          type="button"
+          className="mb-3 flex w-full items-center justify-center gap-2 rounded-[14px] neuphormism-b-btn px-3 py-3 text-sm font-black text-black"
+          onClick={pasteLinkFromClipboard}
+        >
+          <FaPaste aria-hidden="true" />
+          Paste link from clipboard
+        </button>
+      ) : null}
+
+      <div className={`relative ${touchLayout ? "mt-1" : "mt-2"}`}>
         <input
           type="text"
           placeholder="Insert your link here"
-          className={`w-full p-1 border border-gray-300 rounded-sm text-sm h-6 pr-8 ${
-            isLocked ? "cursor-default" : ""
-          }`}
+          className={`w-full border border-gray-300 bg-white pr-11 text-black outline-none focus:border-[goldenrod] ${
+            touchLayout
+              ? "h-12 rounded-[14px] px-3 text-base font-medium"
+              : "h-6 rounded-sm p-1 text-sm"
+          } ${isLocked ? "cursor-default" : ""}`}
           value={instrument}
           readOnly={isLocked}
           onChange={(e) => setInstrument(e.target.value)}
@@ -480,31 +645,133 @@ function NewSongInputLinkBox({
           <button
             type="button"
             aria-label={`Remove ${instrumentName} link`}
-            className="absolute right-1 top-1/2 -translate-y-1/2 text-xs leading-none"
+            className={`absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-700 ${
+              touchLayout ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
+            }`}
             onClick={() => {
               setInstrument("");
               updateScrapeStatus(false);
             }}
           >
-            🗑️
+            <FaTrashAlt aria-hidden="true" className="text-sm" />
           </button>
         )}
       </div>
 
+      {touchLayout ? (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            aria-label={
+              hasLink
+                ? `Open ${instrumentName} notes`
+                : `${instrumentName} notes disabled until link is added`
+            }
+            title={hasLink ? "Notes" : "Add a link before notes"}
+            disabled={!hasLink}
+            onClick={openNotes}
+            className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-black ${
+              hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
+            }`}
+          >
+            <FaRegStickyNote aria-hidden="true" className="text-base" />
+            <span>Notes</span>
+          </button>
+          <button
+            type="button"
+            aria-label={
+              hasLink
+                ? `Open ${instrumentName} presentation`
+                : `${instrumentName} presentation disabled until link is added`
+            }
+            title={hasLink ? "Play presentation" : "No link added"}
+            disabled={!hasLink}
+            onClick={openPresentation}
+            className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-[14px] px-2 py-3 text-sm font-black ${
+              hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
+            }`}
+          >
+            <FaPlay aria-hidden="true" className="text-base" />
+            <span>Play</span>
+          </button>
+          <button
+            type="button"
+            aria-label={
+              hasLink
+                ? `Open ${instrumentName} link in a new tab`
+                : `${instrumentName} link not added`
+            }
+            title={hasLink ? "Open link" : "No link added"}
+            disabled={!hasLink}
+            onClick={openInstrumentLink}
+            className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-black ${
+              hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
+            }`}
+          >
+            <FaExternalLinkAlt aria-hidden="true" className="text-base" />
+            <span>Open Link</span>
+          </button>
+        </div>
+      ) : null}
+
       {/* Slider progress (NÃO BLOQUEAR MESMO EM LOADING) */}
-      <div className="flex items-center mt-3">
+      <div
+        className={
+          touchLayout
+            ? "mt-5 rounded-[18px] neuphormism-b-se px-4 py-4"
+            : "mt-3 flex items-center"
+        }
+      >
+        {touchLayout ? (
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+              Progress
+            </span>
+            <span className="text-xl font-black text-black">{rangeProgress}</span>
+          </div>
+        ) : null}
         <input
           type="range"
           min="0"
           max="100"
           value={progress}
+          style={{ "--range-progress": rangeProgress }}
           onChange={(e) => setProgress(Number(e.target.value))}
           onMouseUp={() => {
             if (instrument?.trim()) handleSubmit();
           }}
+          onTouchEnd={() => {
+            if (instrument?.trim()) handleSubmit();
+          }}
+          className={
+            touchLayout ? "range-golden w-full" : "range-golden w-full"
+          }
         />
-        <div className="w-14 text-right text-sm">{progress}%</div>
+        {!touchLayout ? (
+          <div className="w-14 text-right text-sm">{rangeProgress}</div>
+        ) : null}
       </div>
+      {notesOpen ? (
+        <div className="fixed inset-0 z-[120] bg-black/25">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full cursor-default"
+            onClick={() => setNotesOpen(false)}
+            aria-label="Close notes modal"
+          />
+          <div className="absolute left-1/2 top-1/2 w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2">
+            <SongInstrumentNotes
+              instrumentName={instrumentName}
+              title={`${instrumentName} notes`}
+              value={notes}
+              onChange={onNotesChange}
+              onSave={saveNotes}
+              onClose={() => setNotesOpen(false)}
+              isSaving={notesSaving}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

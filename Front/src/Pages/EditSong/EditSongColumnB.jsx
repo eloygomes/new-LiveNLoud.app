@@ -367,6 +367,7 @@ import {
   FaKeyboard,
   FaMicrophone,
   FaMusic,
+  FaRegStickyNote,
 } from "react-icons/fa";
 
 import EditSongInputLinkBox from "./EditSongInputLinkBox";
@@ -382,6 +383,8 @@ const INSTRUMENTS = [
     setterName: "setGuitar01",
     progressName: "progGuitar01",
     progressSetterName: "setProgGuitar01",
+    notesName: "notesGuitar01",
+    notesSetterName: "setNotesGuitar01",
     apiKey: "guitar01",
   },
   {
@@ -394,6 +397,8 @@ const INSTRUMENTS = [
     setterName: "setGuitar02",
     progressName: "progGuitar02",
     progressSetterName: "setProgGuitar02",
+    notesName: "notesGuitar02",
+    notesSetterName: "setNotesGuitar02",
     apiKey: "guitar02",
   },
   {
@@ -406,6 +411,8 @@ const INSTRUMENTS = [
     setterName: "setBass",
     progressName: "progBass",
     progressSetterName: "setProgBass",
+    notesName: "notesBass",
+    notesSetterName: "setNotesBass",
     apiKey: "bass",
   },
   {
@@ -418,6 +425,8 @@ const INSTRUMENTS = [
     setterName: "setKey",
     progressName: "progKey",
     progressSetterName: "setProgKey",
+    notesName: "notesKey",
+    notesSetterName: "setNotesKey",
     apiKey: "keys",
   },
   {
@@ -430,6 +439,8 @@ const INSTRUMENTS = [
     setterName: "setDrums",
     progressName: "progDrums",
     progressSetterName: "setProgDrums",
+    notesName: "notesDrums",
+    notesSetterName: "setNotesDrums",
     apiKey: "drums",
   },
   {
@@ -442,6 +453,8 @@ const INSTRUMENTS = [
     setterName: "setVoice",
     progressName: "progVoice",
     progressSetterName: "setProgVoice",
+    notesName: "notesVoice",
+    notesSetterName: "setNotesVoice",
     apiKey: "voice",
   },
 ];
@@ -453,6 +466,12 @@ function EditSongColumnB(props) {
   const [key, setKey] = useState("");
   const [drums, setDrums] = useState("");
   const [voice, setVoice] = useState("");
+  const [notesGuitar01, setNotesGuitar01] = useState("");
+  const [notesGuitar02, setNotesGuitar02] = useState("");
+  const [notesBass, setNotesBass] = useState("");
+  const [notesKey, setNotesKey] = useState("");
+  const [notesDrums, setNotesDrums] = useState("");
+  const [notesVoice, setNotesVoice] = useState("");
 
   const instrumentState = {
     guitar01,
@@ -461,6 +480,12 @@ function EditSongColumnB(props) {
     key,
     drums,
     voice,
+    notesGuitar01,
+    notesGuitar02,
+    notesBass,
+    notesKey,
+    notesDrums,
+    notesVoice,
   };
 
   const instrumentSetters = useMemo(
@@ -471,6 +496,12 @@ function EditSongColumnB(props) {
       setKey,
       setDrums,
       setVoice,
+      setNotesGuitar01,
+      setNotesGuitar02,
+      setNotesBass,
+      setNotesKey,
+      setNotesDrums,
+      setNotesVoice,
     }),
     [],
   );
@@ -497,6 +528,12 @@ function EditSongColumnB(props) {
         setKey,
         setDrums,
         setVoice,
+        setNotesGuitar01,
+        setNotesGuitar02,
+        setNotesBass,
+        setNotesKey,
+        setNotesDrums,
+        setNotesVoice,
         setProgGuitar01: props.setProgGuitar01,
         setProgGuitar02: props.setProgGuitar02,
         setProgBass: props.setProgBass,
@@ -544,6 +581,7 @@ function EditSongColumnBMobile(props) {
       INSTRUMENTS.map((instrumentConfig) => ({
         ...instrumentConfig,
         link: props[instrumentConfig.stateName],
+        notes: props[instrumentConfig.notesName],
       })),
     [props],
   );
@@ -627,35 +665,53 @@ function SectionHeader({ titleTag: TitleTag }) {
 }
 
 function InstrumentCard({ card, isOpen, onClick }) {
-  const { label, short, icon: Icon, link } = card;
+  const { label, short, icon: Icon, link, notes } = card;
+  const hasLink = Boolean(link?.trim());
+  const hasNotes = Boolean(notes?.trim());
 
   return (
     <button
       type="button"
-      className="rounded-[18px] neuphormism-b-se p-3 text-left"
+      className={`rounded-[18px] p-4 text-left ${
+        hasLink
+          ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+          : "neuphormism-b-se text-black"
+      }`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full neuphormism-b-avatar text-black">
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-full text-black ${
+            hasLink ? "neuphormism-b-btn-gold bg-[goldenrod]" : "neuphormism-b-avatar"
+          }`}
+        >
           <Icon className="text-[14px]" />
         </div>
 
-        <span className="text-xs font-black uppercase text-gray-500">
-          {short}
-        </span>
+        <div className="flex items-center gap-2">
+          {hasNotes ? (
+            <FaRegStickyNote
+              className="text-sm text-black/75"
+              aria-label="Notes registered"
+            />
+          ) : null}
+          <span className="text-xs font-black uppercase text-black/65">
+            {short}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 text-[1.15rem] font-black text-black">{label}</div>
 
       <div
-        className={`mt-1 text-xs font-bold ${
-          link ? "text-[#2f6f3e]" : "text-gray-500"
+        className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${
+          hasLink ? "bg-black/10 text-black" : "bg-white/55 text-gray-600"
         }`}
       >
-        {link ? "Link added" : "No URL yet"}
+        {hasLink ? "Link added" : "No URL yet"}
       </div>
 
-      <div className="mt-1 text-xs text-gray-500">
+      <div className="mt-2 text-xs font-medium text-black/55">
         {isOpen ? "Tap to close" : "Tap to add"}
       </div>
     </button>
@@ -672,14 +728,15 @@ function InstrumentModal({ config, props, onClose }) {
         aria-label="Close instrument modal"
       />
 
-      <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-gray-300" />
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <div className="text-[2rem] font-black tracking-tight text-black">
+            <div className="text-[clamp(1.8rem,8vw,2.4rem)] font-black tracking-tight text-black">
               {config.label}
             </div>
 
-            <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
+            <div className="mt-2 max-w-[22rem] text-base font-medium leading-6 text-gray-500">
               Insert the URL that will be scraped for this instrument.
             </div>
           </div>
@@ -693,7 +750,7 @@ function InstrumentModal({ config, props, onClose }) {
           </button>
         </div>
 
-        <div className="[&_.neuphormism-b-btn]:!m-0 [&_.neuphormism-b-btn]:!rounded-[16px] [&_.neuphormism-b-btn]:!bg-transparent [&_.neuphormism-b-btn]:!p-0 [&_.neuphormism-b-btn]:!shadow-none">
+        <div className="rounded-[20px] neuphormism-b-se p-4 [&_.neuphormism-b-btn]:!m-0 [&_.neuphormism-b-btn]:!rounded-[16px] [&_.neuphormism-b-btn]:!bg-transparent [&_.neuphormism-b-btn]:!p-0 [&_.neuphormism-b-btn]:!shadow-none">
           <InstrumentInputBox
             config={config}
             props={props}
@@ -717,9 +774,13 @@ function InstrumentInputBox({ config, props, includeOnLinkAdded }) {
       notifyInstrument(props, config.instrumentName, { link: value }),
     onProgressChange: (value) =>
       notifyInstrument(props, config.instrumentName, { progress: value }),
+    notes: props[config.notesName] || "",
+    onNotesChange: (value) =>
+      notifyInstrument(props, config.instrumentName, { notes: value }),
     setIsDirty: props.setIsDirty,
     setShowSnackBar: props.setShowSnackBar,
     setSnackbarMessage: props.setSnackbarMessage,
+    touchLayout: props.touchLayout,
   };
 
   if (includeOnLinkAdded) {
@@ -738,6 +799,7 @@ function notifyInstrument(props, instrumentName, payload) {
 
   const hasLink = Object.prototype.hasOwnProperty.call(payload, "link");
   const hasProgress = Object.prototype.hasOwnProperty.call(payload, "progress");
+  const hasNotes = Object.prototype.hasOwnProperty.call(payload, "notes");
 
   if (hasLink && typeof updater.setLink === "function") {
     updater.setLink(payload.link);
@@ -747,6 +809,10 @@ function notifyInstrument(props, instrumentName, payload) {
   if (hasProgress && typeof updater.setProgress === "function") {
     updater.setProgress(payload.progress);
     props.setIsDirty?.(true);
+  }
+
+  if (hasNotes && typeof updater.setNotes === "function") {
+    updater.setNotes(payload.notes);
   }
 }
 
@@ -758,6 +824,12 @@ function loadInstrumentData({
   setKey,
   setDrums,
   setVoice,
+  setNotesGuitar01,
+  setNotesGuitar02,
+  setNotesBass,
+  setNotesKey,
+  setNotesDrums,
+  setNotesVoice,
   setProgGuitar01,
   setProgGuitar02,
   setProgBass,
@@ -768,31 +840,37 @@ function loadInstrumentData({
   if (parsedData.guitar01) {
     setGuitar01(parsedData.guitar01.link || "");
     setProgGuitar01(parsedData.guitar01.progress || 0);
+    setNotesGuitar01(parsedData.guitar01.notes || "");
   }
 
   if (parsedData.guitar02) {
     setGuitar02(parsedData.guitar02.link || "");
     setProgGuitar02(parsedData.guitar02.progress || 0);
+    setNotesGuitar02(parsedData.guitar02.notes || "");
   }
 
   if (parsedData.bass) {
     setBass(parsedData.bass.link || "");
     setProgBass(parsedData.bass.progress || 0);
+    setNotesBass(parsedData.bass.notes || "");
   }
 
   if (parsedData.keys) {
     setKey(parsedData.keys.link || "");
     setProgKey(parsedData.keys.progress || 0);
+    setNotesKey(parsedData.keys.notes || "");
   }
 
   if (parsedData.drums) {
     setDrums(parsedData.drums.link || "");
     setProgDrums(parsedData.drums.progress || 0);
+    setNotesDrums(parsedData.drums.notes || "");
   }
 
   if (parsedData.voice) {
     setVoice(parsedData.voice.link || "");
     setProgVoice(parsedData.voice.progress || 0);
+    setNotesVoice(parsedData.voice.notes || "");
   }
 }
 

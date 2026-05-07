@@ -365,6 +365,33 @@ export const updateLastPlayed = async (song, artist, instrument) => {
   }
 };
 
+export const updateInstrumentNotes = async ({
+  artist,
+  song,
+  instrument,
+  notes,
+}) => {
+  const email = getUserEmail();
+  const normalizedInstrument = normalizeInstrument(instrument);
+
+  if (!email) {
+    throw new Error("Usuário não autenticado (sem userEmail no localStorage).");
+  }
+  if (!artist || !song || !normalizedInstrument) {
+    throw new Error("artist, song e instrument são obrigatórios.");
+  }
+
+  const { data } = await fetchApi.put("/api/song/instrumentNotes", {
+    email,
+    artist,
+    song,
+    instrument: normalizedInstrument,
+    notes: String(notes || ""),
+  });
+
+  return data;
+};
+
 export const downloadUserData = async () => {
   const email = getUserEmail();
   if (!email) return;

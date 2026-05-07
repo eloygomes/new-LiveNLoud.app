@@ -769,6 +769,14 @@ main{
   }
 }
 /* === Custom range style: golden progress with white track and BLACK thumb === */
+input[type="range"].range-golden {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  accent-color: #DAA520;
+}
+
 input[type="range"].range-golden::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 4px;

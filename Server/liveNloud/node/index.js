@@ -3553,6 +3553,83 @@ app.put("/api/song/updateExact", async (req, res) => {
   }
 });
 
+app.put("/api/song/instrumentNotes", async (req, res) => {
+  try {
+    const { email, artist, song, instrument, notes = "" } = req.body;
+    const normalizedInstrument = normalizeInstrument(instrument);
+
+    if (!email || !artist || !song || !normalizedInstrument) {
+      return res.status(400).json({
+        message: "Parâmetros obrigatórios: email, artist, song e instrument.",
+      });
+    }
+
+    const database = client.db("liveNloud_");
+    const collection = database.collection("data");
+    const userDoc = await collection.findOne({ email });
+
+    if (!userDoc || !Array.isArray(userDoc.userdata)) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const songIndex = userDoc.userdata.findIndex(
+      (entry) =>
+        normalizeName(entry.artist) === normalizeName(artist) &&
+        normalizeName(entry.song) === normalizeName(song),
+    );
+
+    if (songIndex < 0) {
+      return res
+        .status(404)
+        .json({ message: "Música não encontrada para este usuário." });
+    }
+
+    const songEntry = mergeSongEntries(userDoc.userdata[songIndex]);
+    const instrumentBlock = songEntry[normalizedInstrument] || {};
+
+    if (
+      !instrumentBlock.link ||
+      typeof instrumentBlock.link !== "string" ||
+      !instrumentBlock.link.trim()
+    ) {
+      return res.status(400).json({
+        message: "Adicione um link ao instrumento antes de salvar notas.",
+      });
+    }
+
+    songEntry[normalizedInstrument] = {
+      ...instrumentBlock,
+      active: instrumentBlock.active ?? true,
+      notes: String(notes || ""),
+    };
+    songEntry.instruments = normalizeInstrumentFlags(songEntry);
+    songEntry.updateIn = new Date().toISOString().split("T")[0];
+
+    const nextUserdata = [...userDoc.userdata];
+    nextUserdata[songIndex] = songEntry;
+
+    await collection.updateOne({ email }, { $set: { userdata: nextUserdata } });
+
+    await addUserLog({
+      userEmail: email,
+      action: "song_updated",
+      message: `Updated notes for "${song}" by ${artist}.`,
+      meta: { song, artist, instrument: normalizedInstrument },
+    });
+
+    return res.status(200).json({
+      message: "Notas atualizadas com sucesso!",
+      song: songEntry,
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar notas do instrumento:", error);
+    return res.status(500).json({
+      message: "Erro ao atualizar notas do instrumento.",
+      error: error?.message,
+    });
+  }
+});
+
 // Inicie o servidor HTTP (Express + Socket.IO)
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);

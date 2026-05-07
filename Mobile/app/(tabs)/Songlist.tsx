@@ -71,7 +71,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import Filter from "react-native-vector-icons/FontAwesome";
-import FLComp, { SelectPayload } from "@/components/FlatList/FlatList";
+import FLComp, {
+  SelectPayload,
+  SongListColumnKey,
+} from "@/components/FlatList/FlatList";
 import ActionSheetTemplate from "@/components/ActionSheet/ActionSheet";
 import { ActionSheetRef } from "react-native-actions-sheet";
 import { useNavigation } from "expo-router";
@@ -93,6 +96,11 @@ const Songlist = () => {
   const [selectedSetlists, setSelectedSetlists] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [allSongs, setAllSongs] = useState<SelectPayload[]>([]);
+  const [visibleColumns, setVisibleColumns] = useState<SongListColumnKey[]>([
+    "progression",
+    "notes",
+    "instruments",
+  ]);
 
   const visibleSongs = useMemo(() => {
     const validSelectedSetlists = selectedSetlists.filter((selectedSetlist) =>
@@ -151,6 +159,7 @@ const Songlist = () => {
         selectedSetlists={selectedSetlists}
         searchTerm={searchTerm}
         onAllSongsChange={setAllSongs}
+        visibleColumns={visibleColumns}
       />
 
       {/* ActionSheet do item selecionado */}
@@ -170,6 +179,8 @@ const Songlist = () => {
         searchTerm={searchTerm}
         visibleSongs={visibleSongs}
         allSongs={allSongs}
+        visibleColumns={visibleColumns}
+        setVisibleColumns={setVisibleColumns}
         setSelectedSetlists={setSelectedSetlists}
       />
     </View>

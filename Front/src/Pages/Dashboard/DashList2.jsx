@@ -7,9 +7,10 @@ import {
   saveSelectedSetlists,
 } from "../../Tools/Controllers";
 
-const DEFAULT_VISIBLE_COLUMNS = ["progression", "instruments"];
+const DEFAULT_VISIBLE_COLUMNS = ["progression", "notes", "instruments"];
 const OPTIONAL_COLUMNS = [
   { key: "progression", label: "PROGRESSION", sortable: "progressBar" },
+  { key: "notes", label: "NOTES" },
   { key: "tags", label: "TAGS" },
   { key: "videos", label: "VIDEOS" },
   { key: "instruments", label: "INSTRUMENTS" },

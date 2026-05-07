@@ -801,7 +801,7 @@ function NewSongColumnA({
       </div>
 
       <div className="mt-4 flex justify-center [&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!mr-0 [&_.neuphormism-b]:!w-full [&_.neuphormism-b]:!max-w-[420px]">
-        <GeralProgressBar geralPercentage={geralPercentage} />
+        <GeralProgressBar geralPercentage={geralPercentage} compact={touchLayout} />
       </div>
 
       {middleContent}

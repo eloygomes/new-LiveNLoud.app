@@ -11,7 +11,10 @@ import {
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet";
 import Close from "react-native-vector-icons/FontAwesome";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
-import { SelectPayload } from "@/components/FlatList/FlatList";
+import {
+  SelectPayload,
+  SongListColumnKey,
+} from "@/components/FlatList/FlatList";
 import {
   getCurrentUserEmail,
   getAllUserData,
@@ -29,6 +32,8 @@ interface Props {
   setSearchTerm: (value: string) => void;
   visibleSongs: SelectPayload[];
   allSongs: SelectPayload[];
+  visibleColumns: SongListColumnKey[];
+  setVisibleColumns: React.Dispatch<React.SetStateAction<SongListColumnKey[]>>;
 }
 
 const instrumentLabels: { key: keyof Instruments; label: string }[] = [
@@ -40,6 +45,12 @@ const instrumentLabels: { key: keyof Instruments; label: string }[] = [
   { key: "voice", label: "V" },
 ];
 
+const columnOptions: { key: SongListColumnKey; label: string }[] = [
+  { key: "progression", label: "Progression" },
+  { key: "notes", label: "Notes" },
+  { key: "instruments", label: "Instruments" },
+];
+
 const ActionSheetSongFilter = forwardRef<ActionSheetRef, Props>(
   (
     {
@@ -49,6 +60,8 @@ const ActionSheetSongFilter = forwardRef<ActionSheetRef, Props>(
       setSearchTerm,
       visibleSongs,
       allSongs,
+      visibleColumns,
+      setVisibleColumns,
     },
     ref,
   ) => {
@@ -162,6 +175,14 @@ const ActionSheetSongFilter = forwardRef<ActionSheetRef, Props>(
       setSelectedSetlists(updated);
       saveSelectedSetlists(updated, userEmail).catch((err) =>
         console.error("Erro ao salvar no AsyncStorage:", err),
+      );
+    };
+
+    const toggleColumn = (column: SongListColumnKey) => {
+      setVisibleColumns((current) =>
+        current.includes(column)
+          ? current.filter((item) => item !== column)
+          : [...current, column],
       );
     };
 
@@ -307,6 +328,35 @@ const ActionSheetSongFilter = forwardRef<ActionSheetRef, Props>(
                   );
                 })
               )}
+            </View>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>COLUMNS DATA</Text>
+            <Text style={styles.helperText}>
+              Escolha quais dados aparecem nos cards da songlist.
+            </Text>
+            <View style={styles.columnGrid}>
+              {columnOptions.map((column) => {
+                const active = visibleColumns.includes(column.key);
+                return (
+                  <TouchableOpacity
+                    key={column.key}
+                    style={[
+                      styles.columnButton,
+                      active ? styles.columnButtonActive : styles.columnButtonInactive,
+                    ]}
+                    onPress={() => toggleColumn(column.key)}
+                  >
+                    <FontAwesome5
+                      name={column.key === "notes" ? "sticky-note" : "columns"}
+                      size={13}
+                      color={active ? "#000000" : "#6b7280"}
+                    />
+                    <Text style={styles.columnButtonText}>{column.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -525,6 +575,30 @@ const styles = StyleSheet.create({
     color: "#2d2d2d",
     marginBottom: 12,
     lineHeight: 18,
+  },
+  columnGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  columnButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  columnButtonActive: {
+    backgroundColor: "#d9ad26",
+  },
+  columnButtonInactive: {
+    backgroundColor: "#f5f5f5",
+  },
+  columnButtonText: {
+    color: "#000000",
+    fontWeight: "800",
+    fontSize: 12,
   },
   buttonRow: {
     flexDirection: "row",

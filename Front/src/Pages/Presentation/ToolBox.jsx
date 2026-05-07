@@ -6,6 +6,7 @@ import TollBoxAcoord from "./TollBoxAcoord";
 import ToolBoxYT from "./ToolBoxYT";
 import VideoDragComp from "./videoDragComp";
 import ToolBoxChordPlayer from "./ToolBoxChordPlayer";
+import SongInstrumentNotes from "../SongInstrumentNotes";
 
 function ToolBox({
   toolBoxBtnStatus,
@@ -37,6 +38,13 @@ function ToolBox({
   setLinktoplay,
   videoModalStatus,
   setVideoModalStatus,
+  instrumentNotes = "",
+  onInstrumentNotesChange,
+  onSaveInstrumentNotes,
+  notesModalStatus,
+  setNotesModalStatus,
+  onOpenInstrumentNotes,
+  isSavingNotes = false,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -45,7 +53,9 @@ function ToolBox({
   // dimensões aproximadas apenas para layout; não afetam o drag
   const BOX_WIDTH = 180;
 
-  if (!toolBoxBtnStatus && !videoModalStatus && !chordModalStatus) return null;
+  if (!toolBoxBtnStatus && !videoModalStatus && !chordModalStatus && !notesModalStatus) {
+    return null;
+  }
 
   const closeTouchToolBox = () => {
     setActiveTouchPanel(null);
@@ -89,6 +99,31 @@ function ToolBox({
               setChordModalStatus={setChordModalStatus}
               setChordPreviewData={setChordPreviewData}
             />
+          </DraggableComponent>
+        </div>
+      ) : null}
+
+      {!isTouchLayout && notesModalStatus ? (
+        <div className="fixed right-4 bottom-4 z-[60]" style={{ width: 360 }}>
+          <DraggableComponent
+            handle=".drag-handle"
+            defaultPosition={{ x: -380, y: -40 }}
+          >
+            <div className="min-h-[300px] min-w-[300px] resize overflow-auto">
+              <div className="drag-handle cursor-move select-none rounded-t-[14px] bg-gray-500 px-3 py-1 text-center text-[7pt] font-bold text-white">
+                Click and hold to drag
+              </div>
+              <SongInstrumentNotes
+                instrumentName={instrumentSelected}
+                title={`${instrumentSelected} notes`}
+                value={instrumentNotes}
+                onChange={onInstrumentNotesChange}
+                onSave={onSaveInstrumentNotes}
+                onClose={() => setNotesModalStatus(false)}
+                isSaving={isSavingNotes}
+                autoFocus={false}
+              />
+            </div>
           </DraggableComponent>
         </div>
       ) : null}
@@ -147,6 +182,10 @@ function ToolBox({
               closeToolBox={closeTouchToolBox}
               activeTouchPanel={activeTouchPanel}
               setActiveTouchPanel={setActiveTouchPanel}
+              instrumentNotes={instrumentNotes}
+              onInstrumentNotesChange={onInstrumentNotesChange}
+              onSaveInstrumentNotes={onSaveInstrumentNotes}
+              isSavingNotes={isSavingNotes}
             />
           </div>
         </div>
@@ -209,6 +248,12 @@ function ToolBox({
                 closeToolBox={() =>
                   toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
                 }
+                setNotesModalStatus={setNotesModalStatus}
+                onOpenInstrumentNotes={onOpenInstrumentNotes}
+                instrumentNotes={instrumentNotes}
+                onInstrumentNotesChange={onInstrumentNotesChange}
+                onSaveInstrumentNotes={onSaveInstrumentNotes}
+                isSavingNotes={isSavingNotes}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

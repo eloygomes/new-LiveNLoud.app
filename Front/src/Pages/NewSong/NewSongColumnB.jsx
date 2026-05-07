@@ -544,6 +544,7 @@ import {
   FaKeyboard,
   FaMicrophone,
   FaMusic,
+  FaRegStickyNote,
 } from "react-icons/fa";
 
 import NewSongInputLinkBox from "./NewSongInputLinkBox";
@@ -558,6 +559,8 @@ const INSTRUMENTS = [
     setterName: "setGuitar01",
     progressName: "progBarG01",
     progressSetterName: "setProgBarG01",
+    notesName: "notesGuitar01",
+    notesSetterName: "setNotesGuitar01",
     instrumentName: "guitar01",
   },
   {
@@ -569,6 +572,8 @@ const INSTRUMENTS = [
     setterName: "setGuitar02",
     progressName: "progBarG02",
     progressSetterName: "setProgBarG02",
+    notesName: "notesGuitar02",
+    notesSetterName: "setNotesGuitar02",
     instrumentName: "guitar02",
   },
   {
@@ -580,6 +585,8 @@ const INSTRUMENTS = [
     setterName: "setBass",
     progressName: "progBarBass",
     progressSetterName: "setProgBarBass",
+    notesName: "notesBass",
+    notesSetterName: "setNotesBass",
     instrumentName: "bass",
   },
   {
@@ -591,6 +598,8 @@ const INSTRUMENTS = [
     setterName: "setKey",
     progressName: "progBarKey",
     progressSetterName: "setProgBarKey",
+    notesName: "notesKey",
+    notesSetterName: "setNotesKey",
     instrumentName: "keys",
   },
   {
@@ -602,6 +611,8 @@ const INSTRUMENTS = [
     setterName: "setDrums",
     progressName: "progBarDrums",
     progressSetterName: "setProgBarDrums",
+    notesName: "notesDrums",
+    notesSetterName: "setNotesDrums",
     instrumentName: "drums",
   },
   {
@@ -613,6 +624,8 @@ const INSTRUMENTS = [
     setterName: "setVoice",
     progressName: "progBarVoice",
     progressSetterName: "setProgBarVoice",
+    notesName: "notesVoice",
+    notesSetterName: "setNotesVoice",
     instrumentName: "voice",
   },
 ];
@@ -652,6 +665,7 @@ function NewSongColumnBMobile(props) {
       INSTRUMENTS.map((instrumentConfig) => ({
         ...instrumentConfig,
         link: props[instrumentConfig.propName],
+        notes: props[instrumentConfig.notesName],
       })),
     [props],
   );
@@ -735,35 +749,53 @@ function SectionHeader({ titleTag: TitleTag }) {
 }
 
 function InstrumentCard({ card, isOpen, onClick }) {
-  const { label, short, icon: Icon, link } = card;
+  const { label, short, icon: Icon, link, notes } = card;
+  const hasLink = Boolean(link?.trim());
+  const hasNotes = Boolean(notes?.trim());
 
   return (
     <button
       type="button"
-      className="rounded-[18px] neuphormism-b-se p-3 text-left"
+      className={`rounded-[18px] p-4 text-left ${
+        hasLink
+          ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+          : "neuphormism-b-se text-black"
+      }`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full neuphormism-b-avatar text-black">
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-full text-black ${
+            hasLink ? "neuphormism-b-btn-gold bg-[goldenrod]" : "neuphormism-b-avatar"
+          }`}
+        >
           <Icon className="text-[14px]" />
         </div>
 
-        <span className="text-xs font-black uppercase text-gray-500">
-          {short}
-        </span>
+        <div className="flex items-center gap-2">
+          {hasNotes ? (
+            <FaRegStickyNote
+              className="text-sm text-black/75"
+              aria-label="Notes registered"
+            />
+          ) : null}
+          <span className="text-xs font-black uppercase text-black/65">
+            {short}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 text-[1.15rem] font-black text-black">{label}</div>
 
       <div
-        className={`mt-1 text-xs font-bold ${
-          link ? "text-[#2f6f3e]" : "text-gray-500"
+        className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${
+          hasLink ? "bg-black/10 text-black" : "bg-white/55 text-gray-600"
         }`}
       >
-        {link ? "Link added" : "No URL yet"}
+        {hasLink ? "Link added" : "No URL yet"}
       </div>
 
-      <div className="mt-1 text-xs text-gray-500">
+      <div className="mt-2 text-xs font-medium text-black/55">
         {isOpen ? "Tap to close" : "Tap to add"}
       </div>
     </button>
@@ -780,14 +812,15 @@ function InstrumentModal({ config, props, onClose }) {
         aria-label="Close instrument modal"
       />
 
-      <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-gray-300" />
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <div className="text-[2rem] font-black tracking-tight text-black">
+            <div className="text-[clamp(1.8rem,8vw,2.4rem)] font-black tracking-tight text-black">
               {config.label}
             </div>
 
-            <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
+            <div className="mt-2 max-w-[22rem] text-base font-medium leading-6 text-gray-500">
               Insert the URL that will be scraped for this instrument.
             </div>
           </div>
@@ -801,7 +834,7 @@ function InstrumentModal({ config, props, onClose }) {
           </button>
         </div>
 
-        <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
+        <div className="rounded-[20px] neuphormism-b-se p-4 [&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
           <InstrumentInputBox config={config} props={props} />
         </div>
       </div>
@@ -821,6 +854,9 @@ function InstrumentInputBox({ config, props }) {
       setVoiceInstrument={props.setVoice}
       progress={props[config.progressName]}
       setProgress={props[config.progressSetterName]}
+      notes={props[config.notesName] || ""}
+      onNotesChange={props[config.notesSetterName]}
+      touchLayout={props.touchLayout}
     />
   );
 }

@@ -12,6 +12,7 @@ import ToolBoxMini from "./ToolBoxMini";
 import ToolBoxTunerMini from "./ToolBoxTunerMini";
 import ToolBoxChordLibraryMini from "./ToolBoxChordLibraryMini";
 import ToolBoxEditControls from "./ToolBoxEditControls";
+import SongInstrumentNotes from "../SongInstrumentNotes";
 
 // Uma lista de instrumentos, igual ao que você usa em DashList2Items
 const instrumentLabels = [
@@ -61,6 +62,12 @@ export default function TollBoxAcoord({
   touchFontSizeLabel = "100%",
   decreaseTouchFontSize,
   increaseTouchFontSize,
+  setNotesModalStatus,
+  onOpenInstrumentNotes,
+  instrumentNotes = "",
+  onInstrumentNotesChange,
+  onSaveInstrumentNotes,
+  isSavingNotes = false,
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
@@ -358,6 +365,32 @@ export default function TollBoxAcoord({
     </div>
   );
 
+  const renderNotesContent = () => (
+    <div className={isTouchLayout ? "" : "my-3"}>
+      <button
+        type="button"
+        className={
+          isTouchLayout
+            ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
+            : "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-center text-sm font-black text-black"
+        }
+        onClick={() => {
+          if (isTouchLayout) {
+            setActiveTouchPanel?.("panel-notes");
+            return;
+          }
+          if (typeof onOpenInstrumentNotes === "function") {
+            onOpenInstrumentNotes();
+            return;
+          }
+          setNotesModalStatus?.(true);
+        }}
+      >
+        Open Notes
+      </button>
+    </div>
+  );
+
   if (isTouchLayout) {
     const sections = [
       {
@@ -370,6 +403,21 @@ export default function TollBoxAcoord({
         id: "panel-font",
         label: "Font Size",
         content: renderFontSizeContent(),
+      },
+      {
+        id: "panel-notes",
+        label: "Notes",
+        content: (
+          <SongInstrumentNotes
+            instrumentName={instrumentSelected}
+            title={`${instrumentSelected} notes`}
+            value={instrumentNotes}
+            onChange={onInstrumentNotesChange}
+            onSave={onSaveInstrumentNotes}
+            isSaving={isSavingNotes}
+            mobile
+          />
+        ),
       },
       {
         id: "panel1",
@@ -475,6 +523,24 @@ export default function TollBoxAcoord({
         </AccordionSummary>
         <AccordionDetails className="neuphormism-b text-sm font-semibold">
           {renderEditorContent()}
+        </AccordionDetails>
+      </Accordion>
+
+      <Accordion
+        expanded={expanded === "panel-notes"}
+        onChange={handleAccordionChange("panel-notes")}
+        className="my-2"
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel-notes-content"
+          id="panel-notes-header"
+          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
+        >
+          Notes
+        </AccordionSummary>
+        <AccordionDetails className="neuphormism-b text-sm font-semibold">
+          {renderNotesContent()}
         </AccordionDetails>
       </Accordion>
 

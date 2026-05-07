@@ -18,6 +18,7 @@ import {
   RefreshControl,
   Platform,
 } from "react-native";
+import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { SafeAreaView, SafeAreaProvider } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect } from "@react-navigation/native";
@@ -33,7 +34,10 @@ type InstrumentContent = {
   songChords?: string;
   songTabs?: string;
   songLyrics?: string;
+  notes?: string;
 };
+
+export type SongListColumnKey = "progression" | "notes" | "instruments";
 
 export type SelectPayload = {
   song?: string;
@@ -57,6 +61,7 @@ type FlatListProps = {
   selectedSetlists: string[];
   searchTerm: string;
   onAllSongsChange?: (songs: SelectPayload[]) => void;
+  visibleColumns: SongListColumnKey[];
 };
 
 // 👇 Handle exposto ao pai (Songlist)
@@ -70,6 +75,13 @@ type ItemProps = {
   artist: string;
   progressBar?: number;
   instruments?: Instruments;
+  guitar01?: InstrumentContent;
+  guitar02?: InstrumentContent;
+  bass?: InstrumentContent;
+  keys?: InstrumentContent;
+  drums?: InstrumentContent;
+  voice?: InstrumentContent;
+  visibleColumns: SongListColumnKey[];
   onPress: () => void;
 };
 
@@ -126,6 +138,13 @@ const Item = ({
   artist,
   progressBar = 0,
   instruments,
+  guitar01,
+  guitar02,
+  bass,
+  keys,
+  drums,
+  voice,
+  visibleColumns,
   onPress,
 }: ItemProps) => (
   <TouchableOpacity onPress={onPress}>
@@ -141,43 +160,86 @@ const Item = ({
             <Text style={styles.artist}>{artist}</Text>
 
             <View style={styles.metaRow}>
-              <View style={styles.progressChip}>
-                <ProgressCircle progress={progressBar} />
-                <Text style={styles.progressText}>
-                  {Number(progressBar || 0)}%
-                </Text>
-              </View>
+              {visibleColumns.includes("progression") ? (
+                <View style={styles.progressChip}>
+                  <ProgressCircle progress={progressBar} />
+                  <Text style={styles.progressText}>
+                    {Number(progressBar || 0)}%
+                  </Text>
+                </View>
+              ) : null}
+              {visibleColumns.includes("notes") ? (
+                <View
+                  style={[
+                    styles.notesChip,
+                    hasInstrumentNotes({ guitar01, guitar02, bass, keys, drums, voice })
+                      ? styles.notesChipActive
+                      : styles.notesChipInactive,
+                  ]}
+                >
+                  <FontAwesome5
+                    name="sticky-note"
+                    size={10}
+                    color={
+                      hasInstrumentNotes({ guitar01, guitar02, bass, keys, drums, voice })
+                        ? "#000000"
+                        : "#8f8f8f"
+                    }
+                  />
+                  <Text style={styles.notesChipText}>
+                    {hasInstrumentNotes({ guitar01, guitar02, bass, keys, drums, voice })
+                      ? "notes"
+                      : "no notes"}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </View>
 
-          <View style={styles.iconsRow}>
-            {instrumentMeta.map((instrument) => {
-              const enabled = Boolean(instruments?.[instrument.key]);
+          {visibleColumns.includes("instruments") ? (
+            <View style={styles.iconsRow}>
+              {instrumentMeta.map((instrument) => {
+                const enabled = Boolean(instruments?.[instrument.key]);
 
-              return (
-                <View
-                  key={instrument.key}
-                  style={[
-                    styles.instrumentChip,
-                    enabled
-                      ? styles.instrumentChipActive
-                      : styles.instrumentChipDisabled,
-                  ]}
-                >
-                  <InstrumentIcon
-                    name={instrument.icon}
-                    size={12}
-                    color={enabled ? "#000000" : "#8f8f8f"}
-                  />
-                </View>
-              );
-            })}
-          </View>
+                return (
+                  <View
+                    key={instrument.key}
+                    style={[
+                      styles.instrumentChip,
+                      enabled
+                        ? styles.instrumentChipActive
+                        : styles.instrumentChipDisabled,
+                    ]}
+                  >
+                    <InstrumentIcon
+                      name={instrument.icon}
+                      size={12}
+                      color={enabled ? "#000000" : "#8f8f8f"}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
   </TouchableOpacity>
 );
+
+function hasInstrumentNotes(song: {
+  guitar01?: InstrumentContent;
+  guitar02?: InstrumentContent;
+  bass?: InstrumentContent;
+  keys?: InstrumentContent;
+  drums?: InstrumentContent;
+  voice?: InstrumentContent;
+}) {
+  return instrumentMeta.some((instrument) => {
+    const value = song[instrument.key]?.notes;
+    return typeof value === "string" && value.trim().length > 0;
+  });
+}
 
 const FLComp = forwardRef<FLCompHandle, FlatListProps>(
   (
@@ -187,6 +249,7 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
       selectedSetlists,
       searchTerm,
       onAllSongsChange,
+      visibleColumns,
     },
     ref,
   ) => {
@@ -316,6 +379,13 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
                   artist={item.artist ?? ""}
                   progressBar={item.progressBar}
                   instruments={item.instruments}
+                  guitar01={item.guitar01}
+                  guitar02={item.guitar02}
+                  bass={item.bass}
+                  keys={item.keys}
+                  drums={item.drums}
+                  voice={item.voice}
+                  visibleColumns={visibleColumns}
                   onPress={() =>
                     onSelect({
                       song: item.song,
@@ -414,8 +484,8 @@ const styles = StyleSheet.create({
     // marginTop: 10,
     flexDirection: "row",
     alignItems: "flex-start",
-    justifyContent: "space-between",
-    // gap: 5,
+    flexWrap: "wrap",
+    gap: 6,
   },
   progressChip: {
     flexDirection: "row",
@@ -431,6 +501,27 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     color: "#000000",
+  },
+  notesChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 8,
+    borderRadius: 9,
+  },
+  notesChipActive: {
+    backgroundColor: "#d9ad26",
+  },
+  notesChipInactive: {
+    backgroundColor: "#f0f0f0",
+  },
+  notesChipText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#000000",
+    textTransform: "uppercase",
   },
   iconsRow: {
     width: 64,

@@ -72,6 +72,7 @@ function EditSongColumnA({
   const [instLastPlayedguitar01, setInstLastPlayedguitar01] = useState("");
   const [instLinkguitar01, setInstLinkguitar01] = useState("");
   const [instProgressBarguitar01, setInstProgressBarguitar01] = useState(0);
+  const [instNotesguitar01, setInstNotesguitar01] = useState("");
 
   // guitar02
   const [songCifraguitar02, setSongCifraguitar02] = useState(null);
@@ -82,6 +83,7 @@ function EditSongColumnA({
   const [instLastPlayedguitar02, setInstLastPlayedguitar02] = useState("");
   const [instLinkguitar02, setInstLinkguitar02] = useState("");
   const [instProgressBarguitar02, setInstProgressBarguitar02] = useState(0);
+  const [instNotesguitar02, setInstNotesguitar02] = useState("");
 
   // bass
   const [songCifrabass, setSongCifrabass] = useState(null);
@@ -91,6 +93,7 @@ function EditSongColumnA({
   const [instLastPlayedbass, setInstLastPlayedbass] = useState("");
   const [instLinkbass, setInstLinkbass] = useState("");
   const [instProgressBarbass, setInstProgressBarbass] = useState(0);
+  const [instNotesbass, setInstNotesbass] = useState("");
 
   // keyboard
   const [songCifrakeyboard, setSongCifrakeyboard] = useState(null);
@@ -101,6 +104,7 @@ function EditSongColumnA({
   const [instLastPlayedkeyboard, setInstLastPlayedkeyboard] = useState("");
   const [instLinkkeyboard, setInstLinkkeyboard] = useState("");
   const [instProgressBarkeyboard, setInstProgressBarkeyboard] = useState(0);
+  const [instNoteskeyboard, setInstNoteskeyboard] = useState("");
 
   // drums
   const [songCifradrums, setSongCifradrums] = useState(null);
@@ -110,6 +114,7 @@ function EditSongColumnA({
   const [instLastPlayeddrums, setInstLastPlayeddrums] = useState("");
   const [instLinkdrums, setInstLinkdrums] = useState("");
   const [instProgressBardrums, setInstProgressBardrums] = useState(0);
+  const [instNotesdrums, setInstNotesdrums] = useState("");
 
   // voice
   const [songCifravoice, setSongCifravoice] = useState(null);
@@ -119,6 +124,7 @@ function EditSongColumnA({
   const [instLastPlayedvoice, setInstLastPlayedvoice] = useState("");
   const [instLinkvoice, setInstLinkvoice] = useState("");
   const [instProgressBarvoice, setInstProgressBarvoice] = useState(0);
+  const [instNotesvoice, setInstNotesvoice] = useState("");
 
   useEffect(() => {
     if (!registerInstrumentUpdaters) return;
@@ -126,26 +132,32 @@ function EditSongColumnA({
     registerInstrumentUpdaters("guitar01", {
       setLink: setInstLinkguitar01,
       setProgress: setInstProgressBarguitar01,
+      setNotes: setInstNotesguitar01,
     });
     registerInstrumentUpdaters("guitar02", {
       setLink: setInstLinkguitar02,
       setProgress: setInstProgressBarguitar02,
+      setNotes: setInstNotesguitar02,
     });
     registerInstrumentUpdaters("bass", {
       setLink: setInstLinkbass,
       setProgress: setInstProgressBarbass,
+      setNotes: setInstNotesbass,
     });
     registerInstrumentUpdaters("keys", {
       setLink: setInstLinkkeyboard,
       setProgress: setInstProgressBarkeyboard,
+      setNotes: setInstNoteskeyboard,
     });
     registerInstrumentUpdaters("drums", {
       setLink: setInstLinkdrums,
       setProgress: setInstProgressBardrums,
+      setNotes: setInstNotesdrums,
     });
     registerInstrumentUpdaters("voice", {
       setLink: setInstLinkvoice,
       setProgress: setInstProgressBarvoice,
+      setNotes: setInstNotesvoice,
     });
   }, [
     registerInstrumentUpdaters,
@@ -229,6 +241,7 @@ function EditSongColumnA({
           setInstLastPlayedguitar01(parsedData.guitar01.lastPlay);
           setInstLinkguitar01(parsedData.guitar01.link);
           setInstProgressBarguitar01(parsedData.guitar01.progress);
+          setInstNotesguitar01(parsedData.guitar01.notes || "");
         }
 
         if (parsedData.guitar02?.active) {
@@ -239,6 +252,7 @@ function EditSongColumnA({
           setInstLastPlayedguitar02(parsedData.guitar02.lastPlay);
           setInstLinkguitar02(parsedData.guitar02.link);
           setInstProgressBarguitar02(parsedData.guitar02.progress);
+          setInstNotesguitar02(parsedData.guitar02.notes || "");
         }
 
         if (parsedData.bass?.active) {
@@ -249,6 +263,7 @@ function EditSongColumnA({
           setInstLastPlayedbass(parsedData.bass.lastPlay);
           setInstLinkbass(parsedData.bass.link);
           setInstProgressBarbass(parsedData.bass.progress);
+          setInstNotesbass(parsedData.bass.notes || "");
         }
 
         if (parsedData.keys?.active) {
@@ -259,6 +274,7 @@ function EditSongColumnA({
           setInstLastPlayedkeyboard(parsedData.keys.lastPlay);
           setInstLinkkeyboard(parsedData.keys.link);
           setInstProgressBarkeyboard(parsedData.keys.progress);
+          setInstNoteskeyboard(parsedData.keys.notes || "");
         }
 
         if (parsedData.drums?.active) {
@@ -269,6 +285,7 @@ function EditSongColumnA({
           setInstLastPlayeddrums(parsedData.drums.lastPlay);
           setInstLinkdrums(parsedData.drums.link);
           setInstProgressBardrums(parsedData.drums.progress);
+          setInstNotesdrums(parsedData.drums.notes || "");
         }
 
         if (parsedData.voice?.active) {
@@ -279,6 +296,7 @@ function EditSongColumnA({
           setInstLastPlayedvoice(parsedData.voice.lastPlay);
           setInstLinkvoice(parsedData.voice.link);
           setInstProgressBarvoice(parsedData.voice.progress);
+          setInstNotesvoice(parsedData.voice.notes || "");
         }
       } catch (error) {
         console.error("Failed to parse dataFromAPI:", error);
@@ -302,36 +320,42 @@ function EditSongColumnA({
           link: instLinkguitar01,
           progress: instProgressBarguitar01,
           songCifra: songCifraguitar01,
+          notes: instNotesguitar01,
         },
         guitar02: {
           active: instrActiveStatusguitar02,
           link: instLinkguitar02,
           progress: instProgressBarguitar02,
           songCifra: songCifraguitar02,
+          notes: instNotesguitar02,
         },
         bass: {
           active: instrActiveStatusbass,
           link: instLinkbass,
           progress: instProgressBarbass,
           songCifra: songCifrabass,
+          notes: instNotesbass,
         },
         keys: {
           active: instrActiveStatuskeyboard,
           link: instLinkkeyboard,
           progress: instProgressBarkeyboard,
           songCifra: songCifrakeyboard,
+          notes: instNoteskeyboard,
         },
         drums: {
           active: instrActiveStatusdrums,
           link: instLinkdrums,
           progress: instProgressBardrums,
           songCifra: songCifradrums,
+          notes: instNotesdrums,
         },
         voice: {
           active: instrActiveStatusvoice,
           link: instLinkvoice,
           progress: instProgressBarvoice,
           songCifra: songCifravoice,
+          notes: instNotesvoice,
         },
       }),
     [
@@ -347,26 +371,32 @@ function EditSongColumnA({
       instLinkguitar01,
       instProgressBarguitar01,
       songCifraguitar01,
+      instNotesguitar01,
       instrActiveStatusguitar02,
       instLinkguitar02,
       instProgressBarguitar02,
       songCifraguitar02,
+      instNotesguitar02,
       instrActiveStatusbass,
       instLinkbass,
       instProgressBarbass,
       songCifrabass,
+      instNotesbass,
       instrActiveStatuskeyboard,
       instLinkkeyboard,
       instProgressBarkeyboard,
       songCifrakeyboard,
+      instNoteskeyboard,
       instrActiveStatusdrums,
       instLinkdrums,
       instProgressBardrums,
       songCifradrums,
+      instNotesdrums,
       instrActiveStatusvoice,
       instLinkvoice,
       instProgressBarvoice,
       songCifravoice,
+      instNotesvoice,
     ]
   );
 
@@ -400,6 +430,7 @@ function EditSongColumnA({
                 progress: instProgressBarguitar01,
                 songCifra: songCifraguitar01,
                 tuning: instTuningguitar01,
+                notes: instNotesguitar01,
               }
             : false,
           guitar02: instrActiveStatusguitar02
@@ -411,6 +442,7 @@ function EditSongColumnA({
                 progress: instProgressBarguitar02,
                 songCifra: songCifraguitar02,
                 tuning: instTuningguitar02,
+                notes: instNotesguitar02,
               }
             : false,
           bass: instrActiveStatusbass
@@ -422,6 +454,7 @@ function EditSongColumnA({
                 progress: instProgressBarbass,
                 songCifra: songCifrabass,
                 tuning: instTuningbass,
+                notes: instNotesbass,
               }
             : false,
           keys: instrActiveStatuskeyboard
@@ -433,6 +466,7 @@ function EditSongColumnA({
                 progress: instProgressBarkeyboard,
                 songCifra: songCifrakeyboard,
                 tuning: instTuningkeyboard,
+                notes: instNoteskeyboard,
               }
             : false,
           drums: instrActiveStatusdrums
@@ -444,6 +478,7 @@ function EditSongColumnA({
                 progress: instProgressBardrums,
                 songCifra: songCifradrums,
                 tuning: instTuningdrums,
+                notes: instNotesdrums,
               }
             : false,
           voice: instrActiveStatusvoice
@@ -455,6 +490,7 @@ function EditSongColumnA({
                 progress: instProgressBarvoice,
                 songCifra: songCifravoice,
                 tuning: instTuningvoice,
+                notes: instNotesvoice,
               }
             : false,
         },
@@ -523,7 +559,7 @@ function EditSongColumnA({
       </div>
 
       <div className="mt-4 flex justify-center [&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!mr-0 [&_.neuphormism-b]:!w-full [&_.neuphormism-b]:!max-w-[420px]">
-        <GeralProgressBar geralPercentage={geralPercentage} />
+        <GeralProgressBar geralPercentage={geralPercentage} compact={touchLayout} />
       </div>
 
       {middleContent}

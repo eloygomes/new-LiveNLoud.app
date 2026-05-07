@@ -24,21 +24,27 @@ function NewSong() {
   // Column B
   const [guitar01, setGuitar01] = useState("");
   const [progBarG01, setProgBarG01] = useState(0);
+  const [notesGuitar01, setNotesGuitar01] = useState("");
 
   const [guitar02, setGuitar02] = useState("");
   const [progBarG02, setProgBarG02] = useState(0);
+  const [notesGuitar02, setNotesGuitar02] = useState("");
 
   const [bass, setBass] = useState("");
   const [progBarBass, setProgBarBass] = useState(0);
+  const [notesBass, setNotesBass] = useState("");
 
   const [key, setKey] = useState("");
   const [progBarKey, setProgBarKey] = useState(0);
+  const [notesKey, setNotesKey] = useState("");
 
   const [drums, setDrums] = useState("");
   const [progBarDrums, setProgBarDrums] = useState(0);
+  const [notesDrums, setNotesDrums] = useState("");
 
   const [voice, setVoice] = useState("");
   const [progBarVoice, setProgBarVoice] = useState(0);
+  const [notesVoice, setNotesVoice] = useState("");
 
   const [dataFromUrl, setDataFromUrl] = useState("");
   const [scrapeStatus, setScrapeStatus] = useState({
@@ -145,16 +151,28 @@ function NewSong() {
                     setVoice={setVoice}
                     progBarG01={progBarG01}
                     setProgBarG01={setProgBarG01}
+                    notesGuitar01={notesGuitar01}
+                    setNotesGuitar01={setNotesGuitar01}
                     progBarG02={progBarG02}
                     setProgBarG02={setProgBarG02}
+                    notesGuitar02={notesGuitar02}
+                    setNotesGuitar02={setNotesGuitar02}
                     progBarBass={progBarBass}
                     setProgBarBass={setProgBarBass}
+                    notesBass={notesBass}
+                    setNotesBass={setNotesBass}
                     progBarKey={progBarKey}
                     setProgBarKey={setProgBarKey}
+                    notesKey={notesKey}
+                    setNotesKey={setNotesKey}
                     progBarDrums={progBarDrums}
                     setProgBarDrums={setProgBarDrums}
+                    notesDrums={notesDrums}
+                    setNotesDrums={setNotesDrums}
                     progBarVoice={progBarVoice}
                     setProgBarVoice={setProgBarVoice}
+                    notesVoice={notesVoice}
+                    setNotesVoice={setNotesVoice}
                     setArtistExtractedFromUrl={setArtistExtractedFromUrl}
                     setSongExtractedFromUrl={setSongExtractedFromUrl}
                     gettingSongData={gettingSongData}
@@ -249,16 +267,28 @@ function NewSong() {
                   setVoice={setVoice}
                   progBarG01={progBarG01}
                   setProgBarG01={setProgBarG01}
+                  notesGuitar01={notesGuitar01}
+                  setNotesGuitar01={setNotesGuitar01}
                   progBarG02={progBarG02}
                   setProgBarG02={setProgBarG02}
+                  notesGuitar02={notesGuitar02}
+                  setNotesGuitar02={setNotesGuitar02}
                   progBarBass={progBarBass}
                   setProgBarBass={setProgBarBass}
+                  notesBass={notesBass}
+                  setNotesBass={setNotesBass}
                   progBarKey={progBarKey}
                   setProgBarKey={setProgBarKey}
+                  notesKey={notesKey}
+                  setNotesKey={setNotesKey}
                   progBarDrums={progBarDrums}
                   setProgBarDrums={setProgBarDrums}
+                  notesDrums={notesDrums}
+                  setNotesDrums={setNotesDrums}
                   progBarVoice={progBarVoice}
                   setProgBarVoice={setProgBarVoice}
+                  notesVoice={notesVoice}
+                  setNotesVoice={setNotesVoice}
                   setArtistExtractedFromUrl={setArtistExtractedFromUrl}
                   setSongExtractedFromUrl={setSongExtractedFromUrl}
                   gettingSongData={gettingSongData} // mantém prop
@@ -342,16 +372,28 @@ function NewSong() {
                   setVoice={setVoice}
                   progBarG01={progBarG01}
                   setProgBarG01={setProgBarG01}
+                  notesGuitar01={notesGuitar01}
+                  setNotesGuitar01={setNotesGuitar01}
                   progBarG02={progBarG02}
                   setProgBarG02={setProgBarG02}
+                  notesGuitar02={notesGuitar02}
+                  setNotesGuitar02={setNotesGuitar02}
                   progBarBass={progBarBass}
                   setProgBarBass={setProgBarBass}
+                  notesBass={notesBass}
+                  setNotesBass={setNotesBass}
                   progBarKey={progBarKey}
                   setProgBarKey={setProgBarKey}
+                  notesKey={notesKey}
+                  setNotesKey={setNotesKey}
                   progBarDrums={progBarDrums}
                   setProgBarDrums={setProgBarDrums}
+                  notesDrums={notesDrums}
+                  setNotesDrums={setNotesDrums}
                   progBarVoice={progBarVoice}
                   setProgBarVoice={setProgBarVoice}
+                  notesVoice={notesVoice}
+                  setNotesVoice={setNotesVoice}
                   setArtistExtractedFromUrl={setArtistExtractedFromUrl}
                   setSongExtractedFromUrl={setSongExtractedFromUrl}
                   gettingSongData={gettingSongData} // mantém prop
