@@ -16,12 +16,12 @@ function SetlistExport({
         </p>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={handleExportText}
           disabled={!visibleSongs.length}
-          className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black transition-transform ${
+          className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform ${
             visibleSongs.length
               ? "hover:bg-[goldenrod] hover:text-black active:scale-95"
               : "cursor-not-allowed opacity-50"
@@ -33,7 +33,7 @@ function SetlistExport({
           type="button"
           onClick={handleExportJson}
           disabled={!visibleSongs.length}
-          className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-black transition-transform ${
+          className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform ${
             visibleSongs.length
               ? "hover:bg-[goldenrod] hover:text-black active:scale-95"
               : "cursor-not-allowed opacity-50"

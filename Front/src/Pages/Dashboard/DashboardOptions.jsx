@@ -3,12 +3,13 @@ import { useState, useEffect, useMemo } from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiFileText } from "react-icons/fi";
 import { VscJson } from "react-icons/vsc";
-import { IoChevronDown, IoClose } from "react-icons/io5";
+import { IoClose } from "react-icons/io5";
 
 import {
   fetchDistinctSetlists,
   updateUserSetlists,
 } from "../../Tools/Controllers";
+import { lockPageScroll } from "../../Tools/scrollLock";
 import PlaylistExport from "./PlaylistExport";
 import SetlistExport from "./SetlistExport";
 import Insights from "./Insights";
@@ -94,28 +95,6 @@ function ColumnsData({
   );
 }
 
-function CollapsiblePanel({ title, children }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <section className="neuphormism-b overflow-hidden">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="text-sm font-black uppercase text-gray-900">
-          {title}
-        </span>
-        <IoChevronDown
-          className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-      {open ? <div className="px-3 pb-3">{children}</div> : null}
-    </section>
-  );
-}
-
 export default function DashboardOptions({
   optStatus,
   setOptStatus,
@@ -146,6 +125,11 @@ export default function DashboardOptions({
       window.removeEventListener("close-all-modals", handleCloseFilter);
     };
   }, [setOptStatus]);
+
+  useEffect(() => {
+    if (!optStatus) return undefined;
+    return lockPageScroll();
+  }, [optStatus]);
 
   // 1) Buscar setlists distintas no backend
   useEffect(() => {
@@ -296,11 +280,11 @@ export default function DashboardOptions({
     setOptStatus(false);
   };
 
-  const openFilterClassName = `fixed z-[10020] overflow-hidden ${
+  const openFilterClassName = `fixed overflow-hidden ${
     optStatus ? "" : "hidden"
   } ${
     isSmallScreen
-      ? "inset-0 bg-black/25 px-3 pb-24 pt-[5.5rem]"
+      ? "inset-0 z-[12000] bg-black/45"
       : "left-1/2 top-[80px] flex h-[calc(100vh-7rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14]"
   }`;
 
@@ -318,14 +302,14 @@ export default function DashboardOptions({
       <div
         className={
           isSmallScreen
-            ? "relative flex h-full flex-col overflow-hidden rounded-md bg-[#f0f0f0] shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
+            ? "absolute inset-x-0 bottom-0 flex max-h-[84vh] flex-col overflow-hidden rounded-t-[18px] bg-[#f2f2f2] px-5 pb-3 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] sm:px-7"
             : ""
         }
       >
         <div
           className={`flex flex-row justify-between ${
             isSmallScreen
-              ? "border-b border-black/5 px-4 py-3"
+              ? "mb-4 items-start"
               : " rounded-t-lg px-5 py-2 text-center  text-white font-bold  bg-[#000000]/60 cursor-pointer"
           }`}
         >
@@ -356,10 +340,11 @@ export default function DashboardOptions({
             type="button"
             className={
               isSmallScreen
-                ? "rounded-full bg-black/5 p-2 text-black shadow-[0_8px_18px_rgba(0,0,0,0.06)]"
+                ? "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
                 : "px-5"
             }
             onClick={closeFilter}
+            aria-label="Close filter"
           >
             <IoClose className="h-6 w-6 cursor-pointer" />
           </button>
@@ -368,7 +353,7 @@ export default function DashboardOptions({
         <div
           className={
             isSmallScreen
-              ? "flex-1 overflow-y-auto px-4 pb-6 pt-4"
+              ? "min-h-0 flex-1 overflow-y-auto pb-2"
               : "min-h-0 flex-1 overflow-y-auto rounded-b-lg bg-[#e6e6e6] px-4 py-3"
           }
         >
@@ -379,30 +364,50 @@ export default function DashboardOptions({
           >
             {isSmallScreen ? (
               <>
-                <CollapsiblePanel title="Insights">
-                  <Insights dashboardMetrics={dashboardMetrics} />
-                </CollapsiblePanel>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="neuphormism-b rounded-lg p-3">
+                    <p className="text-[10px] font-black uppercase text-gray-500">
+                      Songs
+                    </p>
+                    <p className="mt-1 text-2xl font-black text-gray-900">
+                      {dashboardMetrics.totalSongs}
+                    </p>
+                  </div>
+                  <div className="neuphormism-b rounded-lg p-3">
+                    <p className="text-[10px] font-black uppercase text-gray-500">
+                      Ready
+                    </p>
+                    <p className="mt-1 text-2xl font-black text-gray-900">
+                      {dashboardMetrics.readySongs}
+                    </p>
+                  </div>
+                  <div className="neuphormism-b rounded-lg p-3">
+                    <p className="text-[10px] font-black uppercase text-gray-500">
+                      Avg
+                    </p>
+                    <p className="mt-1 text-2xl font-black text-gray-900">
+                      {dashboardMetrics.averageProgress}%
+                    </p>
+                  </div>
+                </div>
 
-                <CollapsiblePanel title="Tags / Setlists">
-                  <Tags
-                    setlists={setlists}
-                    selectedSetlists={selectedSetlists}
-                    toggleTag={toggleTag}
-                    handleDeleteSetlist={handleDeleteSetlist}
-                    handleAddSetlist={handleAddSetlist}
-                    RiDeleteBin6Line={RiDeleteBin6Line}
-                  />
-                </CollapsiblePanel>
+                <Tags
+                  setlists={setlists}
+                  selectedSetlists={selectedSetlists}
+                  toggleTag={toggleTag}
+                  handleDeleteSetlist={handleDeleteSetlist}
+                  handleAddSetlist={handleAddSetlist}
+                  RiDeleteBin6Line={RiDeleteBin6Line}
+                  isTouchLayout
+                />
 
-                <CollapsiblePanel title="Columns Data">
-                  <ColumnsData
-                    visibleColumns={visibleColumns}
-                    onToggleColumn={onToggleColumn}
-                    canSelectAllColumns={canSelectAllColumns}
-                  />
-                </CollapsiblePanel>
+                <ColumnsData
+                  visibleColumns={visibleColumns}
+                  onToggleColumn={onToggleColumn}
+                  canSelectAllColumns={canSelectAllColumns}
+                />
 
-                <CollapsiblePanel title="Export">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <SetlistExport
                     handleExportText={handleExportText}
                     visibleSongs={visibleSongs}
@@ -410,11 +415,8 @@ export default function DashboardOptions({
                     handleExportJson={handleExportJson}
                     VscJson={VscJson}
                   />
-                </CollapsiblePanel>
-
-                <CollapsiblePanel title="Playlists">
                   <PlaylistExport visibleSongs={visibleSongs} />
-                </CollapsiblePanel>
+                </div>
               </>
             ) : (
               <>
@@ -462,10 +464,10 @@ export default function DashboardOptions({
         </div>
 
         {isSmallScreen ? (
-          <div className="border-t border-black/5 bg-[#f0f0f0] px-4 pb-5 pt-3">
+          <div className="border-t border-black/5 bg-[#f2f2f2] px-1 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2">
             <button
               type="button"
-              className="w-full rounded-[16px] border border-black/10 bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.16em] text-black shadow-[0_8px_18px_rgba(0,0,0,0.05)]"
+              className="w-full rounded-[10px] border border-black/10 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black shadow-[0_5px_12px_rgba(0,0,0,0.04)]"
               onClick={closeFilter}
             >
               Close Filter

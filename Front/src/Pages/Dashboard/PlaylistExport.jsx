@@ -393,11 +393,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform
                   ${
                     disabled
-                      ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "border  hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
+                      ? "bg-gray-400 cursor-not-allowed text-black opacity-60"
+                      : "border text-black hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
                   }`}
               >
-                <FaSpotify className="text-lg" />
+                <FaSpotify className="text-lg text-[#1DB954]" />
                 Spotify
               </button>
 
@@ -408,11 +408,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform
                   ${
                     disabled
-                      ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "border  hover:bg-[goldenrod] hover:border-[goldenrod] hover:text-black active:scale-95 text-[#9ca3af]"
+                      ? "bg-gray-400 cursor-not-allowed text-black opacity-60"
+                      : "border text-black hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
                   }`}
               >
-                <FaYoutube className="text-lg" />
+                <FaYoutube className="text-lg text-[#FF0000]" />
                 YouTube
               </button>
             </div>

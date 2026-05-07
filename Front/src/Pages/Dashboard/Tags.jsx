@@ -11,6 +11,7 @@ export default function Tags({
   handleDeleteSetlist,
   handleAddSetlist,
   RiDeleteBin6Line,
+  isTouchLayout = false,
 }) {
   const [activeTab, setActiveTab] = useState("tags");
   const [isEditing, setIsEditing] = useState(false);
@@ -159,21 +160,42 @@ export default function Tags({
   return (
     <>
       <section className="neuphormism-b p-4">
-        <div className="flex flex-row flex-1 items-start justify-between gap-3 ">
-          <div className="w-1/2 flex flex-col">
+        <div
+          className={
+            isTouchLayout
+              ? "flex flex-col gap-3"
+              : "flex flex-row flex-1 items-start justify-between gap-3 "
+          }
+        >
+          <div
+            className={isTouchLayout ? "flex flex-col" : "w-1/2 flex flex-col"}
+          >
             <h1 className="text-sm font-black uppercase">Tags / Setlists</h1>
-            <p className="mt-1 text-[11px] font-semibold text-gray-500">
-              Filter songs by setlist tags.
-            </p>
-            <p className="mt-1 text-[11px] font-semibold text-gray-500">
-              Selected setlists can be exported or shared with accepted friends.
-            </p>
+            {!isTouchLayout ? (
+              <>
+                <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                  Filter songs by setlist tags.
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                  Selected setlists can be exported or shared with accepted
+                  friends.
+                </p>
+              </>
+            ) : null}
           </div>
-          <div className="w-1/2 flex flex-row justify-between gap-2">
-            <div className="w-1/2"></div>
+          <div
+            className={
+              isTouchLayout
+                ? "grid grid-cols-2 gap-2"
+                : "w-1/2 flex flex-row justify-between gap-2"
+            }
+          >
+            <div className={isTouchLayout ? "hidden" : "w-1/2"}></div>
             <button
               type="button"
-              className={`flex-1 rounded-md px-2 py-2 text-sm font-black uppercase transition-colors ${
+              className={`rounded-md px-2 py-2 text-sm font-black uppercase transition-colors ${
+                isTouchLayout ? "" : "flex-1"
+              } ${
                 activeTab === "tags"
                   ? "neuphormism-b-btn-gold"
                   : "neuphormism-b-btn "
@@ -184,7 +206,9 @@ export default function Tags({
             </button>
             <button
               type="button"
-              className={`flex-1 rounded-md px-2 py-2 text-sm font-black uppercase transition-colors ${
+              className={`rounded-md px-2 py-2 text-sm font-black uppercase transition-colors ${
+                isTouchLayout ? "" : "flex-1"
+              } ${
                 activeTab === "export"
                   ? "neuphormism-b-btn-gold"
                   : "neuphormism-b-btn "
@@ -203,10 +227,12 @@ export default function Tags({
                 <h2 className="text-[11px] font-black uppercase text-gray-600">
                   Filter tags
                 </h2>
-                <p className="mt-1 text-[11px] font-semibold text-gray-500">
-                  Selected tags filter the dashboard and are carried into
-                  export.
-                </p>
+                {!isTouchLayout ? (
+                  <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                    Selected tags filter the dashboard and are carried into
+                    export.
+                  </p>
+                ) : null}
               </div>
               <div className="flex gap-2">
                 {!isEditing ? (
@@ -266,7 +292,13 @@ export default function Tags({
               {setlists.length === 0 ? (
                 <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div
+                  className={
+                    isTouchLayout
+                      ? "grid max-h-44 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3"
+                      : "flex flex-wrap gap-2"
+                  }
+                >
                   {setlists.map((tag, index) => {
                     const isActive = selectedSetlists.includes(tag);
                     const willRemove = pendingRemovals.includes(tag);
@@ -282,13 +314,13 @@ export default function Tags({
                           isEditing ? "cursor-default" : ""
                         } ${willRemove ? "ring-2 ring-red-600" : ""}`}
                         style={{
-                          minWidth: "80px",
+                          minWidth: isTouchLayout ? "0" : "80px",
                           display: "inline-flex",
                           justifyContent: "center",
                           alignItems: "center",
-                          padding: "6px 10px",
+                          padding: isTouchLayout ? "10px 12px" : "6px 10px",
                           borderRadius: "7px",
-                          margin: "2px",
+                          margin: isTouchLayout ? "0" : "2px",
                           cursor: isEditing ? "default" : "pointer",
                           fontSize: "12px",
                           backgroundColor,
@@ -333,8 +365,14 @@ export default function Tags({
               )}
             </div>
           </div>
-        ) : (
-          <div className="mt-4">
+        ) : null}
+
+        {activeTab === "export" ? (
+          <div
+            className={
+              isTouchLayout ? "mt-5 border-t border-black/5 pt-4" : "mt-4"
+            }
+          >
             {/* <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-[11px] font-black uppercase text-gray-600">
@@ -368,7 +406,10 @@ export default function Tags({
               </div>
             </div> */}
 
-            <div className="mt-3 flex min-h-9 flex-wrap gap-2 rounded-lg border border-black/5 bg-white/50 p-2">
+            <h2 className="text-[11px] font-black uppercase text-gray-600">
+              Share setlists
+            </h2>
+            <div className="mt-3 flex max-h-20 min-h-9 flex-wrap gap-2 overflow-y-auto rounded-lg border border-black/5 bg-white/50 p-2">
               {exportableSetlists.length ? (
                 exportableSetlists.map((setlist) => (
                   <span
@@ -395,7 +436,7 @@ export default function Tags({
                     setShareStatus("");
                     setShareError("");
                   }}
-                  className="w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-[goldenrod]"
+                  className="w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-[16px] font-semibold text-gray-700 outline-none focus:border-[goldenrod] md:text-sm"
                   placeholder="friend@email.com"
                 />
                 {destinationEmail && friendSuggestions.length > 0 ? (
@@ -454,29 +495,33 @@ export default function Tags({
               </p>
             ) : null}
 
-            <p className="mt-3 text-[11px] font-black uppercase text-gray-600">
-              Imported
-            </p>
-            <div className="mt-1 min-h-8 rounded-lg border border-black/5 bg-white/50 p-2">
-              {importedSetlists.length ? (
-                <div className="flex flex-wrap gap-2">
-                  {importedSetlists.map((setlist) => (
-                    <span
-                      key={setlist}
-                      className="rounded-full bg-black/5 px-3 py-1 text-[11px] font-bold text-gray-700"
-                    >
-                      {setlist}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[11px] font-semibold text-gray-500">
-                  No imported setlists yet.
+            {!isTouchLayout ? (
+              <>
+                <p className="mt-3 text-[11px] font-black uppercase text-gray-600">
+                  Imported
                 </p>
-              )}
-            </div>
+                <div className="mt-1 min-h-8 rounded-lg border border-black/5 bg-white/50 p-2">
+                  {importedSetlists.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {importedSetlists.map((setlist) => (
+                        <span
+                          key={setlist}
+                          className="rounded-full bg-black/5 px-3 py-1 text-[11px] font-bold text-gray-700"
+                        >
+                          {setlist}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-semibold text-gray-500">
+                      No imported setlists yet.
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : null}
           </div>
-        )}
+        ) : null}
       </section>
       <style>{`
       @keyframes tag-shake {

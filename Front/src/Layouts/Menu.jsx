@@ -14,6 +14,7 @@ import UserProfileModal from "../Tools/modal/UserProfileModal";
 import NotificationBell from "./NotificationBell";
 import SearchBox from "../Pages/Dashboard/SearchBox/SearchBox";
 import { loadSelectedSetlists } from "../Tools/Controllers";
+import { lockPageScroll } from "../Tools/scrollLock";
 
 export default function RootLayouts() {
   // ===== ESTADO DA BUSCA (navbar) =====
@@ -144,6 +145,11 @@ export default function RootLayouts() {
       window.removeEventListener("close-all-modals", handleCloseAllModals);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isDashboardRoute || !isSearchOpen) return undefined;
+    return lockPageScroll();
+  }, [isDashboardRoute, isSearchOpen]);
 
   const openSearch = () => {
     window.dispatchEvent(new CustomEvent("close-all-modals"));
