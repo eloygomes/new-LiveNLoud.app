@@ -4,9 +4,11 @@ import EditSongColumnB from "./EditSongColumnB";
 import { fetchAllSongData } from "../../Tools/Controllers";
 import SnackBar from "../../Tools/SnackBar";
 
+const WEB_LAYOUT_MIN_WIDTH = 768;
+
 function EditSong() {
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < WEB_LAYOUT_MIN_WIDTH;
   const [songDataOpen, setSongDataOpen] = useState(true);
   const [dataFromAPI, setDataFromAPI] = useState([]);
   const [isDirty, setIsDirty] = useState(false);

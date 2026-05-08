@@ -4,6 +4,7 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiFileText } from "react-icons/fi";
 import { VscJson } from "react-icons/vsc";
 import { IoClose } from "react-icons/io5";
+import { FaArrowDown, FaArrowUp } from "react-icons/fa";
 
 import {
   fetchDistinctSetlists,
@@ -37,13 +38,22 @@ const columnOptions = [
 function ColumnsData({
   visibleColumns = [],
   onToggleColumn = () => {},
+  onMoveColumn = () => {},
   canSelectAllColumns = false,
+  maxSelectableColumns = columnOptions.length,
+  isColumnLimitedLayout = false,
 }) {
   const allColumnsSelected = columnOptions.every((option) =>
     visibleColumns.includes(option.key),
   );
   const maxColumnsReached =
-    !canSelectAllColumns && visibleColumns.length >= columnOptions.length - 1;
+    !canSelectAllColumns && visibleColumns.length >= maxSelectableColumns;
+  const orderedColumnOptions = [
+    ...visibleColumns
+      .map((key) => columnOptions.find((option) => option.key === key))
+      .filter(Boolean),
+    ...columnOptions.filter((option) => !visibleColumns.includes(option.key)),
+  ];
 
   return (
     <section className="neuphormism-b p-4">
@@ -51,44 +61,79 @@ function ColumnsData({
         <h1 className="text-sm font-black uppercase">Columns Data</h1>
         <p className="mt-1 text-[11px] font-semibold text-gray-500">
           Select which columns to display in the dashboard.
+          {!canSelectAllColumns ? ` Limit: ${maxSelectableColumns}.` : ""}
         </p>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {columnOptions.map(({ key, label }) => {
+      <div
+        className={`mt-4 grid gap-2 ${
+          isColumnLimitedLayout ? "grid-cols-1" : "sm:grid-cols-2"
+        }`}
+      >
+        {orderedColumnOptions.map(({ key, label }) => {
           const checked = visibleColumns.includes(key);
           const disabled =
             !checked && (allColumnsSelected || maxColumnsReached);
+          const visibleIndex = visibleColumns.indexOf(key);
 
           return (
-            <label
+            <div
               key={key}
               className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
-                disabled ? "opacity-50" : "cursor-pointer"
+                disabled ? "opacity-50" : ""
               }`}
             >
-              <span className="text-[12px] font-black uppercase text-gray-700">
-                {label}
-              </span>
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => onToggleColumn(key)}
-              />
-              <span
-                className={`relative inline-flex h-6 w-11 items-center rounded-full shadow-inner ${
-                  checked ? "bg-[goldenrod]" : "bg-gray-400"
+              <label
+                className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${
+                  disabled ? "" : "cursor-pointer"
                 }`}
               >
-                <span
-                  className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    checked ? "translate-x-6" : "translate-x-1"
-                  }`}
+                <span className="truncate text-[12px] font-black uppercase text-gray-700">
+                  {label}
+                </span>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => onToggleColumn(key)}
                 />
-              </span>
-            </label>
+                <span
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
+                    checked ? "bg-[goldenrod]" : "bg-gray-400"
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      checked ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </span>
+              </label>
+
+              {checked ? (
+                <div className="ml-3 flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
+                    disabled={visibleIndex <= 0}
+                    onClick={() => onMoveColumn(key, -1)}
+                    aria-label={`Move ${label} left`}
+                  >
+                    <FaArrowUp />
+                  </button>
+                  <button
+                    type="button"
+                    className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
+                    disabled={visibleIndex === visibleColumns.length - 1}
+                    onClick={() => onMoveColumn(key, 1)}
+                    aria-label={`Move ${label} right`}
+                  >
+                    <FaArrowDown />
+                  </button>
+                </div>
+              ) : null}
+            </div>
           );
         })}
       </div>
@@ -104,11 +149,21 @@ export default function DashboardOptions({
   visibleSongs = [],
   visibleColumns = [],
   onToggleColumn = () => {},
+  onMoveColumn = () => {},
   canSelectAllColumns = false,
+  maxSelectableColumns,
 }) {
   const [setlists, setSetlists] = useState([]);
   const isSmallScreen =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
+  const isColumnLimitedLayout =
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768 &&
+    window.innerWidth < 1366;
+  const isMiniTabletOptions =
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768 &&
+    window.innerWidth < 820;
 
   useEffect(() => {
     const handleCloseFilter = () => {
@@ -286,7 +341,9 @@ export default function DashboardOptions({
   } ${
     isSmallScreen
       ? "inset-0 z-[12000] bg-black/45"
-      : "left-1/2 top-[80px] flex h-[calc(100vh-7rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14]"
+            : `left-1/2 top-[80px] flex h-[calc(100vh-7rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14] ${
+                isMiniTabletOptions ? "dashboard-options-mini" : ""
+              }`
   }`;
 
   return (
@@ -405,7 +462,10 @@ export default function DashboardOptions({
                 <ColumnsData
                   visibleColumns={visibleColumns}
                   onToggleColumn={onToggleColumn}
+                  onMoveColumn={onMoveColumn}
                   canSelectAllColumns={canSelectAllColumns}
+                  maxSelectableColumns={maxSelectableColumns}
+                  isColumnLimitedLayout={isColumnLimitedLayout}
                 />
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -439,7 +499,10 @@ export default function DashboardOptions({
                     <ColumnsData
                       visibleColumns={visibleColumns}
                       onToggleColumn={onToggleColumn}
+                      onMoveColumn={onMoveColumn}
                       canSelectAllColumns={canSelectAllColumns}
+                      maxSelectableColumns={maxSelectableColumns}
+                      isColumnLimitedLayout={isColumnLimitedLayout}
                     />
                   </div>
                 </div>

@@ -280,7 +280,7 @@ function InviteResponseModal({
 
 export default function Calendar() {
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
   const longPressTimerRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);

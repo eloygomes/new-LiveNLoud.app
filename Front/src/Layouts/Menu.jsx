@@ -40,7 +40,7 @@ export default function RootLayouts() {
   const isPresentationRoute = location.pathname.startsWith("/presentation/");
   const isUserProfileRoute = location.pathname.startsWith("/userprofile/");
   const isTouchDashboardLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
   const hasActiveSearch = searchTerm.trim().length > 0;
   const searchButtonClassName = `rounded-full p-3 neuphormism-b-btn ${
     hasActiveSearch ? "blinking-icon text-black" : ""
@@ -61,6 +61,10 @@ export default function RootLayouts() {
     !isPresentationRoute &&
     !isToolDetailRoute &&
     !hideMobileHeader;
+  const shouldLockRouteScroll =
+    isPresentationRoute ||
+    (isDashboardRoute && !isTouchDashboardLayout) ||
+    (isToolsRoute && isTouchDashboardLayout);
   const mobileTabs = [
     { to: "/", label: "Songlist", icon: FaListUl },
     { to: "/newsong", label: "Plus", icon: FaPlusCircle },
@@ -166,7 +170,7 @@ export default function RootLayouts() {
       {/* HEADER */}
       <header>
         {/* Mobile */}
-        {window.innerWidth <= 1024 &&
+        {window.innerWidth < 768 &&
         !isToolDetailRoute &&
         !hideMobileHeader ? (
           <nav className="fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
@@ -212,15 +216,15 @@ export default function RootLayouts() {
         ) : null}
 
         {/* Desktop */}
-        {window.innerWidth >= 1025 && (
+        {window.innerWidth >= 768 && (
           <nav className="neuphormism-b fixed z-[11900] w-full">
-            <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-2 sm:px-5 lg:px-6">
               <div className="relative flex h-16 items-center justify-between">
                 <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                   <div className="flex flex-row flex-shrink-0 items-center">
-                    <h1 className="font-bold text-3xl">#</h1>
+                    <h1 className="app-logo-mark font-bold text-[clamp(1.6rem,3vw,1.875rem)]">#</h1>
                     <h1
-                      className="ml-2 font-bold italic mr-5 text-xl cursor-pointer"
+                      className="app-logo-text ml-2 mr-5 cursor-pointer text-[clamp(1rem,2.2vw,1.25rem)] font-bold italic"
                       onClick={() => navigate("/")}
                     >
                       SUSTENIDO
@@ -257,7 +261,7 @@ export default function RootLayouts() {
       </header>
 
       {isDashboardRoute && isSearchOpen ? (
-        window.innerWidth <= 1024 ? (
+        window.innerWidth < 768 ? (
           <div className="fixed inset-0 z-[12100] flex items-center justify-center bg-black/25 px-4">
             <button
               type="button"
@@ -285,18 +289,26 @@ export default function RootLayouts() {
       ) : null}
 
       {/* CONTEÚDO */}
-      <main className="min-h-screen">
+      <main
+        className={
+          isPresentationRoute ? "h-screen overflow-hidden" : "min-h-screen"
+        }
+      >
         <div
           data-scroll-removed-mongo-user="true"
           className={`flex-1 ${
-            (isDashboardRoute && !isTouchDashboardLayout) ||
-            (isToolsRoute && isTouchDashboardLayout)
-              ? "overflow-y-hidden"
-              : "overflow-y-auto"
-          } ${needsTouchTopOffset ? "pt-[5.25rem]" : "pt-0"} ${
+            shouldLockRouteScroll ? "overflow-y-hidden" : "overflow-y-auto"
+          } tablet-mini-page-offset ${isPresentationRoute ? "h-full" : ""} ${
+            needsTouchTopOffset ? "pt-[5.25rem]" : "pt-0"
+          } ${
             hideMobileChrome && isPresentationRoute ? "pb-0" : "pb-24"
           } md:pb-0 md:pt-16`}
-          style={{ maxHeight: isTouchDashboardLayout ? "none" : "100vh" }}
+          style={{
+            maxHeight:
+              isTouchDashboardLayout && !isPresentationRoute
+                ? "none"
+                : "100vh",
+          }}
           // className={`flex-1 overflow-y-hidden pt-0 md:pt-16`}
           // style={{ maxHeight: "100vh" }}
         >
@@ -305,7 +317,7 @@ export default function RootLayouts() {
         </div>
       </main>
 
-      {window.innerWidth <= 1024 &&
+      {window.innerWidth < 768 &&
         !(isPresentationRoute && hideMobileChrome) && (
           <nav className="fixed bottom-0 left-0 right-0 z-40 px-0 pb-0">
             <div className="grid grid-cols-4 bg-black px-2 py-2 text-white shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">

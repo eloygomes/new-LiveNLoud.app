@@ -124,6 +124,23 @@ async function request(path, options = {}, retry = true) {
 
 let refreshPromise = null;
 
+function getJwtExpiryMs(token) {
+  if (!token) return 0;
+
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return 0;
+
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+    const decoded = JSON.parse(json);
+
+    return decoded?.exp ? decoded.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function refreshAccessToken() {
   const refreshToken =
     typeof window !== "undefined"
@@ -149,6 +166,34 @@ async function refreshAccessToken() {
   }
 
   return data.accessToken;
+}
+
+export async function ensureAuthenticatedSession() {
+  if (typeof window === "undefined") return false;
+
+  const token = localStorage.getItem("token");
+  if (!token) return false;
+
+  const expiresAt = getJwtExpiryMs(token);
+  const refreshWindowMs = 60 * 1000;
+
+  if (!expiresAt || expiresAt - Date.now() > refreshWindowMs) {
+    return true;
+  }
+
+  try {
+    if (!refreshPromise) {
+      refreshPromise = refreshAccessToken().finally(() => {
+        refreshPromise = null;
+      });
+    }
+
+    await refreshPromise;
+    return true;
+  } catch {
+    logoutUser();
+    return false;
+  }
 }
 
 const fetchApi = {

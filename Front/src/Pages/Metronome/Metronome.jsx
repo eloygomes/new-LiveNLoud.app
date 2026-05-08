@@ -14,7 +14,7 @@ import Stopwatch from "./Stopwatch";
 
 const BPM_MIN = 40;
 const BPM_MAX = 220;
-const TOUCH_BREAKPOINT = 1024;
+const TOUCH_BREAKPOINT = 767;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);

@@ -6,6 +6,10 @@ import SoftVersion from "./SoftVersion";
 
 function Dashboard() {
   const [isMobile, setIsMobile] = useState("");
+  const isIntermediateLayout =
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768 &&
+    window.innerWidth < 1366;
 
   // pega o searchTerm vindo do RootLayouts (via Outlet context)
   const { searchTerm = "" } = useOutletContext() || {};
@@ -20,7 +24,7 @@ function Dashboard() {
     const handleResize = () => {
       if (window.innerWidth <= 426) {
         setIsMobile(1);
-      } else if (window.innerWidth <= 768 && window.innerWidth > 426) {
+      } else if (window.innerWidth < 768 && window.innerWidth > 426) {
         setIsMobile(2);
       } else {
         setIsMobile(3);
@@ -41,7 +45,7 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const shouldLockScroll = window.innerWidth > 1024;
+    const shouldLockScroll = window.innerWidth >= 768;
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow; // <html>
 
@@ -67,10 +71,10 @@ function Dashboard() {
           <FloatingActionButtons />
         </div>
       ) : isMobile === 3 ? (
-        <div className="desktop mx-auto flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden px-4">
+          <div className="desktop mx-auto flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden px-4">
           <DashList2 searchTerm={searchTerm} />
           <FloatingActionButtons />
-          <SoftVersion />
+          {!isIntermediateLayout ? <SoftVersion /> : null}
         </div>
       ) : null}
     </div>

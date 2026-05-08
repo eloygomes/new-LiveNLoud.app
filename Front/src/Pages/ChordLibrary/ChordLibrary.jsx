@@ -332,7 +332,7 @@ function MobileSelectField({ label, value, options, onChange }) {
 
 function ChordLibrary() {
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
   const [root, setRoot] = useState(roots[0] || "C");
   const [mode, setMode] = useState("Major");
   const [quality, setQuality] = useState("None");

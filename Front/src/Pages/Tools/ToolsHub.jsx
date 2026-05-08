@@ -45,7 +45,7 @@ const TOOL_LINKS = [
 export default function ToolsHub() {
   const navigate = useNavigate();
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
 
   if (!isTouchLayout) {
     navigate("/chordlibrary", { replace: true });

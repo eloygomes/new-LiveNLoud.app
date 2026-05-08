@@ -26,7 +26,7 @@ function UserDropdownMenu({
 
   return (
     <>
-      {window.innerWidth <= 926 && window.innerWidth > 426 && (
+      {window.innerWidth < 768 && window.innerWidth > 426 && (
         <div
           className={`${
             userDropdownMenuStatus ? "" : "hidden"
@@ -62,7 +62,7 @@ function UserDropdownMenu({
         </div>
       )}
       {/* DESKTOP */}
-      {window.innerWidth >= 926 && (
+      {window.innerWidth >= 768 && (
         <div
           className={`${
             userDropdownMenuStatus ? "" : "hidden"

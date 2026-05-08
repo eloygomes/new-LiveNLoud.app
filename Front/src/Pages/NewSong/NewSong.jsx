@@ -4,9 +4,11 @@ import NewSongColumnB from "./NewSongColumnB";
 import SnackBar from "../../Tools/SnackBar";
 import { requestData } from "../../Tools/Controllers"; // ⬅️ importa do Controllers
 
+const WEB_LAYOUT_MIN_WIDTH = 768;
+
 function NewSong() {
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < WEB_LAYOUT_MIN_WIDTH;
   const [songDataOpen, setSongDataOpen] = useState(true);
   // Column A
   const [artistExtractedFromUrl, setArtistExtractedFromUrl] = useState();
@@ -203,115 +205,7 @@ function NewSong() {
   }
 
   return (
-    <>
-      {window.innerWidth <= 926 && window.innerWidth > 426 && (
-        <div className="min-h-screen bg-[#f0f0f0] px-4 pb-24 pt-6">
-          <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
-            <SnackBar snackbarMessage={snackbarMessage} />
-          </div>
-          <div className="mx-auto w-full max-w-6xl">
-            <section className="neuphormism-b rounded-[28px] px-5 py-4">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                  Song Workspace
-                </p>
-                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
-                  Add New Song
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm font-medium text-gray-500">
-                  Register the song, organize setlists, and attach instrument
-                  links in one flow.
-                </p>
-              </div>
-            </section>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-              <div className="left-column min-w-0">
-                <NewSongColumnA
-                  dataFromUrl={dataFromUrl}
-                  artistExtractedFromUrl={artistExtractedFromUrl}
-                  songExtractedFromUrl={songExtractedFromUrl}
-                  guitar01={guitar01}
-                  guitar02={guitar02}
-                  bass={bass}
-                  keyboard={key}
-                  drums={drums}
-                  voice={voice}
-                  progBarG01={progBarG01}
-                  progBarG02={progBarG02}
-                  progBarBass={progBarBass}
-                  progBarKey={progBarKey}
-                  progBarDrums={progBarDrums}
-                  progBarVoice={progBarVoice}
-                  cifraExiste={cifraExiste}
-                  setCifraFROMDB={setCifraFROMDB}
-                  cifraFROMDB={cifraFROMDB}
-                  setShowSnackBar={setShowSnackBar}
-                  setSnackbarMessage={setSnackbarMessage}
-                  scrapeStatus={scrapeStatus}
-                />
-              </div>
-              <div className="right-column min-w-0">
-                <NewSongColumnB
-                  guitar01={guitar01}
-                  setGuitar01={setGuitar01}
-                  guitar02={guitar02}
-                  setGuitar02={setGuitar02}
-                  bass={bass}
-                  setBass={setBass}
-                  keyboard={key}
-                  setKey={setKey}
-                  drums={drums}
-                  setDrums={setDrums}
-                  voice={voice}
-                  setVoice={setVoice}
-                  progBarG01={progBarG01}
-                  setProgBarG01={setProgBarG01}
-                  notesGuitar01={notesGuitar01}
-                  setNotesGuitar01={setNotesGuitar01}
-                  progBarG02={progBarG02}
-                  setProgBarG02={setProgBarG02}
-                  notesGuitar02={notesGuitar02}
-                  setNotesGuitar02={setNotesGuitar02}
-                  progBarBass={progBarBass}
-                  setProgBarBass={setProgBarBass}
-                  notesBass={notesBass}
-                  setNotesBass={setNotesBass}
-                  progBarKey={progBarKey}
-                  setProgBarKey={setProgBarKey}
-                  notesKey={notesKey}
-                  setNotesKey={setNotesKey}
-                  progBarDrums={progBarDrums}
-                  setProgBarDrums={setProgBarDrums}
-                  notesDrums={notesDrums}
-                  setNotesDrums={setNotesDrums}
-                  progBarVoice={progBarVoice}
-                  setProgBarVoice={setProgBarVoice}
-                  notesVoice={notesVoice}
-                  setNotesVoice={setNotesVoice}
-                  setArtistExtractedFromUrl={setArtistExtractedFromUrl}
-                  setSongExtractedFromUrl={setSongExtractedFromUrl}
-                  gettingSongData={gettingSongData} // mantém prop
-                  setShowSnackBar={setShowSnackBar}
-                  setSnackbarMessage={setSnackbarMessage}
-                  cifraExiste={cifraExiste}
-                  setCifraExiste={setCifraExiste}
-                  setCifraFROMDB={setCifraFROMDB}
-                  cifraFROMDB={cifraFROMDB}
-                  artistName={artistName}
-                  setArtistName={setArtistName}
-                  songName={songName}
-                  setSongName={setSongName}
-                  setScrapeStatus={handleScrapeStatus}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {window.innerWidth > 926 && (
-        <div className="min-h-screen bg-[#f0f0f0] px-6 pb-24 pt-8">
+    <div className="min-h-screen bg-[#f0f0f0] px-6 pb-24 pt-8">
           <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
             <SnackBar snackbarMessage={snackbarMessage} />
           </div>
@@ -414,8 +308,6 @@ function NewSong() {
             </div>
           </div>
         </div>
-      )}
-    </>
   );
 }
 

@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 export default function FloatingActionButtons() {
   const navigate = useNavigate();
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
 
   // ⌨️  Atalho: tecla “A” abre a rota /newsong
   useEffect(() => {

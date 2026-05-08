@@ -66,7 +66,7 @@ function UserProfile() {
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
   const [language, setLanguage] = useState("ENG");
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
 
   const loadMobileUserHub = useCallback(async () => {
     const userEmail = localStorage.getItem("userEmail");

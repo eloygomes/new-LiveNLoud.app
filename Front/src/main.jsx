@@ -29,15 +29,34 @@ import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 import SpotifyCallback from "./Pages/Dashboard/SpotifyCallback";
 import ToolsHub from "./Pages/Tools/ToolsHub";
+import { ensureAuthenticatedSession } from "./Tools/Controllers";
 // import YouTubeCallback from "./Pages/Dashboard/YouTubeCallback";
 
 // Firebase Authentication
 
 // Componente para proteger rotas
 const ProtectedRoute = ({ element: Component, ...rest }) => {
-  const token = localStorage.getItem("token");
+  const [status, setStatus] = React.useState("checking");
 
-  return token ? <Component {...rest} /> : <Navigate to="/login" />;
+  React.useEffect(() => {
+    let active = true;
+
+    ensureAuthenticatedSession().then((isAuthenticated) => {
+      if (active) setStatus(isAuthenticated ? "authenticated" : "anonymous");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (status === "checking") return null;
+
+  return status === "authenticated" ? (
+    <Component {...rest} />
+  ) : (
+    <Navigate to="/login" replace />
+  );
 };
 
 // ✅ Dedicated popup completion route for YouTube OAuth

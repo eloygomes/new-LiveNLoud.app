@@ -81,7 +81,7 @@ function getTuneMessage(centsValue, hasSignal) {
    ------------------------------------------------------------------ */
 export default function Tuner() {
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
   // Execução
   const [isTuning, setIsTuning] = useState(false);
 

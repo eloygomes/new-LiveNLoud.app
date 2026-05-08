@@ -200,6 +200,19 @@ function Presentation() {
   const presentationContentRef = useRef(null);
   const tooltipHideTimeoutRef = useRef(null);
 
+  useEffect(() => {
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
+  }, []);
+
   const pushSnackbarMessage = useCallback((title, message) => {
     setShowSnackBar(true);
     setSnackbarMessage({ title, message });
@@ -354,7 +367,7 @@ function Presentation() {
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const liveModeRootRef = useRef(null);
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
   const touchFontSizeRem = useMemo(
     () => Math.max(0.58, Math.min(1.18, 0.82 + touchFontSizeStep * 0.08)),
@@ -1118,11 +1131,13 @@ function Presentation() {
         />
       )}
       <div
-        className={`container mx-auto ${effectiveLiveMode ? "max-w-none" : ""}`}
+        className={`container mx-auto h-full min-h-0 ${
+          effectiveLiveMode ? "max-w-none" : ""
+        }`}
       >
         <div
           className={`flex min-h-0 flex-col ${
-            effectiveLiveMode ? "h-[100dvh]" : "h-screen"
+            effectiveLiveMode ? "h-[100dvh]" : "h-full"
           } ${
             effectiveLiveMode
               ? "w-full max-w-none px-0"
@@ -1131,7 +1146,7 @@ function Presentation() {
         >
           {!effectiveLiveMode && (
             <div
-              className={`my-5 flex justify-between neuphormism-b ${
+              className={`my-5 flex shrink-0 justify-between neuphormism-b ${
                 isTouchLayout
                   ? "items-stretch gap-3 px-4 py-3"
                   : "flex-row items-end p-4"
@@ -1431,7 +1446,7 @@ function Presentation() {
             className={`min-h-0 flex-1 ${
               effectiveLiveMode
                 ? "presentation-live-content"
-                : `neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
+                : `presentation-scroll-content neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
             } ${hideChords ? "hide-chords" : ""} ${
               selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
             }`}

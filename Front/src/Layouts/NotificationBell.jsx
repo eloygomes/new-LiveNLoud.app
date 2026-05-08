@@ -157,7 +157,7 @@ export default function NotificationBell() {
   const [profile, setProfile] = useState(null);
   const [panelStyle, setPanelStyle] = useState({ top: 76, right: 24 });
   const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth <= 1024;
+    typeof window !== "undefined" && window.innerWidth < 768;
   const [setlistShareModal, setSetlistShareModal] = useState({
     open: false,
     share: null,

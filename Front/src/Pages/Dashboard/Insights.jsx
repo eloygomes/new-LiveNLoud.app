@@ -10,7 +10,7 @@ function Insights({ dashboardMetrics }) {
   } = dashboardMetrics || {};
 
   return (
-    <section className="neuphormism-b p-3">
+    <section className="dashboard-insights neuphormism-b p-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-sm font-black uppercase">Insights</h1>
@@ -23,8 +23,8 @@ function Insights({ dashboardMetrics }) {
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 text-[11px] sm:grid-cols-2 xl:grid-cols-4">
-        <div className="neuphormism-b rounded-lg p-3">
+      <div className="dashboard-insights-summary mt-3 grid gap-2 text-[11px] sm:grid-cols-2 xl:grid-cols-4">
+        <div className="dashboard-insight-card neuphormism-b rounded-lg p-3">
           <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">
             Progress ratio
           </p>
@@ -39,7 +39,7 @@ function Insights({ dashboardMetrics }) {
           </div>
         </div>
 
-        <div className="neuphormism-b rounded-lg p-3">
+        <div className="dashboard-insight-card neuphormism-b rounded-lg p-3">
           <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">
             Ready songs
           </p>
@@ -51,7 +51,7 @@ function Insights({ dashboardMetrics }) {
           </p>
         </div>
 
-        <div className="neuphormism-b rounded-lg p-3">
+        <div className="dashboard-insight-card neuphormism-b rounded-lg p-3">
           <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">
             Not started
           </p>
@@ -63,7 +63,7 @@ function Insights({ dashboardMetrics }) {
           </p>
         </div>
 
-        <div className="neuphormism-b rounded-lg p-3">
+        <div className="dashboard-insight-card neuphormism-b rounded-lg p-3">
           <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">
             Main instrument
           </p>
@@ -76,11 +76,11 @@ function Insights({ dashboardMetrics }) {
         </div>
       </div>
 
-      <div className="mt-2 neuphormism-b rounded-lg p-2">
+      <div className="dashboard-instrument-summary mt-2 neuphormism-b rounded-lg p-2">
         <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">
           Songs by instrument
         </p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="dashboard-instrument-grid mt-2 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
           {instrumentCounts.map((instrument) => (
             <div
               key={instrument.key}

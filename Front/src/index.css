@@ -353,6 +353,11 @@ main{
   overflow-x: hidden;
 }
 
+.presentation-scroll-content {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 .presentation-live-content pre,
 .presentation-live-content div,
 .presentation-live-content span {
@@ -398,7 +403,7 @@ main{
   font-weight: inherit;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 767px) {
   .tab,
   .presentation-tom,
   .presentation-lyrics,
@@ -733,7 +738,7 @@ main{
   cursor: pointer;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 767px) {
   .presentation-chord-tooltip.is-expanded {
     width: min(420px, calc(100vw - 24px));
     flex-direction: column;
@@ -766,6 +771,190 @@ main{
 
   .presentation-chord-tooltip-buttons {
     justify-content: flex-end;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1365px) {
+  .dashboard-table-list {
+    font-size: 90%;
+  }
+
+    .dashboard-instruments-cell {
+    gap: 0.6rem;
+    overflow: visible;
+  }
+
+    .dashboard-instrument-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .dashboard-table-row {
+    gap: 0.25rem;
+    padding: 0.7rem 0.5rem;
+  }
+
+  .dashboard-table-row > div,
+  .dashboard-table-row span,
+  .dashboard-table-row button {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 819px) {
+  .tablet-mini-page-offset {
+    padding-top: 4rem !important;
+  }
+
+  .dashboard-options-mini {
+    top: 78px;
+    height: calc(100vh - 5.4rem);
+    width: 91%;
+  }
+
+  .dashboard-options-mini > div > div:nth-child(2) {
+    padding: 0.45rem 0.75rem;
+  }
+
+  .dashboard-options-mini .flex.flex-col.gap-3 {
+    gap: 0.45rem;
+  }
+
+  .dashboard-options-mini .dashboard-insights {
+    padding: 0.55rem 0.75rem;
+  }
+
+  .dashboard-options-mini .dashboard-insights > div:first-child {
+    align-items: center;
+  }
+
+  .dashboard-options-mini .dashboard-insights h1 {
+    font-size: 0.78rem;
+  }
+
+  .dashboard-options-mini .dashboard-insights p {
+    margin-top: 0.1rem;
+  }
+
+  .dashboard-options-mini .dashboard-insights-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.45rem;
+  }
+
+  .dashboard-options-mini .dashboard-insight-card {
+    padding: 0.45rem 0.55rem;
+    min-height: 0;
+  }
+
+  .dashboard-options-mini .dashboard-insight-card p:first-child {
+    font-size: 0.52rem;
+    line-height: 1.05;
+  }
+
+  .dashboard-options-mini .dashboard-insight-card p:nth-child(2) {
+    margin-top: 0.2rem;
+    font-size: 1.18rem;
+    line-height: 1;
+  }
+
+  .dashboard-options-mini .dashboard-insight-card p:nth-child(3) {
+    margin-top: 0.2rem;
+    font-size: 0.58rem;
+    line-height: 1.1;
+  }
+
+  .dashboard-options-mini .dashboard-insight-card .mt-2 {
+    margin-top: 0.35rem;
+  }
+
+  .dashboard-options-mini .dashboard-instrument-summary {
+    margin-top: 0.45rem;
+    padding: 0.45rem;
+  }
+
+  .dashboard-options-mini .dashboard-instrument-summary > p {
+    font-size: 0.55rem;
+  }
+
+  .dashboard-options-mini .dashboard-instrument-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+  }
+
+  .dashboard-options-mini .dashboard-instrument-grid > div {
+    padding: 0.35rem 0.25rem;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.58rem;
+  }
+
+  .dashboard-options-mini section {
+    padding: 0.75rem;
+  }
+
+  .dashboard-options-mini section h1 {
+    font-size: 0.78rem;
+  }
+
+  .dashboard-options-mini section p {
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
+
+  .dashboard-options-mini .grid.grid-cols-\[minmax\(0\,1\.12fr\)_minmax\(22rem\,0\.88fr\)\] {
+    gap: 0.45rem;
+  }
+
+  .dashboard-options-mini input {
+    min-height: 0;
+  }
+
+  .app-logo-mark {
+    font-size: 1.52rem;
+  }
+
+  .app-logo-text {
+    margin-right: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .main-nav-items {
+    column-gap: 0.5rem;
+  }
+
+  .main-nav-items > :not([hidden]) ~ :not([hidden]) {
+    margin-left: 0.5rem;
+  }
+
+  .main-nav-items a {
+    white-space: nowrap;
+    font-size: 0.68rem;
+  }
+
+  .dashboard-row-number,
+  .dashboard-row-song,
+  .dashboard-row-artist {
+    font-size: 95%;
+  }
+}
+
+@media (min-width: 1366px) {
+  .dashboard-instruments-cell {
+    gap: 0.3rem;
+    overflow: visible;
+  }
+
+  .dashboard-instrument-icon {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  .dashboard-instrument-svg {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 /* === Custom range style: golden progress with white track and BLACK thumb === */

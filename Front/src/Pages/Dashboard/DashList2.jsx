@@ -8,15 +8,26 @@ import {
 } from "../../Tools/Controllers";
 
 const DEFAULT_VISIBLE_COLUMNS = ["progression", "notes", "instruments"];
+const TABLET_COLUMNS_LIMIT = 3;
 const OPTIONAL_COLUMNS = [
   { key: "progression", label: "PROGRESSION", sortable: "progressBar" },
-  { key: "notes", label: "NOTES" },
-  { key: "tags", label: "TAGS" },
-  { key: "videos", label: "VIDEOS" },
-  { key: "instruments", label: "INSTRUMENTS" },
-  { key: "addedDate", label: "DATE ADDED" },
-  { key: "lastPlay", label: "LAST PLAY" },
+  { key: "notes", label: "NOTES", sortable: "notes" },
+  { key: "tags", label: "TAGS", sortable: "tags" },
+  { key: "videos", label: "VIDEOS", sortable: "videos" },
+  { key: "instruments", label: "INSTRUMENTS", sortable: "instruments" },
+  { key: "addedDate", label: "DATE ADDED", sortable: "addedDate" },
+  { key: "lastPlay", label: "LAST PLAY", sortable: "lastPlay" },
 ];
+
+const COLUMN_WIDTHS = {
+  progression: "minmax(0, 0.6fr)",
+  notes: "minmax(0, 0.38fr)",
+  tags: "minmax(0, 0.72fr)",
+  videos: "minmax(0, 0.42fr)",
+  instruments: "minmax(0, 0.95fr)",
+  addedDate: "minmax(0, 0.55fr)",
+  lastPlay: "minmax(0, 0.55fr)",
+};
 
 function DashList2({ searchTerm = "" }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -28,8 +39,14 @@ function DashList2({ searchTerm = "" }) {
     loadSelectedSetlists(),
   );
   const [isUserHubOpen, setIsUserHubOpen] = useState(false);
-  const canSelectAllColumns =
-    typeof window !== "undefined" && window.innerWidth >= 1280;
+  const isTabletColumnLimited =
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768 &&
+    window.innerWidth < 1366;
+  const maxSelectableColumns = isTabletColumnLimited
+    ? TABLET_COLUMNS_LIMIT
+    : OPTIONAL_COLUMNS.length;
+  const canSelectAllColumns = maxSelectableColumns >= OPTIONAL_COLUMNS.length;
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
       const stored = JSON.parse(
@@ -42,9 +59,10 @@ function DashList2({ searchTerm = "" }) {
         : [];
       if (!validStored.length) return DEFAULT_VISIBLE_COLUMNS;
       return typeof window !== "undefined" &&
-        window.innerWidth < 1280 &&
-        validStored.length === OPTIONAL_COLUMNS.length
-        ? validStored.slice(0, OPTIONAL_COLUMNS.length - 1)
+        window.innerWidth >= 768 &&
+        window.innerWidth < 1366 &&
+        validStored.length > TABLET_COLUMNS_LIMIT
+        ? validStored.slice(0, TABLET_COLUMNS_LIMIT)
         : validStored;
     } catch {
       return DEFAULT_VISIBLE_COLUMNS;
@@ -75,12 +93,12 @@ function DashList2({ searchTerm = "" }) {
 
   // Detecta se é mobile
   useEffect(() => {
-    setIsMobile(window.innerWidth < 840);
+    setIsMobile(window.innerWidth < 768);
   }, []);
 
   useEffect(() => {
     const handleOpenMobileFilter = () => {
-      if (window.innerWidth <= 1024) {
+      if (window.innerWidth < 768) {
         setOptStatus(true);
       }
     };
@@ -124,6 +142,18 @@ function DashList2({ searchTerm = "" }) {
       }),
     );
   }, [selectedSetlists]);
+
+  useEffect(() => {
+    if (!isTabletColumnLimited) return;
+
+    setVisibleColumns((current) => {
+      if (current.length <= TABLET_COLUMNS_LIMIT) return current;
+
+      const next = current.slice(0, TABLET_COLUMNS_LIMIT);
+      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
+      return next;
+    });
+  }, [isTabletColumnLimited]);
 
   const filteredSongs = useMemo(() => {
     const trimmedFilters = selectedSetlists.map((filter) =>
@@ -178,7 +208,7 @@ function DashList2({ searchTerm = "" }) {
         ? current.filter((key) => key !== columnKey)
         : [...current, columnKey];
 
-      if (!canSelectAllColumns && next.length === OPTIONAL_COLUMNS.length) {
+      if (next.length > maxSelectableColumns) {
         return current;
       }
 
@@ -187,14 +217,43 @@ function DashList2({ searchTerm = "" }) {
     });
   };
 
-  const orderedVisibleColumns = OPTIONAL_COLUMNS.map(
-    (column) => column.key,
-  ).filter((key) => visibleColumns.includes(key));
-  const listGridTemplateColumns = `0.35fr 1.35fr 1.25fr${
-    orderedVisibleColumns.length
-      ? ` repeat(${orderedVisibleColumns.length}, minmax(7rem, 1fr))`
-      : ""
-  }`;
+  const handleMoveColumn = (columnKey, direction) => {
+    setVisibleColumns((current) => {
+      const currentIndex = current.indexOf(columnKey);
+      const nextIndex = currentIndex + direction;
+
+      if (currentIndex === -1 || nextIndex < 0 || nextIndex >= current.length) {
+        return current;
+      }
+
+      const next = [...current];
+      const [movedColumn] = next.splice(currentIndex, 1);
+      next.splice(nextIndex, 0, movedColumn);
+      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const orderedVisibleColumns = visibleColumns.filter((key) =>
+    OPTIONAL_COLUMNS.some((column) => column.key === key),
+  );
+  const optionalGridColumns = orderedVisibleColumns
+    .map((key) => COLUMN_WIDTHS[key] || "minmax(7rem, 1fr)")
+    .join(" ");
+  const getTabletColumnWidth = (key) => {
+    if (key === "instruments") return "minmax(0, 0.78fr)";
+    if (key === "tags") return "minmax(0, 0.7fr)";
+    if (key === "addedDate" || key === "lastPlay") return "minmax(0, 0.6fr)";
+    return "minmax(0, 0.52fr)";
+  };
+  const tabletGridColumns = orderedVisibleColumns
+    .map((key) => getTabletColumnWidth(key))
+    .join(" ");
+  const listGridTemplateColumns = isTabletColumnLimited
+    ? `2.25rem minmax(0, 1.45fr) minmax(0, 1fr) ${tabletGridColumns}`
+    : `2.5rem minmax(0, 1.75fr) minmax(0, 1.2fr)${
+        orderedVisibleColumns.length ? ` ${optionalGridColumns}` : ""
+      }`;
 
   return (
     <div className="h-full min-h-0 w-full overflow-hidden">
@@ -206,7 +265,9 @@ function DashList2({ searchTerm = "" }) {
         visibleSongs={displaySongs}
         visibleColumns={visibleColumns}
         onToggleColumn={handleToggleColumn}
+        onMoveColumn={handleMoveColumn}
         canSelectAllColumns={canSelectAllColumns}
+        maxSelectableColumns={maxSelectableColumns}
         style={{ display: optStatus ? "block" : "none" }}
       />
 
@@ -228,13 +289,15 @@ function DashList2({ searchTerm = "" }) {
         // ----- MODO DESKTOP -----
         <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden ">
           <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
-            {!optStatus && !isUserHubOpen && (
-              <div
-                className={`${optStatus ? "hidden" : "block"} sticky top-0 z-40 shrink-0`}
-              >
-                <div className="flex flex-col justify-around neuphormism-b bg-white">
+            {!optStatus ? (
+              <div className="dashboard-column-header z-40 shrink-0">
+                <div className="neuphormism-b !bg-[#dddbdb] mt-2">
                   <div
-                    className="grid items-center gap-3 rounded-t-md p-3 text-[13px]"
+                    className={`grid items-center rounded-t-md ${
+                      isTabletColumnLimited
+                        ? "gap-1 px-2 py-3 text-[10px] leading-tight"
+                        : "gap-2 p-3 text-[clamp(10px,1.35vw,13px)]"
+                    }`}
                     style={{
                       gridTemplateColumns: listGridTemplateColumns,
                     }}
@@ -244,6 +307,9 @@ function DashList2({ searchTerm = "" }) {
                       onClick={() => handleSort("number")}
                     >
                       N
+                      {sortColumn === "number" && (
+                        <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                      )}
                     </div>
                     <div
                       className="cursor-pointer px-2"
@@ -265,24 +331,26 @@ function DashList2({ searchTerm = "" }) {
                     </div>
                     {OPTIONAL_COLUMNS.filter((column) =>
                       orderedVisibleColumns.includes(column.key),
-                    ).map((column) => (
-                      <div
-                        key={column.key}
-                        className="text-center"
-                        onClick={() =>
-                          column.sortable && handleSort(column.sortable)
-                        }
-                      >
-                        <span
-                          className={column.sortable ? "cursor-pointer" : ""}
+                    )
+                      .sort(
+                        (a, b) =>
+                          orderedVisibleColumns.indexOf(a.key) -
+                          orderedVisibleColumns.indexOf(b.key),
+                      )
+                      .map((column) => (
+                        <div
+                          key={column.key}
+                          className="cursor-pointer text-center"
+                          onClick={() => handleSort(column.sortable)}
                         >
-                          {column.label}
-                          {column.sortable && sortColumn === column.sortable ? (
-                            <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
-                          ) : null}
-                        </span>
-                      </div>
-                    ))}
+                          <span>
+                            {column.label}
+                            {sortColumn === column.sortable ? (
+                              <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
+                            ) : null}
+                          </span>
+                        </div>
+                      ))}
                   </div>
 
                   <div
@@ -293,12 +361,12 @@ function DashList2({ searchTerm = "" }) {
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
             <ul
-              className={`min-h-0 flex-1 overflow-auto pb-60 z-0 ${
-                optStatus ? "mt-[63rem]" : "mt-2"
-              }`}
+              className={`min-h-0 flex-1 overflow-auto z-0 ${
+                isTabletColumnLimited ? "pb-8" : "pb-60"
+              } ${optStatus ? "mt-[63rem]" : "mt-2"}`}
             >
               <DashList2Items
                 sortColumn={sortColumn}

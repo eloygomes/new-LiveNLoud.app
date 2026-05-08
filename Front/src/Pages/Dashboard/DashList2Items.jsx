@@ -21,6 +21,8 @@ import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
+const DASHBOARD_INSTRUMENT_ICON_CLASS =
+  "dashboard-instrument-icon flex h-[15px] w-[15px] items-center justify-center";
 const LONG_PRESS_DELAY = 450;
 
 function DashList2Items({
@@ -77,7 +79,7 @@ function DashList2Items({
   }, [songsProp]);
 
   useEffect(() => {
-    if (window.innerWidth <= 845) {
+    if (window.innerWidth < 768) {
       setIsMobile(true);
     } else {
       setIsMobile(false);
@@ -95,31 +97,6 @@ function DashList2Items({
     };
   }, []);
 
-  const sortedData = useMemo(() => {
-    if (!data) return [];
-    const dataCopy = [...data];
-
-    if (sortColumn) {
-      dataCopy.sort((a, b) => {
-        let valueA, valueB;
-
-        if (sortColumn === "progressBar") {
-          valueA = a.progressBar || 0;
-          valueB = b.progressBar || 0;
-        } else {
-          valueA = (a[sortColumn] || "").toString().toLowerCase();
-          valueB = (b[sortColumn] || "").toString().toLowerCase();
-        }
-
-        if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
-        if (valueA > valueB) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return dataCopy;
-  }, [data, sortColumn, sortOrder]);
-
   const renderInstrumentIcon = (instrument, isActive) => {
     const Icon = instrument.icon;
 
@@ -130,6 +107,20 @@ function DashList2Items({
         aria-label={instrument.label}
       >
         <Icon size={INSTRUMENT_ICON_SIZE} />
+      </span>
+    );
+  };
+
+  const renderCompactInstrumentIcon = (instrument) => {
+    const Icon = instrument.icon;
+
+    return (
+      <span
+        className={DASHBOARD_INSTRUMENT_ICON_CLASS}
+        title={instrument.label}
+        aria-label={instrument.label}
+      >
+        <Icon className="dashboard-instrument-svg" size={18} />
       </span>
     );
   };
@@ -149,6 +140,35 @@ function DashList2Items({
         item.addedIn ||
         item.updateIn,
     );
+
+  const getAddedDateTimestamp = (item) =>
+    parseDateValue(
+      item.createdAt ||
+        item.createIn ||
+        item.createdIn ||
+        item.addedIn ||
+        item.updateIn,
+    )?.getTime() || 0;
+
+  const getLastPlayTimestamp = (item) => {
+    const candidates = [
+      item.lastPlayed,
+      item.lastPlay,
+      item.guitar01?.lastPlay,
+      item.guitar02?.lastPlay,
+      item.bass?.lastPlay,
+      item.keys?.lastPlay,
+      item.drums?.lastPlay,
+      item.voice?.lastPlay,
+    ]
+      .flat()
+      .filter(Boolean);
+
+    return candidates
+      .map((value) => parseDateValue(value))
+      .filter(Boolean)
+      .sort((a, b) => b.getTime() - a.getTime())[0]?.getTime() || 0;
+  };
 
   const getLastPlayDate = (item) => {
     const candidates = [
@@ -180,7 +200,69 @@ function DashList2Items({
       return typeof value === "string" && value.trim() !== "";
     });
 
-  const optionalCellClass = "flex min-w-0 items-center justify-center px-2";
+  const optionalCellClass =
+    "flex min-w-0 max-w-full items-center justify-center overflow-hidden px-1";
+  const dateCellClass =
+    "flex min-w-0 max-w-full items-center justify-center gap-0.5 overflow-hidden px-0.5 text-[clamp(7px,0.95vw,12px)] font-semibold leading-none text-gray-600";
+
+  const sortedData = useMemo(() => {
+    if (!data) return [];
+    const dataCopy = data.map((item, index) => ({
+      ...item,
+      __dashboardIndex: index,
+    }));
+
+    if (sortColumn) {
+      dataCopy.sort((a, b) => {
+        let valueA;
+        let valueB;
+
+        switch (sortColumn) {
+          case "number":
+            valueA = a.__dashboardIndex;
+            valueB = b.__dashboardIndex;
+            break;
+          case "progressBar":
+            valueA = Number(a.progressBar || 0);
+            valueB = Number(b.progressBar || 0);
+            break;
+          case "notes":
+            valueA = hasInstrumentNotes(a) ? 1 : 0;
+            valueB = hasInstrumentNotes(b) ? 1 : 0;
+            break;
+          case "tags":
+            valueA = Array.isArray(a.setlist) ? a.setlist.join(" ") : "";
+            valueB = Array.isArray(b.setlist) ? b.setlist.join(" ") : "";
+            break;
+          case "videos":
+            valueA = getVideoLinks(a).length;
+            valueB = getVideoLinks(b).length;
+            break;
+          case "instruments":
+            valueA = Object.values(a.instruments || {}).filter(Boolean).length;
+            valueB = Object.values(b.instruments || {}).filter(Boolean).length;
+            break;
+          case "addedDate":
+            valueA = getAddedDateTimestamp(a);
+            valueB = getAddedDateTimestamp(b);
+            break;
+          case "lastPlay":
+            valueA = getLastPlayTimestamp(a);
+            valueB = getLastPlayTimestamp(b);
+            break;
+          default:
+            valueA = (a[sortColumn] || "").toString().toLowerCase();
+            valueB = (b[sortColumn] || "").toString().toLowerCase();
+        }
+
+        if (valueA < valueB) return sortOrder === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return dataCopy;
+  }, [data, sortColumn, sortOrder]);
 
   const renderOptionalCell = (item, columnKey) => {
     if (columnKey === "progression") {
@@ -201,13 +283,14 @@ function DashList2Items({
     if (columnKey === "tags") {
       const tags = Array.isArray(item.setlist) ? item.setlist : [];
       return (
-        <div className="min-w-0 overflow-x-auto px-2">
-          <div className="flex w-max max-w-full gap-1">
+        <div className="min-w-0 max-w-full overflow-hidden px-1">
+          <div className="flex min-w-0 max-w-full gap-1 overflow-hidden">
             {tags.length ? (
               tags.map((tag) => (
                 <span
                   key={tag}
-                  className="shrink-0 rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-medium text-black"
+                  className="min-w-0 truncate rounded-full bg-[goldenrod] px-2 py-1 text-[10px] font-medium text-black"
+                  title={tag}
                 >
                   {tag}
                 </span>
@@ -255,9 +338,9 @@ function DashList2Items({
 
     if (columnKey === "instruments") {
       return (
-        <ul className="flex min-w-0 flex-row justify-center gap-4 px-2">
+        <ul className="dashboard-instruments-cell flex min-w-0 max-w-full flex-row justify-center gap-[clamp(0.05rem,0.35vw,0.45rem)] overflow-hidden px-0">
           {instrumentLabels.map((instrument) => (
-            <li key={instrument.key} className="list-none z-10">
+            <li key={instrument.key} className="z-10 list-none shrink-0">
               {item.instruments && item.instruments[instrument.key] ? (
                 <button
                   onClick={(e) => {
@@ -270,13 +353,13 @@ function DashList2Items({
                       )}`,
                     );
                   }}
-                  className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
+                  className={`${DASHBOARD_INSTRUMENT_ICON_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
                 >
-                  {renderInstrumentIcon(instrument, true)}
+                  {renderCompactInstrumentIcon(instrument)}
                 </button>
               ) : (
-                <span className={`${INSTRUMENT_ICON_BOX_CLASS} text-gray-400`}>
-                  {renderInstrumentIcon(instrument, false)}
+                  <span className={`${DASHBOARD_INSTRUMENT_ICON_CLASS} text-gray-400`}>
+                  {renderCompactInstrumentIcon(instrument)}
                 </span>
               )}
             </li>
@@ -287,22 +370,22 @@ function DashList2Items({
 
     if (columnKey === "addedDate") {
       return (
-        <div
-          className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}
-        >
-          <FaCalendarPlus className="text-[goldenrod]" />
-          <span>{getAddedDate(item) || "-"}</span>
+        <div className={dateCellClass}>
+          <FaCalendarPlus className="shrink-0 text-[goldenrod]" />
+          <span className="min-w-0 truncate whitespace-nowrap">
+            {getAddedDate(item) || "-"}
+          </span>
         </div>
       );
     }
 
     if (columnKey === "lastPlay") {
       return (
-        <div
-          className={`${optionalCellClass} gap-2 text-[12px] font-semibold text-gray-600`}
-        >
-          <FaHistory className="text-[goldenrod]" />
-          <span>{getLastPlayDate(item)}</span>
+        <div className={dateCellClass}>
+          <FaHistory className="shrink-0 text-[goldenrod]" />
+          <span className="min-w-0 truncate whitespace-nowrap">
+            {getLastPlayDate(item)}
+          </span>
         </div>
       );
     }
@@ -662,7 +745,7 @@ function DashList2Items({
           ) : null}
         </div>
       ) : (
-        <div className="flex flex-col h-full mb-10">
+        <div className="dashboard-table-list flex h-full flex-col mb-10">
           {sortedData.map((item, index) => (
             <div key={index} className="relative group hover:bg-gray-300">
               <Link
@@ -676,32 +759,34 @@ function DashList2Items({
                 }}
               />
               <div
-                className="grid items-center gap-3 border-b border-gray-400 p-3 cursor-pointer hover:bg-gray-200 z-0"
+                className="dashboard-table-row grid items-center gap-2 border-b border-gray-400 p-3 cursor-pointer hover:bg-gray-200 z-0"
                 style={{
-                  gridTemplateColumns:
+                    gridTemplateColumns:
                     gridTemplateColumns ||
-                    `0.35fr 1.35fr 1.25fr${
+                    `2.5rem minmax(0, 1.75fr) minmax(0, 1.2fr)${
                       visibleColumns.length
-                        ? ` repeat(${visibleColumns.length}, minmax(7rem, 1fr))`
+                        ? ` repeat(${visibleColumns.length}, minmax(0, 0.7fr))`
                         : ""
                     }`,
                 }}
               >
-                <div className="text-center">{index + 1}</div>
+                <div className="dashboard-row-number text-center">
+                  {item.__dashboardIndex + 1}
+                </div>
                 <div
-                  className="overflow-hidden text-ellipsis whitespace-nowrap px-2"
+                  className="dashboard-row-song overflow-hidden text-ellipsis whitespace-nowrap px-2"
                   title={item.song || ""}
                 >
                   {item.song || "N/A"}
                 </div>
                 <div
-                  className="overflow-hidden text-ellipsis whitespace-nowrap px-2"
+                  className="dashboard-row-artist overflow-hidden text-ellipsis whitespace-nowrap px-2"
                   title={item.artist || ""}
                 >
                   {item.artist || "N/A"}
                 </div>
                 {visibleColumns.map((columnKey) => (
-                  <div key={columnKey} className="min-w-0">
+                  <div key={columnKey} className="min-w-0 max-w-full overflow-hidden">
                     {renderOptionalCell(item, columnKey)}
                   </div>
                 ))}
