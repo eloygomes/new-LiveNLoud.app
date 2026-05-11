@@ -31,6 +31,14 @@ type ResetPasswordPayload = {
   token: string;
   newPassword: string;
 };
+const DEFAULT_SETLISTS = [
+  "guitar01",
+  "guitar02",
+  "bass",
+  "keys",
+  "drums",
+  "voice",
+];
 
 export type UserProfile = {
   email: string;
@@ -241,6 +249,7 @@ function createDefaultUserdata(email: string, username: string, fullName: string
   const today = new Date().toISOString().split("T")[0];
 
   return {
+    id: 1,
     song: "",
     artist: "",
     progressBar: 0,
@@ -259,6 +268,7 @@ function createDefaultUserdata(email: string, username: string, fullName: string
     drums: { ...emptyInstrument },
     voice: { ...emptyInstrument },
     embedVideos: [],
+    setlist: [...DEFAULT_SETLISTS],
     addedIn: today,
     updateIn: today,
     email,
@@ -593,10 +603,12 @@ export async function signUp({
     body: JSON.stringify({
       email: normalizedEmail,
       password,
+      fullName: fullName.trim(),
+      username: username.trim(),
     }),
   });
 
-  await readJsonOrThrow(authResponse);
+  const authData = await readJsonOrThrow(authResponse);
 
   const userdata = createDefaultUserdata(
     normalizedEmail,
@@ -604,7 +616,7 @@ export async function signUp({
     fullName.trim()
   );
 
-  const userResponse = await fetchWithTimeout(`${API_BASE_URL}/newsong`, {
+  const userResponse = await fetchWithTimeout(`${API_BASE_URL}/signup`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -616,7 +628,8 @@ export async function signUp({
     }),
   });
 
-  return readJsonOrThrow(userResponse);
+  const userData = await readJsonOrThrow(userResponse);
+  return { authData, userData };
 }
 
 export async function requestPasswordReset(email: string) {
@@ -672,6 +685,55 @@ export async function updateUserSetlists(setlists: string[]) {
   });
 
   return readJsonOrThrow(response);
+}
+
+export async function downloadUserDataMobile() {
+  const email = await getCurrentUserEmail();
+  if (!email) {
+    throw new Error("User email not found.");
+  }
+
+  const response = await authFetch(
+    `/downloadUserData/${encodeURIComponent(email)}`,
+    { method: "GET", headers: { Accept: "application/json" } },
+  );
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.message || data?.error || `HTTP ${response.status}`);
+  }
+
+  return response.text();
+}
+
+export async function deleteAllUserSongsMobile() {
+  const email = await getCurrentUserEmail();
+  if (!email) {
+    throw new Error("User email not found.");
+  }
+
+  return authJson<{ message: string; modifiedCount?: number; remainingSongs?: unknown[] }>(
+    "/deleteAllUserSongs",
+    {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    },
+  );
+}
+
+export async function deleteUserAccountMobile(password: string) {
+  const email = await getCurrentUserEmail();
+  if (!email) {
+    throw new Error("User email not found.");
+  }
+
+  return authJson<{ message: string; deletedCount?: number }>(
+    "/deleteUserAccount",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    },
+  );
 }
 
 export const getListOfMusic = async ({ email }: Props) => {

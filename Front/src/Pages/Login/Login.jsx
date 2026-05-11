@@ -34,7 +34,10 @@ function Login() {
       navigate("/");
     } catch (err) {
       console.error("Login failed:", err);
-      alert("Login inválido. Verifique e-mail e senha.");
+      alert(
+        err?.response?.data?.error ||
+          "Login inválido. Verifique e-mail e senha.",
+      );
       setUserPassword("");
     } finally {
       setLoading(false);

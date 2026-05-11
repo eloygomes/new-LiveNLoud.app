@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { DEFAULT_IMAGE_BASE64 } from "./defaultProfileImage";
+import defaultProfileImageUrl from "../../assets/userPerfil.jpg";
+
+const DEFAULT_SETLISTS = [
+  "guitar01",
+  "guitar02",
+  "bass",
+  "keys",
+  "drums",
+  "voice",
+];
 
 // 👉 Cria a estrutura completa esperada pela API
 function createDefaultUserdata(email, username, fullName) {
@@ -33,8 +42,10 @@ function createDefaultUserdata(email, username, fullName) {
     drums: { ...emptyInstrument },
     voice: { ...emptyInstrument },
     embedVideos: [],
+    setlist: [...DEFAULT_SETLISTS],
     addedIn: new Date().toISOString().split("T")[0],
     updateIn: new Date().toISOString().split("T")[0],
+    id: 1,
     email,
     username,
     fullName,
@@ -49,6 +60,11 @@ function UserRegistrationForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signupModal, setSignupModal] = useState({
+    open: false,
+    title: "",
+    message: "",
+  });
   const navigate = useNavigate();
 
   const postJson = async (url, payload) => {
@@ -85,24 +101,24 @@ function UserRegistrationForm() {
 
     try {
       // 1️⃣ Criação na autenticação JWT
-      await postJson("https://api.live.eloygomes.com/api/auth/signup", {
+      const signupResponse = await postJson("https://api.live.eloygomes.com/api/auth/signup", {
         email,
         password,
+        fullName,
+        username,
       });
 
       // 2️⃣ Cadastro inicial de estrutura vazia com dados do usuário
       const userdata = createDefaultUserdata(email, username, fullName);
 
-      await postJson("https://api.live.eloygomes.com/api/newsong", {
+      await postJson("https://api.live.eloygomes.com/api/signup", {
         databaseComing: "liveNloud_",
         collectionComing: "data",
         userdata,
       });
 
       // 3️⃣ Upload de imagem de perfil padrão
-      const blob = await (
-        await fetch(`data:image/jpeg;base64,${DEFAULT_IMAGE_BASE64}`)
-      ).blob();
+      const blob = await (await fetch(defaultProfileImageUrl)).blob();
       const formData = new FormData();
       formData.append("email", email);
       formData.append(
@@ -121,14 +137,37 @@ function UserRegistrationForm() {
         throw new Error(`HTTP ${uploadResponse.status}`);
       }
 
-      alert("Cadastro realizado com sucesso!");
-      navigate("/login");
+      const signupMessage =
+        signupResponse?.approvalStatus === "pending"
+          ? "Cadastro recebido. Sua conta aguarda aprovacao."
+          : "Cadastro realizado com sucesso.";
+      const deliveryWarning =
+        signupResponse?.delivery && signupResponse.delivery !== "sent"
+          ? "\n\nAviso: o email automatico de aprovacao ainda nao foi enviado. O cadastro foi salvo, mas o administrador precisa aprovar manualmente ou corrigir o SMTP."
+          : "";
+
+      setSignupModal({
+        open: true,
+        title: "Conta criada",
+        message: `${signupMessage}${deliveryWarning}\n\nVocê poderá entrar após a aprovação.`,
+      });
     } catch (error) {
       console.error("Erro no cadastro:", error);
       if (error?.response?.data?.error === "Email já registrado") {
         alert("Esse e-mail já está em uso.");
+      } else if (error?.response?.data?.approvalStatus === "pending") {
+        setSignupModal({
+          open: true,
+          title: "Conta em aprovação",
+          message:
+            "Cadastro recebido. Sua conta aguarda aprovacao.\n\nVocê poderá entrar após a aprovação.",
+        });
       } else {
-        alert("Erro ao cadastrar. Tente novamente.");
+        alert(
+          error?.response?.data?.error ||
+            error?.response?.data?.message ||
+            "Erro ao cadastrar. Tente novamente.",
+        );
       }
     } finally {
       setLoading(false);
@@ -136,8 +175,9 @@ function UserRegistrationForm() {
   };
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <>
+      <form noValidate onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
             Full Name
@@ -205,33 +245,60 @@ function UserRegistrationForm() {
             placeholder="Repeat your password"
           />
         </div>
-      </div>
+        </div>
 
-      <label className="flex items-center gap-3 rounded-[18px] bg-white/70 px-4 py-2.5 text-sm text-gray-600">
-        <input
-          type="checkbox"
-          checked={acceptedTerms}
-          onChange={(e) => setAcceptedTerms(e.target.checked)}
-          className="h-4 w-4 accent-[goldenrod]"
-        />
-        <span>I agree to the Terms of Use.</span>
-      </label>
+        <label className="flex items-center gap-3 rounded-[18px] bg-white/70 px-4 py-2.5 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            className="h-4 w-4 accent-[goldenrod]"
+          />
+          <span>I agree to the Terms of Use.</span>
+        </label>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="neuphormism-b-btn-gold w-full py-2.5 text-sm font-bold uppercase tracking-[0.18em] disabled:opacity-60"
-      >
-        {loading ? "Creating Account..." : "Sign Up"}
-      </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="neuphormism-b-btn-gold w-full py-2.5 text-sm font-bold uppercase tracking-[0.18em] disabled:opacity-60"
+        >
+          {loading ? "Creating Account..." : "Sign Up"}
+        </button>
 
-      <div className="text-center text-sm text-gray-600">
-        Already have access?{" "}
-        <NavLink to="/login" className="font-bold uppercase tracking-[0.12em] text-[goldenrod]">
-          Sign In
-        </NavLink>
-      </div>
-    </form>
+        <div className="text-center text-sm text-gray-600">
+          Already have access?{" "}
+          <NavLink to="/login" className="font-bold uppercase tracking-[0.12em] text-[goldenrod]">
+            Sign In
+          </NavLink>
+        </div>
+      </form>
+
+      {signupModal.open ? (
+        <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[goldenrod]/15 text-[goldenrod]">
+                <span className="text-xl font-black">!</span>
+              </div>
+              <h3 className="text-xl font-black text-black">{signupModal.title}</h3>
+            </div>
+            <p className="whitespace-pre-line text-sm leading-6 text-gray-600">
+              {signupModal.message}
+            </p>
+            <button
+              type="button"
+              className="neuphormism-b-btn-gold mt-6 w-full py-3 text-sm font-bold uppercase tracking-[0.18em]"
+              onClick={() => {
+                setSignupModal({ open: false, title: "", message: "" });
+                navigate("/login");
+              }}
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

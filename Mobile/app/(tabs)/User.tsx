@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  ActionSheetIOS,
   Alert,
   Image,
+  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -21,6 +23,9 @@ import { useFocusEffect } from "@react-navigation/native";
 import {
   clearAuthSession,
   createInvitation,
+  deleteAllUserSongsMobile,
+  deleteUserAccountMobile,
+  downloadUserDataMobile,
   fetchCurrentUserProfile,
   fetchInvitations,
   fetchUserLogs,
@@ -96,6 +101,10 @@ const User = () => {
   const [usbEnabled, setUsbEnabled] = useState(false);
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
   const [language, setLanguage] = useState<"ENG" | "BRA">("ENG");
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [deleteAccountConfirmation, setDeleteAccountConfirmation] = useState("");
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
 
   const loadUserHub = useCallback(async () => {
     const currentEmail = await getCurrentUserEmail();
@@ -248,28 +257,106 @@ const User = () => {
 
   const handleExportUserData = async () => {
     try {
+      const payload = await downloadUserDataMobile();
       await Share.share({
         title: "LiveNLoud User Data",
-        message: JSON.stringify(
-          {
-            profile,
-            songsCount: songs.length,
-            selectedSetlists,
-            averageProgression,
-            songsByInstrument,
-            songs,
-          },
-          null,
-          2
-        ),
+        message: payload,
       });
     } catch {
       Alert.alert("User Data", "Unable to export user data right now.");
     }
   };
 
-  const handleSoon = (label: string) => {
-    Alert.alert(label, "This action will be added in the next step.");
+  const openDeleteSongsActionSheet = () => {
+    const confirmDelete = async () => {
+      try {
+        const result = await deleteAllUserSongsMobile();
+        Alert.alert("User Data", result?.message || "Songs deleted successfully.");
+        await loadUserHub();
+      } catch (error) {
+        Alert.alert(
+          "User Data",
+          error instanceof Error ? error.message : "Unable to delete songs.",
+        );
+      }
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: "Delete all songs",
+          message: "This removes all songs from your account and keeps only the base profile shell.",
+          options: ["Cancel", "Delete songs"],
+          cancelButtonIndex: 0,
+          destructiveButtonIndex: 1,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            void confirmDelete();
+          }
+        },
+      );
+      return;
+    }
+
+    Alert.alert("Delete all songs", "This removes all songs from your account.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete songs", style: "destructive", onPress: () => void confirmDelete() },
+    ]);
+  };
+
+  const openDeleteAccountFirstConfirmation = () => {
+    const proceed = () => {
+      setDeleteAccountPassword("");
+      setDeleteAccountConfirmation("");
+      setDeleteAccountModalVisible(true);
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: "Delete account",
+          message: "This deletes your account and all related platform data.",
+          options: ["Cancel", "Continue"],
+          cancelButtonIndex: 0,
+          destructiveButtonIndex: 1,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            proceed();
+          }
+        },
+      );
+      return;
+    }
+
+    Alert.alert("Delete account", "This deletes your account and all related platform data.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Continue", style: "destructive", onPress: proceed },
+    ]);
+  };
+
+  const submitDeleteAccount = async () => {
+    if (deleteAccountConfirmation !== "DELETE") {
+      Alert.alert("Delete account", "Type DELETE to confirm.");
+      return;
+    }
+
+    try {
+      setDeleteAccountLoading(true);
+      await deleteUserAccountMobile(deleteAccountPassword);
+      await clearAuthSession();
+      setDeleteAccountModalVisible(false);
+      Alert.alert("Delete account", "Your account was deleted successfully.");
+      router.replace("/(login)/Login");
+    } catch (error) {
+      Alert.alert(
+        "Delete account",
+        error instanceof Error ? error.message : "Unable to delete account.",
+      );
+    } finally {
+      setDeleteAccountLoading(false);
+    }
   };
 
   const reloadFriendsAndLogs = async () => {
@@ -429,13 +516,12 @@ const User = () => {
           <Text style={styles.actionTitle}>Platform User Data</Text>
           <Text style={styles.actionSubtitle}>Delete all songs</Text>
           <Text style={styles.actionDescription}>
-            Remove all songs from your account. This action is visible here from
-            the web version but still pending in RN.
+            Remove all songs from your account.
           </Text>
         </View>
         <TouchableOpacity
           style={styles.dangerCta}
-          onPress={() => handleSoon("Delete all songs")}
+          onPress={openDeleteSongsActionSheet}
         >
           <Text style={styles.dangerCtaText}>Delete</Text>
         </TouchableOpacity>
@@ -446,13 +532,12 @@ const User = () => {
           <Text style={styles.actionTitle}>User Account</Text>
           <Text style={styles.actionSubtitle}>Delete account</Text>
           <Text style={styles.actionDescription}>
-            Delete your user account and all platform data. This remains visible
-            for parity with web and can be connected later.
+            Delete your user account and all platform data.
           </Text>
         </View>
         <TouchableOpacity
           style={styles.dangerCta}
-          onPress={() => handleSoon("Delete account")}
+          onPress={openDeleteAccountFirstConfirmation}
         >
           <Text style={styles.dangerCtaText}>Delete</Text>
         </TouchableOpacity>
@@ -774,6 +859,56 @@ const User = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={deleteAccountModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteAccountModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Confirm account deletion</Text>
+            <Text style={styles.modalDescription}>
+              Enter your password and type DELETE to remove your account and all related platform data.
+            </Text>
+            <TextInput
+              value={deleteAccountPassword}
+              onChangeText={setDeleteAccountPassword}
+              placeholder="Password"
+              placeholderTextColor={MUTED}
+              secureTextEntry
+              style={styles.modalInput}
+            />
+            <TextInput
+              value={deleteAccountConfirmation}
+              onChangeText={(value) => setDeleteAccountConfirmation(value.toUpperCase())}
+              placeholder="Type DELETE"
+              placeholderTextColor={MUTED}
+              autoCapitalize="characters"
+              style={styles.modalInput}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalSecondaryButton}
+                onPress={() => setDeleteAccountModalVisible(false)}
+                disabled={deleteAccountLoading}
+              >
+                <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDangerButton}
+                onPress={submitDeleteAccount}
+                disabled={deleteAccountLoading}
+              >
+                <Text style={styles.modalDangerButtonText}>
+                  {deleteAccountLoading ? "Deleting..." : "Delete Account"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1167,6 +1302,72 @@ const styles = StyleSheet.create({
     color: "#f5f5f5",
     fontSize: 11,
     lineHeight: 17,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 20,
+    backgroundColor: PANEL_SOFT,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 20,
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: TEXT,
+  },
+  modalDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: MUTED,
+  },
+  modalInput: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: "#fff",
+    paddingHorizontal: 14,
+    color: TEXT,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 6,
+  },
+  modalSecondaryButton: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalSecondaryButtonText: {
+    color: TEXT,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  modalDangerButton: {
+    borderRadius: 14,
+    backgroundColor: DANGER,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalDangerButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
   },
   footerCard: {
     backgroundColor: PANEL,

@@ -30,7 +30,9 @@ async function postJson(url, payload, headers = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error = new Error(data?.message || data?.error || `HTTP ${response.status}`);
+    const error = new Error(
+      data?.message || data?.error || `HTTP ${response.status}`,
+    );
     error.response = { status: response.status, data };
     throw error;
   }
@@ -555,12 +557,13 @@ app.post("/api/scrape", async (req, res) => {
 app.post("/api/signup", async (req, res) => {
   try {
     const { userdata, databaseComing, collectionComing } = req.body;
+    const normalizedEmail = normalizeEmail(userdata.email);
 
     const database = client.db(databaseComing);
     const collection = database.collection(collectionComing);
 
     console.log("Verificando se o email já existe...");
-    const query = { email: userdata.email };
+    const query = { email: normalizedEmail };
     const existingUser = await collection.findOne(query);
 
     if (existingUser) {
@@ -572,10 +575,18 @@ app.post("/api/signup", async (req, res) => {
 
     console.log("Email não existe, criando novo usuário...");
 
+    const initialUserdata = createDefaultUserProfileSeed({
+      email: normalizedEmail,
+      username: userdata.username,
+      fullName: userdata.fullName,
+      existing: userdata,
+    });
+
     // Cria um novo documento com o email e o array userdata
     const result = await collection.insertOne({
-      email: userdata.email,
-      userdata: [userdata],
+      email: normalizedEmail,
+      userdata: [initialUserdata],
+      availableSetlists: getDefaultUserSetlists(),
     });
 
     console.log("Usuário criado com sucesso:", result);
@@ -583,7 +594,7 @@ app.post("/api/signup", async (req, res) => {
     return res.status(201).json({
       message: "Usuário criado com sucesso!",
       userId: result.insertedId,
-      user: userdata,
+      user: initialUserdata,
     });
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
@@ -638,8 +649,12 @@ app.post("/api/newsong", async (req, res) => {
           const duplicateEntries = matchingIndexes.map(
             (index) => existingUser.userdata[index],
           );
-          const updatedSongData = mergeSongEntries(...duplicateEntries, userdata);
-          updatedSongData.id = existingUser.userdata[songIndex].id || songIndex + 1;
+          const updatedSongData = mergeSongEntries(
+            ...duplicateEntries,
+            userdata,
+          );
+          updatedSongData.id =
+            existingUser.userdata[songIndex].id || songIndex + 1;
 
           const nextUserdata = existingUser.userdata.filter(
             (_song, index) => !matchingIndexes.slice(1).includes(index),
@@ -1045,10 +1060,10 @@ app.get("/api/downloadUserData/:email", async (req, res) => {
   }
 });
 
-// Route to delete all songs except the one with id = 1
+// Route to delete all songs while preserving the account shell.
 app.post("/api/deleteAllUserSongs", async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body?.email || "");
 
     console.log("Received request to delete songs for email:", email);
 
@@ -1078,18 +1093,28 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
       return res.status(400).json({ message: "Invalid userdata format." });
     }
 
-    // Check if there's a userdata element with id = 1
-    const firstSong = user.userdata.find((song) => song.id === 1);
+    const profileEntry =
+      user.userdata.find(
+        (entry) =>
+          !String(entry?.song || "").trim() &&
+          !String(entry?.artist || "").trim(),
+      ) || user.userdata[0];
 
-    if (!firstSong) {
-      console.log(`No userdata element with id = 1 found for email: ${email}`);
-      return res.status(400).json({ message: "No song with id = 1 found." });
-    }
+    const preservedEntry = createDefaultUserProfileSeed({
+      email,
+      username: profileEntry?.username,
+      fullName: profileEntry?.fullName,
+      existing: profileEntry,
+    });
 
-    // Use the $pull operator to remove all userdata elements where id != 1
     const updateResult = await collection.updateOne(
-      { email: email },
-      { $pull: { userdata: { id: { $ne: 1 } } } },
+      { email },
+      {
+        $set: {
+          userdata: [preservedEntry],
+          availableSetlists: getDefaultUserSetlists(),
+        },
+      },
     );
 
     console.log("Update result:", updateResult);
@@ -1102,8 +1127,7 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
     if (updateResult.modifiedCount === 0) {
       console.log(`No songs were deleted for email: ${email}`);
       return res.status(200).json({
-        message:
-          "No songs were deleted. Either only one song exists or 'id' fields do not match.",
+        message: "No songs were deleted.",
         modifiedCount: updateResult.modifiedCount,
       });
     }
@@ -1113,9 +1137,9 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
     console.log(`Updated userdata for ${email}:`, updatedUser.userdata);
 
     return res.status(200).json({
-      message: "All songs except the first one have been deleted successfully!",
+      message: "Todas as músicas do usuário foram deletadas com sucesso!",
       modifiedCount: updateResult.modifiedCount,
-      remainingSongs: updatedUser.userdata, // Optional: return the remaining songs
+      remainingSongs: updatedUser.userdata,
     });
   } catch (error) {
     console.error("Error deleting songs:", error);
@@ -1126,7 +1150,8 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
 // Rota para deletar a conta completa do usuário
 app.post("/api/deleteUserAccount", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body?.email || "");
+    const password = String(req.body?.password || "");
     console.log("deleting:", email);
 
     console.log("Recebido pedido para deletar conta do email:", email);
@@ -1152,9 +1177,35 @@ app.post("/api/deleteUserAccount", async (req, res) => {
       return res.status(401).json({ message: "Senha incorreta." });
     }
 
-    const deleteResult = await collection.deleteOne({ email: email });
+    const deleteResult = await collection.deleteOne({ email });
     await profileImages.deleteOne({ email });
     await authCollection.deleteOne({ email });
+    await notificationsCollection.deleteMany({ userEmail: email });
+    await invitationsCollection.deleteMany({
+      $or: [{ senderEmail: email }, { receiverEmail: email }],
+    });
+    await setlistSharesCollection.deleteMany({
+      $or: [{ senderEmail: email }, { recipientEmail: email }],
+    });
+    await userLogsCollection.deleteMany({ userEmail: email });
+    await calendarEventsCollection.deleteMany({ ownerEmail: email });
+    await calendarEventsCollection.updateMany(
+      {},
+      {
+        $pull: {
+          invitedUsers: { email },
+          pendingInvitedUsers: { email },
+        },
+      },
+    );
+    await authCollection.updateMany(
+      {},
+      {
+        $pull: {
+          acceptedInvitations: { counterpartEmail: email },
+        },
+      },
+    );
 
     console.log("Resultado da operação de deletar:", deleteResult);
 
@@ -1295,6 +1346,14 @@ const setlistSharesCollection = authDatabase.collection("setlistShares");
 const userLogsCollection = authDatabase.collection("userLogs");
 const FRONTEND_BASE_URL =
   process.env.FRONTEND_BASE_URL || "https://www.live.eloygomes.com";
+const DEFAULT_USER_SETLISTS = [
+  "guitar01",
+  "guitar02",
+  "bass",
+  "keys",
+  "drums",
+  "voice",
+];
 
 function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase();
@@ -1310,6 +1369,57 @@ function normalizeUsername(username = "") {
 
 function isValidEmail(email = "") {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
+function getDefaultUserSetlists() {
+  return [...DEFAULT_USER_SETLISTS];
+}
+
+function createDefaultUserProfileSeed({
+  email = "",
+  username = "",
+  fullName = "",
+  existing = {},
+} = {}) {
+  const today = new Date().toISOString().split("T")[0];
+  const source = existing && typeof existing === "object" ? existing : {};
+  const emptyInstrument = {
+    active: "",
+    capo: "",
+    lastPlay: "",
+    link: "",
+    progress: "",
+    songCifra: "",
+    tuning: "",
+  };
+
+  return {
+    id: 1,
+    song: "",
+    artist: "",
+    progressBar: 0,
+    instruments: {
+      guitar01: false,
+      guitar02: false,
+      bass: false,
+      keys: false,
+      drums: false,
+      voice: false,
+    },
+    guitar01: { ...emptyInstrument },
+    guitar02: { ...emptyInstrument },
+    bass: { ...emptyInstrument },
+    keys: { ...emptyInstrument },
+    drums: { ...emptyInstrument },
+    voice: { ...emptyInstrument },
+    embedVideos: [],
+    setlist: getDefaultUserSetlists(),
+    addedIn: source.addedIn || today,
+    updateIn: today,
+    email: normalizeEmail(email || source.email || ""),
+    username: username || source.username || "",
+    fullName: fullName || source.fullName || "",
+  };
 }
 
 function buildSafeUserProfile({ authUser, dataDoc }) {
@@ -1585,27 +1695,13 @@ function serializeSetlistShare(share = {}) {
 })();
 
 async function sendPasswordResetEmail({ email, resetUrl }) {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || user;
-
-  if (!host || !user || !pass || !from) {
+  const smtp = createSmtpTransporter();
+  if (!smtp) {
     return { sent: false, reason: "smtp_not_configured" };
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    requireTLS: port !== 465,
-    auth: { user, pass },
-    tls: { servername: host },
-  });
-
-  await transporter.sendMail({
-    from,
+  await smtp.transporter.sendMail({
+    from: smtp.from,
     to: email,
     subject: "Redefinicao de senha - Sustenido",
     text:
@@ -1625,6 +1721,141 @@ async function sendPasswordResetEmail({ email, resetUrl }) {
   return { sent: true };
 }
 
+function createSmtpTransporter() {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM || user;
+  const tlsServername = process.env.SMTP_TLS_SERVERNAME || host;
+
+  if (!host || !user || !pass || !from) {
+    return null;
+  }
+
+  return {
+    transporter: nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      requireTLS: port !== 465,
+      auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      tls: { servername: tlsServername },
+    }),
+    from,
+  };
+}
+
+function getApprovalAdminEmails() {
+  const raw = process.env.APPROVAL_ADMIN_EMAILS || process.env.SMTP_USER || "";
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((value) => normalizeEmail(value))
+        .filter(Boolean),
+    ),
+  );
+}
+
+async function sendSignupApprovalRequestEmail({
+  userEmail,
+  fullName = "",
+  username = "",
+  approveUrl,
+  rejectUrl,
+}) {
+  const smtp = createSmtpTransporter();
+  const adminEmails = getApprovalAdminEmails();
+
+  if (!smtp || !adminEmails.length) {
+    return { sent: false, reason: "smtp_or_admin_not_configured" };
+  }
+
+  const displayName = fullName || username || userEmail;
+
+  await smtp.transporter.sendMail({
+    from: smtp.from,
+    to: adminEmails.join(", "),
+    subject: "Novo cadastro aguardando aprovacao - Sustenido",
+    text:
+      `Um novo usuario criou conta e aguarda aprovacao.\n\n` +
+      `Nome: ${displayName}\n` +
+      `Username: ${username || "-"}\n` +
+      `Email: ${userEmail}\n\n` +
+      `Aprovar: ${approveUrl}\n` +
+      `Rejeitar: ${rejectUrl}\n`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+        <h2>Novo cadastro aguardando aprovacao</h2>
+        <p><strong>Nome:</strong> ${displayName}</p>
+        <p><strong>Username:</strong> ${username || "-"}</p>
+        <p><strong>Email:</strong> ${userEmail}</p>
+        <p>
+          <a href="${approveUrl}" style="display:inline-block;padding:10px 16px;background:#1f7a1f;color:#fff;text-decoration:none;border-radius:6px;margin-right:8px;">Aprovar usuario</a>
+          <a href="${rejectUrl}" style="display:inline-block;padding:10px 16px;background:#a11d1d;color:#fff;text-decoration:none;border-radius:6px;">Rejeitar usuario</a>
+        </p>
+      </div>
+    `,
+  });
+
+  return { sent: true };
+}
+
+async function sendApprovalStatusEmail({ email, approved }) {
+  const smtp = createSmtpTransporter();
+  if (!smtp) {
+    return { sent: false, reason: "smtp_not_configured" };
+  }
+
+  const subject = approved
+    ? "Sua conta foi aprovada - Sustenido"
+    : "Sua conta nao foi aprovada - Sustenido";
+  const text = approved
+    ? `Sua conta foi aprovada. Voce ja pode acessar: ${FRONTEND_BASE_URL}/login`
+    : "Sua solicitacao de acesso nao foi aprovada. Se precisar, entre em contato com o administrador.";
+
+  await smtp.transporter.sendMail({
+    from: smtp.from,
+    to: email,
+    subject,
+    text,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+        <h2>${approved ? "Conta aprovada" : "Conta nao aprovada"}</h2>
+        <p>${approved ? `Sua conta foi aprovada. <a href="${FRONTEND_BASE_URL}/login">Entrar no sistema</a>.` : "Sua solicitacao de acesso nao foi aprovada. Se precisar, entre em contato com o administrador."}</p>
+      </div>
+    `,
+  });
+
+  return { sent: true };
+}
+
+function renderApprovalHtml({ title, message }) {
+  return `<!doctype html>
+  <html lang="pt-BR">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>${title}</title>
+      <style>
+        body { font-family: Arial, sans-serif; background: #f6f3eb; color: #1f2937; padding: 32px; }
+        .card { max-width: 640px; margin: 10vh auto; background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+        h1 { margin-top: 0; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>${title}</h1>
+        <p>${message}</p>
+      </div>
+    </body>
+  </html>`;
+}
+
 // Helpers
 const genAccessToken = (id) =>
   jwt.sign({ userId: id }, process.env.ACCESS_SECRET, { expiresIn: "15m" });
@@ -1633,21 +1864,81 @@ const genRefreshToken = (id) =>
 
 // Rota de cadastro
 app.post("/api/auth/signup", async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body?.email || "");
+  const password = String(req.body?.password || "");
+  const fullName = String(req.body?.fullName || "").trim();
+  const username = String(req.body?.username || "").trim();
+
+  if (!isValidEmail(email) || !password) {
+    return res.status(400).json({ error: "Email e senha sao obrigatorios" });
+  }
+
   const hash = await bcrypt.hash(password, 10);
 
   try {
     const existing = await authCollection.findOne({ email });
 
-    if (existing) return res.status(400).json({ error: "Email já registrado" });
+    if (existing) {
+      if (existing.approvalStatus === "pending") {
+        return res.status(200).json({
+          message: "Cadastro ja realizado e aguardando aprovacao.",
+          approvalStatus: "pending",
+          delivery: "unknown",
+        });
+      }
+
+      return res.status(400).json({ error: "Email já registrado" });
+    }
+
+    const rawApprovalToken = crypto.randomBytes(32).toString("hex");
+    const approvalTokenHash = crypto
+      .createHash("sha256")
+      .update(rawApprovalToken)
+      .digest("hex");
+    const approveUrl =
+      `${process.env.API_PUBLIC_BASE_URL || "https://api.live.eloygomes.com"}/api/auth/approve-account` +
+      `?email=${encodeURIComponent(email)}&token=${encodeURIComponent(rawApprovalToken)}&decision=approve`;
+    const rejectUrl =
+      `${process.env.API_PUBLIC_BASE_URL || "https://api.live.eloygomes.com"}/api/auth/approve-account` +
+      `?email=${encodeURIComponent(email)}&token=${encodeURIComponent(rawApprovalToken)}&decision=reject`;
 
     await authCollection.insertOne({
       email,
       passwordHash: hash,
+      approvalStatus: "pending",
+      approvalRequestedAt: new Date(),
+      approvalTokenHash,
       userdata: " ",
     });
 
-    res.status(201).json({ message: "Usuário criado com sucesso!" });
+    let mailResult = { sent: false, reason: "not_attempted" };
+    try {
+      mailResult = await sendSignupApprovalRequestEmail({
+        userEmail: email,
+        fullName,
+        username,
+        approveUrl,
+        rejectUrl,
+      });
+    } catch (mailError) {
+      console.error("Erro ao enviar email de aprovacao:", {
+        message: mailError?.message,
+        code: mailError?.code,
+        command: mailError?.command,
+        smtpHost: process.env.SMTP_HOST,
+        approvalAdmins: getApprovalAdminEmails(),
+      });
+      mailResult = {
+        sent: false,
+        reason: mailError?.code || "mail_send_failed",
+      };
+    }
+
+    res.status(201).json({
+      message: "Cadastro recebido e aguardando aprovacao.",
+      approvalStatus: "pending",
+      delivery: mailResult.sent ? "sent" : mailResult.reason,
+    });
   } catch (err) {
     console.error("Erro ao cadastrar:", err);
     res.status(500).json({ error: "Erro interno" });
@@ -1656,7 +1947,8 @@ app.post("/api/auth/signup", async (req, res) => {
 
 // Rota de login
 app.post("/api/auth/login", async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body?.email || "");
+  const password = String(req.body?.password || "");
   try {
     const user = await authCollection.findOne({ email });
     if (!user) {
@@ -1672,6 +1964,19 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
+    if (user.approvalStatus === "rejected") {
+      return res.status(403).json({
+        error:
+          "Sua conta nao foi aprovada. Entre em contato com o administrador.",
+      });
+    }
+
+    if (user.approvalStatus !== "approved") {
+      return res.status(403).json({
+        error: "Sua conta ainda aguarda aprovacao.",
+      });
+    }
+
     const accessToken = genAccessToken(user._id.toString());
     const refreshToken = genRefreshToken(user._id.toString());
 
@@ -1684,6 +1989,76 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (err) {
     console.error("Erro ao logar:", err); // <-- log detalhado
     res.status(500).json({ error: "Erro interno" });
+  }
+});
+
+app.get("/api/auth/approve-account", async (req, res) => {
+  const email = normalizeEmail(req.query?.email || "");
+  const token = String(req.query?.token || "");
+  const decision = String(req.query?.decision || "approve").toLowerCase();
+
+  if (!email || !token || !["approve", "reject"].includes(decision)) {
+    return res.status(400).send(
+      renderApprovalHtml({
+        title: "Link invalido",
+        message: "Os parametros de aprovacao estao incompletos ou invalidos.",
+      }),
+    );
+  }
+
+  try {
+    const approvalTokenHash = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await authCollection.findOne({ email, approvalTokenHash });
+
+    if (!user) {
+      return res.status(404).send(
+        renderApprovalHtml({
+          title: "Solicitacao nao encontrada",
+          message:
+            "Nao foi possivel localizar uma solicitacao pendente para este link.",
+        }),
+      );
+    }
+
+    const nextStatus = decision === "approve" ? "approved" : "rejected";
+
+    await authCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          approvalStatus: nextStatus,
+          approvedAt: decision === "approve" ? new Date() : null,
+          rejectedAt: decision === "reject" ? new Date() : null,
+        },
+        $unset: {
+          approvalTokenHash: "",
+        },
+      },
+    );
+
+    await sendApprovalStatusEmail({ email, approved: decision === "approve" });
+
+    return res.send(
+      renderApprovalHtml({
+        title: decision === "approve" ? "Conta aprovada" : "Conta rejeitada",
+        message:
+          decision === "approve"
+            ? `O usuario ${email} foi aprovado com sucesso.`
+            : `O usuario ${email} foi rejeitado com sucesso.`,
+      }),
+    );
+  } catch (error) {
+    console.error("Erro ao processar aprovacao de conta:", error);
+    return res.status(500).send(
+      renderApprovalHtml({
+        title: "Erro interno",
+        message: "Nao foi possivel concluir esta acao agora.",
+      }),
+    );
   }
 });
 
@@ -1879,6 +2254,7 @@ app.post("/api/auth/refresh", async (req, res) => {
     });
 
     if (!user || user.refreshToken !== refreshToken) return res.sendStatus(403);
+    if (user.approvalStatus !== "approved") return res.sendStatus(403);
 
     const newAccessToken = genAccessToken(user._id.toString());
     res.json({ accessToken: newAccessToken });
@@ -2858,7 +3234,11 @@ app.post("/api/setlist-shares", authenticateJWT, async (req, res) => {
     const songs = (Array.isArray(senderDoc?.userdata) ? senderDoc.userdata : [])
       .filter((song) =>
         (Array.isArray(song?.setlist) ? song.setlist : []).some((tag) =>
-          selectedSet.has(String(tag || "").trim().toLowerCase()),
+          selectedSet.has(
+            String(tag || "")
+              .trim()
+              .toLowerCase(),
+          ),
         ),
       )
       .map((song) => {
@@ -2970,198 +3350,211 @@ app.get("/api/setlist-shares/:id", authenticateJWT, async (req, res) => {
   }
 });
 
-app.put("/api/setlist-shares/:id/respond", authenticateJWT, async (req, res) => {
-  try {
-    const currentUser = await getCurrentUserProfile(req);
-    if (!currentUser) {
-      return res.status(404).json({ message: "Usuário não encontrado." });
-    }
-
-    const shareId = req.params.id;
-    const status = String(req.body?.status || "")
-      .trim()
-      .toLowerCase();
-
-    if (!ObjectId.isValid(shareId)) {
-      return res.status(400).json({ message: "Invalid setlist share id." });
-    }
-
-    if (!["accepted", "declined"].includes(status)) {
-      return res.status(400).json({ message: "Invalid response status." });
-    }
-
-    const share = await setlistSharesCollection.findOne({
-      _id: new ObjectId(shareId),
-      recipientEmail: currentUser.email,
-    });
-
-    if (!share) {
-      return res.status(404).json({ message: "Setlist share not found." });
-    }
-
-    if (share.status !== "pending") {
-      return res.status(409).json({ message: "This share was already handled." });
-    }
-
-    let importedCount = 0;
-    let mergedCount = 0;
-    const now = new Date();
-
-    if (status === "accepted") {
-      const userDoc =
-        (await userDataCollection.findOne({
-          email: currentUser.email,
-        })) || { email: currentUser.email, userdata: [], availableSetlists: [] };
-
-      const currentUserdata = Array.isArray(userDoc.userdata)
-        ? [...userDoc.userdata]
-        : [];
-      let nextId = currentUserdata.reduce(
-        (max, song) => Math.max(max, Number(song?.id || 0)),
-        0,
-      );
-      const setlistNames = Array.isArray(share.setlistNames)
-        ? share.setlistNames
-        : [];
-
-      for (const sharedSong of Array.isArray(share.songs) ? share.songs : []) {
-        const songTitle = String(sharedSong?.song || "").trim();
-        const artist = String(sharedSong?.artist || "").trim();
-        if (!songTitle || !artist) continue;
-
-        const sharedTags = Array.from(
-          new Set(
-            (Array.isArray(sharedSong?.setlist)
-              ? sharedSong.setlist
-              : setlistNames
-            )
-              .map((tag) => String(tag || "").trim())
-              .filter(Boolean),
-          ),
-        );
-
-        const existingIndex = currentUserdata.findIndex(
-          (song) =>
-            normalizeName(song?.artist || "") === normalizeName(artist) &&
-            normalizeName(song?.song || "") === normalizeName(songTitle),
-        );
-
-        if (existingIndex >= 0) {
-          const existing = currentUserdata[existingIndex];
-          currentUserdata[existingIndex] = {
-            ...existing,
-            setlist: Array.from(
-              new Set([
-                ...(Array.isArray(existing.setlist) ? existing.setlist : []),
-                ...sharedTags,
-              ]),
-            ),
-            instruments: {
-              ...(existing.instruments || {}),
-              ...(sharedSong.instruments || {}),
-            },
-            updateIn: now.toISOString().split("T")[0],
-          };
-          mergedCount += 1;
-          continue;
-        }
-
-        const { _id, id, email, username, fullName, ...rest } =
-          sharedSong || {};
-
-        currentUserdata.push({
-          ...rest,
-          id: ++nextId,
-          email: currentUser.email,
-          username: currentUser.usernameDisplay,
-          fullName: currentUser.fullName || "",
-          setlist: sharedTags,
-          addedIn: now.toISOString().split("T")[0],
-          updateIn: now.toISOString().split("T")[0],
-        });
-        importedCount += 1;
+app.put(
+  "/api/setlist-shares/:id/respond",
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const currentUser = await getCurrentUserProfile(req);
+      if (!currentUser) {
+        return res.status(404).json({ message: "Usuário não encontrado." });
       }
 
-      const availableSetlists = Array.from(
-        new Set([
-          ...(Array.isArray(userDoc.availableSetlists)
-            ? userDoc.availableSetlists
-            : []),
-          ...setlistNames,
-          ...currentUserdata.flatMap((song) =>
-            Array.isArray(song?.setlist) ? song.setlist : [],
-          ),
-        ]),
-      ).filter(Boolean);
+      const shareId = req.params.id;
+      const status = String(req.body?.status || "")
+        .trim()
+        .toLowerCase();
 
-      await userDataCollection.updateOne(
-        { email: currentUser.email },
+      if (!ObjectId.isValid(shareId)) {
+        return res.status(400).json({ message: "Invalid setlist share id." });
+      }
+
+      if (!["accepted", "declined"].includes(status)) {
+        return res.status(400).json({ message: "Invalid response status." });
+      }
+
+      const share = await setlistSharesCollection.findOne({
+        _id: new ObjectId(shareId),
+        recipientEmail: currentUser.email,
+      });
+
+      if (!share) {
+        return res.status(404).json({ message: "Setlist share not found." });
+      }
+
+      if (share.status !== "pending") {
+        return res
+          .status(409)
+          .json({ message: "This share was already handled." });
+      }
+
+      let importedCount = 0;
+      let mergedCount = 0;
+      const now = new Date();
+
+      if (status === "accepted") {
+        const userDoc = (await userDataCollection.findOne({
+          email: currentUser.email,
+        })) || {
+          email: currentUser.email,
+          userdata: [],
+          availableSetlists: [],
+        };
+
+        const currentUserdata = Array.isArray(userDoc.userdata)
+          ? [...userDoc.userdata]
+          : [];
+        let nextId = currentUserdata.reduce(
+          (max, song) => Math.max(max, Number(song?.id || 0)),
+          0,
+        );
+        const setlistNames = Array.isArray(share.setlistNames)
+          ? share.setlistNames
+          : [];
+
+        for (const sharedSong of Array.isArray(share.songs)
+          ? share.songs
+          : []) {
+          const songTitle = String(sharedSong?.song || "").trim();
+          const artist = String(sharedSong?.artist || "").trim();
+          if (!songTitle || !artist) continue;
+
+          const sharedTags = Array.from(
+            new Set(
+              (Array.isArray(sharedSong?.setlist)
+                ? sharedSong.setlist
+                : setlistNames
+              )
+                .map((tag) => String(tag || "").trim())
+                .filter(Boolean),
+            ),
+          );
+
+          const existingIndex = currentUserdata.findIndex(
+            (song) =>
+              normalizeName(song?.artist || "") === normalizeName(artist) &&
+              normalizeName(song?.song || "") === normalizeName(songTitle),
+          );
+
+          if (existingIndex >= 0) {
+            const existing = currentUserdata[existingIndex];
+            currentUserdata[existingIndex] = {
+              ...existing,
+              setlist: Array.from(
+                new Set([
+                  ...(Array.isArray(existing.setlist) ? existing.setlist : []),
+                  ...sharedTags,
+                ]),
+              ),
+              instruments: {
+                ...(existing.instruments || {}),
+                ...(sharedSong.instruments || {}),
+              },
+              updateIn: now.toISOString().split("T")[0],
+            };
+            mergedCount += 1;
+            continue;
+          }
+
+          const { _id, id, email, username, fullName, ...rest } =
+            sharedSong || {};
+
+          currentUserdata.push({
+            ...rest,
+            id: ++nextId,
+            email: currentUser.email,
+            username: currentUser.usernameDisplay,
+            fullName: currentUser.fullName || "",
+            setlist: sharedTags,
+            addedIn: now.toISOString().split("T")[0],
+            updateIn: now.toISOString().split("T")[0],
+          });
+          importedCount += 1;
+        }
+
+        const availableSetlists = Array.from(
+          new Set([
+            ...(Array.isArray(userDoc.availableSetlists)
+              ? userDoc.availableSetlists
+              : []),
+            ...setlistNames,
+            ...currentUserdata.flatMap((song) =>
+              Array.isArray(song?.setlist) ? song.setlist : [],
+            ),
+          ]),
+        ).filter(Boolean);
+
+        await userDataCollection.updateOne(
+          { email: currentUser.email },
+          {
+            $set: {
+              email: currentUser.email,
+              userdata: currentUserdata,
+              availableSetlists,
+            },
+          },
+          { upsert: true },
+        );
+      }
+
+      const updatedShare = await setlistSharesCollection.findOneAndUpdate(
+        { _id: share._id },
         {
           $set: {
-            email: currentUser.email,
-            userdata: currentUserdata,
-            availableSetlists,
+            status,
+            importedCount,
+            mergedCount,
+            respondedAt: now,
+            updatedAt: now,
           },
         },
-        { upsert: true },
+        { returnDocument: "after" },
       );
-    }
 
-    const updatedShare = await setlistSharesCollection.findOneAndUpdate(
-      { _id: share._id },
-      {
-        $set: {
-          status,
-          importedCount,
-          mergedCount,
-          respondedAt: now,
-          updatedAt: now,
-        },
-      },
-      { returnDocument: "after" },
-    );
+      const senderUser = await findUserByEmail(share.senderEmail);
+      if (senderUser) {
+        await createNotification({
+          recipient: senderUser,
+          actor: currentUser,
+          type: "setlist_share_response",
+          title: "Setlist share updated",
+          message: `${currentUser.usernameDisplay} ${status} your setlist share.`,
+          meta: {
+            shareId,
+            status,
+            importedCount,
+            mergedCount,
+          },
+        });
+      }
 
-    const senderUser = await findUserByEmail(share.senderEmail);
-    if (senderUser) {
-      await createNotification({
-        recipient: senderUser,
-        actor: currentUser,
-        type: "setlist_share_response",
-        title: "Setlist share updated",
-        message: `${currentUser.usernameDisplay} ${status} your setlist share.`,
+      await addUserLog({
+        userEmail: currentUser.email,
+        action: "setlist_share_response",
+        message: `${status === "accepted" ? "Accepted" : "Declined"} setlist share from ${share.senderEmail}.`,
         meta: {
           shareId,
           status,
           importedCount,
           mergedCount,
+          setlistNames: share.setlistNames || [],
         },
       });
-    }
 
-    await addUserLog({
-      userEmail: currentUser.email,
-      action: "setlist_share_response",
-      message: `${status === "accepted" ? "Accepted" : "Declined"} setlist share from ${share.senderEmail}.`,
-      meta: {
-        shareId,
+      return res.json({
+        share: serializeSetlistShare(updatedShare),
         status,
         importedCount,
         mergedCount,
-        setlistNames: share.setlistNames || [],
-      },
-    });
-
-    return res.json({
-      share: serializeSetlistShare(updatedShare),
-      status,
-      importedCount,
-      mergedCount,
-    });
-  } catch (error) {
-    console.error("PUT /api/setlist-shares/:id/respond error:", error);
-    return res.status(500).json({ message: "Erro ao responder setlist share." });
-  }
-});
+      });
+    } catch (error) {
+      console.error("PUT /api/setlist-shares/:id/respond error:", error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao responder setlist share." });
+    }
+  },
+);
 // ======================= JWT LOGIN END ============================
 
 // Endpoint de healthcheck HTTP (fora de qualquer handler de conexão)
@@ -3222,9 +3615,9 @@ function normalizeInstrumentFlags(entry = {}) {
     const block = entry[key];
     flags[key] = Boolean(
       currentFlag === true ||
-        currentFlag?.active ||
-        block?.active ||
-        (typeof block?.link === "string" && block.link.trim()),
+      currentFlag?.active ||
+      block?.active ||
+      (typeof block?.link === "string" && block.link.trim()),
     );
     return flags;
   }, {});
@@ -3283,8 +3676,8 @@ function mergeSongEntries(...entries) {
         typeof entry.instruments[key] === "object"
           ? entry.instruments[key]
           : hasNestedInstrumentPayload
-          ? entry.instruments[key]
-          : null);
+            ? entry.instruments[key]
+            : null);
       acc[key] = mergeInstrumentBlock(acc[key], instrumentPayload);
     });
 
@@ -3499,18 +3892,15 @@ app.put("/api/song/updateExact", async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
 
-    const matchingIndexes = userDoc.userdata.reduce(
-      (indexes, entry, index) => {
-        if (
-          normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
-          normalizeName(entry.song) === normalizeName(updatedSong.song)
-        ) {
-          indexes.push(index);
-        }
-        return indexes;
-      },
-      [],
-    );
+    const matchingIndexes = userDoc.userdata.reduce((indexes, entry, index) => {
+      if (
+        normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
+        normalizeName(entry.song) === normalizeName(updatedSong.song)
+      ) {
+        indexes.push(index);
+      }
+      return indexes;
+    }, []);
 
     if (!matchingIndexes.length) {
       return res
@@ -3530,10 +3920,7 @@ app.put("/api/song/updateExact", async (req, res) => {
     );
     nextUserdata[songIndex] = mergedEntry;
 
-    await collection.updateOne(
-      { email },
-      { $set: { userdata: nextUserdata } },
-    );
+    await collection.updateOne({ email }, { $set: { userdata: nextUserdata } });
 
     await addUserLog({
       userEmail: email,

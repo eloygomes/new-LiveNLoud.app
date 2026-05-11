@@ -409,10 +409,39 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
               }
               ListEmptyComponent={
-                <View style={{ padding: 24, alignItems: "center" }}>
-                  <Text>
-                    {loading ? "Carregando..." : "Nenhuma música encontrada"}
-                  </Text>
+                <View style={styles.emptyState}>
+                  {loading ? (
+                    <Text style={styles.emptyStateDescription}>Carregando...</Text>
+                  ) : listOfSongs.length > 0 ? (
+                    <>
+                      <View style={styles.emptyStateIconWrap}>
+                        <FontAwesome5 name="search" size={24} color="#6b7280" />
+                      </View>
+                      <Text style={styles.emptyStateTitle}>
+                        Nenhuma música encontrada
+                      </Text>
+                      <Text style={styles.emptyStateDescription}>
+                        Ajuste a busca ou os filtros para encontrar músicas da
+                        sua biblioteca.
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.emptyStateIconWrap}>
+                        <FontAwesome5 name="music" size={26} color="#d9ad26" />
+                      </View>
+                      <Text style={styles.emptyStateTitle}>
+                        Sua biblioteca ainda está vazia
+                      </Text>
+                      <Text style={styles.emptyStateDescription}>
+                        Adicione a primeira música para começar seus estudos,
+                        montar setlists e abrir os instrumentos.
+                      </Text>
+                      <Text style={styles.emptyStateHint}>
+                        Use o botão + para adicionar a primeira música
+                      </Text>
+                    </>
+                  )}
                 </View>
               }
               contentContainerStyle={
@@ -443,6 +472,41 @@ const styles = StyleSheet.create({
   },
   filterTitle: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
   title: { fontSize: 24, fontWeight: "900", color: "#000000" },
+  emptyState: {
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  emptyStateIconWrap: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#000000",
+    textAlign: "center",
+  },
+  emptyStateDescription: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#6b7280",
+    textAlign: "center",
+    maxWidth: 280,
+  },
+  emptyStateHint: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: "#d9ad26",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    textAlign: "center",
+  },
   item: {
     backgroundColor: "#E0E0E0",
     padding: 12,

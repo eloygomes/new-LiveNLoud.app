@@ -2,7 +2,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { requestData } from "../../Tools/Controllers";
 import { Link, useNavigate } from "react-router-dom";
-import { IoClose } from "react-icons/io5";
 import {
   GiDrumKit,
   GiGuitar,
@@ -13,11 +12,13 @@ import {
 import {
   FaCalendarPlus,
   FaHistory,
+  FaMusic,
   FaRegStickyNote,
   FaVideo,
   FaVideoSlash,
 } from "react-icons/fa";
 import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
+import DashboardSongActionSheet from "./DashboardSongActionSheet";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
@@ -29,6 +30,8 @@ function DashList2Items({
   sortColumn,
   sortOrder,
   songs: songsProp,
+  hasAnySongs = false,
+  isLoading = false,
   visibleColumns = ["progression", "instruments"],
   gridTemplateColumns,
 }) {
@@ -472,7 +475,38 @@ function DashList2Items({
   return (
     <>
       {sortedData.length < 1 ? (
-        <div className="text-center py-10">Carregando músicas...</div>
+        isLoading ? (
+          <div className="py-10 text-center text-gray-500">Carregando músicas...</div>
+        ) : hasAnySongs ? (
+          <div className="flex flex-col items-center justify-center rounded-[28px] bg-[#e8e8e8] px-6 py-12 text-center shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-gray-500 shadow-[inset_6px_6px_12px_rgba(0,0,0,0.06),inset_-6px_-6px_12px_rgba(255,255,255,0.95)]">
+              <FaMusic size={28} />
+            </div>
+            <h3 className="mt-5 text-xl font-black text-black">
+              Nenhuma música encontrada
+            </h3>
+            <p className="mt-2 max-w-md text-sm leading-6 text-gray-600">
+              Ajuste a busca ou os filtros de setlist para encontrar músicas da
+              sua biblioteca.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-[28px] bg-[#e8e8e8] px-6 py-12 text-center shadow-[0_10px_30px_rgba(0,0,0,0.05)]">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[goldenrod] shadow-[inset_6px_6px_12px_rgba(0,0,0,0.06),inset_-6px_-6px_12px_rgba(255,255,255,0.95)]">
+              <FaMusic size={28} />
+            </div>
+            <h3 className="mt-5 text-xl font-black text-black">
+              Sua biblioteca ainda está vazia
+            </h3>
+            <p className="mt-2 max-w-md text-sm leading-6 text-gray-600">
+              Adicione a primeira música para começar a montar sua rotina,
+              organizar setlists e abrir os instrumentos.
+            </p>
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-[goldenrod]">
+              Use o botão + para cadastrar a primeira música
+            </p>
+          </div>
+        )
       ) : isMobile ? (
         <div className="flex flex-col">
           {sortedData.map((item, index) => (
@@ -616,133 +650,15 @@ function DashList2Items({
             </div>
           ))}
 
-          {selectedSong ? (
-            <div className="fixed inset-0 z-[12200] flex items-end bg-black/45 px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-8">
-              <button
-                type="button"
-                className="absolute inset-0"
-                aria-label="Close song actions"
-                onClick={() => setSelectedSong(null)}
-              />
-
-              <div
-                className="relative z-[12201] w-full select-none rounded-[18px] bg-[#f0f0f0] p-4 shadow-[0_-18px_40px_rgba(0,0,0,0.18)]"
-                style={{
-                  WebkitTouchCallout: "none",
-                  WebkitUserSelect: "none",
-                  userSelect: "none",
-                }}
-                onContextMenu={(event) => event.preventDefault()}
-                onTouchStart={() => window.getSelection?.().removeAllRanges?.()}
-                onMouseDown={() => window.getSelection?.().removeAllRanges?.()}
-              >
-                <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-[#c8c8c8]" />
-
-                <div className="rounded-[22px] bg-[#e8e8e8] p-4 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
-                  <div className="text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
-                    # sustenido
-                  </div>
-                  <div className="mt-2 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[1.7rem] font-black uppercase leading-none text-black">
-                        {selectedSong.song || "N/A"}
-                      </div>
-                      <div className="mt-2 truncate text-[14px] font-bold text-[#626878]">
-                        {selectedSong.artist || "N/A"}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="rounded-full bg-black/5 p-2 text-black"
-                      onClick={() => setSelectedSong(null)}
-                      aria-label="Close song sheet"
-                    >
-                      <IoClose className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-[20px] bg-[#f7f7f7] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[goldenrod]">
-                        Progression
-                      </div>
-                      <div className="mt-1 text-[15px] font-black text-black">
-                        Practice progress
-                      </div>
-                    </div>
-                    <div className="rounded-full bg-black px-3 py-1.5 text-[12px] font-black text-white">
-                      {selectedSong.progressBar || 0}%
-                    </div>
-                  </div>
-                  <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#e2e2e2]">
-                    <div
-                      className="h-full rounded-full bg-[goldenrod]"
-                      style={{ width: `${selectedSong.progressBar || 0}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3 px-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[goldenrod] mt-10">
-                    Open presentation
-                  </div>
-                  <div className="mt-1 text-[12px] font-bold text-[#626878]">
-                    Choose an available instrument
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 my-10">
-                  {instrumentLabels.map((instrument) => {
-                    const isEnabled = Boolean(
-                      selectedSong.instruments?.[instrument.key],
-                    );
-
-                    return (
-                      <button
-                        key={instrument.key}
-                        type="button"
-                        disabled={!isEnabled}
-                        onClick={() =>
-                          isEnabled &&
-                          handleOpenInstrument(selectedSong, instrument.key)
-                        }
-                        className={`flex items-center gap-3 rounded-[18px] px-4 py-3 text-left ${
-                          isEnabled
-                            ? "bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(217,173,38,0.28)]"
-                            : "bg-[#f5f5f5] text-[#a4a4a4]"
-                        }`}
-                      >
-                        {renderInstrumentIcon(instrument, isEnabled)}
-                        <div>
-                          <div className="text-[12px] font-black uppercase leading-none">
-                            {instrument.modalLabel}
-                          </div>
-                          <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em]">
-                            {isEnabled ? "Available" : "Unavailable"}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 flex gap-3">
-                  <div className="flex flex-1 items-center justify-center rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#a27b13]">
-                    {availableInstrumentCount} instruments
-                  </div>
-                  <button
-                    type="button"
-                    className="flex-1 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.28)]"
-                    onClick={() => handleEditSong(selectedSong)}
-                  >
-                    Edit song
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <DashboardSongActionSheet
+            selectedSong={selectedSong}
+            instrumentLabels={instrumentLabels}
+            availableInstrumentCount={availableInstrumentCount}
+            renderInstrumentIcon={renderInstrumentIcon}
+            onClose={() => setSelectedSong(null)}
+            onOpenInstrument={handleOpenInstrument}
+            onEditSong={handleEditSong}
+          />
         </div>
       ) : (
         <div className="dashboard-table-list flex h-full flex-col mb-10">

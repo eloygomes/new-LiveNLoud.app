@@ -42,6 +42,8 @@ services:
     image: node:20.16.0
     container_name: node_api_container
     working_dir: /usr/src/app
+    env_file:
+      - ./.env
     volumes:
       - ./node:/usr/src/app
       - ./uploads:/usr/src/app/uploads
@@ -56,12 +58,15 @@ services:
       ACCESS_SECRET: REMOVED_ACCESS_SECRET
       REFRESH_SECRET: REMOVED_REFRESH_SECRET
       FRONTEND_BASE_URL: https://www.live.eloygomes.com
+      API_PUBLIC_BASE_URL: https://api.live.eloygomes.com
 
-      SMTP_HOST: mail.eloygomes.com
+      SMTP_HOST: mailserver
       SMTP_PORT: 587
+      SMTP_TLS_SERVERNAME: mail.eloygomes.com
       SMTP_USER: no-reply@eloygomes.com
-      SMTP_PASS: REMOVED_SMTP_PASS
+      SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: Sustenido <no-reply@eloygomes.com>
+      APPROVAL_ADMIN_EMAILS: eloy.gomes@icloud.com
     depends_on:
       - db
       - python_scraper

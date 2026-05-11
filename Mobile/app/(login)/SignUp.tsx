@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
+  ActionSheetIOS,
   Alert,
   Keyboard,
   KeyboardAvoidingView,
@@ -55,13 +56,32 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      await signUp({ fullName, username, email, password });
-      Alert.alert("Sign up", "Account created successfully.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(login)/Login"),
-        },
-      ]);
+      const result = await signUp({ fullName, username, email, password });
+      const deliveryWarning =
+        result?.authData?.delivery && result.authData.delivery !== "sent"
+          ? "\n\nO email automático ainda não foi enviado. O cadastro foi salvo, mas um administrador ainda precisa aprovar sua conta."
+          : "";
+      const message =
+        `Sua conta foi criada e agora aguarda aprovação.${deliveryWarning}`;
+
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            title: "Conta em aprovação",
+            message,
+            options: ["Ir para login"],
+            cancelButtonIndex: 0,
+          },
+          () => router.replace("/(login)/Login"),
+        );
+      } else {
+        Alert.alert("Conta em aprovação", message, [
+          {
+            text: "Ir para login",
+            onPress: () => router.replace("/(login)/Login"),
+          },
+        ]);
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to create account.";

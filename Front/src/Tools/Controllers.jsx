@@ -548,7 +548,7 @@ export async function login(userEmail, userPassword) {
     return accessToken;
   } catch (err) {
     console.error("Login failed:", err);
-    alert("Login inválido. Verifique e-mail e senha.");
+    throw err;
   }
 }
 

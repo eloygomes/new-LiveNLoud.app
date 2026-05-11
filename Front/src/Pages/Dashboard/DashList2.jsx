@@ -35,6 +35,7 @@ function DashList2({ searchTerm = "" }) {
   const [sortOrder, setSortOrder] = useState("asc");
   const [optStatus, setOptStatus] = useState(false);
   const [songs, setSongs] = useState([]);
+  const [songsLoaded, setSongsLoaded] = useState(false);
   const [selectedSetlists, setSelectedSetlists] = useState(() =>
     loadSelectedSetlists(),
   );
@@ -73,6 +74,7 @@ function DashList2({ searchTerm = "" }) {
     const { songs, fullName, username } = await fetchUserSongs();
 
     setSongs(songs);
+    setSongsLoaded(true);
 
     localStorage.setItem("fullName", fullName);
     localStorage.setItem("username", username);
@@ -279,6 +281,8 @@ function DashList2({ searchTerm = "" }) {
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}
                 songs={displaySongs}
+                hasAnySongs={songs.length > 0}
+                isLoading={!songsLoaded}
                 visibleColumns={orderedVisibleColumns}
                 gridTemplateColumns={listGridTemplateColumns}
               />
@@ -372,6 +376,8 @@ function DashList2({ searchTerm = "" }) {
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}
                 songs={displaySongs}
+                hasAnySongs={songs.length > 0}
+                isLoading={!songsLoaded}
                 visibleColumns={orderedVisibleColumns}
                 gridTemplateColumns={listGridTemplateColumns}
               />
