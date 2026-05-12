@@ -8,3 +8,6 @@ Front/src/assets/auto-rotate-img.gif
 /Server/liveNloud/node/.env
 node_modules/
 **/node_modules/
+Front/deploy.sh
+Front/coverage/
+Front/.vitest/
