@@ -11,7 +11,11 @@ import PBar from "../ProgressBar/PBar";
 import ActionSheetGradeOptBtn from "./ActionSheetGradeOptBtn";
 import { Instruments } from "@/shared/types"; // Import the correct Instruments type
 import { useRouter } from "expo-router";
-import { getAllUserData, getCurrentUserEmail } from "@/connect/connect";
+import {
+  getAllUserData,
+  getCurrentUserEmail,
+  setSongOfflineEnabled,
+} from "@/connect/connect";
 import { saveSongDraft, SongDraft } from "@/connect/songDraft";
 
 interface Props {
@@ -32,6 +36,8 @@ interface Props {
       }
     >
   >;
+  offlineEnabled?: boolean;
+  onSongUpdated?: () => Promise<void> | void;
 }
 
 const ActionSheetGradeOpt = ({
@@ -41,9 +47,12 @@ const ActionSheetGradeOpt = ({
   progressBar,
   songCifra,
   instrumentData,
+  offlineEnabled = false,
+  onSongUpdated,
 }: Props) => {
   const router = useRouter();
   const [openingEdit, setOpeningEdit] = React.useState(false);
+  const [updatingOffline, setUpdatingOffline] = React.useState(false);
   const safeInstruments = instruments ?? {
     guitar01: false,
     guitar02: false,
@@ -80,7 +89,7 @@ const ActionSheetGradeOpt = ({
       }
 
       const allSongs = await getAllUserData({ email, artist: "", song: "" });
-      const match = (Array.isArray(allSongs) ? allSongs : []).find(
+      const match: any = (Array.isArray(allSongs) ? allSongs : []).find(
         (item: any) => item?.song === song && item?.artist === artist
       );
 
@@ -111,6 +120,41 @@ const ActionSheetGradeOpt = ({
       Alert.alert("Edit song", message);
     } finally {
       setOpeningEdit(false);
+    }
+  };
+
+  const handleToggleOffline = async () => {
+    if (updatingOffline) {
+      return;
+    }
+
+    setUpdatingOffline(true);
+    try {
+      const email = await getCurrentUserEmail();
+      if (!email) {
+        Alert.alert("Offline", "User email not found. Please log in again.");
+        return;
+      }
+
+      await setSongOfflineEnabled({
+        email,
+        artist,
+        song,
+        offlineEnabled: !offlineEnabled,
+      });
+      await onSongUpdated?.();
+      Alert.alert(
+        "Offline",
+        !offlineEnabled
+          ? "Song marked to work offline."
+          : "Song removed from offline mode.",
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to update offline mode.";
+      Alert.alert("Offline", message);
+    } finally {
+      setUpdatingOffline(false);
     }
   };
 
@@ -195,6 +239,20 @@ const ActionSheetGradeOpt = ({
       <View style={styles.actionsRow}>
         <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.8}>
           <Text style={styles.secondaryActionText}>Delete</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryAction}
+          activeOpacity={0.8}
+          onPress={handleToggleOffline}
+          disabled={updatingOffline}
+        >
+          {updatingOffline ? (
+            <ActivityIndicator color="#a27b13" />
+          ) : (
+            <Text style={styles.secondaryActionText}>
+              {offlineEnabled ? "Online only" : "Works offline"}
+            </Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.primaryAction}

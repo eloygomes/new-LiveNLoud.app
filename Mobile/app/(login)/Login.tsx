@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
-import { login } from "../../connect/connect";
+import { login, tryOfflineLogin } from "../../connect/connect";
 
 const GOLD = "#d9ad26";
 const PANEL = "#E0E0E0";
@@ -46,9 +46,15 @@ const AuthScreen: React.FC = () => {
         error instanceof Error
           ? error.message
           : "Login failed. Check your email and password.";
+      const offlineAllowed = await tryOfflineLogin(email);
 
-      Alert.alert("Login failed", message);
-      setPassword("");
+      if (offlineAllowed) {
+        Alert.alert("Offline mode", "Stored session restored. Some songs may require internet.");
+        router.replace(`/(tabs)/Songlist`);
+      } else {
+        Alert.alert("Login failed", message);
+        setPassword("");
+      }
     } finally {
       setLoading(false);
     }

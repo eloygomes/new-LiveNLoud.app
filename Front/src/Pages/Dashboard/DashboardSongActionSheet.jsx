@@ -9,6 +9,7 @@ export default function DashboardSongActionSheet({
   onClose,
   onOpenInstrument,
   onEditSong,
+  onToggleOffline,
 }) {
   if (!selectedSong) {
     return null;
@@ -124,9 +125,13 @@ export default function DashboardSongActionSheet({
         </div>
 
         <div className="mt-4 flex gap-3">
-          <div className="flex flex-1 items-center justify-center rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#a27b13]">
-            {availableInstrumentCount} instruments
-          </div>
+          <button
+            type="button"
+            className="flex-1 rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#a27b13]"
+            onClick={() => onToggleOffline?.(selectedSong)}
+          >
+            {selectedSong.offlineEnabled ? "Online only" : "Works offline"}
+          </button>
           <button
             type="button"
             className="flex-1 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.28)]"
@@ -134,6 +139,9 @@ export default function DashboardSongActionSheet({
           >
             Edit song
           </button>
+        </div>
+        <div className="mt-3 flex items-center justify-center rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#a27b13]">
+          {availableInstrumentCount} instruments
         </div>
       </div>
     </div>

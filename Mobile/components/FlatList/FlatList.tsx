@@ -1,5 +1,6 @@
 import {
   getCurrentUserEmail,
+  getOfflineStatus,
   getListOfMusic,
 } from "@/connect/connect";
 import React, {
@@ -42,6 +43,8 @@ export type SongListColumnKey = "progression" | "notes" | "instruments";
 export type SelectPayload = {
   song?: string;
   artist?: string;
+  offlineEnabled?: boolean;
+  requiresSync?: boolean;
   songCifra?: string;
   progressBar?: number;
   instruments?: Instruments;
@@ -73,6 +76,8 @@ type ItemProps = {
   index: number;
   song: string;
   artist: string;
+  offlineEnabled?: boolean;
+  offlineMode?: boolean;
   progressBar?: number;
   instruments?: Instruments;
   guitar01?: InstrumentContent;
@@ -136,6 +141,8 @@ const Item = ({
   index,
   song,
   artist,
+  offlineEnabled,
+  offlineMode,
   progressBar = 0,
   instruments,
   guitar01,
@@ -160,6 +167,18 @@ const Item = ({
             <Text style={styles.artist}>{artist}</Text>
 
             <View style={styles.metaRow}>
+              {offlineMode ? (
+                <View
+                  style={[
+                    styles.offlineChip,
+                    offlineEnabled ? styles.offlineChipActive : styles.offlineChipInactive,
+                  ]}
+                >
+                  <Text style={styles.offlineChipText}>
+                    {offlineEnabled ? "offline" : "internet"}
+                  </Text>
+                </View>
+              ) : null}
               {visibleColumns.includes("progression") ? (
                 <View style={styles.progressChip}>
                   <ProgressCircle progress={progressBar} />
@@ -256,6 +275,7 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
     const [listOfSongs, setListOfSongs] = useState<SelectPayload[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [offlineMode, setOfflineMode] = useState(false);
 
     const fetchSongs = useCallback(async () => {
       try {
@@ -280,7 +300,9 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
           artist: "",
           song: "",
         });
+        const offlineStatus = await getOfflineStatus();
         const safeSongs = Array.isArray(songs) ? songs : [];
+        setOfflineMode(offlineStatus.offlineMode);
         setListOfSongs(safeSongs);
         onAllSongsChange?.(safeSongs);
       } catch (e) {
@@ -377,6 +399,8 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
                   index={index}
                   song={item.song ?? ""}
                   artist={item.artist ?? ""}
+                  offlineEnabled={item.offlineEnabled}
+                  offlineMode={offlineMode}
                   progressBar={item.progressBar}
                   instruments={item.instruments}
                   guitar01={item.guitar01}
@@ -390,6 +414,8 @@ const FLComp = forwardRef<FLCompHandle, FlatListProps>(
                     onSelect({
                       song: item.song,
                       artist: item.artist,
+                      offlineEnabled: item.offlineEnabled,
+                      requiresSync: item.requiresSync,
                       instruments: item.instruments,
                       progressBar: item.progressBar,
                       songCifra: item.songCifra,
@@ -545,11 +571,28 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   metaRow: {
-    // marginTop: 10,
     flexDirection: "row",
     alignItems: "flex-start",
     flexWrap: "wrap",
     gap: 6,
+  },
+  offlineChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 8,
+    borderRadius: 9,
+  },
+  offlineChipActive: {
+    backgroundColor: "#d9ad26",
+  },
+  offlineChipInactive: {
+    backgroundColor: "#d1d5db",
+  },
+  offlineChipText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#000000",
+    textTransform: "uppercase",
   },
   progressChip: {
     flexDirection: "row",

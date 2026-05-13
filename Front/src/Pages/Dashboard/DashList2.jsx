@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import DashList2Items from "./DashList2Items";
 import DashboardOptions from "./DashboardOptions";
+import SnackBar from "../../Tools/SnackBar";
 import {
   fetchUserSongs,
+  getOfflineStatus,
   loadSelectedSetlists,
   saveSelectedSetlists,
+  syncOfflineQueue,
 } from "../../Tools/Controllers";
 
 const DEFAULT_VISIBLE_COLUMNS = ["progression", "notes", "instruments"];
@@ -40,6 +43,19 @@ function DashList2({ searchTerm = "" }) {
     loadSelectedSetlists(),
   );
   const [isUserHubOpen, setIsUserHubOpen] = useState(false);
+  const [offlineInfo, setOfflineInfo] = useState({
+    offlineMode: false,
+    contentEnabled: false,
+    reauthRequired: false,
+    pendingChanges: 0,
+    offlineEnabledCount: 0,
+    totalSongs: 0,
+  });
+  const [showSnackBar, setShowSnackBar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState({
+    title: "",
+    message: "",
+  });
   const isTabletColumnLimited =
     typeof window !== "undefined" &&
     window.innerWidth >= 768 &&
@@ -72,9 +88,18 @@ function DashList2({ searchTerm = "" }) {
 
   const loadSongs = useCallback(async () => {
     const { songs, fullName, username } = await fetchUserSongs();
+    const status = getOfflineStatus();
 
     setSongs(songs);
     setSongsLoaded(true);
+    setOfflineInfo({
+      offlineMode: status.offlineMode,
+      contentEnabled: status.contentEnabled,
+      reauthRequired: status.reauthRequired,
+      pendingChanges: status.pendingChanges,
+      offlineEnabledCount: status.offlineEnabledSongs?.length || 0,
+      totalSongs: songs.length,
+    });
 
     localStorage.setItem("fullName", fullName);
     localStorage.setItem("username", username);
@@ -259,6 +284,9 @@ function DashList2({ searchTerm = "" }) {
 
   return (
     <div className="h-full min-h-0 w-full overflow-hidden">
+      <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
+        <SnackBar snackbarMessage={snackbarMessage} />
+      </div>
       <DashboardOptions
         optStatus={optStatus}
         setOptStatus={setOptStatus}
@@ -270,6 +298,23 @@ function DashList2({ searchTerm = "" }) {
         onMoveColumn={handleMoveColumn}
         canSelectAllColumns={canSelectAllColumns}
         maxSelectableColumns={maxSelectableColumns}
+        offlineInfo={offlineInfo}
+        onOfflineStateChanged={loadSongs}
+        onNotify={({ title, message }) => {
+          setSnackbarMessage({ title, message });
+          setShowSnackBar(true);
+        }}
+        onSyncOffline={async () => {
+          const result = await syncOfflineQueue().catch(() => ({ synced: 0 }));
+          await loadSongs();
+          setSnackbarMessage({
+            title: result.synced ? "Success" : "Info",
+            message: result.synced
+              ? `Synced ${result.synced} pending change(s).`
+              : "Still offline or nothing new to sync.",
+          });
+          setShowSnackBar(true);
+        }}
         style={{ display: optStatus ? "block" : "none" }}
       />
 
@@ -285,6 +330,8 @@ function DashList2({ searchTerm = "" }) {
                 isLoading={!songsLoaded}
                 visibleColumns={orderedVisibleColumns}
                 gridTemplateColumns={listGridTemplateColumns}
+                offlineMode={offlineInfo.offlineMode}
+                onSongsChanged={loadSongs}
               />
             </ul>
           </div>
@@ -380,6 +427,8 @@ function DashList2({ searchTerm = "" }) {
                 isLoading={!songsLoaded}
                 visibleColumns={orderedVisibleColumns}
                 gridTemplateColumns={listGridTemplateColumns}
+                offlineMode={offlineInfo.offlineMode}
+                onSongsChanged={loadSongs}
               />
             </ul>
           </div>

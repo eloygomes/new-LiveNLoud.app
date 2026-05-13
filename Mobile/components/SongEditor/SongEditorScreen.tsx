@@ -18,6 +18,7 @@ import {
   getAllUserData,
   getCurrentUserEmail,
   loadSelectedSetlists,
+  saveSongOfflineEdit,
 } from "../../connect/connect";
 import {
   InstrumentKey,
@@ -496,9 +497,73 @@ const SongEditorScreen = ({ mode }: Props) => {
         router.back();
       }
     } catch (error) {
+      if (mode === "edit") {
+        try {
+          const cachedSongs = await getAllUserData({
+            email,
+            artist: "",
+            song: "",
+          });
+          const cachedMatch = (Array.isArray(cachedSongs) ? cachedSongs : []).find(
+            (item: any) => item?.song === song && item?.artist === artist,
+          );
+
+          if (!cachedMatch) {
+            throw new Error("This song is not available in the offline cache.");
+          }
+
+          await saveSongOfflineEdit({
+            email,
+            songData: {
+              ...cachedMatch,
+              song: song.trim(),
+              artist: artist.trim(),
+              capo: capo.trim(),
+              tom: tom.trim(),
+              tuning: tuning.trim(),
+              setlist: setlists,
+              embedVideos: videos,
+              progressBar: overallProgress || 0,
+              offlineEnabled: cachedMatch.offlineEnabled,
+              instruments: instrumentConfig.reduce(
+                (acc, instrument) => ({
+                  ...acc,
+                  [instrument.key]: Boolean(instrumentLinks[instrument.key].trim()),
+                }),
+                {} as Record<InstrumentKey, boolean>,
+              ),
+              guitar01: { ...(cachedMatch.guitar01 || {}), link: instrumentLinks.guitar01.trim() },
+              guitar02: { ...(cachedMatch.guitar02 || {}), link: instrumentLinks.guitar02.trim() },
+              bass: { ...(cachedMatch.bass || {}), link: instrumentLinks.bass.trim() },
+              keys: { ...(cachedMatch.keys || {}), link: instrumentLinks.keys.trim() },
+              drums: { ...(cachedMatch.drums || {}), link: instrumentLinks.drums.trim() },
+              voice: { ...(cachedMatch.voice || {}), link: instrumentLinks.voice.trim() },
+            },
+          });
+
+          if (mode === "edit") {
+            await clearSongDraft();
+          }
+
+          Alert.alert("Song Editor", "Song saved locally and queued for sync.");
+          router.back();
+          return;
+        } catch (offlineError) {
+          const message =
+            offlineError instanceof Error
+              ? offlineError.message
+              : "Unable to save song offline.";
+          Alert.alert("Song Editor", message);
+          return;
+        }
+      }
+
       const message =
         error instanceof Error ? error.message : "Unable to save song.";
-      Alert.alert("Song Editor", message);
+      Alert.alert(
+        "Song Editor",
+        `${message} New songs still require an online connection.`,
+      );
     } finally {
       setSavingSong(false);
     }

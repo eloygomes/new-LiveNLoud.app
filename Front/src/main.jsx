@@ -29,7 +29,12 @@ import UserRegistration from "./Pages/UserRegistration/UserRegistration";
 import UserProfile from "./Pages/UserProfile/UserProfile";
 import SpotifyCallback from "./Pages/Dashboard/SpotifyCallback";
 import ToolsHub from "./Pages/Tools/ToolsHub";
-import { ensureAuthenticatedSession } from "./Tools/Controllers";
+import { registerServiceWorker } from "./registerServiceWorker";
+import {
+  ensureAuthenticatedSession,
+  isOfflineModeEnabled,
+  markOfflineReauthRequired,
+} from "./Tools/Controllers";
 // import YouTubeCallback from "./Pages/Dashboard/YouTubeCallback";
 
 // Firebase Authentication
@@ -45,8 +50,18 @@ const ProtectedRoute = ({ element: Component, ...rest }) => {
       if (active) setStatus(isAuthenticated ? "authenticated" : "anonymous");
     });
 
+    const handleOnline = () => {
+      if (isOfflineModeEnabled()) {
+        markOfflineReauthRequired(true);
+        setStatus("anonymous");
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+
     return () => {
       active = false;
+      window.removeEventListener("online", handleOnline);
     };
   }, []);
 
@@ -231,6 +246,8 @@ const router = createBrowserRouter(
     </>,
   ),
 );
+
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById("REMOVED_MONGO_USER")).render(
   <React.StrictMode>

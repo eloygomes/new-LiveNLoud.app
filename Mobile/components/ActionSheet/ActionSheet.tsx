@@ -6,10 +6,11 @@ import { SelectPayload } from "@/components/FlatList/FlatList";
 
 interface Props {
   selected: SelectPayload | null;
+  onSongUpdated?: () => Promise<void> | void;
 }
 
 const ActionSheetTemplate = forwardRef<ActionSheetRef, Props>(
-  ({ selected }, ref) => (
+  ({ selected, onSongUpdated }, ref) => (
     <ActionSheet
       ref={ref}
       containerStyle={styles.sheet}
@@ -35,6 +36,8 @@ const ActionSheetTemplate = forwardRef<ActionSheetRef, Props>(
             instruments={selected.instruments}
             progressBar={selected.progressBar ?? 0}
             songCifra={selected.songCifra ?? ""}
+            offlineEnabled={selected.offlineEnabled ?? false}
+            onSongUpdated={onSongUpdated}
             apiText={""}
             instrumentData={{
               guitar01: selected.guitar01,

@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { FaGear, FaPenToSquare } from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
+import { useNavigate, useParams } from "react-router-dom";
 import ToolBox from "./ToolBox";
 import {
   allDataFromOneSong,
@@ -139,6 +140,7 @@ const PRESENTATION_INSTRUMENTS = [
   { key: "drums", label: "Drums" },
   { key: "voice", label: "Voice" },
 ];
+const PRESENTATION_INSTRUMENT_MAP = { keyboard: "keys", key: "keys" };
 
 const instrumentHasPresentationContent = (instrumentData) => {
   if (!instrumentData) return false;
@@ -164,6 +166,9 @@ const isInstrumentRegistered = (songData, instrumentKey) =>
   );
 
 function Presentation() {
+  const navigate = useNavigate();
+  const { artist: routeArtist, song: routeSong, instrument: routeInstrument } =
+    useParams();
   const [toolBoxBtnStatus, setToolBoxBtnStatus] = useState(false);
   const [artistFromURL, setArtistFromURL] = useState("");
   const [songFromURL, setSongFromURL] = useState("");
@@ -322,27 +327,40 @@ function Presentation() {
         !instrumentHasPresentationContent(songDataFetched[instrumentSelected])),
   );
 
+  const normalizePresentationInstrument = useCallback((value = "") => {
+    const normalized = PRESENTATION_INSTRUMENT_MAP[value] || value || "keys";
+    return PRESENTATION_INSTRUMENTS.some(
+      (instrument) => instrument.key === normalized,
+    )
+      ? normalized
+      : "keys";
+  }, []);
+
   const goToInstrument = useCallback(
     (instrumentKey) => {
       if (!instrumentKey) return;
 
-      window.location.href = `/presentation/${encodeURIComponent(
-        artistFromURL || "",
-      )}/${encodeURIComponent(songFromURL || "")}/${encodeURIComponent(
-        instrumentKey,
-      )}`;
+      navigate(
+        `/presentation/${encodeURIComponent(
+          artistFromURL || "",
+        )}/${encodeURIComponent(songFromURL || "")}/${encodeURIComponent(
+          instrumentKey,
+        )}`,
+      );
     },
-    [artistFromURL, songFromURL],
+    [artistFromURL, navigate, songFromURL],
   );
 
   const goToEditSong = useCallback(() => {
     localStorage.setItem("song", songFromURL || "");
     localStorage.setItem("artist", artistFromURL || "");
 
-    window.location.href = `/editsong/${encodeURIComponent(
-      artistFromURL || "",
-    )}/${encodeURIComponent(songFromURL || "")}`;
-  }, [artistFromURL, songFromURL]);
+    navigate(
+      `/editsong/${encodeURIComponent(artistFromURL || "")}/${encodeURIComponent(
+        songFromURL || "",
+      )}`,
+    );
+  }, [artistFromURL, navigate, songFromURL]);
 
   const startEditingCifra = () => {
     setSaveError("");
@@ -403,13 +421,15 @@ function Presentation() {
     (song) => {
       if (!song) return;
 
-      window.location.href = `/presentation/${encodeURIComponent(
-        song.artist || "",
-      )}/${encodeURIComponent(song.song || "")}/${encodeURIComponent(
-        instrumentSelected,
-      )}`;
+      navigate(
+        `/presentation/${encodeURIComponent(
+          song.artist || "",
+        )}/${encodeURIComponent(song.song || "")}/${encodeURIComponent(
+          instrumentSelected,
+        )}`,
+      );
     },
-    [instrumentSelected],
+    [instrumentSelected, navigate],
   );
 
   const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
@@ -665,42 +685,71 @@ function Presentation() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const url = window.location.href;
-
-        // Usando o método split() para dividir a URL pelos '/'
-        const partes = url.split("/");
-
-        // Capturando o último e o penúltimo valores
-        const urlInstrument = partes[partes.length - 1];
-        setInstrumentSelected(urlInstrument);
-
-        const urlSong = partes[partes.length - 2];
-        const urlSongwithSpace = decodeURIComponent(urlSong);
-        setSongFromURL(urlSongwithSpace);
-        localStorage.setItem("song", urlSongwithSpace);
-
-        const urlBand = partes[partes.length - 3];
-        const urlBandwithSpace = decodeURIComponent(urlBand);
-        setArtistFromURL(urlBandwithSpace);
-        localStorage.setItem("artist", urlBandwithSpace);
-
-        const dataFromSong = await allDataFromOneSong(
-          urlBandwithSpace,
-          urlSongwithSpace,
+        didPingRef.current = false;
+        const decodedArtist = decodeURIComponent(routeArtist || "");
+        const decodedSong = decodeURIComponent(routeSong || "");
+        const requestedInstrument = normalizePresentationInstrument(
+          decodeURIComponent(routeInstrument || "keys"),
         );
-        const dataFromSongparsedResult = JSON.parse(dataFromSong);
-        setSongDataFetched(dataFromSongparsedResult);
-        setEmbedLinks(dataFromSongparsedResult.embedVideos);
 
-        // Chamando a função handleDataFromAPI com os dados e o instrumento selecionado
-        handleDataFromAPI(dataFromSongparsedResult, urlInstrument);
+        setInstrumentSelected(requestedInstrument);
+        setSongFromURL(decodedSong);
+        setArtistFromURL(decodedArtist);
+        localStorage.setItem("song", decodedSong);
+        localStorage.setItem("artist", decodedArtist);
+
+        const dataFromSong = await allDataFromOneSong(decodedArtist, decodedSong);
+        const dataFromSongparsedResult = JSON.parse(dataFromSong);
+        const firstAvailableInstrument =
+          PRESENTATION_INSTRUMENTS.find(
+            ({ key }) =>
+              isInstrumentRegistered(dataFromSongparsedResult, key) &&
+              instrumentHasPresentationContent(dataFromSongparsedResult[key]),
+          )?.key || requestedInstrument;
+        const selectedInstrument =
+          isInstrumentRegistered(dataFromSongparsedResult, requestedInstrument) &&
+          instrumentHasPresentationContent(
+            dataFromSongparsedResult[requestedInstrument],
+          )
+            ? requestedInstrument
+            : firstAvailableInstrument;
+
+        setSongDataFetched(dataFromSongparsedResult);
+        setEmbedLinks(
+          Array.isArray(dataFromSongparsedResult.embedVideos)
+            ? dataFromSongparsedResult.embedVideos
+            : [],
+        );
+        setInstrumentSelected(selectedInstrument);
+
+        if (selectedInstrument !== requestedInstrument) {
+          navigate(
+            `/presentation/${encodeURIComponent(
+              decodedArtist,
+            )}/${encodeURIComponent(decodedSong)}/${encodeURIComponent(
+              selectedInstrument,
+            )}`,
+            { replace: true },
+          );
+        }
+
+        handleDataFromAPI(dataFromSongparsedResult, selectedInstrument);
       } catch (error) {
         console.error("Error fetching song data:", error);
+        setSongDataFetched(null);
+        setEmbedLinks([]);
+        handleDataFromAPI(null, "");
       }
     };
 
     fetchData();
-  }, []);
+  }, [
+    navigate,
+    normalizePresentationInstrument,
+    routeArtist,
+    routeInstrument,
+    routeSong,
+  ]);
 
   useEffect(() => {
     const loadSetlistNavigation = async () => {
@@ -1128,6 +1177,7 @@ function Presentation() {
           setNotesModalStatus={setNotesModalStatus}
           onOpenInstrumentNotes={openInstrumentNotesWindow}
           isSavingNotes={isSavingNotes}
+          onSelectInstrument={goToInstrument}
         />
       )}
       <div

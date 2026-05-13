@@ -1,0 +1,1028 @@
+================================================================================
+LIVENLLOUD OFFLINE FUNCTIONALITY IMPLEMENTATION GUIDE
+================================================================================
+Created: May 13, 2026
+Target: Full offline support for songs, setlists, and authentication
+Architecture: Distributed (Web + Mobile + Server)
+
+================================================================================
+1. OVERVIEW & STRATEGY
+================================================================================
+
+GOAL:
+- Users can work offline on designated songs
+- Offline songs selected per-song via "Works Offline" toggle
+- Bulk offline enablement through setlist selection
+- Users can view all songs offline but only interact with offline-enabled ones
+- Login/session persistence without internet connection
+- Automatic sync when reconnected
+
+OFFLINE SCOPE:
+✓ View full song list (names, artists only - no detailed data)
+✓ View songs marked as "works offline" with full details
+✓ Access instruments, tabs, chords, capo, tuning for offline songs
+✓ Edit song details, progress, lastPlay for offline songs
+✓ View setlists
+✓ Apply setlists to offline songs
+✓ Persist user session without connection
+
+✗ Login new users without prior session (must authenticate once online)
+✗ Add new songs
+✗ Invite friends or access social features
+✗ Real-time audio processing via Socket.IO
+
+
+DATA FLOW:
+Online State:
+  User Actions → Update Local Storage → Sync to Server → Confirm Success
+  
+Offline State:
+  User Actions → Update Local Storage → Queue Sync → On Reconnect: Send Queued Changes
+
+Reconnection:
+  Detect Connection → Send Queued Mutations → Fetch Latest Data → Merge & Update UI
+
+
+================================================================================
+2. DATA MODEL CHANGES
+================================================================================
+
+MONGODB SCHEMA UPDATES:
+
+Current user.data structure:
+{
+  userdata: [{
+    id, song, artist, progressBar,
+    instruments: { guitar01, guitar02, bass, keys, drums, voice },
+    [instrument]: { active, capo, lastPlay[], link, progress, songCifra, tuning, linkNorm },
+    embedVideos[], setlist[], addedIn, updateIn, lastPlayed
+  }]
+}
+
+CHANGE:
+Add to each song object in userdata array:
+  - offlineEnabled: Boolean (default: false)  [NEW]
+  - lastOfflineSyncTime: ISO Date (null until first offline save)  [NEW]
+  - requiresSync: Boolean (default: false)  [NEW - tracks if song has unsaved offline changes]
+
+SETLIST TRACKING:
+Add to user profile root level:
+  - offlineSetlists: { [setlistName]: Boolean } (default: {})  [NEW]
+  
+Example:
+{
+  setlist: ["guitar01", "bass"],
+  offlineSetlists: { "Setlist-Name": true }  // This setlist's songs all inherit offline=true
+}
+
+MIGRATION PATH:
+- No backward compatibility needed initially
+- New documents default offlineEnabled: false
+- Existing documents add offlineEnabled: false on first save
+
+
+================================================================================
+3. LOCAL STORAGE ARCHITECTURE (BOTH WEB & MOBILE)
+================================================================================
+
+BROWSER (Web App using React):
+  Storage Strategy: Combination of localStorage + IndexedDB
+  
+  localStorage (Key-Value):
+    - auth:tokens = { accessToken, refreshToken, expiresAt }
+    - auth:userEmail = user@example.com
+    - auth:sessionTimestamp = ISO date
+    - offline:lastSyncTime = ISO date (last successful server sync)
+    - offline:syncQueue = JSON array of pending mutations
+    
+  IndexedDB (Structured):
+    Database: "LiveNLoudOffline"
+    
+    Store 1: "songs"
+      keyPath: "id"
+      Indexed: ["email", "offlineEnabled", "requiresSync"]
+      Data: Full song objects including instruments, chords, videos
+      
+    Store 2: "setlists"
+      keyPath: "name"
+      Data: { name, instruments[], offlineEnabled }
+      
+    Store 3: "syncQueue"
+      keyPath: "id"
+      Data: { id, action, songId, changes, timestamp, status }
+      
+    Store 4: "metadata"
+      keyPath: "key"
+      Data: User profile summary for offline display
+
+
+MOBILE (React Native using AsyncStorage):
+  AsyncStorage Keys:
+    - token = JWT access token
+    - refreshToken = refresh token
+    - userEmail = user@example.com
+    - sessionTimestamp = ISO date
+    - offline:lastSyncTime = ISO date
+    - offline:syncQueue = JSON stringified array
+    - cachedUserdata:{email} = Full user songs array (existing)
+    - offlineSongs:{email} = JSON array of offlineEnabled song objects
+    - offlineSetlists:{email} = JSON stringified setlist offlineEnabled map
+    - songDraft = In-progress edits (existing)
+
+
+DATA STRUCTURE IN LOCAL STORAGE:
+
+syncQueue Item:
+{
+  id: UUID,
+  timestamp: ISO date,
+  action: "UPDATE_SONG" | "UPDATE_SETLIST_OFFLINE" | "BULK_UPDATE",
+  songId: string,
+  changes: {
+    offlineEnabled?: boolean,
+    progressBar?: number,
+    instruments?: {...},
+    setlist?: [...],
+    [instrumentKey]?: {...}
+  },
+  status: "PENDING" | "SYNCING" | "SYNCED" | "FAILED",
+  retries: 0
+}
+
+Metadata in Local Storage:
+{
+  key: "metadata",
+  userEmail: "user@example.com",
+  lastUpdated: ISO date,
+  offlineEnabledCount: number,
+  lastSyncStatus: "SUCCESS" | "FAILED" | "PARTIAL",
+  totalStorageUsed: bytes (approx)
+}
+
+
+================================================================================
+4. BACKEND API CHANGES (SERVER)
+================================================================================
+
+NEW ENDPOINTS:
+
+1. POST /api/offline/sync
+   Description: Receive batch of offline mutations, validate, and apply
+   Auth: JWT required
+   Request Body:
+   {
+     lastSyncTime: ISO date,
+     mutations: [
+       {
+         action: "UPDATE_SONG",
+         songId: string,
+         changes: {...}
+       },
+       {
+         action: "UPDATE_SETLIST_OFFLINE",
+         setlistName: string,
+         offlineEnabled: boolean
+       }
+     ]
+   }
+   Response:
+   {
+     success: boolean,
+     syncedAt: ISO date,
+     conflicts: [{songId, serverValue, clientValue}],
+     newData: {
+       userdata: [{...}],
+       offlineSetlists: {...}
+     }
+   }
+   Behavior:
+     - Update lastOfflineSyncTime on each song
+     - Mark requiresSync: false
+     - Return full user dataset for client refresh
+     - Handle conflicts: Server wins, but notify client
+
+
+2. POST /api/offline/status
+   Description: Get offline-enabled songs list (minimal data for offline list view)
+   Auth: JWT required
+   Response:
+   {
+     offlineEnabledSongs: [
+       {
+         id, song, artist, offlineEnabled, lastOfflineSyncTime
+       }
+     ],
+     offlineSetlists: {...}
+   }
+   Purpose: Compact endpoint to fetch only offline metadata
+
+
+3. PUT /api/allsongdata/:email (MODIFY EXISTING)
+   Description: When saving a song, include offline flags
+   Changes:
+     - Accept offlineEnabled flag in request
+     - Save offlineEnabled to database
+     - Update lastOfflineSyncTime
+
+
+4. GET /api/alldata/:email (MODIFY EXISTING)
+   Description: Return all songs with offlineEnabled flags
+   Changes:
+     - Include offlineEnabled in response for each song
+     - Include offlineSetlists in response root
+
+
+VALIDATION ON SERVER:
+- User can only modify their own songs' offline status
+- offlineEnabled flag cannot be injected/spoofed (validate user ownership)
+- Sync mutations must reference songs owned by authenticated user
+- Rate limit sync endpoint to prevent abuse: 50 requests/hour per user
+
+
+MIGRATION:
+- Add offlineEnabled: false to all existing songs (data migration script)
+- Deprecate old endpoints gradually, maintain backward compatibility initially
+
+
+================================================================================
+5. AUTHENTICATION OFFLINE (CRITICAL)
+================================================================================
+
+CHALLENGE:
+Current system uses JWT + server-side admin approval.
+Offline login impossible for NEW users (no server to verify approval status).
+
+SOLUTION - Tiered Approach:
+
+TIER 1: RETURNING USERS (Session-based)
+  - Check if refreshToken valid in AsyncStorage/localStorage
+  - If refreshToken present AND sessionTimestamp within 30 days:
+    → Allow offline login (use stored session)
+  - Display "Offline Mode" indicator
+  - On reconnection: Validate token against server, refresh if needed
+
+TIER 2: NEW USERS (Network required on first login)
+  - Cannot login offline without prior online session
+  - On first login: Network required to authenticate
+  - System stores refreshToken valid for 7 days
+  - Within 7 days: Can use refreshToken for offline access
+  - After 7 days without reconnect: Must login again online
+
+IMPLEMENTATION:
+
+Local Auth Check Function:
+```
+isOfflineSessionValid():
+  1. Check refreshToken exists in storage
+  2. Check sessionTimestamp within 30 days of today
+  3. Check user has at least one offlineEnabled song OR explicit offline permission
+  4. Return true/false
+  
+allowOfflineLogin():
+  1. If isOfflineSessionValid() → Allow
+  2. Load cached user data from local storage
+  3. Set isOfflineMode = true in auth context
+  4. Show toast: "You are working offline"
+```
+
+On Reconnection:
+```
+attemptTokenRefresh():
+  1. GET /api/auth/refresh with refreshToken
+  2. If success: Update tokens, sync queue, refresh user data
+  3. If fail (token expired): Force full login required
+  4. If no network: Stay in offline mode
+```
+
+SECURITY CONSIDERATIONS:
+- refreshToken stored locally is security risk (use HttpOnly if possible on web)
+- Consider local encryption of sensitive tokens using libsodium
+- Set short absolute expiry on refreshToken (current: 7 days)
+- Warn users: "Offline session expires after 30 days without internet"
+
+
+================================================================================
+6. UI/UX COMPONENTS & TOGGLES
+================================================================================
+
+COMPONENT 1: Song Offline Toggle
+  Location: Song detail view / Song list item
+  States:
+    - Offline Enabled (toggle ON): Filled circle icon + "Works Offline" text
+    - Offline Disabled (toggle OFF): Empty circle icon + "Online Only" text
+    - Syncing: Spinning indicator
+    - Sync Failed: Red X icon + Retry button
+  
+  Behavior:
+    - On toggle: Immediately update local storage
+    - Add to syncQueue if offline
+    - Show toast: "Song marked for offline use" / "Offline removed"
+    - On sync success: Remove from syncQueue, update timestamp
+    - Long-press/Info icon: Show "Last offline sync: [timestamp]"
+
+
+COMPONENT 2: Setlist Offline Action
+  Location: Setlist detail view or context menu
+  Options:
+    - "Download Setlist for Offline" button
+    - Dialog: "Mark all songs in '[Setlist Name]' for offline use?"
+    - Confirmation: "Added 12 songs to offline mode"
+    - Counter: "3/5 songs already offline"
+  
+  Behavior:
+    - Toggle all songs in setlist: offlineEnabled = true
+    - For each song: Add to syncQueue as UPDATE action
+    - Show progress bar during bulk operation
+    - Show success/failed count on completion
+
+
+COMPONENT 3: Offline Mode Indicator
+  Location: Top of app (header or floating badge)
+  Display:
+    - When offline: Red/Orange badge "Offline Mode" with WiFi icon crossed out
+    - Tap to show: "Last sync: [time ago]" and "Pending changes: N"
+    - Show sync status: "Syncing..." or "Sync failed - tap to retry"
+  
+  Behavior:
+    - Auto-hide when online
+    - Show warning if session expires in < 7 days
+    - Manual sync button (force sync pending changes)
+
+
+COMPONENT 4: Song List in Offline Mode
+  Display:
+    - Show all songs but with visual differentiation:
+      - Offline-enabled songs: Normal appearance
+      - Online-only songs: Grayed out + "Requires internet" badge
+    - Filter option: "Show offline songs only"
+    - Sorting: "Offline songs first"
+  
+  Interaction:
+    - Tap offline-enabled song: Open full detail view
+    - Tap online-only song: Show modal "This song requires internet"
+    - Download icon for offline songs shows sync status
+
+
+COMPONENT 5: Offline Settings Screen (NEW)
+  Options:
+    - "Storage used: 250 MB / 500 MB"
+    - "Auto-sync on WiFi" toggle (default ON)
+    - "Delete all offline data" button
+    - "Session expires in: 25 days" warning
+    - "Last full sync: 2 hours ago"
+    - "Pending changes: 3 songs"
+    - Manual "Sync Now" button
+
+
+================================================================================
+7. SYNC STRATEGY & CONFLICT RESOLUTION
+================================================================================
+
+AUTOMATIC SYNC TRIGGERS:
+  1. On app launch: If online, check for pending mutations
+  2. On network reconnection: Queue sync
+  3. Every 15 minutes: If online and changes pending
+  4. On app close: Best-effort sync (don't block close)
+  5. Manual: User taps "Sync Now" button
+
+SYNC PROCESS:
+
+Step 1: Detect Online Status
+  - Web: navigator.onLine + fetch HEAD request to server health endpoint
+  - Mobile: NetInfo API from react-native-netinfo
+  - Retry: Check every 30 seconds when offline
+
+Step 2: Prepare Mutations
+  - Collect all items with status: "PENDING" from syncQueue
+  - Filter out mutations older than 30 days (discard stale)
+  - Batch into single POST /api/offline/sync request
+  - Include lastSyncTime header for conflict detection
+
+Step 3: Send to Server
+  - Update status: "PENDING" → "SYNCING"
+  - POST with exponential backoff retry (3, 9, 27 sec delays)
+  - Timeout: 30 seconds
+  - Network error: Mark as FAILED, will retry later
+
+Step 4: Handle Response
+  Success (200):
+    - Update status: "SYNCING" → "SYNCED"
+    - Clear from syncQueue after 5 minutes
+    - Merge returned newData into local IndexedDB
+    - Update metadata: lastSyncTime, syncStatus: SUCCESS
+    - Show toast: "Synced 5 changes"
+  
+  Conflict (409):
+    - Server returned conflicts array
+    - For each conflict: Compare timestamps
+    - Server timestamp newer → Accept server version
+    - Local timestamp newer → Re-queue mutation
+    - User option: "Resolve conflicts" modal
+    - Show diff: Server vs Local value
+  
+  Unauthorized (401):
+    - Tokens expired
+    - Attempt refresh with refreshToken
+    - If refresh succeeds: Retry sync
+    - If refresh fails: Force logout, notify user
+  
+  Server Error (5xx):
+    - Retry in 5 minutes (exponential backoff)
+    - After 3 retries: Show warning "Sync blocked - review offline data"
+    - Max retry time: 7 days (then discard)
+  
+  Network Error:
+    - Stay offline, keep in queue
+    - Show red indicator
+
+
+CONFLICT RESOLUTION RULES:
+
+Rule 1: Timestamp-based
+  - If server.lastUpdated > local.lastUpdated → Server wins
+  - Exception: User explicitly tapped "Keep my changes"
+
+Rule 2: Song-level conflicts
+  If multiple instruments modified:
+    - Merge instrument-by-instrument
+    - If same instrument modified both sides → Server wins (timestamp)
+
+Rule 3: Setlist conflicts
+  - If setlist deleted on server: Remove from local offlineSetlists
+  - If setlist changed on server: Merge offline flags
+
+
+QUEUE PERSISTENCE:
+- syncQueue stored in IndexedDB (web) / AsyncStorage (mobile)
+- Survive app restart
+- Maximum queue size: 5000 items (warn user if exceeded)
+- Auto-cleanup: Remove SYNCED items after 5 days
+
+
+================================================================================
+8. DATA SYNC & CACHE INVALIDATION
+================================================================================
+
+INITIAL DOWNLOAD (First Offline Setup):
+
+Step 1: User taps toggle on song
+  - Download triggers for all required data:
+    - Song details (chords, capos, tuning for all instruments)
+    - Embedded videos (DON'T download video files, only metadata + embed URLs)
+    - Setlist references
+
+Step 2: Store to Local DB
+  - Save to IndexedDB "songs" store
+  - Mark: offlineEnabled: true, lastOfflineSyncTime: now
+
+Step 3: Estimate storage
+  - Calculate size needed (typically 500KB-2MB per song)
+  - Show: "This song requires 1.2 MB"
+  - Warn if total > 500 MB: "Not enough space"
+
+
+INCREMENTAL UPDATES:
+
+When user edits offline song while offline:
+  - Update local IndexedDB immediately
+  - Add mutation to syncQueue
+  - Mark song: requiresSync: true
+  - Show indicator on song card
+
+On reconnection:
+  - Send all mutations
+  - Download latest song versions from server
+  - Merge: If server has newer data, show merge modal
+  - Resolution: User chooses "Keep mine" / "Accept server" / "Merge"
+
+
+BACKGROUND SYNC (Progressive):
+
+Weekly check (if online):
+  - Fetch metadata for all offlineEnabled songs
+  - Compare localUpdatedAt vs serverUpdatedAt
+  - If server newer and < 30 days old: Download update
+  - Show notification: "Offline songs have updates"
+  - Don't auto-update, let user decide
+
+Lazy load on demand:
+  - When user views offline song, check server for updates
+  - If update available: Show "Update available" badge
+  - Button: "Refresh this song"
+
+
+================================================================================
+9. IMPLEMENTATION ROADMAP (PHASES)
+================================================================================
+
+PHASE 1: FOUNDATION (Week 1-2)
+  Backend:
+    ✓ Add migration: offlineEnabled: false to all songs
+    ✓ Create POST /api/offline/sync endpoint
+    ✓ Add database indexes: email, offlineEnabled, lastOfflineSyncTime
+    ✓ Implement sync validation & conflict resolution logic
+  
+  Frontend (Web):
+    ✓ Create IndexedDB database schema + helper functions
+    ✓ Implement offline auth check function (refreshToken validation)
+    ✓ Add "Offline Mode Indicator" component to header
+    ✓ Create syncQueue management utility
+  
+  Frontend (Mobile):
+    ✓ Update AsyncStorage keys for offline tracking
+    ✓ Implement offline session validation
+    ✓ Add NetInfo connectivity listener
+
+
+PHASE 2: UI & TOGGLES (Week 2-3)
+  Frontend (Web):
+    ✓ Add "Works Offline" toggle to song cards
+    ✓ Add toggle to song detail view
+    ✓ Create "Offline Settings" screen
+    ✓ Add sync indicators and status displays
+    ✓ Implement manual "Sync Now" button
+  
+  Frontend (Mobile):
+    ✓ Replicate toggle UI for mobile
+    ✓ Optimize for smaller screens
+    ✓ Add offline-specific navigation flow
+
+
+PHASE 3: SETLIST BULK OPERATIONS (Week 3-4)
+  Backend:
+    ✓ Add POST /api/offline/bulk-setlist endpoint
+    ✓ Implement batch update for setlist songs
+  
+  Frontend (Web):
+    ✓ Add "Download Setlist for Offline" action
+    ✓ Create bulk operation dialog
+    ✓ Implement progress bar for bulk sync
+  
+  Frontend (Mobile):
+    ✓ Add setlist bulk actions
+
+
+PHASE 4: SYNC ENGINE (Week 4-5)
+  Backend:
+    ✓ Enhanced conflict detection & resolution
+    ✓ Transaction-based updates to prevent partial failures
+  
+  Frontend (Web & Mobile):
+    ✓ Implement sync queue manager
+    ✓ Add background sync triggers
+    ✓ Implement exponential backoff retry logic
+    ✓ Create conflict resolution UI
+    ✓ Add network connectivity detection
+    ✓ Implement automatic sync on reconnect
+
+
+PHASE 5: REFINEMENT & TESTING (Week 5-6)
+  All:
+    ✓ End-to-end testing: offline → online → offline transitions
+    ✓ Storage limits testing (device storage, IndexedDB limits)
+    ✓ Performance testing: large sync queues, many songs
+    ✓ Network interruption simulation
+    ✓ Token expiration scenarios
+  
+  Docs:
+    ✓ User guide for offline features
+    ✓ Troubleshooting guide
+
+
+PHASE 6: DEPLOYMENT & MONITORING (Week 6+)
+  ✓ Feature flag: Enable offline for % of users
+    ✓ Monitor storage usage per user
+    ✓ Track sync failure rates
+    ✓ Collect user feedback
+
+
+================================================================================
+10. TECHNICAL CONSIDERATIONS & EDGE CASES
+================================================================================
+
+EDGE CASE 1: User offline for extended period (30+ days)
+  - refreshToken expires after 7 days of disuse
+  - After 30 days: Session completely expired
+  - Solution: Show warning at day 25 "Session expires in 5 days"
+  - Action required: User must go online to refresh
+  - Any local mutations made after 30 days won't sync (show warning)
+
+
+EDGE CASE 2: Device storage full
+  - IndexedDB quota exceeded (typical: 50MB - 500MB per origin)
+  - Solution: Show "Storage full" error when adding song offline
+  - Provide UI to delete offline songs: "Free up space by removing offline access"
+  - Suggest: Delete oldest/least-used offline songs
+
+
+EDGE CASE 3: Sync queue too large (> 100 mutations)
+  - Slow network + many edits = queue backlog
+  - Solution: Batch mutations into chunks of 50
+  - Implement delta compression (only send changed fields)
+  - Show queue size in offline indicator
+
+
+EDGE CASE 4: Conflicting edits same song (desktop + mobile)
+  - User edits song on desktop, then on mobile while offline
+  - Server receives desktop changes first
+  - Mobile attempts sync with older data
+  - Solution: Implement 3-way merge (server version, device1, device2)
+  - Or: Simpler - always server wins, notify user
+
+
+EDGE CASE 5: Setlist modified on server while user offline
+  - User downloads songs from setlist X offline
+  - Server: Admin removes setlist X
+  - User sync: Orphaned songs with offlineEnabled: true
+  - Solution: Keep songs offline regardless of setlist status
+  - Only remove if user explicitly toggles off
+
+
+EDGE CASE 6: Video embeds in offline mode
+  - Store only YouTube embed IDs, not video files
+  - Show placeholder: "Tap to play online"
+  - Don't auto-download videos (too large)
+  - Option: "Download video preview" (manual, not required)
+
+
+EDGE CASE 7: Duplicate songs with same name
+  - Offline cache uses song ID as key, not name
+  - No issue with detection
+  - UI shows ID + name in offline merge/conflict UI
+
+
+EDGE CASE 8: User deletes offline song on server
+  - Song deleted while user offline
+  - User tries to sync changes to deleted song
+  - Solution: Server returns 404 for deleted song
+  - Client: Mark mutation as FAILED, prompt user
+  - Option: "Recreate song" or "Discard changes"
+
+
+EDGE CASE 9: Third-party device sync
+  - User on iPhone offline, later on desktop online
+  - Different local caches, different syncQueues
+  - Solution: Server merges all mutations, returns unified state
+  - Desktop syncs → gets full data → sync to mobile required too
+  - Recommend: Dedicated "sync devices" button in settings
+
+
+================================================================================
+11. CODE STRUCTURE REFERENCE
+================================================================================
+
+RECOMMENDED FOLDER ADDITIONS:
+
+Frontend (Web):
+  src/
+    utils/
+      offline/
+        ├── indexedDb.js          // IndexedDB wrapper (init, query, save)
+        ├── syncQueue.js          // syncQueue management
+        ├── offlineAuth.js        // Offline session validation
+        └── conflictResolution.js // Merge logic
+    contexts/
+      ├── OfflineContext.jsx      // Global offline state + sync status
+    components/
+      Offline/
+        ├── OfflineBadge.jsx
+        ├── SongOfflineToggle.jsx
+        ├── OfflineSettings.jsx
+        ├── SyncIndicator.jsx
+        ├── ConflictResolutionModal.jsx
+
+Frontend (Mobile):
+  connect/
+    ├── offlineSync.ts           // Sync orchestration
+    └── syncQueue.ts             // Queue persistence in AsyncStorage
+  hooks/
+    ├── useOfflineMode.ts        // Custom hook for offline detection
+  components/
+    Offline/
+      ├── OfflineBadge.tsx
+      ├── SongOfflineToggle.tsx
+
+
+Backend (Server):
+  node/
+    routes/
+      ├── offline.js             // POST /api/offline/sync, GET /api/offline/status
+    middleware/
+      ├── offlineValidation.js   // Validate offline mutations
+    utils/
+      ├── conflictResolver.js    // Conflict detection and merge
+      ├── syncQueue.js           // Server-side queue processing (optional)
+
+
+================================================================================
+12. TESTING CHECKLIST
+================================================================================
+
+Unit Tests:
+  ☐ Offline auth validation function
+  ☐ syncQueue add/remove/clear operations
+  ☐ Conflict resolution rules for each scenario
+  ☐ IndexedDB save/load operations
+  ☐ Mutation formatting and validation
+
+Integration Tests:
+  ☐ Toggle song → Update local storage → Verify UI
+  ☐ Toggle setlist → All songs updated offline
+  ☐ Sync mutation → Server receives and applies
+  ☐ Conflict response → Client handles correctly
+
+E2E Tests (Critical):
+  ☐ Go offline → Login with refreshToken → View cached songs → Modify song → Go online → Sync → Verify server updated
+  ☐ Go online → Create 10 mutations → Go offline → UI shows pending count → Go online → All sync successfully
+  ☐ Server conflict scenario → UI shows merge options → User resolves → Sync continues
+  ☐ Sync while app closed → Resume app → Auto-sync queued mutations
+  ☐ Device storage full → Error handling + cleanup suggestions
+  ☐ Session expired (30 days) → Show warning → Block offline edits → Force online login
+
+
+================================================================================
+13. SECURITY & PRIVACY NOTES
+================================================================================
+
+TOKENS & AUTH:
+  - refreshToken stored in localStorage is XSS risk
+  - Consider: HttpOnly cookies for tokens (if backend supports)
+  - Or: Encrypt tokens with device-level crypto before storage
+  - Clear tokens from storage on logout
+  - Token refresh must validate user ownership
+
+LOCAL DATA:
+  - IndexedDB data is NOT encrypted by default
+  - Hostile actor with device access can read offline songs
+  - Risk: Low if device locked; High if device compromised
+  - Mitigation: Consider sqlite3-encrypted or similar for sensitive deployments
+  - Current: Accept risk, document in privacy policy
+
+SYNC VALIDATION:
+  - Server must validate user owns each song in sync mutation
+  - Prevent injection of unauthorized changes
+  - Rate limit: 50 sync requests/hour per user
+  - Log all sync operations for audit trail
+
+SETLIST PERMISSIONS:
+  - Only song owner can toggle offline status
+  - Shared setlists: Only owner can download for offline (or invite collaborators)
+
+
+================================================================================
+14. PERFORMANCE OPTIMIZATION
+================================================================================
+
+DATA TRANSFER:
+  - First sync: Download full song objects (1-5 MB typical)
+  - Incremental: Send only changed fields (delta sync)
+  - Compression: gzip compress mutation batches
+  - Chunking: For large mutations, split into 100KB chunks
+
+STORAGE:
+  - IndexedDB is efficient for 50-200 songs offline
+  - For 500+ songs: Consider compression or selective sync
+  - AsyncStorage for mobile: 10-50 MB typical limit (device dependent)
+  - Monitor: Log storage usage, warn at 80% capacity
+
+SYNC PERFORMANCE:
+  - Batch mutations (10-50 per request)
+  - Batch processing on server (transaction per user per sync call)
+  - Consider: Dedicated sync worker on backend for high-volume users
+  - Response time: < 2 sec for sync of 20 mutations
+
+INITIAL LOAD:
+  - Lazy load offline songs on first app launch with offline mode
+  - Background download for subsequent setlists
+  - Show placeholder UI while loading cache
+
+
+================================================================================
+15. FALLBACK & DEGRADATION PATHS
+================================================================================
+
+If IndexedDB not available (private browsing):
+  - Fall back to sessionStorage (smaller but works)
+  - Warn user: "Offline data won't persist after browser close"
+  - Limit to current session only
+
+If asyncStorage not available (old React Native):
+  - Use AsyncStorage polyfill or local SQLite
+  - Ensure fallback path is tested
+
+If network detection fails:
+  - Assume online by default
+  - Attempt sync, if fails, assume offline
+  - Manual "Go Offline" toggle for users on unreliable networks
+
+If sync repeatedly fails (> 7 days):
+  - Prompt user: "Offline changes couldn't sync"
+  - Options: "Try again", "Discard", "Export changes"
+  - Prevent data loss
+
+
+================================================================================
+16. FUTURE ENHANCEMENTS (Post-MVP)
+================================================================================
+
+✓ Offline video download (optional, for high-bandwidth users)
+✓ Peer-to-peer sync between user devices (Bluetooth, WebRTC)
+✓ Automatic selective sync based on user habits
+✓ Background audio processing without server (local ML model)
+✓ Scheduled offline sync at specific times
+✓ CloudKit / iCloud Drive sync for native iOS app
+✓ Service Worker for browser-level offline support
+✓ Collaborative offline sessions with local conflict resolution
+✓ Offline search using local full-text search engine
+
+
+================================================================================
+17. QUICK REFERENCE: KEY FILES TO CREATE/MODIFY
+================================================================================
+
+TO CREATE (New Files):
+
+BACKEND:
+  1. Server/liveNloud/node/routes/offline.js
+     - POST /api/offline/sync
+     - GET /api/offline/status
+  
+  2. Server/liveNloud/node/utils/conflictResolver.js
+     - compareVersions(client, server)
+     - mergeConflicts(conflicts)
+
+FRONTEND WEB:
+  1. Front/src/utils/offline/indexedDb.js
+     - initDb(), saveSong(), getSong(), getSongList(), deleteSong()
+  
+  2. Front/src/utils/offline/syncQueue.js
+     - addMutation(), getPendingMutations(), markSynced()
+  
+  3. Front/src/utils/offline/offlineAuth.js
+     - isOfflineSessionValid(), allowOfflineLogin()
+  
+  4. Front/src/contexts/OfflineContext.jsx
+     - useOffline() hook
+  
+  5. Front/src/components/Offline/OfflineBadge.jsx
+     - Display offline status and sync state
+  
+  6. Front/src/components/Offline/SongOfflineToggle.jsx
+     - Toggle UI component
+
+FRONTEND MOBILE:
+  1. Mobile/connect/offlineSync.ts
+     - synchronizeOfflineSongs(), queueMutation()
+  
+  2. Mobile/hooks/useOfflineMode.ts
+     - Custom hook for offline state
+
+TO MODIFY (Existing Files):
+
+BACKEND:
+  1. Server/liveNloud/node/index.js
+     - Modify POST /api/allsongdata to include offlineEnabled flag
+     - Modify MongoDB queries to use new schema fields
+     - Add user validation middleware
+  
+  2. Database migration script
+     - Add offlineEnabled: false to all existing songs
+
+FRONTEND WEB:
+  1. Front/src/contexts/AuthContext.jsx
+     - Add offline mode detection
+     - Add session validation on load
+  
+  2. Front/src/Pages/SongInstrumentNotes.jsx (or equivalent song detail)
+     - Add SongOfflineToggle component
+     - Add sync status display
+  
+  3. Front/src/Pages/Setlist/ (or equivalent)
+     - Add "Download Setlist" action
+     - Add bulk offline toggle
+  
+  4. Front/src/main.jsx or App.jsx
+     - Add connectivity detection
+     - Wrap with OfflineContext
+     - Add auto-sync on reconnect
+
+FRONTEND MOBILE:
+  1. Mobile/connect/connect.tsx
+     - Integrate offlineSync.ts functions
+     - Add sync triggers
+  
+  2. Mobile/components/SongEditor/SongEditor.tsx
+     - Add offline toggle to UI
+     - Show sync status
+  
+  3. Mobile/app/index.tsx (or main app file)
+     - Add connection listener
+     - Add auto-sync on reconnect
+
+
+================================================================================
+18. COMMAND REFERENCE FOR AGENT IMPLEMENTATION
+================================================================================
+
+Database Migration Example:
+```
+db.data.updateMany(
+  { "userdata": { $exists: true } },
+  {
+    $set: {
+      "userdata.$[].offlineEnabled": false,
+      "userdata.$[].lastOfflineSyncTime": null,
+      "userdata.$[].requiresSync": false
+    }
+  }
+)
+```
+
+IndexedDB Init Example:
+```javascript
+const dbName = "LiveNLoudOffline";
+const stores = [
+  { name: "songs", keyPath: "id", indexes: [["email"], ["offlineEnabled"], ["requiresSync"]] },
+  { name: "setlists", keyPath: "name", indexes: [] },
+  { name: "syncQueue", keyPath: "id", indexes: [["status"], ["timestamp"]] },
+  { name: "metadata", keyPath: "key", indexes: [] }
+];
+```
+
+Sync Mutation Example:
+```javascript
+const mutation = {
+  id: uuid(),
+  timestamp: new Date().toISOString(),
+  action: "UPDATE_SONG",
+  songId: "song123",
+  changes: { offlineEnabled: true, progressBar: 75 },
+  status: "PENDING",
+  retries: 0
+};
+```
+
+
+================================================================================
+19. DEPLOYMENT CONSIDERATIONS
+================================================================================
+
+STAGING:
+  1. Deploy backend changes to staging
+  2. Run migration on staging database
+  3. Test sync with sample data
+  4. Load testing: 100 concurrent syncs
+  5. Storage limit testing
+
+PRODUCTION ROLLOUT:
+  1. Run migration on production (schedule for low-traffic time)
+  2. Deploy backend changes
+  3. Feature flag: Offline enabled for 10% of users
+  4. Monitor: Sync success rate, storage usage, error rates
+  5. Gradual ramp: 10% → 50% → 100%
+  6. Maintain: Monitor error logs for 2 weeks post-launch
+
+ROLLBACK PLAN:
+  If issues detected:
+    1. Disable feature flag
+    2. Redirect users to "Online Only" mode
+    3. Keep syncQueue data locally (don't clear)
+    4. Fix issues, redeploy, retry sync from queue
+    5. Manual data recovery if needed
+
+
+================================================================================
+20. SUCCESS CRITERIA & METRICS
+================================================================================
+
+Measurable Success:
+  ✓ 50%+ of users download at least 1 song for offline
+  ✓ Offline sync success rate > 99% (excluding network issues)
+  ✓ Avg sync time < 2 seconds for 10 mutations
+  ✓ Zero data loss incidents
+  ✓ Offline session auth success rate > 98%
+  ✓ Average offline mode usage per week > 2 hours
+  ✓ Offline feature retention rate (% users who keep using it) > 70%
+  ✓ Support tickets related to offline sync < 2% of total
+
+Key Metrics to Track:
+  - Daily active offline users
+  - Avg offline songs per user
+  - Setlist bulk download frequency
+  - Sync failure rate by error type
+  - Storage usage distribution (median, 95th percentile)
+  - Session expiration incidents
+  - Conflict resolution frequency
+  - User satisfaction (in-app surveys)
+
+
+================================================================================
+END OF IMPLEMENTATION GUIDE
+================================================================================
+
+This document is comprehensive and ready for an AI agent to implement.
+Treat as the source of truth for offline functionality scope and architecture.
+Updates: Revise as implementation reveals new considerations.
+
+Contact/Questions: Refer to project maintainers for clarifications.
+

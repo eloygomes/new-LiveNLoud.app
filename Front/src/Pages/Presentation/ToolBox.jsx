@@ -45,6 +45,7 @@ function ToolBox({
   setNotesModalStatus,
   onOpenInstrumentNotes,
   isSavingNotes = false,
+  onSelectInstrument,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -186,6 +187,7 @@ function ToolBox({
               onInstrumentNotesChange={onInstrumentNotesChange}
               onSaveInstrumentNotes={onSaveInstrumentNotes}
               isSavingNotes={isSavingNotes}
+              onSelectInstrument={onSelectInstrument}
             />
           </div>
         </div>
@@ -254,6 +256,7 @@ function ToolBox({
                 onInstrumentNotesChange={onInstrumentNotesChange}
                 onSaveInstrumentNotes={onSaveInstrumentNotes}
                 isSavingNotes={isSavingNotes}
+                onSelectInstrument={onSelectInstrument}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

@@ -69,7 +69,7 @@
 // });
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { Alert, View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import Filter from "react-native-vector-icons/FontAwesome";
 import FLComp, {
   SelectPayload,
@@ -79,6 +79,7 @@ import ActionSheetTemplate from "@/components/ActionSheet/ActionSheet";
 import { ActionSheetRef } from "react-native-actions-sheet";
 import { useNavigation } from "expo-router";
 import ActionSheetSongFilter from "@/components/ActionSheetSongFilter/ActionSheetSongFilter";
+import { getOfflineStatus, syncOfflineQueue } from "@/connect/connect";
 
 // 👇 importe o tipo do handle para ter autocomplete no ref
 import type { FLCompHandle } from "@/components/FlatList/FlatList";
@@ -101,6 +102,10 @@ const Songlist = () => {
     "notes",
     "instruments",
   ]);
+  const [offlineInfo, setOfflineInfo] = useState({
+    offlineMode: false,
+    pendingChanges: 0,
+  });
 
   const visibleSongs = useMemo(() => {
     const validSelectedSetlists = selectedSetlists.filter((selectedSetlist) =>
@@ -136,7 +141,28 @@ const Songlist = () => {
     return unsubscribe;
   }, [navigation]);
 
+  useEffect(() => {
+    const loadOfflineInfo = async () => {
+      const status = await getOfflineStatus();
+      setOfflineInfo({
+        offlineMode: status.offlineMode,
+        pendingChanges: status.pendingChanges,
+      });
+    };
+
+    const unsubscribe = navigation.addListener("focus", loadOfflineInfo);
+    loadOfflineInfo();
+    return unsubscribe;
+  }, [navigation]);
+
   const handleSelect = (payload: SelectPayload) => {
+    if (offlineInfo.offlineMode && !payload.offlineEnabled) {
+      Alert.alert(
+        "Internet required",
+        "This song is visible offline, but it was not marked to work offline.",
+      );
+      return;
+    }
     setSelected(payload);
     sheetRefTemplate.current?.show();
   };
@@ -147,6 +173,30 @@ const Songlist = () => {
 
   return (
     <View style={styles.container}>
+      {offlineInfo.offlineMode ? (
+        <TouchableOpacity
+          style={styles.offlineBanner}
+          onPress={async () => {
+            const result = await syncOfflineQueue().catch(() => ({ synced: 0 }));
+            const refreshed = await getOfflineStatus();
+            setOfflineInfo({
+              offlineMode: refreshed.offlineMode,
+              pendingChanges: refreshed.pendingChanges,
+            });
+            Alert.alert(
+              "Offline mode",
+              result.synced
+                ? `Synced ${result.synced} pending change(s).`
+                : "Still offline or nothing new to sync.",
+            );
+            await flRef.current?.refetch();
+          }}
+        >
+          <Text style={styles.offlineBannerText}>
+            OFFLINE MODE • {offlineInfo.pendingChanges} pending
+          </Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={styles.filterButton} onPress={handleOpenFilter}>
         <Filter name="filter" size={18} color="#111" />
       </TouchableOpacity>
@@ -166,6 +216,14 @@ const Songlist = () => {
       <ActionSheetTemplate
         ref={sheetRefTemplate}
         selected={selected}
+        onSongUpdated={async () => {
+          await flRef.current?.refetch();
+          const status = await getOfflineStatus();
+          setOfflineInfo({
+            offlineMode: status.offlineMode,
+            pendingChanges: status.pendingChanges,
+          });
+        }}
         // Exemplo: após alguma ação dentro do sheet, você pode chamar forceRefresh()
         // onDidSave={forceRefresh}  ← se seu componente suportar esse callback
       />
@@ -194,6 +252,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0F0F0",
     flex: 1,
     flexDirection: "column",
+  },
+  offlineBanner: {
+    position: "absolute",
+    top: 54,
+    left: 16,
+    zIndex: 50,
+    borderRadius: 14,
+    backgroundColor: "#f59e0b",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  offlineBannerText: {
+    color: "#111111",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.8,
   },
   filterButton: {
     position: "absolute",

@@ -1,3 +1,14 @@
+import {
+  applyOfflineSongUpdate,
+  buildOfflineMutation,
+  canUseOfflineSession,
+  clearSyncedMutations,
+  enqueueOfflineMutation,
+  isRecentOfflineSession,
+  normalizeOfflineSongs,
+  toggleSongOfflineState,
+} from "./offlineStore";
+
 // Controllers.js
 
 /* =========================
@@ -28,6 +39,12 @@ const LOCAL_API_BASE =
     : null;
 
 const API_BASE = ENV_BASE || LOCAL_API_BASE || "https://api.live.eloygomes.com";
+const SESSION_TIMESTAMP_KEY = "auth:sessionTimestamp";
+const OFFLINE_MODE_KEY = "offline:isOfflineMode";
+const OFFLINE_SYNC_QUEUE_KEY = "offline:syncQueue";
+const OFFLINE_SONGS_KEY = "offline:songs";
+const OFFLINE_CONTENT_ENABLED_KEY = "offline:contentEnabled";
+const OFFLINE_REAUTH_REQUIRED_KEY = "offline:reauthRequired";
 
 function buildUrl(path, params) {
   const url = new URL(path, API_BASE);
@@ -171,8 +188,26 @@ async function refreshAccessToken() {
 export async function ensureAuthenticatedSession() {
   if (typeof window === "undefined") return false;
 
+  if (!navigator.onLine) {
+    const storedEmail = getUserEmail() || "";
+
+    if (isOfflineModeEnabled() && canOfflineLoginForEmail(storedEmail)) {
+      setOfflineModeEnabled(true);
+      setOfflineReauthRequired(false);
+      return true;
+    }
+
+    return tryOfflineLogin(storedEmail);
+  }
+
+  if (navigator.onLine && isOfflineModeEnabled()) {
+    return false;
+  }
+
   const token = localStorage.getItem("token");
-  if (!token) return false;
+  if (!token) {
+    return tryOfflineLogin();
+  }
 
   const expiresAt = getJwtExpiryMs(token);
   const refreshWindowMs = 60 * 1000;
@@ -189,8 +224,12 @@ export async function ensureAuthenticatedSession() {
     }
 
     await refreshPromise;
+    setOfflineReauthRequired(false);
     return true;
   } catch {
+    if (!navigator.onLine) {
+      return tryOfflineLogin();
+    }
     logoutUser();
     return false;
   }
@@ -243,6 +282,229 @@ const syncStoredUserProfile = (profile = {}) => {
   }
 };
 
+function readCachedOfflineSongs() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(OFFLINE_SONGS_KEY) || "[]");
+    return normalizeOfflineSongs(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedOfflineSongs(songs = []) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    OFFLINE_SONGS_KEY,
+    JSON.stringify(normalizeOfflineSongs(songs)),
+  );
+}
+
+function readOfflineSyncQueue() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(OFFLINE_SYNC_QUEUE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOfflineSyncQueue(queue = []) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(OFFLINE_SYNC_QUEUE_KEY, JSON.stringify(queue));
+}
+
+function pruneLocalOnlyOfflineMutations(queue = []) {
+  return (Array.isArray(queue) ? queue : []).filter(
+    (entry) => entry?.action !== "TOGGLE_OFFLINE",
+  );
+}
+
+function setOfflineModeEnabled(enabled) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(OFFLINE_MODE_KEY, enabled ? "true" : "false");
+}
+
+function setOfflineContentEnabled(enabled) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(OFFLINE_CONTENT_ENABLED_KEY, enabled ? "true" : "false");
+}
+
+function isOfflineContentEnabled() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(OFFLINE_CONTENT_ENABLED_KEY) === "true";
+}
+
+function setOfflineReauthRequired(required) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(OFFLINE_REAUTH_REQUIRED_KEY, required ? "true" : "false");
+}
+
+export function markOfflineReauthRequired(required = true) {
+  setOfflineReauthRequired(required);
+}
+
+export function isOfflineReauthRequired() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(OFFLINE_REAUTH_REQUIRED_KEY) === "true";
+}
+
+export function isOfflineModeEnabled() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(OFFLINE_MODE_KEY) === "true";
+}
+
+export function getOfflineStatus() {
+  const songs = readCachedOfflineSongs();
+  const queue = readOfflineSyncQueue();
+
+  return {
+    offlineMode: isOfflineModeEnabled(),
+    contentEnabled: isOfflineContentEnabled(),
+    reauthRequired: isOfflineReauthRequired(),
+    pendingChanges: queue.filter((entry) => entry.status !== "SYNCED").length,
+    offlineEnabledSongs: songs.filter((song) => song.offlineEnabled),
+  };
+}
+
+export function canOfflineLoginForEmail(userEmail = "") {
+  if (typeof window === "undefined") return false;
+
+  const normalizedEmail = String(userEmail || "")
+    .trim()
+    .toLowerCase();
+  const storedEmail = String(getUserEmail() || "")
+    .trim()
+    .toLowerCase();
+  const accessToken = localStorage.getItem("token");
+  const refreshToken = localStorage.getItem("refreshToken");
+  const sessionTimestamp = localStorage.getItem(SESSION_TIMESTAMP_KEY);
+  const songs = readCachedOfflineSongs();
+
+  if (!isOfflineContentEnabled()) {
+    return false;
+  }
+
+  if (normalizedEmail && storedEmail && normalizedEmail !== storedEmail) {
+    return false;
+  }
+
+  if (!isRecentOfflineSession(sessionTimestamp)) {
+    return false;
+  }
+
+  if (!songs.length) {
+    return false;
+  }
+
+  if (refreshToken) {
+    return canUseOfflineSession({
+      refreshToken,
+      sessionTimestamp,
+      songs,
+    });
+  }
+
+  return Boolean(accessToken);
+}
+
+function enqueueMutation(mutation) {
+  const nextQueue = enqueueOfflineMutation(readOfflineSyncQueue(), mutation);
+  writeOfflineSyncQueue(nextQueue);
+}
+
+function mergeSongIntoCache(updatedSong = {}) {
+  const cachedSongs = readCachedOfflineSongs();
+
+  try {
+    const nextSongs = applyOfflineSongUpdate(cachedSongs, updatedSong);
+    writeCachedOfflineSongs(nextSongs);
+    return nextSongs;
+  } catch {
+    const nextSongs = normalizeOfflineSongs([...cachedSongs, updatedSong]);
+    writeCachedOfflineSongs(nextSongs);
+    return nextSongs;
+  }
+}
+
+function mergeOfflineSongSnapshot(incomingSong = {}, cachedSong = null) {
+  if (!cachedSong) {
+    return incomingSong;
+  }
+
+  return {
+    ...cachedSong,
+    ...incomingSong,
+    offlineEnabled: Boolean(cachedSong.offlineEnabled),
+    requiresSync: Boolean(cachedSong.requiresSync),
+    lastOfflineSyncTime:
+      cachedSong.lastOfflineSyncTime || incomingSong.lastOfflineSyncTime || null,
+  };
+}
+
+function hasPresentationPayload(song = {}) {
+  return ["guitar01", "guitar02", "bass", "keys", "drums", "voice"].some(
+    (instrumentKey) => {
+      const instrumentData = song?.[instrumentKey];
+      if (!instrumentData || typeof instrumentData !== "object") {
+        return false;
+      }
+
+      return ["songCifra", "songChords", "songTabs", "songLyrics"].some(
+        (field) =>
+          typeof instrumentData[field] === "string" &&
+          instrumentData[field].trim() !== "",
+      );
+    },
+  );
+}
+
+async function backfillOfflineSongDetails(email, songs = []) {
+  const offlineSongs = normalizeOfflineSongs(songs).filter(
+    (song) => song.offlineEnabled && song.artist && song.song,
+  );
+
+  if (!offlineSongs.length) {
+    return;
+  }
+
+  const detailedSongsResults = await Promise.allSettled(
+    offlineSongs.map(async (song) => {
+      const { data } = await fetchApi.post("/api/allsongdata", {
+        email,
+        artist: song.artist,
+        song: song.song,
+      });
+
+      return { ...song, ...data };
+    }),
+  );
+
+  const mergedDetailedSongs = offlineSongs.map((song, index) =>
+    detailedSongsResults[index]?.status === "fulfilled"
+      ? detailedSongsResults[index].value
+      : song,
+  );
+
+  const cachedSongs = readCachedOfflineSongs();
+  const nextSongs = cachedSongs.map((cachedSong) => {
+    const updatedSong = mergedDetailedSongs.find(
+      (entry) =>
+        String(entry.artist || "").trim().toLowerCase() ===
+          String(cachedSong.artist || "").trim().toLowerCase() &&
+        String(entry.song || "").trim().toLowerCase() ===
+          String(cachedSong.song || "").trim().toLowerCase(),
+    );
+
+    return updatedSong ? mergeOfflineSongSnapshot(updatedSong, cachedSong) : cachedSong;
+  });
+
+  writeCachedOfflineSongs(nextSongs);
+}
+
 /** Normaliza link como no backend (host sem www, minúsculo, sem barra final). */
 export function normalizeLink(u) {
   try {
@@ -267,9 +529,16 @@ export function normalizeLink(u) {
 export const requestData = async (email) => {
   try {
     const { data } = await fetchApi.get(`/api/alldata/${email}`);
+    writeCachedOfflineSongs(data?.userdata || []);
+    setOfflineModeEnabled(false);
     return JSON.stringify(data);
   } catch (error) {
     console.error("Error fetching song data:", error);
+    const cachedSongs = readCachedOfflineSongs();
+    if (cachedSongs.length) {
+      setOfflineModeEnabled(true);
+      return JSON.stringify({ userdata: cachedSongs });
+    }
   }
 };
 
@@ -277,9 +546,33 @@ export const fetchAllSongData = async (email, artist, song) => {
   const url = "/api/allsongdata";
   try {
     const { data } = await fetchApi.post(url, { email, artist, song });
+    const cachedSongs = readCachedOfflineSongs();
+    const targetIndex = cachedSongs.findIndex(
+      (entry) =>
+        String(entry.artist || "").trim().toLowerCase() ===
+          String(artist || "").trim().toLowerCase() &&
+        String(entry.song || "").trim().toLowerCase() ===
+          String(song || "").trim().toLowerCase(),
+    );
+    if (targetIndex >= 0) {
+      cachedSongs[targetIndex] = { ...cachedSongs[targetIndex], ...data };
+      writeCachedOfflineSongs(cachedSongs);
+    }
+    setOfflineModeEnabled(false);
     return JSON.stringify(data);
   } catch (error) {
     console.error(`Error fetching song data from ${API_BASE + url}`, error);
+    const cachedSong = readCachedOfflineSongs().find(
+      (entry) =>
+        String(entry.artist || "").trim().toLowerCase() ===
+          String(artist || "").trim().toLowerCase() &&
+        String(entry.song || "").trim().toLowerCase() ===
+          String(song || "").trim().toLowerCase(),
+    );
+    if (cachedSong?.offlineEnabled) {
+      setOfflineModeEnabled(true);
+      return JSON.stringify(cachedSong);
+    }
     throw error;
   }
 };
@@ -307,9 +600,33 @@ export const allDataFromOneSong = async (artist, song) => {
       artist,
       song,
     });
+    const cachedSongs = readCachedOfflineSongs();
+    const targetIndex = cachedSongs.findIndex(
+      (entry) =>
+        String(entry.artist || "").trim().toLowerCase() ===
+          String(artist || "").trim().toLowerCase() &&
+        String(entry.song || "").trim().toLowerCase() ===
+          String(song || "").trim().toLowerCase(),
+    );
+    if (targetIndex >= 0) {
+      cachedSongs[targetIndex] = { ...cachedSongs[targetIndex], ...data };
+      writeCachedOfflineSongs(cachedSongs);
+    }
+    setOfflineModeEnabled(false);
     return JSON.stringify(data);
   } catch (error) {
     console.error(`Error fetching song data from ${API_BASE + url}`, error);
+    const cachedSong = readCachedOfflineSongs().find(
+      (entry) =>
+        String(entry.artist || "").trim().toLowerCase() ===
+          String(artist || "").trim().toLowerCase() &&
+        String(entry.song || "").trim().toLowerCase() ===
+          String(song || "").trim().toLowerCase(),
+    );
+    if (cachedSong?.offlineEnabled) {
+      setOfflineModeEnabled(true);
+      return JSON.stringify(cachedSong);
+    }
     throw error;
   }
 };
@@ -334,10 +651,30 @@ export const updateSongData = async (updatedData) => {
 
   try {
     const { data } = await fetchApi.post("/api/newsong", payload);
+    mergeSongIntoCache({
+      ...updatedData,
+      artist,
+      song,
+    });
+    setOfflineModeEnabled(false);
     return data;
   } catch (error) {
     console.error("Error updating song data:", error);
-    throw error;
+    mergeSongIntoCache({
+      ...updatedData,
+      artist,
+      song,
+    });
+    enqueueMutation(
+      buildOfflineMutation("UPSERT_SONG", {
+        email,
+        artist,
+        song,
+        userdata: payload.userdata,
+      }),
+    );
+    setOfflineModeEnabled(true);
+    return { queued: true };
   }
 };
 
@@ -355,10 +692,22 @@ export const updateSongEntry = async (updatedSong = {}) => {
       email,
       updatedSong,
     });
+    mergeSongIntoCache(updatedSong);
+    setOfflineModeEnabled(false);
     return data;
   } catch (error) {
     console.error("Error updating exact song record:", error);
-    throw error;
+    mergeSongIntoCache(updatedSong);
+    enqueueMutation(
+      buildOfflineMutation("UPSERT_SONG", {
+        email,
+        artist: updatedSong.artist,
+        song: updatedSong.song,
+        userdata: updatedSong,
+      }),
+    );
+    setOfflineModeEnabled(true);
+    return { queued: true };
   }
 };
 
@@ -541,8 +890,18 @@ export async function login(userEmail, userPassword) {
 
     localStorage.setItem("token", accessToken);
     localStorage.setItem("userEmail", userEmail);
+    localStorage.setItem(SESSION_TIMESTAMP_KEY, new Date().toISOString());
+    localStorage.setItem(OFFLINE_MODE_KEY, "false");
+    localStorage.setItem(OFFLINE_REAUTH_REQUIRED_KEY, "false");
     if (refreshToken) {
       localStorage.setItem("refreshToken", refreshToken);
+    }
+
+    const persistedQueue = pruneLocalOnlyOfflineMutations(readOfflineSyncQueue());
+    writeOfflineSyncQueue(persistedQueue);
+
+    if (persistedQueue.length) {
+      await syncOfflineQueue();
     }
 
     return accessToken;
@@ -550,6 +909,107 @@ export async function login(userEmail, userPassword) {
     console.error("Login failed:", err);
     throw err;
   }
+}
+
+export async function tryOfflineLogin(userEmail = "") {
+  if (typeof window === "undefined") return false;
+
+  if (navigator.onLine) {
+    return false;
+  }
+
+  const normalizedEmail =
+    String(userEmail || "").trim().toLowerCase() || getUserEmail() || "";
+  const allowed = canOfflineLoginForEmail(normalizedEmail);
+
+  if (!allowed || !normalizedEmail) {
+    return false;
+  }
+
+  localStorage.setItem("userEmail", normalizedEmail);
+  localStorage.setItem(OFFLINE_MODE_KEY, "true");
+  localStorage.setItem(OFFLINE_REAUTH_REQUIRED_KEY, "false");
+  return true;
+}
+
+export async function setOfflineContentAvailability(enabled) {
+  if (typeof window === "undefined") {
+    return { enabled: false, songsDownloaded: 0 };
+  }
+
+  const normalizedEnabled = Boolean(enabled);
+
+  if (!normalizedEnabled) {
+    const currentSongs = readCachedOfflineSongs();
+    const nextSongs = currentSongs.map((song) => ({
+      ...song,
+      offlineEnabled: false,
+      requiresSync: false,
+    }));
+
+    writeCachedOfflineSongs(nextSongs);
+    writeOfflineSyncQueue(pruneLocalOnlyOfflineMutations(readOfflineSyncQueue()));
+    setOfflineContentEnabled(false);
+    setOfflineModeEnabled(false);
+    setOfflineReauthRequired(false);
+    return { enabled: false, songsDownloaded: 0 };
+  }
+
+  const email = getUserEmail();
+  if (!email) {
+    throw new Error("User not authenticated.");
+  }
+
+  let responseData = null;
+  try {
+    const { data } = await fetchApi.get(`/api/alldata/${encodeURIComponent(email)}`);
+    responseData = data;
+    setOfflineModeEnabled(false);
+  } catch (error) {
+    responseData = { userdata: readCachedOfflineSongs() };
+    if (!responseData.userdata.length) {
+      throw new Error("Unable to download offline content without a connection.");
+    }
+    setOfflineModeEnabled(true);
+  }
+
+  const baseSongs = normalizeOfflineSongs(responseData?.userdata || []);
+  const detailedSongsResults = await Promise.allSettled(
+    baseSongs.map(async (song) => {
+      if (!song?.artist || !song?.song) {
+        return song;
+      }
+
+      try {
+        const { data } = await fetchApi.post("/api/allsongdata", {
+          email,
+          artist: song.artist,
+          song: song.song,
+        });
+        return { ...song, ...data };
+      } catch {
+        return song;
+      }
+    }),
+  );
+
+  const songs = detailedSongsResults.map((result, index) => {
+    const detailedSong =
+      result.status === "fulfilled" ? result.value : baseSongs[index];
+
+    return {
+      ...detailedSong,
+      offlineEnabled: true,
+      requiresSync: false,
+      lastOfflineSyncTime: new Date().toISOString(),
+    };
+  });
+
+  writeCachedOfflineSongs(songs);
+  writeOfflineSyncQueue(pruneLocalOnlyOfflineMutations(readOfflineSyncQueue()));
+  setOfflineContentEnabled(true);
+  setOfflineReauthRequired(false);
+  return { enabled: true, songsDownloaded: songs.length };
 }
 
 export async function fetchCurrentUserProfile() {
@@ -768,6 +1228,7 @@ export async function updateUserSetlists(nextSetlists = []) {
 
   try {
     const { data } = await fetchApi.put("/api/updateSetlists", payload);
+    setOfflineModeEnabled(false);
     return data;
   } catch (error) {
     console.error("[updateUserSetlists] Erro ao atualizar setlists:", {
@@ -775,7 +1236,13 @@ export async function updateUserSetlists(nextSetlists = []) {
       data: error?.response?.data,
       message: error?.message,
     });
-    throw error;
+    enqueueMutation(buildOfflineMutation("UPDATE_SETLISTS", payload));
+    setOfflineModeEnabled(true);
+    return {
+      message: "Setlists saved locally and queued for sync.",
+      availableSetlists: payload.setlists,
+      queued: true,
+    };
   }
 }
 
@@ -794,13 +1261,34 @@ export async function fetchUserSongs() {
       `${API_BASE}/api/alldata/${encodeURIComponent(email)}`,
     );
     const data = await resp.json();
+    const cachedSongs = readCachedOfflineSongs();
+    const songs = normalizeOfflineSongs(data.userdata || [])
+      .map((song) => {
+        const cachedSong = cachedSongs.find(
+          (entry) =>
+            String(entry.artist || "").trim().toLowerCase() ===
+              String(song.artist || "").trim().toLowerCase() &&
+            String(entry.song || "").trim().toLowerCase() ===
+              String(song.song || "").trim().toLowerCase(),
+        );
 
-    const songs = (data.userdata || []).filter(
+        return mergeOfflineSongSnapshot(song, cachedSong);
+      })
+      .filter(
       (item) =>
         item.song?.trim() !== "" &&
         item.artist?.trim() !== "" &&
         item.progressBar !== undefined,
-    );
+      );
+    writeCachedOfflineSongs(songs);
+    setOfflineModeEnabled(false);
+
+    if (
+      isOfflineContentEnabled() &&
+      songs.some((song) => song.offlineEnabled && !hasPresentationPayload(song))
+    ) {
+      void backfillOfflineSongDetails(email, songs);
+    }
 
     const first = Array.isArray(data.userdata) ? (data.userdata[0] ?? {}) : {};
     return {
@@ -810,8 +1298,90 @@ export async function fetchUserSongs() {
     };
   } catch (error) {
     console.error("Erro ao buscar músicas:", error);
-    return { songs: [], fullName: "", username: "" };
+    const songs = readCachedOfflineSongs().filter(
+      (item) =>
+        item.song?.trim() !== "" &&
+        item.artist?.trim() !== "" &&
+        item.progressBar !== undefined,
+    );
+    setOfflineModeEnabled(songs.length > 0);
+    return {
+      songs,
+      fullName: localStorage.getItem("fullName") || "",
+      username: localStorage.getItem("username") || "",
+    };
   }
+}
+
+export function setSongOfflineEnabled({ artist, song, offlineEnabled }) {
+  const cachedSongs = readCachedOfflineSongs();
+  const nextSongs = toggleSongOfflineState(
+    cachedSongs,
+    { artist, song },
+    offlineEnabled,
+  );
+
+  writeCachedOfflineSongs(nextSongs);
+  setOfflineModeEnabled(true);
+  return nextSongs;
+}
+
+export async function syncOfflineQueue() {
+  const queue = pruneLocalOnlyOfflineMutations(readOfflineSyncQueue());
+  writeOfflineSyncQueue(queue);
+  if (!queue.length) {
+    return { synced: 0 };
+  }
+
+  let nextQueue = [...queue];
+  let synced = 0;
+
+  for (const mutation of queue) {
+    try {
+      nextQueue = nextQueue.map((entry) =>
+        entry.id === mutation.id ? { ...entry, status: "SYNCING" } : entry,
+      );
+      writeOfflineSyncQueue(nextQueue);
+
+      if (mutation.action === "UPDATE_SETLISTS") {
+        await fetchApi.put("/api/updateSetlists", mutation.payload);
+      } else {
+        const cachedSong = readCachedOfflineSongs().find(
+          (entry) =>
+            String(entry.artist || "").trim().toLowerCase() ===
+              String(mutation.payload?.artist || "").trim().toLowerCase() &&
+            String(entry.song || "").trim().toLowerCase() ===
+              String(mutation.payload?.song || "").trim().toLowerCase(),
+        );
+
+        await fetchApi.post("/api/newsong", {
+          databaseComing: "liveNloud_",
+          collectionComing: "data",
+          userdata: mutation.payload.userdata || cachedSong || mutation.payload,
+        });
+      }
+
+      nextQueue = nextQueue.map((entry) =>
+        entry.id === mutation.id ? { ...entry, status: "SYNCED" } : entry,
+      );
+      synced += 1;
+    } catch (error) {
+      nextQueue = nextQueue.map((entry) =>
+        entry.id === mutation.id
+          ? { ...entry, status: "FAILED", retries: (entry.retries || 0) + 1 }
+          : entry,
+      );
+    }
+
+    writeOfflineSyncQueue(nextQueue);
+  }
+
+  writeOfflineSyncQueue(clearSyncedMutations(nextQueue));
+  if (synced > 0) {
+    setOfflineModeEnabled(false);
+    setOfflineReauthRequired(false);
+  }
+  return { synced };
 }
 
 /* =========================
@@ -1101,4 +1671,8 @@ export function logoutUser() {
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("username");
+  localStorage.removeItem(SESSION_TIMESTAMP_KEY);
+  localStorage.removeItem(OFFLINE_MODE_KEY);
+  localStorage.removeItem(OFFLINE_SYNC_QUEUE_KEY);
+  localStorage.removeItem(OFFLINE_SONGS_KEY);
 }

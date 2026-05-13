@@ -8,6 +8,7 @@ import { FaArrowDown, FaArrowUp } from "react-icons/fa";
 
 import {
   fetchDistinctSetlists,
+  setOfflineContentAvailability,
   updateUserSetlists,
 } from "../../Tools/Controllers";
 import { lockPageScroll } from "../../Tools/scrollLock";
@@ -34,6 +35,113 @@ const columnOptions = [
   { key: "addedDate", label: "Date added" },
   { key: "lastPlay", label: "Last play" },
 ];
+
+function OfflineContentCard({
+  offlineInfo = {},
+  offlineLoading = false,
+  onToggle = () => {},
+  onSyncOffline = () => {},
+  compact = false,
+}) {
+  const [optimisticContentEnabled, setOptimisticContentEnabled] = useState(
+    Boolean(offlineInfo.contentEnabled),
+  );
+
+  useEffect(() => {
+    setOptimisticContentEnabled(Boolean(offlineInfo.contentEnabled));
+  }, [offlineInfo.contentEnabled]);
+
+  const isContentEnabled = offlineLoading
+    ? optimisticContentEnabled
+    : Boolean(offlineInfo.contentEnabled);
+  const downloadedSongsCount =
+    offlineLoading && optimisticContentEnabled
+      ? Math.max(
+          Number(offlineInfo.offlineEnabledCount || 0),
+          Number(offlineInfo.totalSongs || 0),
+        )
+      : Number(offlineInfo.offlineEnabledCount || 0);
+
+  return (
+    <section className="neuphormism-b h-full w-full p-4">
+      <div className={`flex ${compact ? "flex-col gap-3" : "items-start justify-between gap-4"}`}>
+        <div>
+          <h1 className="text-sm font-black uppercase">Offline Content</h1>
+          <p className="mt-1 text-[11px] font-semibold text-gray-500">
+            Download songs and allow offline access on this device.
+          </p>
+        </div>
+        <label
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
+            isContentEnabled ? "bg-[goldenrod]" : "bg-gray-400"
+          }`}
+        >
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={Boolean(isContentEnabled)}
+            disabled={offlineLoading}
+            onChange={(event) => {
+              setOptimisticContentEnabled(event.target.checked);
+              onToggle(event);
+            }}
+            aria-label="Offline content"
+          />
+          <span
+            className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              isContentEnabled ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase">
+        {isContentEnabled ? (
+          <span className="rounded-full bg-white px-2 py-1 text-gray-800 shadow-[0_6px_14px_rgba(0,0,0,0.06)]">
+            offline ready
+          </span>
+        ) : null}
+        {offlineInfo.offlineMode ? (
+          <span className="rounded-full bg-amber-400 px-2 py-1 text-black">
+            offline active
+          </span>
+        ) : null}
+        {offlineInfo.reauthRequired ? (
+          <span className="rounded-full bg-[#111111] px-2 py-1 text-white">
+            re-login required
+          </span>
+        ) : null}
+        {isContentEnabled ? (
+          <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-gray-700">
+            {downloadedSongsCount} downloaded
+          </span>
+        ) : (
+          <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-gray-700">
+            online only
+          </span>
+        )}
+        <span className="rounded-full bg-[#f5f5f5] px-2 py-1 text-gray-700">
+          {offlineInfo.pendingChanges || 0} pending sync
+        </span>
+        {offlineLoading ? (
+          <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-900">
+            {isContentEnabled ? "syncing songs" : "updating access"}
+          </span>
+        ) : null}
+      </div>
+
+      {offlineInfo.offlineMode ? (
+        <button
+          type="button"
+          className="mt-4 inline-flex items-center rounded-full bg-amber-400 px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.22)]"
+          onClick={onSyncOffline}
+        >
+          Offline Mode • {offlineInfo.pendingChanges || 0} pending
+        </button>
+      ) : null}
+    </section>
+  );
+}
 
 function ColumnsData({
   visibleColumns = [],
@@ -152,8 +260,13 @@ export default function DashboardOptions({
   onMoveColumn = () => {},
   canSelectAllColumns = false,
   maxSelectableColumns,
+  offlineInfo = {},
+  onOfflineStateChanged = () => {},
+  onNotify = () => {},
+  onSyncOffline = () => {},
 }) {
   const [setlists, setSetlists] = useState([]);
+  const [offlineLoading, setOfflineLoading] = useState(false);
   const isSmallScreen =
     typeof window !== "undefined" && window.innerWidth < 768;
   const isColumnLimitedLayout =
@@ -336,6 +449,35 @@ export default function DashboardOptions({
     setOptStatus(false);
   };
 
+  const handleOfflineToggle = async (event) => {
+    const enabled = event.target.checked;
+    setOfflineLoading(true);
+
+    try {
+      const result = await setOfflineContentAvailability(enabled);
+      await onOfflineStateChanged();
+
+      if (result.enabled) {
+        onNotify({
+          title: "Success",
+          message: `Offline content downloaded. ${result.songsDownloaded} song(s) are now available without internet.`,
+        });
+      } else {
+        onNotify({
+          title: "Info",
+          message: "Offline content disabled. Cached songs will no longer open offline.",
+        });
+      }
+    } catch (error) {
+      onNotify({
+        title: "Error",
+        message: error?.message || "Unable to update offline availability.",
+      });
+    } finally {
+      setOfflineLoading(false);
+    }
+  };
+
   const openFilterClassName = `fixed overflow-hidden ${
     optStatus ? "" : "hidden"
   } ${
@@ -468,6 +610,14 @@ export default function DashboardOptions({
                   isColumnLimitedLayout={isColumnLimitedLayout}
                 />
 
+                <OfflineContentCard
+                  offlineInfo={offlineInfo}
+                  offlineLoading={offlineLoading}
+                  onToggle={handleOfflineToggle}
+                  onSyncOffline={onSyncOffline}
+                  compact
+                />
+
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <SetlistExport
                     handleExportText={handleExportText}
@@ -481,7 +631,19 @@ export default function DashboardOptions({
               </>
             ) : (
               <>
-                <Insights dashboardMetrics={dashboardMetrics} />
+                <div className="grid w-full grid-cols-[minmax(0,0.8fr)_minmax(0,0.2fr)] items-stretch gap-3">
+                  <div className="h-full [&>section]:h-full">
+                    <Insights dashboardMetrics={dashboardMetrics} />
+                  </div>
+                  <div className="h-full [&>section]:h-full">
+                    <OfflineContentCard
+                      offlineInfo={offlineInfo}
+                      offlineLoading={offlineLoading}
+                      onToggle={handleOfflineToggle}
+                      onSyncOffline={onSyncOffline}
+                    />
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.88fr)] items-stretch gap-3">
                   <div className="h-full [&>section]:h-full">

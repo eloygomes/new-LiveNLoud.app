@@ -2,14 +2,18 @@ import { render, screen, waitFor } from "@testing-library/react";
 import DashList2 from "./DashList2";
 import {
   fetchUserSongs,
+  getOfflineStatus,
   loadSelectedSetlists,
   saveSelectedSetlists,
+  syncOfflineQueue,
 } from "../../Tools/Controllers";
 
 vi.mock("../../Tools/Controllers", () => ({
   fetchUserSongs: vi.fn(),
+  getOfflineStatus: vi.fn(),
   loadSelectedSetlists: vi.fn(),
   saveSelectedSetlists: vi.fn(),
+  syncOfflineQueue: vi.fn(),
 }));
 
 vi.mock("./DashboardOptions", () => ({
@@ -19,6 +23,10 @@ vi.mock("./DashboardOptions", () => ({
         Options open: {String(props.optStatus)}
         <div>Visible songs: {props.visibleSongs.length}</div>
         <div>Visible columns: {props.visibleColumns.join(",")}</div>
+        <div>
+          Offline state: {String(props.offlineInfo.offlineMode)} / pending:{" "}
+          {props.offlineInfo.pendingChanges}
+        </div>
       </div>
     );
   },
@@ -45,6 +53,14 @@ describe("DashList2", () => {
     });
 
     loadSelectedSetlists.mockReturnValue(["worship"]);
+    getOfflineStatus.mockReturnValue({
+      offlineMode: false,
+      contentEnabled: false,
+      reauthRequired: false,
+      pendingChanges: 0,
+      offlineEnabledSongs: [],
+    });
+    syncOfflineQueue.mockResolvedValue({ synced: 0 });
     fetchUserSongs.mockResolvedValue({
       songs: [
         {
@@ -52,12 +68,14 @@ describe("DashList2", () => {
           artist: "Hillsong",
           setlist: ["worship"],
           progressBar: 100,
+          offlineEnabled: true,
         },
         {
           song: "Alive",
           artist: "Band",
           setlist: ["youth"],
           progressBar: 50,
+          offlineEnabled: false,
         },
       ],
       fullName: "Eloy Gomes",
@@ -101,5 +119,23 @@ describe("DashList2", () => {
         type: "dashboard-filter-state-change",
       }),
     );
+  });
+
+  it("passes the offline state to the options panel when cached mode is active", async () => {
+    getOfflineStatus.mockReturnValue({
+      offlineMode: true,
+      contentEnabled: true,
+      reauthRequired: false,
+      pendingChanges: 3,
+      offlineEnabledSongs: [{ song: "Oceans", artist: "Hillsong" }],
+    });
+
+    render(<DashList2 />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Offline state: true / pending: 3"),
+      ).toBeInTheDocument();
+    });
   });
 });

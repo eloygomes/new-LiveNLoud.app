@@ -68,6 +68,7 @@ export default function TollBoxAcoord({
   onInstrumentNotesChange,
   onSaveInstrumentNotes,
   isSavingNotes = false,
+  onSelectInstrument = () => {},
 }) {
   const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
@@ -158,9 +159,7 @@ export default function TollBoxAcoord({
             return isActive ? (
               <button
                 key={key}
-                onClick={() => {
-                  window.location.href = `/presentation/${artistFromURL}/${songFromURL}/${key}`;
-                }}
+                onClick={() => onSelectInstrument(key)}
                 className={`${sharedClass} ${
                   isSelected
                     ? "bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.28)]"

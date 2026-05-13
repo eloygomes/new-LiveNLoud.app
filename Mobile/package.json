@@ -8,7 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:offline": "node ./node_modules/typescript/bin/tsc -p tsconfig.offline-tests.json && node --test .offline-tests/connect/__tests__/offlineStore.test.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

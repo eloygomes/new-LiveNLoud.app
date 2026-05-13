@@ -1,5 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
+import {
+  applyOfflineSongUpdate,
+  buildOfflineMutation,
+  canUseOfflineSession,
+  clearSyncedMutations,
+  enqueueOfflineMutation,
+  normalizeOfflineSongs,
+  toggleSongOfflineState,
+  type OfflineMutation,
+  type OfflineSong,
+} from "./offlineStore";
 
 // Get list of music
 
@@ -8,6 +19,9 @@ export const API_SOCKET_BASE_URL = "https://api.live.eloygomes.com";
 const AUTH_TOKEN_KEY = "token";
 const REFRESH_TOKEN_KEY = "refreshToken";
 const USER_EMAIL_KEY = "userEmail";
+const SESSION_TIMESTAMP_KEY = "sessionTimestamp";
+const OFFLINE_MODE_KEY = "offline:isOfflineMode";
+const OFFLINE_SYNC_QUEUE_KEY = "offline:syncQueue";
 const API_TIMEOUT_MS = 12000;
 const ANDROID_WRITE_TIMEOUT_MS = 35000;
 const RUNTIME_TAG = `[${Platform.OS}]`;
@@ -190,7 +204,7 @@ async function readCachedUserdata(email: string) {
     }
 
     const parsed = JSON.parse(cached);
-    const userdata = Array.isArray(parsed) ? parsed : [];
+    const userdata = normalizeOfflineSongs(Array.isArray(parsed) ? parsed : []);
     debugLog("userdataCache", "hit", {
       email: normalizedEmail,
       count: userdata.length,
@@ -205,17 +219,68 @@ async function readCachedUserdata(email: string) {
 async function writeCachedUserdata(email: string, userdata: unknown[]) {
   const normalizedEmail = email.trim().toLowerCase();
   try {
+    const normalizedSongs = normalizeOfflineSongs(
+      Array.isArray(userdata) ? (userdata as OfflineSong[]) : [],
+    );
     await AsyncStorage.setItem(
       userdataCacheKey(normalizedEmail),
-      JSON.stringify(Array.isArray(userdata) ? userdata : []),
+      JSON.stringify(normalizedSongs),
     );
     debugLog("userdataCache", "stored", {
       email: normalizedEmail,
-      count: Array.isArray(userdata) ? userdata.length : 0,
+      count: normalizedSongs.length,
     });
   } catch (error) {
     debugWarn("userdataCache", "write failed", error);
   }
+}
+
+async function readOfflineSyncQueue() {
+  try {
+    const raw = await AsyncStorage.getItem(OFFLINE_SYNC_QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as OfflineMutation[]) : [];
+  } catch (error) {
+    debugWarn("offlineQueue", "read failed", error);
+    return [];
+  }
+}
+
+async function writeOfflineSyncQueue(queue: OfflineMutation[]) {
+  await AsyncStorage.setItem(OFFLINE_SYNC_QUEUE_KEY, JSON.stringify(queue));
+}
+
+async function setOfflineModeEnabled(enabled: boolean) {
+  await AsyncStorage.setItem(OFFLINE_MODE_KEY, enabled ? "true" : "false");
+}
+
+export async function isOfflineModeEnabled() {
+  return (await AsyncStorage.getItem(OFFLINE_MODE_KEY)) === "true";
+}
+
+export async function getOfflineStatus() {
+  const [email, songs, queue, offlineMode] = await Promise.all([
+    getStoredUserEmail(),
+    getStoredUserEmail().then((value) => (value ? readCachedUserdata(value) : [])),
+    readOfflineSyncQueue(),
+    isOfflineModeEnabled(),
+  ]);
+
+  return {
+    email,
+    offlineMode,
+    pendingChanges: queue.filter((entry) => entry.status !== "SYNCED").length,
+    offlineEnabledSongs: normalizeOfflineSongs(songs as OfflineSong[]).filter(
+      (song) => song.offlineEnabled,
+    ),
+  };
+}
+
+async function enqueueMutation(mutation: OfflineMutation) {
+  const queue = await readOfflineSyncQueue();
+  const nextQueue = enqueueOfflineMutation(queue, mutation);
+  await writeOfflineSyncQueue(nextQueue);
 }
 
 async function findCachedSongData({
@@ -377,9 +442,12 @@ export async function persistAuthSession(
   email: string,
   refreshToken?: string
 ) {
+  const timestamp = new Date().toISOString();
   const entries: [string, string][] = [
     [AUTH_TOKEN_KEY, accessToken],
     [USER_EMAIL_KEY, email],
+    [SESSION_TIMESTAMP_KEY, timestamp],
+    [OFFLINE_MODE_KEY, "false"],
   ];
 
   if (refreshToken) {
@@ -390,7 +458,13 @@ export async function persistAuthSession(
 }
 
 export async function clearAuthSession() {
-  await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_EMAIL_KEY]);
+  await AsyncStorage.multiRemove([
+    AUTH_TOKEN_KEY,
+    REFRESH_TOKEN_KEY,
+    USER_EMAIL_KEY,
+    SESSION_TIMESTAMP_KEY,
+    OFFLINE_MODE_KEY,
+  ]);
 }
 
 export async function getStoredUserEmail() {
@@ -458,6 +532,31 @@ export async function login(email: string, password: string) {
 
   await persistAuthSession(accessToken, normalizedEmail, data?.refreshToken);
   return data;
+}
+
+export async function tryOfflineLogin(email?: string) {
+  const normalizedEmail = email?.trim().toLowerCase() || (await getStoredUserEmail()) || "";
+  const [refreshToken, sessionTimestamp, songs] = await Promise.all([
+    getStoredRefreshToken(),
+    AsyncStorage.getItem(SESSION_TIMESTAMP_KEY),
+    normalizedEmail ? readCachedUserdata(normalizedEmail) : Promise.resolve([]),
+  ]);
+
+  const allowed = canUseOfflineSession({
+    refreshToken,
+    sessionTimestamp,
+    songs: songs as OfflineSong[],
+  });
+
+  if (!allowed || !normalizedEmail) {
+    return false;
+  }
+
+  await AsyncStorage.multiSet([
+    [USER_EMAIL_KEY, normalizedEmail],
+    [OFFLINE_MODE_KEY, "true"],
+  ]);
+  return true;
 }
 
 export async function fetchCurrentUserProfile() {
@@ -673,18 +772,34 @@ export async function updateUserSetlists(setlists: string[]) {
     throw new Error("Usuário não autenticado.");
   }
 
-  const response = await fetchWithTimeout(`${API_BASE_URL}/updateSetlists`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      setlists,
-    }),
-  });
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/updateSetlists`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        setlists,
+      }),
+    });
 
-  return readJsonOrThrow(response);
+    await setOfflineModeEnabled(false);
+    return await readJsonOrThrow(response);
+  } catch (error) {
+    await enqueueMutation(
+      buildOfflineMutation("UPDATE_SETLISTS", {
+        email,
+        setlists,
+      }),
+    );
+    await setOfflineModeEnabled(true);
+    return {
+      message: "Setlists saved locally and queued for sync.",
+      availableSetlists: setlists,
+      queued: true,
+    };
+  }
 }
 
 export async function downloadUserDataMobile() {
@@ -754,14 +869,18 @@ export const getListOfMusic = async ({ email }: Props) => {
 
     const data = await response.json();
 
-    const userdata = Array.isArray(data?.userdata) ? data.userdata : [];
+    const userdata = normalizeOfflineSongs(
+      Array.isArray(data?.userdata) ? data.userdata : [],
+    );
     debugLog("getListOfMusic", "count", userdata.length);
     await writeCachedUserdata(normalizedEmail, userdata);
+    await setOfflineModeEnabled(false);
     return userdata;
   } catch (error) {
     debugWarn("getListOfMusic", "request failed, checking cache", error);
     const cachedUserdata = await readCachedUserdata(email);
     debugWarn("getListOfMusic", "using cached fallback", cachedUserdata.length);
+    await setOfflineModeEnabled(cachedUserdata.length > 0);
     return cachedUserdata;
   }
 };
@@ -783,15 +902,19 @@ export const getAllUserData = async ({ email }: Props) => {
     }
 
     const data = await response.json();
-    const userdata = Array.isArray(data?.userdata) ? data.userdata : [];
+    const userdata = normalizeOfflineSongs(
+      Array.isArray(data?.userdata) ? data.userdata : [],
+    );
     debugLog("getAllUserData", "count", userdata.length);
     await writeCachedUserdata(normalizedEmail, userdata);
+    await setOfflineModeEnabled(false);
 
     return userdata;
   } catch (error) {
     debugWarn("getAllUserData", "request failed, checking cache", error);
     const cachedUserdata = await readCachedUserdata(email);
     debugWarn("getAllUserData", "using cached fallback", cachedUserdata.length);
+    await setOfflineModeEnabled(cachedUserdata.length > 0);
     return cachedUserdata;
   }
 };
@@ -849,9 +972,130 @@ export const getSpecificSongData = async ({ email, artist, song }: Props) => {
         artist,
         song,
       });
+      await setOfflineModeEnabled(true);
       return cachedSong;
     }
 
     throw error; // repassa para quem chamou, se quiser tratar lá
   }
 };
+
+export async function setSongOfflineEnabled({
+  email,
+  artist,
+  song,
+  offlineEnabled,
+}: {
+  email: string;
+  artist: string;
+  song: string;
+  offlineEnabled: boolean;
+}) {
+  const cachedSongs = await readCachedUserdata(email);
+  const nextSongs = toggleSongOfflineState(
+    cachedSongs as OfflineSong[],
+    { artist, song },
+    offlineEnabled,
+  );
+
+  await writeCachedUserdata(email, nextSongs);
+  await enqueueMutation(
+    buildOfflineMutation("TOGGLE_OFFLINE", {
+      email,
+      artist,
+      song,
+      offlineEnabled,
+    }),
+  );
+
+  return nextSongs;
+}
+
+export async function saveSongOfflineEdit({
+  email,
+  songData,
+}: {
+  email: string;
+  songData: OfflineSong;
+}) {
+  const cachedSongs = await readCachedUserdata(email);
+  const nextSongs = applyOfflineSongUpdate(
+    cachedSongs as OfflineSong[],
+    songData,
+  );
+
+  await writeCachedUserdata(email, nextSongs);
+  await enqueueMutation(
+    buildOfflineMutation("UPSERT_SONG", {
+      email,
+      song: songData.song,
+      artist: songData.artist,
+      userdata: songData,
+    }),
+  );
+
+  return nextSongs;
+}
+
+export async function syncOfflineQueue() {
+  const queue = await readOfflineSyncQueue();
+  if (!queue.length) {
+    return { synced: 0 };
+  }
+
+  let nextQueue = [...queue];
+  let synced = 0;
+
+  for (const mutation of queue) {
+    try {
+      nextQueue = nextQueue.map((entry) =>
+        entry.id === mutation.id ? { ...entry, status: "SYNCING" } : entry,
+      );
+      await writeOfflineSyncQueue(nextQueue);
+
+      if (mutation.action === "UPDATE_SETLISTS") {
+        const email = String(mutation.payload.email || "");
+        const setlists = Array.isArray(mutation.payload.setlists)
+          ? mutation.payload.setlists
+          : [];
+        const response = await fetchWithTimeout(`${API_BASE_URL}/updateSetlists`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, setlists }),
+        });
+        await readJsonOrThrow(response);
+      } else {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/newsong`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            databaseComing: "liveNloud_",
+            collectionComing: "data",
+            userdata: mutation.payload.userdata || mutation.payload,
+          }),
+        });
+        await readJsonOrThrow(response);
+      }
+
+      nextQueue = nextQueue.map((entry) =>
+        entry.id === mutation.id ? { ...entry, status: "SYNCED" } : entry,
+      );
+      synced += 1;
+    } catch (error) {
+      debugWarn("offlineQueue", "sync failed", error);
+      nextQueue = nextQueue.map((entry) =>
+        entry.id === mutation.id
+          ? { ...entry, status: "FAILED", retries: entry.retries + 1 }
+          : entry,
+      );
+    }
+
+    await writeOfflineSyncQueue(nextQueue);
+  }
+
+  await writeOfflineSyncQueue(clearSyncedMutations(nextQueue));
+  if (synced > 0) {
+    await setOfflineModeEnabled(false);
+  }
+  return { synced };
+}

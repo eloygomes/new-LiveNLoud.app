@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2020",
+    "outDir": "./.offline-tests",
+    "rootDir": ".",
+    "noEmit": false
+  },
+  "include": [
+    "connect/offlineStore.ts",
+    "connect/__tests__/offlineStore.test.ts"
+  ]
+}

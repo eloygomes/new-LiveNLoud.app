@@ -1,6 +1,9 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useMemo, useRef } from "react";
-import { requestData } from "../../Tools/Controllers";
+import {
+  requestData,
+  setSongOfflineEnabled,
+} from "../../Tools/Controllers";
 import { Link, useNavigate } from "react-router-dom";
 import {
   GiDrumKit,
@@ -34,6 +37,8 @@ function DashList2Items({
   isLoading = false,
   visibleColumns = ["progression", "instruments"],
   gridTemplateColumns,
+  offlineMode = false,
+  onSongsChanged = () => {},
 }) {
   const [data, setData] = useState([]);
   const [isMobile, setIsMobile] = useState("");
@@ -445,6 +450,10 @@ function DashList2Items({
   };
 
   const handleEditSong = (item) => {
+    if (offlineMode && !item.offlineEnabled) {
+      window.alert("This song is visible offline, but it was not marked to work offline.");
+      return;
+    }
     localStorage.setItem("song", item.song || "");
     localStorage.setItem("artist", item.artist || "");
     setSelectedSong(null);
@@ -456,6 +465,10 @@ function DashList2Items({
   };
 
   const handleOpenInstrument = (item, instrumentKey) => {
+    if (offlineMode && !item.offlineEnabled) {
+      window.alert("This song requires internet.");
+      return;
+    }
     setSelectedSong(null);
     navigate(
       `/presentation/${encodeURIComponent(
@@ -471,6 +484,19 @@ function DashList2Items({
         (instrument) => selectedSong.instruments?.[instrument.key],
       ).length
     : 0;
+
+  const handleToggleOffline = async (item) => {
+    try {
+      await setSongOfflineEnabled({
+        artist: item.artist,
+        song: item.song,
+        offlineEnabled: !item.offlineEnabled,
+      });
+      await onSongsChanged();
+    } catch (error) {
+      window.alert(error?.message || "Unable to update offline mode.");
+    }
+  };
 
   return (
     <>
@@ -544,13 +570,24 @@ function DashList2Items({
                         {item.artist || "N/A"}
                       </div>
                       {visibleColumns.includes("progression") ? (
-                        <div className="mt-2 flex items-center">
+                      <div className="mt-2 flex items-center">
                           <div className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-1.5 py-0.5">
                             <div className="h-3 w-3 rounded-full border-2 border-[#d7d7d7] border-t-[#d9ad26]" />
                             <span className="text-[10px] font-bold text-[#5b5b5b]">
                               {item.progressBar || 0}%
                             </span>
                           </div>
+                          {offlineMode ? (
+                            <span
+                              className={`ml-2 inline-flex items-center rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                item.offlineEnabled
+                                  ? "bg-[goldenrod] text-black"
+                                  : "bg-[#e5e7eb] text-gray-600"
+                              }`}
+                            >
+                              {item.offlineEnabled ? "offline" : "internet"}
+                            </span>
+                          ) : null}
                         </div>
                       ) : null}
                       <div className="mt-2 flex max-w-full gap-2 overflow-x-auto">
@@ -658,6 +695,7 @@ function DashList2Items({
             onClose={() => setSelectedSong(null)}
             onOpenInstrument={handleOpenInstrument}
             onEditSong={handleEditSong}
+            onToggleOffline={handleToggleOffline}
           />
         </div>
       ) : (
@@ -693,7 +731,18 @@ function DashList2Items({
                   className="dashboard-row-song overflow-hidden text-ellipsis whitespace-nowrap px-2"
                   title={item.song || ""}
                 >
-                  {item.song || "N/A"}
+                  <span>{item.song || "N/A"}</span>
+                  {offlineMode ? (
+                    <span
+                      className={`ml-2 inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase align-middle ${
+                        item.offlineEnabled
+                          ? "bg-[goldenrod] text-black"
+                          : "bg-[#e5e7eb] text-gray-600"
+                      }`}
+                    >
+                      {item.offlineEnabled ? "offline" : "internet"}
+                    </span>
+                  ) : null}
                 </div>
                 <div
                   className="dashboard-row-artist overflow-hidden text-ellipsis whitespace-nowrap px-2"
