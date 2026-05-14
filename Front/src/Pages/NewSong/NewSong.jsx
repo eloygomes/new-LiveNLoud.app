@@ -49,6 +49,7 @@ function NewSong() {
   const [notesVoice, setNotesVoice] = useState("");
 
   const [dataFromUrl, setDataFromUrl] = useState("");
+  const [songData, setSongData] = useState(null);
   const [scrapeStatus, setScrapeStatus] = useState({
     guitar01: false,
     guitar02: false,
@@ -73,11 +74,31 @@ function NewSong() {
     if (!userEmail) return;
     try {
       const serialized = await requestData(userEmail);
-      if (serialized) setDataFromUrl(serialized);
+      if (serialized) {
+        setDataFromUrl(serialized);
+      }
     } catch {
       // erro silencioso
     }
   };
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(dataFromUrl || "{}");
+      const matchedSong = Array.isArray(parsed?.userdata)
+        ? parsed.userdata.find(
+            (entry) =>
+              String(entry.artist || "").trim().toLowerCase() ===
+                String(artistName || "").trim().toLowerCase() &&
+              String(entry.song || "").trim().toLowerCase() ===
+                String(songName || "").trim().toLowerCase(),
+          )
+        : null;
+      setSongData(matchedSong || null);
+    } catch {
+      setSongData(null);
+    }
+  }, [artistName, dataFromUrl, songName]);
 
   useEffect(() => {
     if (guitar01 || guitar02 || bass || key || drums || voice) {
@@ -193,6 +214,8 @@ function NewSong() {
                     setSongName={setSongName}
                     setScrapeStatus={handleScrapeStatus}
                     onLinkAdded={() => setSongDataOpen(true)}
+                    songData={songData}
+                    onSongDataChange={setSongData}
                     touchLayout
                   />
                 }
@@ -303,6 +326,8 @@ function NewSong() {
                   songName={songName}
                   setSongName={setSongName}
                   setScrapeStatus={handleScrapeStatus}
+                  songData={songData}
+                  onSongDataChange={setSongData}
                 />
               </div>
             </div>

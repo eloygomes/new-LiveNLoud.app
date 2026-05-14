@@ -28,6 +28,7 @@ const instrumentLabels = [
 
 const columnOptions = [
   { key: "progression", label: "Progression" },
+  { key: "guitarPro", label: "Guitar Pro" },
   { key: "notes", label: "Notes" },
   { key: "tags", label: "Setlists" },
   { key: "videos", label: "Videos" },

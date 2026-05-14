@@ -20,25 +20,8 @@ const ENV_BASE =
   (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
   null;
 
-function isPrivateDevHostname(hostname) {
-  if (!hostname) return false;
-
-  return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
-    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
-    /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
-  );
-}
-
-const LOCAL_API_BASE =
-  typeof window !== "undefined" &&
-  isPrivateDevHostname(window.location.hostname)
-    ? `${window.location.protocol === "https:" ? "https:" : "http:"}//${window.location.hostname}:3000`
-    : null;
-
-const API_BASE = ENV_BASE || LOCAL_API_BASE || "https://api.live.eloygomes.com";
+// Local backend must be selected explicitly with VITE_API_BASE_URL.
+const API_BASE = ENV_BASE || "https://api.live.eloygomes.com";
 const SESSION_TIMESTAMP_KEY = "auth:sessionTimestamp";
 const OFFLINE_MODE_KEY = "offline:isOfflineMode";
 const OFFLINE_SYNC_QUEUE_KEY = "offline:syncQueue";
@@ -785,6 +768,41 @@ export const updateInstrumentNotes = async ({
 
   return data;
 };
+
+export async function uploadGuitarProFile({ email, artist, song, file }) {
+  const formData = new FormData();
+  formData.append("email", email);
+  formData.append("artist", artist);
+  formData.append("song", song);
+  formData.append("file", file);
+
+  const { data } = await fetchApi.post("/api/guitarpro/upload", formData, {
+    headers: {},
+  });
+  return data;
+}
+
+export async function getGuitarProFiles({ email, artist, song }) {
+  const { data } = await fetchApi.get("/api/guitarpro/files", {
+    params: { email, artist, song },
+  });
+  return data;
+}
+
+export async function deleteGuitarProFile({ email, artist, song, fileId }) {
+  const { data } = await fetchApi.delete("/api/guitarpro/delete", {
+    data: { email, artist, song, fileId },
+  });
+  return data;
+}
+
+export async function downloadGuitarProFile({ email, artist, song, fileId }) {
+  const { data } = await fetchApi.get("/api/guitarpro/file", {
+    params: { email, artist, song, fileId },
+    responseType: "blob",
+  });
+  return data;
+}
 
 export const downloadUserData = async () => {
   const email = getUserEmail();

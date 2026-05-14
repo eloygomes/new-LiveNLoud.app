@@ -218,6 +218,68 @@ const storage = multer.diskStorage({
   },
 });
 
+const GUITAR_PRO_ALLOWED_EXTENSIONS = new Set([
+  "gp3",
+  "gp4",
+  "gp5",
+  "gpx",
+  "gp",
+  "xml",
+  "cap",
+]);
+const GUITAR_PRO_MAX_FILE_SIZE = 10 * 1024 * 1024;
+const guitarProUploadDir = path.join(__dirname, "uploads", "guitarpro");
+
+fs.mkdirSync(guitarProUploadDir, { recursive: true });
+
+function getFileExtension(filename = "") {
+  return String(filename).split(".").pop()?.toLowerCase() || "";
+}
+
+function sanitizeSlug(value = "") {
+  return normalizeName(value) || "file";
+}
+
+function buildGuitarProStoredFileName({ email, artist, song, extension }) {
+  const timestamp = Date.now();
+  const randomSuffix = crypto.randomBytes(2).toString("hex");
+  return [
+    sanitizeSlug(String(email || "").replace(/@/g, "-at-")),
+    sanitizeSlug(artist),
+    sanitizeSlug(song),
+    timestamp,
+    randomSuffix,
+  ].join("-") + `.${extension}`;
+}
+
+const guitarProStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, guitarProUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const extension = getFileExtension(file.originalname);
+    const fileName = buildGuitarProStoredFileName({
+      email: req.body?.email,
+      artist: req.body?.artist,
+      song: req.body?.song,
+      extension,
+    });
+    cb(null, fileName);
+  },
+});
+
+const guitarProUpload = multer({
+  storage: guitarProStorage,
+  limits: { fileSize: GUITAR_PRO_MAX_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    const extension = getFileExtension(file.originalname);
+    if (!GUITAR_PRO_ALLOWED_EXTENSIONS.has(extension)) {
+      return cb(new Error("Formato de arquivo não suportado."));
+    }
+    return cb(null, true);
+  },
+});
+
 // Filtro de arquivo para aceitar apenas imagens
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif/;
@@ -2275,6 +2337,61 @@ function authenticateJWT(req, res, next) {
   });
 }
 
+async function requireAuthorizedSongOwner(req, res) {
+  const requestedEmail = normalizeEmail(req.body?.email || req.query?.email || "");
+  if (!requestedEmail) {
+    res.status(400).json({ message: "Email é obrigatório." });
+    return null;
+  }
+
+  const currentUser = await getCurrentUserProfile(req);
+  if (!currentUser?.email || normalizeEmail(currentUser.email) !== requestedEmail) {
+    res.status(403).json({ message: "Usuário não autorizado para esta música." });
+    return null;
+  }
+
+  return requestedEmail;
+}
+
+async function findUserSongRecord({ email, artist, song }) {
+  const database = client.db("liveNloud_");
+  const collection = database.collection("data");
+  const userDoc = await collection.findOne({ email });
+
+  if (!userDoc || !Array.isArray(userDoc.userdata)) {
+    return { collection, userDoc: null, songIndex: -1, songEntry: null };
+  }
+
+  const songIndex = userDoc.userdata.findIndex(
+    (entry) =>
+      normalizeName(entry.artist) === normalizeName(artist) &&
+      normalizeName(entry.song) === normalizeName(song),
+  );
+
+  return {
+    collection,
+    userDoc,
+    songIndex,
+    songEntry: songIndex >= 0 ? userDoc.userdata[songIndex] : null,
+  };
+}
+
+function getGuitarProFileCollection() {
+  return client.db("liveNloud_").collection("guitarpro_files");
+}
+
+function runGuitarProUpload(req, res) {
+  return new Promise((resolve, reject) => {
+    guitarProUpload.single("file")(req, res, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(req.file);
+    });
+  });
+}
+
 // Rota protegida de teste
 app.get("/api/protected", authenticateJWT, (req, res) => {
   res.json({
@@ -2294,6 +2411,260 @@ app.get("/api/me", authenticateJWT, async (req, res) => {
   } catch (error) {
     console.error("GET /api/me error:", error);
     return res.status(500).json({ message: "Erro interno ao buscar usuário." });
+  }
+});
+
+app.post("/api/guitarpro/upload", authenticateJWT, async (req, res) => {
+  let storedFilePath = "";
+
+  try {
+    await runGuitarProUpload(req, res);
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Arquivo não enviado." });
+    }
+
+    storedFilePath = req.file.path;
+    const email = await requireAuthorizedSongOwner(req, res);
+    if (!email) {
+      fs.unlink(storedFilePath, () => {});
+      return;
+    }
+
+    const { artist, song } = req.body || {};
+    if (!artist || !song) {
+      fs.unlink(storedFilePath, () => {});
+      return res.status(400).json({ message: "artist e song são obrigatórios." });
+    }
+
+    const { collection, userDoc, songIndex, songEntry } = await findUserSongRecord({
+      email,
+      artist,
+      song,
+    });
+
+    if (!userDoc || songIndex < 0 || !songEntry) {
+      fs.unlink(storedFilePath, () => {});
+      return res.status(404).json({ message: "Música não encontrada." });
+    }
+
+    const extension = getFileExtension(req.file.filename);
+    const fileId = crypto.randomUUID();
+    const uploadedAt = new Date().toISOString();
+    const nextFiles = Array.isArray(songEntry.guitarProFiles)
+      ? [...songEntry.guitarProFiles]
+      : [];
+    const nextFile = {
+      id: fileId,
+      originalName: req.file.originalname,
+      fileName: req.file.filename,
+      extension,
+      mimeType: req.file.mimetype || "application/octet-stream",
+      size: req.file.size,
+      url: `/uploads/guitarpro/${req.file.filename}`,
+      uploadedAt,
+    };
+
+    const fileBuffer = fs.readFileSync(storedFilePath);
+    await getGuitarProFileCollection().updateOne(
+      { fileId },
+      {
+        $set: {
+          fileId,
+          email,
+          artist,
+          song,
+          normalizedArtist: normalizeName(artist),
+          normalizedSong: normalizeName(song),
+          originalName: req.file.originalname,
+          fileName: req.file.filename,
+          extension,
+          mimeType: req.file.mimetype || "application/octet-stream",
+          size: req.file.size,
+          data: new Binary(fileBuffer),
+          uploadedAt,
+        },
+      },
+      { upsert: true },
+    );
+
+    nextFiles.push(nextFile);
+
+    const nextUserdata = [...userDoc.userdata];
+    nextUserdata[songIndex] = mergeSongEntries(songEntry, {
+      guitarProFiles: nextFiles,
+    });
+
+    await collection.updateOne({ email }, { $set: { userdata: nextUserdata } });
+    return res.status(200).json({ guitarProFiles: nextFiles, song: nextUserdata[songIndex] });
+  } catch (error) {
+    if (storedFilePath) {
+      fs.unlink(storedFilePath, () => {});
+    }
+    console.error("Erro ao enviar arquivo Guitar Pro:", error);
+    return res.status(
+      error?.message === "Formato de arquivo não suportado." ||
+        error?.code === "LIMIT_FILE_SIZE"
+        ? 400
+        : 500,
+    ).json({
+      message:
+        error?.message === "Formato de arquivo não suportado."
+          ? error.message
+          : error?.code === "LIMIT_FILE_SIZE"
+            ? "Arquivo muito grande."
+          : "Não foi possível enviar o arquivo Guitar Pro.",
+    });
+  }
+});
+
+app.get("/api/guitarpro/files", authenticateJWT, async (req, res) => {
+  try {
+    const email = await requireAuthorizedSongOwner(req, res);
+    if (!email) return;
+
+    const { artist, song } = req.query || {};
+    if (!artist || !song) {
+      return res.status(400).json({ message: "artist e song são obrigatórios." });
+    }
+
+    const { songEntry } = await findUserSongRecord({ email, artist, song });
+    if (!songEntry) {
+      return res.status(404).json({ message: "Música não encontrada." });
+    }
+
+    return res.status(200).json({
+      guitarProFiles: Array.isArray(songEntry.guitarProFiles)
+        ? songEntry.guitarProFiles
+        : [],
+    });
+  } catch (error) {
+    console.error("Erro ao listar arquivos Guitar Pro:", error);
+    return res.status(500).json({ message: "Não foi possível carregar os arquivos." });
+  }
+});
+
+app.get("/api/guitarpro/file", authenticateJWT, async (req, res) => {
+  try {
+    const email = await requireAuthorizedSongOwner(req, res);
+    if (!email) return;
+
+    const { artist, song, fileId } = req.query || {};
+    if (!artist || !song || !fileId) {
+      return res.status(400).json({
+        message: "email, artist, song e fileId são obrigatórios.",
+      });
+    }
+
+    const { songEntry } = await findUserSongRecord({ email, artist, song });
+    if (!songEntry) {
+      return res.status(404).json({ message: "Música não encontrada." });
+    }
+
+    const currentFiles = Array.isArray(songEntry.guitarProFiles)
+      ? songEntry.guitarProFiles
+      : [];
+    const fileToDownload = currentFiles.find((file) => file.id === fileId);
+
+    if (!fileToDownload?.fileName) {
+      return res.status(404).json({ message: "Arquivo não encontrado." });
+    }
+
+    const storedFile = await getGuitarProFileCollection().findOne({
+      fileId,
+      email,
+    });
+
+    if (storedFile?.data) {
+      const fileBuffer = Buffer.isBuffer(storedFile.data)
+        ? storedFile.data
+        : Buffer.from(storedFile.data.buffer);
+
+      res.setHeader(
+        "Content-Type",
+        storedFile.mimeType ||
+          fileToDownload.mimeType ||
+          "application/octet-stream",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${encodeURIComponent(
+          storedFile.originalName ||
+            fileToDownload.originalName ||
+            fileToDownload.fileName,
+        )}"`,
+      );
+      return res.send(fileBuffer);
+    }
+
+    const absoluteFilePath = path.join(guitarProUploadDir, fileToDownload.fileName);
+    if (!fs.existsSync(absoluteFilePath)) {
+      return res.status(404).json({ message: "Arquivo físico não encontrado no servidor." });
+    }
+
+    res.setHeader("Content-Type", fileToDownload.mimeType || "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${encodeURIComponent(fileToDownload.originalName || fileToDownload.fileName)}"`,
+    );
+    return res.sendFile(absoluteFilePath);
+  } catch (error) {
+    console.error("Erro ao baixar arquivo Guitar Pro:", error);
+    return res.status(500).json({ message: "Não foi possível baixar o arquivo." });
+  }
+});
+
+app.delete("/api/guitarpro/delete", authenticateJWT, async (req, res) => {
+  try {
+    const email = await requireAuthorizedSongOwner(req, res);
+    if (!email) return;
+
+    const { artist, song, fileId } = req.body || {};
+    if (!artist || !song || !fileId) {
+      return res.status(400).json({
+        message: "email, artist, song e fileId são obrigatórios.",
+      });
+    }
+
+    const { collection, userDoc, songIndex, songEntry } = await findUserSongRecord({
+      email,
+      artist,
+      song,
+    });
+
+    if (!userDoc || songIndex < 0 || !songEntry) {
+      return res.status(404).json({ message: "Música não encontrada." });
+    }
+
+    const currentFiles = Array.isArray(songEntry.guitarProFiles)
+      ? songEntry.guitarProFiles
+      : [];
+    const fileToDelete = currentFiles.find((file) => file.id === fileId);
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "Arquivo não encontrado." });
+    }
+
+    const nextFiles = currentFiles.filter((file) => file.id !== fileId);
+    const nextUserdata = [...userDoc.userdata];
+    nextUserdata[songIndex] = mergeSongEntries(songEntry, {
+      guitarProFiles: nextFiles,
+    });
+
+    await collection.updateOne({ email }, { $set: { userdata: nextUserdata } });
+
+    await getGuitarProFileCollection().deleteOne({
+      fileId,
+      email,
+    });
+
+    const absoluteFilePath = path.join(guitarProUploadDir, fileToDelete.fileName);
+    fs.unlink(absoluteFilePath, () => {});
+
+    return res.status(200).json({ guitarProFiles: nextFiles, song: nextUserdata[songIndex] });
+  } catch (error) {
+    console.error("Erro ao remover arquivo Guitar Pro:", error);
+    return res.status(500).json({ message: "Não foi possível remover o arquivo." });
   }
 });
 
@@ -3661,6 +4032,9 @@ function mergeSongEntries(...entries) {
       embedVideos: Array.isArray(entry.embedVideos)
         ? entry.embedVideos
         : acc.embedVideos || [],
+      guitarProFiles: Array.isArray(entry.guitarProFiles)
+        ? entry.guitarProFiles
+        : acc.guitarProFiles || [],
       setlist: uniqueArray([...(acc.setlist || []), ...(entry.setlist || [])]),
       updateIn: today,
     };
@@ -3693,6 +4067,9 @@ function mergeSongEntries(...entries) {
   }, {});
 
   merged.instruments = normalizeInstrumentFlags(merged);
+  merged.guitarProFiles = Array.isArray(merged.guitarProFiles)
+    ? merged.guitarProFiles
+    : [];
   return merged;
 }
 

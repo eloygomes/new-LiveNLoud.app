@@ -881,6 +881,8 @@ function getSharedInputProps(props) {
     setSongName: props.setSongName,
     setScrapeStatus: props.setScrapeStatus,
     onLinkAdded: props.onLinkAdded,
+    songData: props.songData,
+    onSongDataChange: props.onSongDataChange,
   };
 }
 

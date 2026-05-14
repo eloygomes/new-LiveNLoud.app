@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { FaGear, FaPenToSquare } from "react-icons/fa6";
+import { FaFileCode } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
 import ToolBox from "./ToolBox";
@@ -33,6 +34,7 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import ChordSheetJS from "chordsheetjs";
+import GuitarProViewerModal from "../../components/GuitarPro/GuitarProViewerModal";
 
 const escapeHtml = (value = "") =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -238,13 +240,16 @@ function Presentation() {
   const normalizeCifra = useCallback(
     (value = "") => {
       if (!value || typeof value !== "string") return "";
+      const sanitizedValue = value.replace(/\u00a0/g, " ");
       try {
-        if (!chordHelpers.parser || !chordHelpers.formatter) return value;
-        const parsed = chordHelpers.parser.parse(value);
+        if (!chordHelpers.parser || !chordHelpers.formatter) {
+          return sanitizedValue;
+        }
+        const parsed = chordHelpers.parser.parse(sanitizedValue);
         return chordHelpers.formatter.format(parsed);
       } catch (error) {
         console.warn("ChordSheetJS parse/format falhou:", error);
-        return value;
+        return sanitizedValue;
       }
     },
     [chordHelpers],
@@ -378,6 +383,8 @@ function Presentation() {
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [guitarProViewerOpen, setGuitarProViewerOpen] = useState(false);
+  const [selectedGuitarProFile, setSelectedGuitarProFile] = useState(null);
   const [touchVideoLink, setTouchVideoLink] = useState("");
   const [isTouchVideoActive, setIsTouchVideoActive] = useState(false);
   const [isTouchVideoMenuOpen, setIsTouchVideoMenuOpen] = useState(false);
@@ -393,6 +400,33 @@ function Presentation() {
   );
   const presentationFontScale = touchFontSizeRem / 0.82;
   const touchFontSizeLabel = `${Math.round(presentationFontScale * 100)}%`;
+  const guitarProFiles = useMemo(
+    () =>
+      Array.isArray(songDataFetched?.guitarProFiles)
+        ? songDataFetched.guitarProFiles
+        : [],
+    [songDataFetched],
+  );
+  const hasGuitarProFiles = guitarProFiles.length > 0;
+  const canOpenGuitarPro = instrumentSelected !== "voice" && hasGuitarProFiles;
+
+  const openGuitarProViewer = useCallback(() => {
+    if (instrumentSelected === "voice" || !guitarProFiles.length) return;
+
+    let file = guitarProFiles[0];
+    if (guitarProFiles.length > 1) {
+      const optionsText = guitarProFiles
+        .map((entry, index) => `${index + 1}. ${entry.originalName}`)
+        .join("\n");
+      const selection = window.prompt(`Qual arquivo deseja abrir?\n${optionsText}`);
+      const selectedIndex = Number.parseInt(selection || "", 10) - 1;
+      file = guitarProFiles[selectedIndex];
+      if (!file) return;
+    }
+
+    setSelectedGuitarProFile(file);
+    setGuitarProViewerOpen(true);
+  }, [guitarProFiles, instrumentSelected]);
 
   const currentSetlistSongIndex = useMemo(() => {
     const normalizedArtist = artistFromURL.trim().toLowerCase();
@@ -1374,6 +1408,29 @@ function Presentation() {
                       />
                       <span className="sr-only">Edit Song</span>
                     </button>
+                    {instrumentSelected !== "voice" ? (
+                      <button
+                        type="button"
+                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black ${
+                          canOpenGuitarPro
+                            ? "text-black"
+                            : "cursor-not-allowed text-gray-400 opacity-60"
+                        } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
+                        onClick={openGuitarProViewer}
+                        disabled={!canOpenGuitarPro}
+                        aria-label="Open Guitar Pro viewer"
+                        title={
+                          canOpenGuitarPro
+                            ? "Open Guitar Pro viewer"
+                            : "No Guitar Pro file available"
+                        }
+                      >
+                        <FaFileCode
+                          className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                        />
+                        <span className="sr-only">Guitar Pro</span>
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
@@ -1617,6 +1674,14 @@ function Presentation() {
           )}
         </div>
       </div>
+      <GuitarProViewerModal
+        open={guitarProViewerOpen}
+        onClose={() => setGuitarProViewerOpen(false)}
+        file={selectedGuitarProFile}
+        songTitle={songFromURL}
+        artistName={artistFromURL}
+        instrumentName={instrumentSelected}
+      />
     </div>
   );
 }

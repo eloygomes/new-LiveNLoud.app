@@ -781,6 +781,8 @@ function InstrumentInputBox({ config, props, includeOnLinkAdded }) {
     setShowSnackBar: props.setShowSnackBar,
     setSnackbarMessage: props.setSnackbarMessage,
     touchLayout: props.touchLayout,
+    songData: props.songData,
+    onSongDataChange: props.onSongDataChange,
   };
 
   if (includeOnLinkAdded) {
@@ -813,6 +815,7 @@ function notifyInstrument(props, instrumentName, payload) {
 
   if (hasNotes && typeof updater.setNotes === "function") {
     updater.setNotes(payload.notes);
+    props.setIsDirty?.(true);
   }
 }
 

@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FaExternalLinkAlt,
+  FaMinus,
   FaPaste,
+  FaPlus,
   FaPlay,
   FaRegFileAlt,
   FaRegStickyNote,
@@ -10,11 +12,19 @@ import {
 } from "react-icons/fa";
 import {
   checkCifraExists,
+  deleteGuitarProFile,
   scrapeCifra,
+  uploadGuitarProFile,
   updateInstrumentNotes,
 } from "../../Tools/Controllers";
 import SongInstrumentNotes from "../SongInstrumentNotes";
 import { lockPageScroll } from "../../Tools/scrollLock";
+import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
+import { GUITAR_PRO_ACCEPT } from "../../constants/guitarPro";
+import {
+  getGuitarProFiles,
+  isValidGuitarProFile,
+} from "../../utils/guitarPro/validateGuitarProFile";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 
@@ -144,6 +154,8 @@ function NewSongInputLinkBox({
   notes = "",
   onNotesChange,
   touchLayout = false,
+  songData = null,
+  onSongDataChange,
 }) {
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
   const [notesOpen, setNotesOpen] = useState(false);
@@ -152,6 +164,9 @@ function NewSongInputLinkBox({
   const blurTimer = useRef(null);
   const isLocked = Boolean(instrument?.trim());
   const hasLink = Boolean(instrument?.trim());
+  const guitarProFiles = getGuitarProFiles(songData);
+  const hasGuitarProFiles = guitarProFiles.length > 0;
+  const shouldShowGuitarProRow = instrumentName !== "voice";
 
   const buildUserErrorMessage = useCallback(() => {
     return "Não foi possivel adicionar o link, tente mais tarde";
@@ -220,6 +235,83 @@ function NewSongInputLinkBox({
       return;
     }
     setNotesOpen(true);
+  };
+
+  const updateSongGuitarProState = useCallback(
+    (nextFiles) => {
+      onSongDataChange?.({
+        ...(songData || {}),
+        guitarProFiles: Array.isArray(nextFiles) ? nextFiles : [],
+      });
+    },
+    [onSongDataChange, songData]
+  );
+
+  const handleGuitarProUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!isValidGuitarProFile(file)) {
+      notify("Error", "Formato de arquivo não suportado.");
+      return;
+    }
+
+    const email = localStorage.getItem("userEmail") || "";
+    const artist = (artistName || localStorage.getItem("artist") || "").trim();
+    const song = (songName || localStorage.getItem("song") || "").trim();
+
+    if (!email || !artist || !song) {
+      notify("Error", "Defina artista e música antes de enviar o arquivo.");
+      return;
+    }
+
+    try {
+      const response = await uploadGuitarProFile({ email, artist, song, file });
+      updateSongGuitarProState(response?.guitarProFiles || []);
+      notify("Success", "Arquivo Guitar Pro enviado com sucesso!");
+      onLinkAdded?.();
+    } catch (error) {
+      console.error("Guitar Pro upload failed:", error);
+      notify("Error", "Não foi possível enviar o arquivo Guitar Pro.");
+    }
+  };
+
+  const handleGuitarProDelete = async () => {
+    if (!guitarProFiles.length) {
+      notify("Error", "Nenhum arquivo Guitar Pro para remover.");
+      return;
+    }
+
+    const optionsText = guitarProFiles
+      .map((file, index) => `${index + 1}. ${file.originalName}`)
+      .join("\n");
+    const selection = window.prompt(`Qual arquivo deseja remover?\n${optionsText}`);
+    const index = Number.parseInt(selection || "", 10) - 1;
+    const selectedFile = guitarProFiles[index];
+
+    if (!selectedFile) return;
+    if (!window.confirm(`Delete this Guitar Pro file?\n${selectedFile.originalName}`)) {
+      return;
+    }
+
+    const email = localStorage.getItem("userEmail") || "";
+    const artist = (artistName || localStorage.getItem("artist") || "").trim();
+    const song = (songName || localStorage.getItem("song") || "").trim();
+
+    try {
+      const response = await deleteGuitarProFile({
+        email,
+        artist,
+        song,
+        fileId: selectedFile.id,
+      });
+      updateSongGuitarProState(response?.guitarProFiles || []);
+      notify("Success", "Arquivo Guitar Pro removido com sucesso!");
+    } catch (error) {
+      console.error("Guitar Pro delete failed:", error);
+      notify("Error", "Não foi possível remover o arquivo.");
+    }
   };
 
   const saveNotes = async (plainText) => {
@@ -751,6 +843,50 @@ function NewSongInputLinkBox({
           <div className="w-14 text-right text-sm">{rangeProgress}</div>
         ) : null}
       </div>
+      {shouldShowGuitarProRow ? (
+        <div
+          className={`mt-3 flex items-center justify-between rounded-[14px] ${
+            touchLayout ? "neuphormism-b-se px-4 py-3" : "bg-white/60 px-3 py-2"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <GuitarProIcon
+              active={hasGuitarProFiles}
+              title={
+                hasGuitarProFiles
+                  ? `${guitarProFiles.length} Guitar Pro file(s)`
+                  : "No Guitar Pro files"
+              }
+            />
+            <span className="text-sm font-bold text-black">
+              Guitar Pro {hasGuitarProFiles ? `(${guitarProFiles.length})` : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex cursor-pointer items-center justify-center rounded-[10px] bg-[goldenrod] px-3 py-2 text-black">
+              <FaPlus />
+              <input
+                type="file"
+                accept={GUITAR_PRO_ACCEPT}
+                className="hidden"
+                onChange={handleGuitarProUpload}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleGuitarProDelete}
+              disabled={!hasGuitarProFiles}
+              className={`flex items-center justify-center rounded-[10px] px-3 py-2 ${
+                hasGuitarProFiles
+                  ? "bg-[#e5e7eb] text-black"
+                  : "cursor-not-allowed bg-[#f3f4f6] text-gray-400"
+              }`}
+            >
+              <FaMinus />
+            </button>
+          </div>
+        </div>
+      ) : null}
       {notesOpen ? (
         <div className="fixed inset-0 z-[120] bg-black/25">
           <button

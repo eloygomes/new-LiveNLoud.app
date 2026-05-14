@@ -11,6 +11,7 @@ function EditSong() {
     typeof window !== "undefined" && window.innerWidth < WEB_LAYOUT_MIN_WIDTH;
   const [songDataOpen, setSongDataOpen] = useState(true);
   const [dataFromAPI, setDataFromAPI] = useState([]);
+  const [songData, setSongData] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
@@ -32,6 +33,11 @@ function EditSong() {
     instrumentUpdatersRef.current[instrument] = handlers;
   }, []);
 
+  const handleSongDataChange = useCallback((nextSongData) => {
+    setSongData(nextSongData);
+    setIsDirty(true);
+  }, []);
+
   // LocalStorage user email
   const userEmail = localStorage.getItem("userEmail");
   const artist = localStorage.getItem("artist");
@@ -43,6 +49,11 @@ function EditSong() {
       if (data) {
         // console.log("Data fetched from API:", data); // Para verificar o que está sendo retornado
         setDataFromAPI(data);
+        try {
+          setSongData(JSON.parse(data || "{}"));
+        } catch {
+          setSongData(null);
+        }
         setIsDirty(false);
       } else {
         console.warn("No data returned from API");
@@ -108,6 +119,8 @@ function EditSong() {
                   setShowSnackBar={setShowSnackBar}
                   setSnackbarMessage={setSnackbarMessage}
                   onLinkAdded={() => setSongDataOpen(true)}
+                  songData={songData}
+                  onSongDataChange={handleSongDataChange}
                   touchLayout
                 />
               }
@@ -168,6 +181,8 @@ function EditSong() {
               setIsDirty={setIsDirty}
               setShowSnackBar={setShowSnackBar}
               setSnackbarMessage={setSnackbarMessage}
+              songData={songData}
+              onSongDataChange={handleSongDataChange}
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { FaChevronDown, FaChevronUp, FaListUl, FaTimes, FaVideo } from "react-icons/fa";
 import EditSongEmbed from "./EditSongEmbed";
 import GeralProgressBar from "./GeralProgressBar";
@@ -180,6 +180,29 @@ function EditSongColumnA({
   const [touchMediaOpen, setTouchMediaOpen] = useState(false);
   const [touchVideosOpen, setTouchVideosOpen] = useState(false);
   const [touchSetlistsOpen, setTouchSetlistsOpen] = useState(false);
+  const markDirty = useCallback(() => {
+    setIsDirty?.(true);
+  }, [setIsDirty]);
+  const setSetlistAndMarkDirty = useCallback(
+    (updater) => {
+      setSetlist((current) => {
+        const next = typeof updater === "function" ? updater(current) : updater;
+        markDirty();
+        return next;
+      });
+    },
+    [markDirty],
+  );
+  const setSetListOptionsAndMarkDirty = useCallback(
+    (updater) => {
+      setSetListOptions((current) => {
+        const next = typeof updater === "function" ? updater(current) : updater;
+        markDirty();
+        return next;
+      });
+    },
+    [markDirty],
+  );
 
   // Calcula a média de progress das instruments
   useEffect(() => {
@@ -705,9 +728,9 @@ function EditSongColumnA({
             <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
               <EditSongSetlist
                 setlist={setlist}
-                setSetlist={setSetlist}
+                setSetlist={setSetlistAndMarkDirty}
                 setlistOptions={setListOptions}
-                setSetListOptions={setSetListOptions}
+                setSetListOptions={setSetListOptionsAndMarkDirty}
               />
             </div>
           </div>
@@ -766,9 +789,9 @@ function EditSongColumnA({
           setlist: array com as tags selecionadas para esta música */}
       <EditSongSetlist
         setlist={setlist}
-        setSetlist={setSetlist}
+        setSetlist={setSetlistAndMarkDirty}
         setlistOptions={setListOptions}
-        setSetListOptions={setSetListOptions}
+        setSetListOptions={setSetListOptionsAndMarkDirty}
       />
 
       <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">

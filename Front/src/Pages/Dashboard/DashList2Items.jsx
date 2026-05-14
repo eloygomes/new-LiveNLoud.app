@@ -14,6 +14,7 @@ import {
 } from "react-icons/gi";
 import {
   FaCalendarPlus,
+  FaFileCode,
   FaHistory,
   FaMusic,
   FaRegStickyNote,
@@ -22,6 +23,7 @@ import {
 } from "react-icons/fa";
 import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
 import DashboardSongActionSheet from "./DashboardSongActionSheet";
+import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
@@ -208,6 +210,9 @@ function DashList2Items({
       return typeof value === "string" && value.trim() !== "";
     });
 
+  const getGuitarProFiles = (item) =>
+    Array.isArray(item?.guitarProFiles) ? item.guitarProFiles : [];
+
   const optionalCellClass =
     "flex min-w-0 max-w-full items-center justify-center overflow-hidden px-1";
   const dateCellClass =
@@ -237,6 +242,10 @@ function DashList2Items({
           case "notes":
             valueA = hasInstrumentNotes(a) ? 1 : 0;
             valueB = hasInstrumentNotes(b) ? 1 : 0;
+            break;
+          case "guitarPro":
+            valueA = getGuitarProFiles(a).length;
+            valueB = getGuitarProFiles(b).length;
             break;
           case "tags":
             valueA = Array.isArray(a.setlist) ? a.setlist.join(" ") : "";
@@ -340,6 +349,25 @@ function DashList2Items({
             className={hasNotes ? "text-[goldenrod]" : "text-gray-400"}
             title={hasNotes ? "Notes registered" : "No notes"}
           />
+        </div>
+      );
+    }
+
+    if (columnKey === "guitarPro") {
+      const guitarProFiles = getGuitarProFiles(item);
+      return (
+        <div className={`${optionalCellClass} gap-1`}>
+          {guitarProFiles.length ? (
+            guitarProFiles.map((file) => (
+              <GuitarProIcon
+                key={file.id || file.fileName}
+                active
+                title={file.originalName || "Guitar Pro file"}
+              />
+            ))
+          ) : (
+            <GuitarProIcon active={false} title="No Guitar Pro files" />
+          )}
         </div>
       );
     }
@@ -603,6 +631,18 @@ function DashList2Items({
                                 <FaVideoSlash className="text-gray-400" />0
                               </>
                             )}
+                          </span>
+                        ) : null}
+                        {visibleColumns.includes("guitarPro") ? (
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                            <FaFileCode
+                              className={
+                                getGuitarProFiles(item).length
+                                  ? "text-[goldenrod]"
+                                  : "text-gray-400"
+                              }
+                            />
+                            {getGuitarProFiles(item).length || 0} gp
                           </span>
                         ) : null}
                         {visibleColumns.includes("notes") ? (

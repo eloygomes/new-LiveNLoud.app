@@ -10,10 +10,11 @@ import {
   syncOfflineQueue,
 } from "../../Tools/Controllers";
 
-const DEFAULT_VISIBLE_COLUMNS = ["progression", "notes", "instruments"];
+const DEFAULT_VISIBLE_COLUMNS = ["progression", "guitarPro", "notes", "instruments"];
 const TABLET_COLUMNS_LIMIT = 3;
 const OPTIONAL_COLUMNS = [
   { key: "progression", label: "PROGRESSION", sortable: "progressBar" },
+  { key: "guitarPro", label: "GUITAR PRO", sortable: "guitarPro" },
   { key: "notes", label: "NOTES", sortable: "notes" },
   { key: "tags", label: "TAGS", sortable: "tags" },
   { key: "videos", label: "VIDEOS", sortable: "videos" },
@@ -24,6 +25,7 @@ const OPTIONAL_COLUMNS = [
 
 const COLUMN_WIDTHS = {
   progression: "minmax(0, 0.6fr)",
+  guitarPro: "minmax(0, 0.5fr)",
   notes: "minmax(0, 0.38fr)",
   tags: "minmax(0, 0.72fr)",
   videos: "minmax(0, 0.42fr)",

@@ -1,0 +1,1204 @@
+================================================================================
+#SUSTENIDO / LIVENLLOUD GUITAR PRO + ALPHATAB IMPLEMENTATION GUIDE
+================================================================================
+Created: May 14, 2026
+Target: Guitar Pro file support using AlphaTab
+Architecture: Web App only
+Important: DO NOT implement this in the React Native app yet
+
+================================================================================
+1. OVERVIEW & STRATEGY
+================================================================================
+
+GOAL:
+- Add Guitar Pro file support to the WEB version of #sustenido / LiveNLoud.
+- Users can upload Guitar Pro-compatible files to a song.
+- Songs can have one or more Guitar Pro files attached.
+- Uploaded Guitar Pro files are shared across all song instruments except voice.
+- Users can visually identify which songs have Guitar Pro files.
+- Users can open a Guitar Pro viewer from the Presentation screen.
+- AlphaTab will be used to render and later play Guitar Pro files in the browser.
+
+IMPORTANT SCOPE LIMITATION:
+✓ Implement only in the Web App
+✓ Modify only the React/Vite frontend and Node/Express backend as needed
+✓ Do not modify the React Native app
+✓ Do not add mobile-specific Guitar Pro logic
+✓ Do not add React Native AlphaTab integration yet
+
+OUT OF SCOPE FOR NOW:
+✗ React Native implementation
+✗ Mobile Guitar Pro viewer
+✗ Editing Guitar Pro files
+✗ Creating Guitar Pro files from scratch
+✗ Sync with YouTube
+✗ Advanced loop by measure
+✗ Advanced BPM trainer
+✗ Mixer by track
+✗ Exporting audio
+✗ Automatic harmonic analysis
+
+
+================================================================================
+2. ALPHATAB DECISION
+================================================================================
+
+PRIMARY LIBRARY:
+Use AlphaTab as the Guitar Pro renderer/player engine.
+
+Documentation:
+https://alphatab.net/docs/introduction
+
+AlphaTab supports Guitar Pro formats such as:
+- Guitar Pro 3-5: .gp3, .gp4, .gp5
+- Guitar Pro 6: .gpx
+- Guitar Pro 7/8: .gp
+- MusicXML
+- Capella/CapXML
+
+Official AlphaTab docs list supported formats including Guitar Pro 3-5, Guitar Pro 6 `.gpx`, Guitar Pro 7/8 `.gp`, MusicXML `.musicxml`, and Capella/CapXML `.capx`. The AlphaTab introduction also mentions MusicXML `.xml`. For this project, the accepted project formats will be limited to the list below.
+
+PROJECT-ACCEPTED FILE FORMATS:
+- .gp3
+- .gp4
+- .gp5
+- .gpx
+- .gp
+- .xml
+- .cap
+
+NOTE:
+Even if AlphaTab officially documents `.musicxml` and `.capx`, this implementation should initially accept only the formats explicitly defined by the project:
+.gp3, .gp4, .gp5, .gpx, .gp, .xml, .cap
+
+
+================================================================================
+3. DEPENDENCIES
+================================================================================
+
+FRONTEND WEB ONLY:
+
+Install AlphaTab:
+
+```bash
+npm install @coderline/alphatab @coderline/alphatab-vite
+```
+
+Modify `vite.config.js`:
+
+```js
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { alphaTab } from "@coderline/alphatab-vite";
+
+export default defineConfig({
+  plugins: [
+    react(),
+    alphaTab(),
+  ],
+});
+```
+
+WHY:
+AlphaTab uses Web Workers, Audio Worklets, music fonts and SoundFont assets. The Vite plugin is required to make bundling and asset loading work correctly in a Vite/React project.
+
+
+================================================================================
+4. DATA MODEL CHANGES
+================================================================================
+
+CURRENT SONG STRUCTURE EXAMPLE:
+
+```js
+{
+  id,
+  song,
+  artist,
+  progressBar,
+  instruments: {
+    guitar01,
+    guitar02,
+    bass,
+    keys,
+    drums,
+    voice
+  },
+  guitar01: { active, capo, lastPlay, link, progress, songCifra, tuning },
+  guitar02: { active, capo, lastPlay, link, progress, songCifra, tuning },
+  bass: { active, capo, lastPlay, link, progress, songCifra, tuning },
+  keys: { active, capo, lastPlay, link, progress, songCifra, tuning },
+  drums: { active, capo, lastPlay, link, progress, songCifra, tuning },
+  voice: { active, capo, lastPlay, link, progress, songCifra, tuning },
+  embedVideos: [],
+  setlist: [],
+  addedIn,
+  updateIn,
+  lastPlayed
+}
+```
+
+CHANGE:
+Add `guitarProFiles` to the song root level.
+
+```js
+{
+  guitarProFiles: [
+    {
+      id: "uuid-or-generated-id",
+      originalName: "song-file.gp5",
+      fileName: "stored-file-name.gp5",
+      extension: "gp5",
+      mimeType: "application/octet-stream",
+      size: 123456,
+      url: "/uploads/guitarpro/stored-file-name.gp5",
+      uploadedAt: "2026-05-14T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+RULES:
+- `guitarProFiles` belongs to the song, not to an instrument.
+- Do not store Guitar Pro files inside `guitar01`, `guitar02`, `bass`, `keys`, `drums`, or `voice`.
+- If a song has no Guitar Pro files, use `guitarProFiles: []`.
+- If the field does not exist, the frontend must treat it as an empty array.
+- Multiple Guitar Pro files per song are allowed.
+- The same Guitar Pro files must appear for every instrument except `voice`.
+
+SAFE FRONTEND ACCESS:
+
+```js
+const guitarProFiles = songData?.guitarProFiles || [];
+const hasGuitarProFiles = guitarProFiles.length > 0;
+const guitarProFileCount = guitarProFiles.length;
+```
+
+
+================================================================================
+5. BACKEND API CHANGES
+================================================================================
+
+GOAL:
+Create backend support for uploading, listing, and deleting Guitar Pro files.
+
+PREFERRED ENDPOINTS:
+
+```txt
+POST   /api/guitarpro/upload
+GET    /api/guitarpro/files?email=...&artist=...&song=...
+DELETE /api/guitarpro/delete
+```
+
+REASON:
+The current project often identifies songs using:
+- email
+- artist
+- song
+
+If the project later standardizes on song IDs, these endpoints can be adapted.
+
+UPLOAD ENDPOINT:
+
+```txt
+POST /api/guitarpro/upload
+```
+
+Request:
+- multipart/form-data
+
+Fields:
+- email
+- artist
+- song
+- file
+
+Behavior:
+- Validate authenticated user.
+- Validate that the song belongs to the user.
+- Validate file extension.
+- Save file to server storage.
+- Add file metadata to `guitarProFiles`.
+- Return updated `guitarProFiles` array or updated song object.
+
+DELETE ENDPOINT:
+
+```txt
+DELETE /api/guitarpro/delete
+```
+
+Request body:
+
+```js
+{
+  email: "user@email.com",
+  artist: "Artist Name",
+  song: "Song Name",
+  fileId: "file-id"
+}
+```
+
+Behavior:
+- Validate authenticated user.
+- Validate song ownership.
+- Find matching file in `guitarProFiles`.
+- Ask frontend to confirm before calling this endpoint.
+- Delete physical file if it exists.
+- Remove metadata from MongoDB.
+- Return updated `guitarProFiles` array.
+
+LIST ENDPOINT:
+
+```txt
+GET /api/guitarpro/files?email=...&artist=...&song=...
+```
+
+Behavior:
+- Validate authenticated user.
+- Return all Guitar Pro files attached to the song.
+
+BACKEND VALIDATION:
+Accepted extensions only:
+- .gp3
+- .gp4
+- .gp5
+- .gpx
+- .gp
+- .xml
+- .cap
+
+Reject:
+- .exe
+- .zip
+- .js
+- .json
+- .pdf
+- .mp3
+- .wav
+- any other unsupported extension
+
+IMPORTANT:
+Validation must happen both in the frontend and backend.
+Frontend validation is only UX.
+Backend validation is security.
+
+UPLOAD STORAGE PATH:
+
+```txt
+/uploads/guitarpro/
+```
+
+Suggested physical naming:
+
+```txt
+{email-safe}-{artist-safe}-{song-safe}-{timestamp}-{random}.{ext}
+```
+
+Example:
+
+```txt
+eloy-gomes-icloud-com-nirvana-smells-like-teen-spirit-1715680000000-a91f.gp5
+```
+
+
+================================================================================
+6. FRONTEND SERVICES / CONTROLLERS
+================================================================================
+
+Create or add to the existing controller/service file:
+
+```js
+export async function uploadGuitarProFile({ email, artist, song, file }) {
+  const formData = new FormData();
+
+  formData.append("email", email);
+  formData.append("artist", artist);
+  formData.append("song", song);
+  formData.append("file", file);
+
+  return api.post("/api/guitarpro/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+}
+
+export async function getGuitarProFiles({ email, artist, song }) {
+  return api.get("/api/guitarpro/files", {
+    params: { email, artist, song },
+  });
+}
+
+export async function deleteGuitarProFile({ email, artist, song, fileId }) {
+  return api.delete("/api/guitarpro/delete", {
+    data: { email, artist, song, fileId },
+  });
+}
+```
+
+If the project does not use an `api` instance, adapt to the existing Axios/fetch pattern in `Controllers.jsx`.
+
+Frontend file validation helper:
+
+```js
+const ALLOWED_GUITAR_PRO_EXTENSIONS = [
+  "gp3",
+  "gp4",
+  "gp5",
+  "gpx",
+  "gp",
+  "xml",
+  "cap",
+];
+
+export function isValidGuitarProFile(file) {
+  if (!file?.name) return false;
+
+  const extension = file.name.split(".").pop()?.toLowerCase();
+
+  return ALLOWED_GUITAR_PRO_EXTENSIONS.includes(extension);
+}
+```
+
+File input accept attribute:
+
+```jsx
+<input
+  type="file"
+  accept=".gp3,.gp4,.gp5,.gpx,.gp,.xml,.cap"
+/>
+```
+
+
+================================================================================
+7. FRONTEND UI CHANGES — DASHBOARD / SONGLIST
+================================================================================
+
+TARGET:
+Dashboard song table and SongList cards.
+
+CHANGE:
+Add a Guitar Pro visual indicator.
+
+DASHBOARD TABLE:
+- Add one new column.
+- Column represents whether the song has Guitar Pro files.
+- If no file exists, show one inactive Guitar Pro icon.
+- If one file exists, show one active Guitar Pro icon.
+- If multiple files exist, show one active icon per file.
+
+SONGLIST CARD:
+- Add one new icon area to the card.
+- Same behavior:
+  - No files: one inactive icon.
+  - One file: one active icon.
+  - Multiple files: multiple active icons.
+
+LOGIC:
+
+```js
+const guitarProFiles = song.guitarProFiles || [];
+
+if (guitarProFiles.length === 0) {
+  // render one inactive GP icon
+}
+
+if (guitarProFiles.length > 0) {
+  // render guitarProFiles.length active GP icons
+}
+```
+
+VISUAL RULES:
+- Use the same visual language as the current icons.
+- The icon can be:
+  - A file icon with “GP”
+  - A tablature icon
+  - A music sheet icon
+  - A custom Guitar Pro-like icon
+- Active state should look enabled.
+- Inactive state should look disabled, gray, faded, or low opacity.
+- Do not break current dashboard/card layout.
+
+
+================================================================================
+8. FRONTEND UI CHANGES — NEW SONG / EDIT SONG
+================================================================================
+
+TARGET:
+New song and edit song screens.
+
+LOCATION:
+Inside `box input links`, inside each instrument box, below the progression slider.
+
+CHANGE:
+Create a new Guitar Pro row.
+
+ROW LAYOUT:
+Left side:
+- Guitar Pro icon
+- Active if the song has at least one Guitar Pro file
+- Inactive if the song has no Guitar Pro files
+
+Right side:
+- `+` button
+- `-` button
+
+HEIGHT:
+- The new row must have the same height as the row that contains the instrument name and existing icons such as notes/link/etc.
+- Preserve the current layout style.
+
+INSTRUMENT RULE:
+Show this Guitar Pro row for:
+- guitar01
+- guitar02
+- bass
+- keys
+- drums
+
+Do not show it for:
+- voice
+
+IMPORTANT:
+The same Guitar Pro files must appear across all instruments except `voice`.
+
+That means:
+- If user uploads a GP file while viewing `guitar01`, it must also appear when viewing `bass`, `keys`, `drums`, etc.
+- Do not create separate GP files per instrument.
+- Use `song.guitarProFiles`.
+
+PLUS BUTTON BEHAVIOR:
+The `+` button must:
+- Open a file picker.
+- Accept only `.gp3`, `.gp4`, `.gp5`, `.gpx`, `.gp`, `.xml`, `.cap`.
+- Validate the extension before upload.
+- Call upload endpoint.
+- Update local song state after successful upload.
+- Show feedback to the user if upload fails.
+
+MINUS BUTTON BEHAVIOR:
+The `-` button must:
+- Open a selector/list of existing Guitar Pro files.
+- Ask the user which file should be deleted.
+- Ask for confirmation before deleting.
+- Call delete endpoint.
+- Update local song state after successful delete.
+
+DELETE FLOW:
+
+```txt
+User clicks -
+↓
+UI opens list of Guitar Pro files
+↓
+User selects file
+↓
+Confirmation: "Delete this Guitar Pro file?"
+↓
+User confirms
+↓
+Frontend calls DELETE endpoint
+↓
+Frontend updates guitarProFiles state
+```
+
+
+================================================================================
+9. FRONTEND UI CHANGES — PRESENTATION SCREEN
+================================================================================
+
+TARGET:
+Presentation screen header.
+
+LOCATION:
+Add a new button near the existing header buttons:
+- options
+- edit
+- live
+- navigation arrows
+
+NEW BUTTON:
+Guitar Pro viewer button.
+
+RULES:
+- The button must not appear if the selected/current instrument is `voice`.
+- The button must only be active if the current song has at least one Guitar Pro file.
+- If the song has no Guitar Pro file, the button should be disabled or hidden according to current UI style.
+- If there is only one Guitar Pro file, clicking opens that file directly.
+- If there are multiple Guitar Pro files, clicking opens a selection dialog first.
+
+LOGIC:
+
+```js
+const isVoice = selectedInstrument === "voice";
+const guitarProFiles = songData?.guitarProFiles || [];
+const hasGuitarProFiles = guitarProFiles.length > 0;
+
+const shouldShowGuitarProButton = !isVoice;
+const shouldEnableGuitarProButton = !isVoice && hasGuitarProFiles;
+```
+
+CLICK BEHAVIOR:
+
+```txt
+Click Guitar Pro button
+↓
+If 0 files: do nothing / disabled
+↓
+If 1 file: open AlphaTab viewer
+↓
+If multiple files: open file selector
+↓
+User chooses file
+↓
+Open AlphaTab viewer
+```
+
+
+================================================================================
+10. GUITAR PRO VIEWER SCREEN / MODAL
+================================================================================
+
+GOAL:
+Create a web-only viewer using AlphaTab.
+
+POSSIBLE UI OPTIONS:
+- Modal
+- Drawer
+- Full-page route
+- Expandable section
+
+RECOMMENDED MVP:
+Use a modal or dedicated route.
+
+Possible route:
+
+```txt
+/guitarpro-viewer
+```
+
+Or with query params:
+
+```txt
+/guitarpro-viewer?artist=...&song=...&fileId=...
+```
+
+VIEWER CONTENT:
+- Song title
+- Artist
+- File name
+- AlphaTab render area
+- Close/back button
+
+MVP REQUIREMENT:
+- Load file URL.
+- Render tablature/score.
+- Do not implement advanced playback controls yet unless AlphaTab defaults are trivial.
+
+BASIC COMPONENT:
+
+```jsx
+import { useEffect, useRef } from "react";
+import * as alphaTab from "@coderline/alphatab";
+
+export default function GuitarProViewer({ fileUrl }) {
+  const containerRef = useRef(null);
+  const apiRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !fileUrl) return;
+
+    apiRef.current = new alphaTab.AlphaTabApi(containerRef.current, {
+      core: {
+        file: fileUrl,
+      },
+      display: {
+        layoutMode: "horizontal",
+      },
+      player: {
+        enablePlayer: true,
+        enableCursor: true,
+        enableUserInteraction: true,
+      },
+    });
+
+    return () => {
+      apiRef.current?.destroy();
+    };
+  }, [fileUrl]);
+
+  return <div ref={containerRef} />;
+}
+```
+
+FUTURE VIEWER FEATURES:
+- Play/pause
+- Stop
+- Tempo control
+- Track selector
+- Loop section
+- Cursor tracking
+- Count-in
+- Metronome
+- Mixer
+
+
+================================================================================
+11. FILE SELECTION UX
+================================================================================
+
+MULTIPLE FILES:
+If a song has multiple Guitar Pro files, the UI must allow users to choose which one to open or delete.
+
+Suggested file display:
+
+```txt
+1. song-main.gp5
+2. song-live-version.gpx
+3. song-bass-arrangement.gp
+```
+
+Display metadata if available:
+- originalName
+- extension
+- uploadedAt
+- size
+
+Example:
+
+```txt
+song-main.gp5
+Uploaded: 2026-05-14
+Size: 240 KB
+```
+
+FOR OPENING:
+- User chooses a file.
+- Open AlphaTab viewer.
+
+FOR DELETING:
+- User chooses a file.
+- Show confirmation.
+- Delete only after confirmation.
+
+
+================================================================================
+12. STATE MANAGEMENT REQUIREMENTS
+================================================================================
+
+When uploading a file:
+- Do not require a full page reload.
+- Update local state immediately after successful response.
+- Ensure Dashboard/SongList indicators update after data reload.
+- Ensure Edit/New Song screen icon updates.
+- Ensure Presentation button becomes active.
+
+When deleting a file:
+- Remove only the selected file.
+- If no files remain, UI must switch to inactive/disabled state.
+- Presentation Guitar Pro button becomes disabled if no files remain.
+
+Recommended normalized local update:
+
+```js
+function updateSongGuitarProFiles(songData, guitarProFiles) {
+  return {
+    ...songData,
+    guitarProFiles: guitarProFiles || [],
+  };
+}
+```
+
+
+================================================================================
+13. SECURITY & VALIDATION
+================================================================================
+
+FRONTEND:
+- Use `accept` attribute on file input.
+- Validate extension before upload.
+- Show error if unsupported file is selected.
+
+BACKEND:
+- Validate extension again.
+- Validate authenticated user.
+- Validate song ownership.
+- Sanitize file name.
+- Generate safe server-side file names.
+- Never trust original file name.
+- Do not allow path traversal.
+- Set max file size.
+
+Suggested max file size:
+- Start with 10 MB per file.
+- If needed, increase later.
+
+Example rejected names:
+- `../../../server.js`
+- `file.gp5.exe`
+- `song.zip`
+- `malware.js`
+
+BACKEND EXTENSION CHECK:
+The extension must be extracted from the final file name and compared against allowed extensions.
+
+```js
+const allowedExtensions = new Set([
+  "gp3",
+  "gp4",
+  "gp5",
+  "gpx",
+  "gp",
+  "xml",
+  "cap",
+]);
+```
+
+
+================================================================================
+14. ERROR HANDLING
+================================================================================
+
+UPLOAD ERRORS:
+- Unsupported file type
+- File too large
+- Network error
+- Song not found
+- Unauthorized
+- Server storage failure
+- MongoDB update failure
+
+DELETE ERRORS:
+- File not found
+- File metadata not found
+- Unauthorized
+- Song not found
+- Server could not delete physical file
+- MongoDB update failure
+
+VIEWER ERRORS:
+- File URL missing
+- File cannot be loaded
+- AlphaTab cannot parse file
+- Unsupported/corrupted file
+- Network error when loading file
+
+User-facing messages should be simple:
+- "Formato de arquivo não suportado."
+- "Não foi possível enviar o arquivo Guitar Pro."
+- "Não foi possível remover o arquivo."
+- "Não foi possível abrir este arquivo no visualizador Guitar Pro."
+
+
+================================================================================
+15. IMPLEMENTATION ROADMAP
+================================================================================
+
+PHASE 1: BACKEND FILE SUPPORT
+- Add upload middleware with Multer or existing upload pattern.
+- Create `/api/guitarpro/upload`.
+- Create `/api/guitarpro/files`.
+- Create `/api/guitarpro/delete`.
+- Save files under `/uploads/guitarpro/`.
+- Save metadata in `song.guitarProFiles`.
+- Validate allowed extensions.
+- Validate ownership.
+
+PHASE 2: FRONTEND SERVICES
+- Add `uploadGuitarProFile`.
+- Add `getGuitarProFiles`.
+- Add `deleteGuitarProFile`.
+- Add file validation helper.
+- Add constants for allowed extensions.
+
+PHASE 3: DASHBOARD / SONGLIST UI
+- Add Guitar Pro column to dashboard table.
+- Add Guitar Pro icon to SongList card.
+- Render inactive icon when no files exist.
+- Render one active icon per file when files exist.
+
+PHASE 4: NEW SONG / EDIT SONG UI
+- Add Guitar Pro row below progression slider inside each instrument box.
+- Hide this row for `voice`.
+- Add active/inactive icon.
+- Add `+` upload button.
+- Add `-` delete button.
+- Ensure uploaded files update the song root-level `guitarProFiles`.
+
+PHASE 5: PRESENTATION UI
+- Add Guitar Pro button to header.
+- Hide button for `voice`.
+- Disable button when no Guitar Pro file exists.
+- If one file exists, open viewer directly.
+- If multiple files exist, open file selector.
+
+PHASE 6: ALPHATAB VIEWER
+- Install AlphaTab dependencies.
+- Configure Vite plugin.
+- Create `GuitarProViewer` component.
+- Open selected file in viewer.
+- Handle loading and parse errors.
+
+PHASE 7: TESTING & REFINEMENT
+- Test each allowed format.
+- Test invalid formats.
+- Test multiple files per song.
+- Test delete flow.
+- Test Presentation behavior for `voice`.
+- Test Dashboard/SongList indicators.
+- Test production build with Vite.
+
+
+================================================================================
+16. RECOMMENDED FILES TO CREATE
+================================================================================
+
+FRONTEND WEB:
+
+```txt
+Front/src/constants/guitarPro.js
+Front/src/utils/guitarPro/validateGuitarProFile.js
+Front/src/components/GuitarPro/GuitarProIcon.jsx
+Front/src/components/GuitarPro/GuitarProFileSelector.jsx
+Front/src/components/GuitarPro/GuitarProFileRow.jsx
+Front/src/components/GuitarPro/GuitarProViewer.jsx
+Front/src/components/GuitarPro/GuitarProViewerModal.jsx
+```
+
+BACKEND:
+
+```txt
+Server/liveNloud/node/routes/guitarPro.js
+Server/liveNloud/node/utils/guitarProValidation.js
+Server/liveNloud/node/utils/safeFileName.js
+```
+
+OPTIONAL:
+
+```txt
+Server/liveNloud/node/uploads/guitarpro/
+```
+
+
+================================================================================
+17. RECOMMENDED FILES TO MODIFY
+================================================================================
+
+FRONTEND WEB:
+
+```txt
+Front/vite.config.js
+Front/src/Tools/Controllers.jsx
+Front/src/Pages/Dashboard/...
+Front/src/Components/SongList/...
+Front/src/Pages/NewSong/...
+Front/src/Pages/EditSong/...
+Front/src/Pages/Presentation/...
+Front/src/main.jsx or route file if adding a dedicated viewer route
+```
+
+BACKEND:
+
+```txt
+Server/liveNloud/node/index.js
+Server/liveNloud/node/package.json
+```
+
+DO NOT MODIFY FOR THIS FEATURE:
+
+```txt
+Mobile/
+Mobile/connect/
+Mobile/components/
+React Native screens
+React Native navigation
+```
+
+
+================================================================================
+18. CONSTANTS
+================================================================================
+
+Create a shared frontend constant:
+
+```js
+export const ALLOWED_GUITAR_PRO_EXTENSIONS = [
+  "gp3",
+  "gp4",
+  "gp5",
+  "gpx",
+  "gp",
+  "xml",
+  "cap",
+];
+
+export const GUITAR_PRO_ACCEPT_ATTRIBUTE =
+  ".gp3,.gp4,.gp5,.gpx,.gp,.xml,.cap";
+```
+
+Backend equivalent:
+
+```js
+const ALLOWED_GUITAR_PRO_EXTENSIONS = new Set([
+  "gp3",
+  "gp4",
+  "gp5",
+  "gpx",
+  "gp",
+  "xml",
+  "cap",
+]);
+```
+
+
+================================================================================
+19. DASHBOARD / SONGLIST ICON RULES
+================================================================================
+
+CASE 1:
+No Guitar Pro files:
+
+```js
+guitarProFiles: []
+```
+
+Render:
+```txt
+[GP icon inactive]
+```
+
+CASE 2:
+One Guitar Pro file:
+
+```js
+guitarProFiles: [{ ... }]
+```
+
+Render:
+```txt
+[GP icon active]
+```
+
+CASE 3:
+Three Guitar Pro files:
+
+```js
+guitarProFiles: [{ ... }, { ... }, { ... }]
+```
+
+Render:
+```txt
+[GP icon active] [GP icon active] [GP icon active]
+```
+
+
+================================================================================
+20. PRESENTATION BUTTON RULES
+================================================================================
+
+CASE 1:
+Instrument = voice
+
+Result:
+- Do not show Guitar Pro button.
+
+CASE 2:
+Instrument != voice and no Guitar Pro files
+
+Result:
+- Show disabled Guitar Pro button, or hide if consistent with current UI.
+
+CASE 3:
+Instrument != voice and one Guitar Pro file
+
+Result:
+- Show active Guitar Pro button.
+- Click opens viewer directly.
+
+CASE 4:
+Instrument != voice and multiple Guitar Pro files
+
+Result:
+- Show active Guitar Pro button.
+- Click opens file selector.
+- User chooses file.
+- Viewer opens selected file.
+
+
+================================================================================
+21. ACCEPTANCE CRITERIA
+================================================================================
+
+The implementation is complete when:
+
+1. Web app accepts upload of:
+   - .gp3
+   - .gp4
+   - .gp5
+   - .gpx
+   - .gp
+   - .xml
+   - .cap
+
+2. Invalid formats are rejected on frontend and backend.
+
+3. A song can have multiple Guitar Pro files.
+
+4. Guitar Pro files are stored at song root level in `guitarProFiles`.
+
+5. Files are not stored inside individual instruments.
+
+6. `voice` does not show Guitar Pro controls.
+
+7. Dashboard table shows Guitar Pro status.
+
+8. SongList card shows Guitar Pro status.
+
+9. Multiple Guitar Pro files render as multiple active icons.
+
+10. New Song/Edit Song instrument boxes show Guitar Pro row below progression slider.
+
+11. The Guitar Pro row has:
+    - active/inactive icon
+    - `+` upload button
+    - `-` delete button
+
+12. Delete flow lets user choose which file to delete.
+
+13. Delete flow asks for confirmation before deleting.
+
+14. Presentation screen shows Guitar Pro viewer button only when current instrument is not `voice`.
+
+15. Presentation Guitar Pro button is active only when the song has at least one Guitar Pro file.
+
+16. AlphaTab viewer opens and renders selected file.
+
+17. Vite production build works with AlphaTab plugin.
+
+18. No React Native files are modified for this feature.
+
+
+================================================================================
+22. TESTING CHECKLIST
+================================================================================
+
+UPLOAD TESTS:
+☐ Upload .gp3 file
+☐ Upload .gp4 file
+☐ Upload .gp5 file
+☐ Upload .gpx file
+☐ Upload .gp file
+☐ Upload .xml file
+☐ Upload .cap file
+☐ Reject .pdf file
+☐ Reject .mp3 file
+☐ Reject .js file
+☐ Reject .zip file
+☐ Reject file with double extension like song.gp5.exe
+
+DATA TESTS:
+☐ Uploaded file appears in `guitarProFiles`
+☐ Multiple uploaded files are preserved
+☐ Deleting one file does not delete the others
+☐ Deleting the last file makes UI inactive
+☐ Existing songs without `guitarProFiles` do not break UI
+
+DASHBOARD / SONGLIST TESTS:
+☐ Song with no files shows inactive icon
+☐ Song with one file shows one active icon
+☐ Song with three files shows three active icons
+☐ Layout does not break
+
+NEW SONG / EDIT SONG TESTS:
+☐ Guitar Pro row appears for guitar01
+☐ Guitar Pro row appears for guitar02
+☐ Guitar Pro row appears for bass
+☐ Guitar Pro row appears for keys
+☐ Guitar Pro row appears for drums
+☐ Guitar Pro row does not appear for voice
+☐ Upload button works
+☐ Delete button works
+☐ Delete confirmation appears
+
+PRESENTATION TESTS:
+☐ Guitar Pro button does not appear for voice
+☐ Guitar Pro button is disabled when no file exists
+☐ Guitar Pro button opens viewer when one file exists
+☐ Guitar Pro button opens selector when multiple files exist
+
+ALPHATAB TESTS:
+☐ AlphaTab renders .gp5 file
+☐ AlphaTab renders .gpx file
+☐ AlphaTab renders .gp file
+☐ Viewer handles corrupted file gracefully
+☐ Viewer closes correctly
+☐ Component destroys AlphaTab API on unmount
+
+BUILD TESTS:
+☐ `npm run build` succeeds
+☐ Production build loads AlphaTab assets
+☐ No worker/audio worklet errors in browser console
+
+
+================================================================================
+23. SECURITY NOTES
+================================================================================
+
+- Never trust frontend validation.
+- Always validate file extension on backend.
+- Sanitize original file names.
+- Generate server-side file names.
+- Prevent path traversal.
+- Require authenticated user.
+- Validate song ownership.
+- Limit max file size.
+- Do not allow arbitrary file serving outside the upload directory.
+- Do not expose server file system paths to frontend.
+- Store only safe public/relative URLs.
+
+
+================================================================================
+24. FUTURE ENHANCEMENTS
+================================================================================
+
+After the MVP is stable, consider:
+
+✓ Track selector
+✓ Playback controls
+✓ Tempo control
+✓ Loop by measure
+✓ Metronome/count-in
+✓ Mute/solo tracks
+✓ Instrument-to-track matching
+✓ Guitar Pro file preview before saving
+✓ Extract title/artist from file metadata
+✓ Auto-fill song metadata from Guitar Pro file
+✓ Sync AlphaTab playback with YouTube
+✓ Export audio from Guitar Pro
+✓ Offline Guitar Pro file cache
+✓ React Native Guitar Pro support in a later phase
+
+
+================================================================================
+25. FINAL INSTRUCTION TO IMPLEMENTATION AGENT
+================================================================================
+
+Implement Guitar Pro support using AlphaTab only in the web app.
+
+Do not modify the React Native app.
+
+The Guitar Pro file belongs to the song, not to a specific instrument.
+
+All instruments except `voice` should be able to see and use the same Guitar Pro files attached to the song.
+
+Preserve the current UI layout as much as possible.
+
+Add only the requested UI elements:
+- Dashboard/SongList Guitar Pro indicators
+- New Song/Edit Song Guitar Pro row
+- Presentation Guitar Pro viewer button
+- AlphaTab viewer
+
+Treat this document as the source of truth for the MVP implementation.
+
+================================================================================
+END OF IMPLEMENTATION GUIDE
+================================================================================
