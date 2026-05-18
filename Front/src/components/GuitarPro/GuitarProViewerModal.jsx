@@ -1,6 +1,8 @@
 /* eslint-disable react/prop-types */
+import { lazy, Suspense } from "react";
 import { IoClose } from "react-icons/io5";
-import GuitarProViewer from "./GuitarProViewer";
+
+const GuitarProViewer = lazy(() => import("./GuitarProViewer"));
 
 function GuitarProViewerModal({
   open,
@@ -28,14 +30,22 @@ function GuitarProViewerModal({
         >
           <IoClose className="h-6 w-6" />
         </button>
-        <GuitarProViewer
-          file={file}
-          fileUrl={file.url}
-          fileName={file.originalName}
-          songTitle={songTitle}
-          artistName={artistName}
-          instrumentName={instrumentName}
-        />
+        <Suspense
+          fallback={
+            <div className="flex h-full w-full items-center justify-center bg-[#f0f0f0] text-sm font-bold text-gray-500">
+              Carregando visualizador Guitar Pro...
+            </div>
+          }
+        >
+          <GuitarProViewer
+            file={file}
+            fileUrl={file.url}
+            fileName={file.originalName}
+            songTitle={songTitle}
+            artistName={artistName}
+            instrumentName={instrumentName}
+          />
+        </Suspense>
       </div>
     </div>
   );

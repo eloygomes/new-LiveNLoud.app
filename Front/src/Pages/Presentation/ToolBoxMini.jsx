@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef } from "react";
-import clickSound from "../../../public/click.mp3"; // Certifique-se de que o caminho está correto
+
+const clickSound = "/click.mp3";
 
 function ToolBoxMini({ initialBpm = 120 }) {
   const [bpm, setBpm] = useState(initialBpm);

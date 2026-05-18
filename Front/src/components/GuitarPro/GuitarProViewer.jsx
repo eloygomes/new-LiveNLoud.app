@@ -31,6 +31,20 @@ const INSTRUMENT_TRACK_HINTS = {
 const DEFAULT_TRACK_VOLUME = 0.8;
 const DEFAULT_MASTER_VOLUME = 0.8;
 const DEFAULT_TRACK_PAN = 0.5;
+const SOUNDFONT_URL = "/soundfont/sonivox.sf3";
+const VU_BAR_COUNT = 12;
+const TRACK_COLORS = [
+  "#d7b528",
+  "#9cc94a",
+  "#52b65f",
+  "#36b986",
+  "#25b9a5",
+  "#2fb0d4",
+  "#7d8df1",
+  "#bd77e7",
+  "#e36aa5",
+  "#e9825c",
+];
 
 const buttonBaseClass =
   "neuphormism-b-btn flex items-center justify-center rounded-full text-black active:scale-[0.98]";
@@ -53,7 +67,7 @@ function logWarn(message, payload) {
 }
 
 function registerAlphaTabListener(api, eventName, handler) {
-  const event = api?.[eventName];
+  const event = api?.[eventName] || api?.player?.[eventName];
   if (!event || typeof event.on !== "function") {
     logWarn(`Evento AlphaTab indisponivel: ${eventName}`);
     return;
@@ -66,6 +80,118 @@ function formatDuration(milliseconds = 0) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds - minutes * 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function readPlaybackPosition(event = {}, fallback = {}) {
+  const currentTime = Number(event?.currentTime ?? fallback.currentTime ?? 0);
+  const endTime = Number(event?.endTime ?? fallback.endTime ?? 0);
+  const currentTick = Number(event?.currentTick ?? fallback.currentTick ?? 0);
+  const endTick = Number(event?.endTick ?? fallback.endTick ?? 0);
+
+  return {
+    currentTime: Number.isFinite(currentTime) ? currentTime : 0,
+    endTime: Number.isFinite(endTime) ? endTime : 0,
+    currentTick: Number.isFinite(currentTick) ? currentTick : 0,
+    endTick: Number.isFinite(endTick) ? endTick : 0,
+  };
+}
+
+function clampNumber(value, min = 0, max = 1) {
+  return Math.min(max, Math.max(min, Number(value) || 0));
+}
+
+function getDynamicIntensity(dynamicValue) {
+  const value = Number(dynamicValue);
+  const dynamicMap = {
+    0: 0.18,
+    1: 0.25,
+    2: 0.34,
+    3: 0.48,
+    4: 0.64,
+    5: 0.78,
+    6: 0.9,
+    7: 1,
+    8: 0.14,
+    9: 0.1,
+    10: 0.06,
+    11: 1,
+    12: 1,
+    13: 1,
+    23: 0.62,
+  };
+  return dynamicMap[value] ?? 0.64;
+}
+
+function getPlayableNotes(beat) {
+  return Array.isArray(beat?.notes)
+    ? beat.notes.filter((note) => note?.isVisible !== false)
+    : [];
+}
+
+function getNotePitch(note) {
+  const directPitch = Number(
+    note?.realValue ?? note?.displayValue ?? note?.fret ?? note?.tone,
+  );
+  if (Number.isFinite(directPitch)) return directPitch;
+
+  if (typeof note?.calculateRealValue === "function") {
+    try {
+      const calculatedPitch = Number(note.calculateRealValue(true, true));
+      if (Number.isFinite(calculatedPitch)) return calculatedPitch;
+    } catch {
+      return 60;
+    }
+  }
+
+  return 60;
+}
+
+function getBeatIntensity(beat) {
+  if (!beat || beat.isRest) return 0;
+
+  const notes = getPlayableNotes(beat);
+  if (!notes.length) return 0;
+
+  const strongestDynamic = Math.max(
+    getDynamicIntensity(beat.dynamics),
+    ...notes.map((note) => getDynamicIntensity(note.dynamics)),
+  );
+  const noteDensity = clampNumber(0.5 + notes.length * 0.12, 0.5, 1);
+  const articulationModifier =
+    beat.isPalmMute || notes.some((note) => note.isPalmMute) ? 0.72 : 1;
+
+  return clampNumber(strongestDynamic * noteDensity * articulationModifier);
+}
+
+function buildVuBars(beat, intensity, currentTick, lookup) {
+  if (!beat || intensity <= 0) return Array(VU_BAR_COUNT).fill(0);
+
+  const notes = getPlayableNotes(beat);
+  const pitches = notes.map(getNotePitch);
+  const minPitch = pitches.length ? Math.min(...pitches) : 48;
+  const maxPitch = pitches.length ? Math.max(...pitches) : 84;
+  const pitchRange = Math.max(1, maxPitch - minPitch);
+  const progress =
+    lookup?.tickDuration > 0
+      ? clampNumber((currentTick - lookup.start) / lookup.tickDuration)
+      : 0;
+  const envelope = clampNumber(1 - progress * 0.45, 0.4, 1);
+
+  return Array.from({ length: VU_BAR_COUNT }, (_, barIndex) => {
+    const barPosition = barIndex / Math.max(1, VU_BAR_COUNT - 1);
+    const pitchEnergy = pitches.length
+      ? Math.max(
+          ...pitches.map((pitch) => {
+            const pitchPosition = (pitch - minPitch) / pitchRange;
+            return 1 - clampNumber(Math.abs(barPosition - pitchPosition) * 2.4);
+          }),
+        )
+      : 0.45;
+    const body = 0.25 + pitchEnergy * 0.75;
+    const shimmer =
+      0.86 + Math.sin(progress * Math.PI * 2 + barIndex * 0.72) * 0.14;
+    return clampNumber(intensity * envelope * body * shimmer);
+  });
 }
 
 function resolveFileUrl(fileUrl = "") {
@@ -95,6 +221,10 @@ function normalizeTrackLabel(track, index) {
   return baseName || `Track ${index + 1}`;
 }
 
+function getTrackColor(index) {
+  return TRACK_COLORS[index % TRACK_COLORS.length];
+}
+
 function getTrackIcon(track) {
   const haystack = [track?.name, track?.shortName, track?.playbackInfo?.program]
     .filter(Boolean)
@@ -102,7 +232,11 @@ function getTrackIcon(track) {
     .toLowerCase();
   const program = Number(track?.playbackInfo?.program);
 
-  if (track?.isPercussion || haystack.includes("drum") || haystack.includes("perc")) {
+  if (
+    track?.isPercussion ||
+    haystack.includes("drum") ||
+    haystack.includes("perc")
+  ) {
     return FaDrum;
   }
   if (haystack.includes("bass") || (program >= 32 && program <= 39)) {
@@ -117,7 +251,11 @@ function getTrackIcon(track) {
   ) {
     return FaKeyboard;
   }
-  if (haystack.includes("voice") || haystack.includes("vocal") || haystack.includes("vox")) {
+  if (
+    haystack.includes("voice") ||
+    haystack.includes("vocal") ||
+    haystack.includes("vox")
+  ) {
     return FaMicrophone;
   }
   return FaGuitar;
@@ -191,7 +329,7 @@ function GuitarProViewer({
   const [tracks, setTracks] = useState([]);
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [zoom, setZoom] = useState(1.15);
+  const [zoom, setZoom] = useState(0.9);
   const [loading, setLoading] = useState(true);
   const [renderError, setRenderError] = useState("");
   const [trackVolumes, setTrackVolumes] = useState({});
@@ -202,14 +340,37 @@ function GuitarProViewer({
   const [playbackPosition, setPlaybackPosition] = useState({
     currentTime: 0,
     endTime: 0,
+    currentTick: 0,
+    endTick: 0,
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(false);
+  const playerReadyRef = useRef(false);
+  const masterVolumeRef = useRef(DEFAULT_MASTER_VOLUME);
 
   const resolvedFileUrl = useMemo(
     () => resolveFileUrl(file?.url || fileUrl),
     [file?.url, fileUrl],
   );
+
+  const syncPlaybackPosition = useCallback((event) => {
+    if (
+      !event ||
+      (event.currentTime === undefined && event.endTime === undefined)
+    ) {
+      return;
+    }
+
+    setPlaybackPosition((current) => readPlaybackPosition(event, current));
+  }, []);
+
+  const markPlayerReady = useCallback((api) => {
+    if (!api) return;
+    playerReadyRef.current = true;
+    api.masterVolume = masterVolumeRef.current;
+    setPlayerLoadProgress(100);
+    setPlayerReady(true);
+  }, []);
 
   const renderSelectedTrack = useCallback(
     (trackIndex) => {
@@ -224,7 +385,8 @@ function GuitarProViewer({
   );
 
   useEffect(() => {
-    if (!containerRef.current || (!resolvedFileUrl && !file?.id)) return undefined;
+    if (!containerRef.current || (!resolvedFileUrl && !file?.id))
+      return undefined;
 
     let cancelled = false;
     let objectUrl = "";
@@ -242,8 +404,14 @@ function GuitarProViewer({
       setTracks([]);
       setIsPlaying(false);
       setPlayerReady(false);
+      playerReadyRef.current = false;
       setPlayerLoadProgress(0);
-      setPlaybackPosition({ currentTime: 0, endTime: 0 });
+      setPlaybackPosition({
+        currentTime: 0,
+        endTime: 0,
+        currentTick: 0,
+        endTick: 0,
+      });
 
       let alphaTabFileUrl = resolvedFileUrl;
 
@@ -316,10 +484,11 @@ function GuitarProViewer({
           scale: zoom,
         },
         player: {
-          enablePlayer: true,
+          playerMode: alphaTab.PlayerMode.EnabledSynthesizer,
           enableCursor: true,
           enableUserInteraction: true,
-          soundFont: "/soundfont/sonivox.sf2",
+          soundFont: SOUNDFONT_URL,
+          outputMode: alphaTab.PlayerOutputMode.WebAudioScriptProcessor,
           scrollElement: scoreViewportRef.current,
         },
       });
@@ -329,8 +498,12 @@ function GuitarProViewer({
         hasPlayerReady: Boolean(api.playerReady?.on),
         hasSoundFontLoad: Boolean(api.soundFontLoad?.on),
         hasSoundFontLoaded: Boolean(api.soundFontLoaded?.on),
-        hasSoundFontLoadFailed: Boolean(api.soundFontLoadFailed?.on),
+        hasSoundFontLoadFailed: Boolean(
+          api.soundFontLoadFailed?.on || api.player?.soundFontLoadFailed?.on,
+        ),
         hasPlayerPositionChanged: Boolean(api.playerPositionChanged?.on),
+        playerMode: api.settings?.player?.playerMode,
+        outputMode: api.settings?.player?.outputMode,
         isReadyForPlayback: api.isReadyForPlayback,
       });
 
@@ -387,9 +560,7 @@ function GuitarProViewer({
 
       registerAlphaTabListener(api, "playerReady", () => {
         if (cancelled) return;
-        api.masterVolume = DEFAULT_MASTER_VOLUME;
-        setPlayerLoadProgress(100);
-        setPlayerReady(true);
+        markPlayerReady(api);
         logDebug("Player pronto", {
           isReadyForPlayback: api.isReadyForPlayback,
           masterVolume: api.masterVolume,
@@ -413,6 +584,9 @@ function GuitarProViewer({
       registerAlphaTabListener(api, "soundFontLoaded", () => {
         if (cancelled) return;
         logDebug("SoundFont carregado");
+        if (api.isReadyForPlayback) {
+          markPlayerReady(api);
+        }
       });
 
       registerAlphaTabListener(api, "soundFontLoadFailed", (error) => {
@@ -433,10 +607,7 @@ function GuitarProViewer({
 
       registerAlphaTabListener(api, "playerPositionChanged", (event) => {
         if (cancelled) return;
-        setPlaybackPosition({
-          currentTime: event?.currentTime || 0,
-          endTime: event?.endTime || 0,
-        });
+        syncPlaybackPosition(event);
       });
 
       registerAlphaTabListener(api, "error", (error) => {
@@ -448,33 +619,123 @@ function GuitarProViewer({
 
       registerAlphaTabListener(api, "renderFinished", () => {
         if (cancelled) return;
+        if (api.isReadyForPlayback) {
+          markPlayerReady(api);
+        }
         logDebug("Render finalizado", {
           isReadyForPlayback: api.isReadyForPlayback,
-          playerReady,
+          playerReady: playerReadyRef.current,
         });
         setLoading(false);
       });
 
+      const playbackPoll = window.setInterval(() => {
+        if (cancelled || !apiRef.current) return;
+        if (!playerReadyRef.current && api.isReadyForPlayback) {
+          markPlayerReady(api);
+        }
+      }, 250);
+
       window.setTimeout(() => {
         if (!cancelled) setLoading(false);
       }, 6000);
+
+      return () => window.clearInterval(playbackPoll);
     }
 
-    initializeViewer();
+    let cleanupPlaybackPoll;
+    initializeViewer().then((cleanup) => {
+      cleanupPlaybackPoll = cleanup;
+    });
 
     return () => {
       cancelled = true;
+      cleanupPlaybackPoll?.();
       apiRef.current?.destroy?.();
       apiRef.current = null;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [artistName, file, instrumentName, resolvedFileUrl, songTitle, zoom]);
+  }, [
+    artistName,
+    file,
+    instrumentName,
+    markPlayerReady,
+    resolvedFileUrl,
+    songTitle,
+    syncPlaybackPosition,
+  ]);
+
+  useEffect(() => {
+    const api = apiRef.current;
+    if (!api) return;
+    api.settings.display.scale = zoom;
+    api.updateSettings();
+    api.render();
+  }, [zoom]);
 
   const selectedTrack = tracks[selectedTrackIndex] || null;
   const tuningLabel = formatTuning(selectedTrack);
   const sidebarExpanded = sidebarOpen || sidebarPinned;
+  const hasSoloTracks = tracks.some((track) => track.playbackInfo?.isSolo);
+  const playbackPercent = playbackPosition.endTime
+    ? Math.min(
+        100,
+        Math.max(
+          0,
+          (playbackPosition.currentTime / playbackPosition.endTime) * 100,
+        ),
+      )
+    : playerLoadProgress;
+  const trackPlaybackLevels = useMemo(() => {
+    const api = apiRef.current;
+    const currentTick = Number(playbackPosition.currentTick);
+    if (!api?.tickCache || !isPlaying || !Number.isFinite(currentTick)) {
+      return {};
+    }
 
-  const togglePlayback = () => {
+    return tracks.reduce((levels, track, index) => {
+      const volume = trackVolumes[index] ?? DEFAULT_TRACK_VOLUME;
+      const canPlay =
+        !track.playbackInfo?.isMute &&
+        (!hasSoloTracks || track.playbackInfo?.isSolo) &&
+        volume > 0 &&
+        masterVolume > 0;
+
+      if (!canPlay) {
+        levels[index] = { active: false, bars: Array(VU_BAR_COUNT).fill(0) };
+        return levels;
+      }
+
+      const trackIndex = Number.isFinite(Number(track.index))
+        ? Number(track.index)
+        : index;
+      const lookup = api.tickCache.findBeat(new Set([trackIndex]), currentTick);
+      const beat = lookup?.beat;
+      const isInsideBeat =
+        lookup &&
+        currentTick >= lookup.start &&
+        currentTick < lookup.end &&
+        beat &&
+        !beat.isRest;
+      const beatIntensity = isInsideBeat ? getBeatIntensity(beat) : 0;
+      const intensity = clampNumber(beatIntensity * volume * masterVolume);
+
+      levels[index] = {
+        active: intensity > 0.04,
+        bars: buildVuBars(beat, intensity, currentTick, lookup),
+      };
+      return levels;
+    }, {});
+  }, [
+    hasSoloTracks,
+    isPlaying,
+    masterVolume,
+    playbackPosition.currentTick,
+    trackVolumes,
+    tracks,
+  ]);
+
+  const togglePlayback = useCallback(() => {
     const api = apiRef.current;
     logDebug("Play clicado", {
       hasApi: Boolean(api),
@@ -484,24 +745,59 @@ function GuitarProViewer({
       tracks: tracks.length,
       soundFontProgress: playerLoadProgress,
     });
-    if (!api || !playerReady) return;
+    if (!api || !playerReady || renderError) return;
     const result = api.playPause();
+    window.setTimeout(() => {
+      setIsPlaying(api.playerState === alphaTab.synth.PlayerState.Playing);
+    }, 0);
     logDebug("playPause chamado", {
       result,
       playerState: api.playerState,
       isReadyForPlayback: api.isReadyForPlayback,
     });
-  };
+  }, [playerLoadProgress, playerReady, renderError, tracks.length]);
 
-  const stopPlayback = () => {
+  const stopPlayback = useCallback(() => {
     const api = apiRef.current;
     if (!api) return;
     api.stop();
+    setPlaybackPosition((current) => ({
+      ...current,
+      currentTime: 0,
+      currentTick: 0,
+    }));
     logDebug("Stop chamado", {
       playerState: api.playerState,
     });
     setIsPlaying(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleSpacePlayback = (event) => {
+      if (event.code !== "Space" || event.repeat || event.metaKey) return;
+      const tagName = event.target?.tagName?.toLowerCase();
+      const isTypingTarget =
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select" ||
+        event.target?.isContentEditable;
+
+      if (isTypingTarget) return;
+
+      event.preventDefault();
+      const api = apiRef.current;
+      if (!api || !playerReady || renderError) return;
+
+      if (api.playerState === alphaTab.synth.PlayerState.Playing) {
+        stopPlayback();
+      } else {
+        togglePlayback();
+      }
+    };
+
+    window.addEventListener("keydown", handleSpacePlayback);
+    return () => window.removeEventListener("keydown", handleSpacePlayback);
+  }, [playerReady, renderError, stopPlayback, togglePlayback]);
 
   const updateTrackVolume = (trackIndex, nextValue) => {
     const api = apiRef.current;
@@ -516,10 +812,27 @@ function GuitarProViewer({
   const updateMasterVolume = (nextValue) => {
     const api = apiRef.current;
     const safeValue = Number(nextValue);
+    masterVolumeRef.current = safeValue;
     setMasterVolume(safeValue);
     if (api) {
       api.masterVolume = safeValue;
     }
+  };
+
+  const seekPlayback = (nextPercent) => {
+    const api = apiRef.current;
+    if (!api || !playbackPosition.endTime) return;
+
+    const safePercent = Math.min(100, Math.max(0, Number(nextPercent)));
+    const nextTime = (safePercent / 100) * playbackPosition.endTime;
+    api.timePosition = nextTime;
+    setPlaybackPosition((current) => ({
+      ...current,
+      currentTime: nextTime,
+      currentTick: current.endTick
+        ? (safePercent / 100) * current.endTick
+        : current.currentTick,
+    }));
   };
 
   const updateTrackPan = (trackIndex, nextValue) => {
@@ -556,11 +869,28 @@ function GuitarProViewer({
 
   return (
     <div className="mt-[80px] flex h-[calc(100%-80px)] min-h-0 flex-col overflow-hidden bg-[#f0f0f0]">
-      <div className="mx-4 mt-3 shrink-0 rounded-[18px] bg-white/70 px-5 py-4 text-base font-bold text-gray-600 shadow-sm">
-        {tuningLabel ? `Afinacao: ${tuningLabel}` : "Afinacao indisponivel"}
-        {selectedTrack?.playbackInfo?.program !== undefined
-          ? ` · Programa MIDI: ${selectedTrack.playbackInfo.program}`
-          : ""}
+      <div className="mx-4 mt-3 flex shrink-0 items-center justify-between gap-4 rounded-[18px] bg-white/70 px-5 py-4 text-base font-bold text-gray-600 shadow-sm">
+        <div className="flex flex-col">
+          <div className="flex flex-col">
+            <div className="min-w-0 truncate text-xl">
+              {songTitle || "Desconecido"}
+            </div>
+            <div className="min-w-0 truncate">
+              {artistName || "Desconecido"}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col text-right">
+          <div className="min-w-0 truncate text-sm">
+            {tuningLabel ? `Afinacao: ${tuningLabel}` : "Afinacao indisponivel"}
+            {selectedTrack?.playbackInfo?.program !== undefined
+              ? ` · Programa MIDI: ${selectedTrack.playbackInfo.program}`
+              : ""}
+          </div>
+          <div className="shrink-0 text-sm font-black text-black">
+            Zoom {Math.round(zoom * 100)}%
+          </div>
+        </div>
       </div>
 
       <div
@@ -572,11 +902,21 @@ function GuitarProViewer({
       >
         <div
           ref={scoreViewportRef}
-          className="relative m-4 min-h-0 overflow-auto rounded-[26px] bg-white shadow-sm"
+          className="guitar-pro-score relative m-4 min-h-0 overflow-auto rounded-[26px] bg-white shadow-sm"
         >
+          <style>
+            {`
+              .guitar-pro-score .at-cursor-beat {
+                animation: none !important;
+                margin-left: -10px !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+              }
+            `}
+          </style>
           <div
             ref={containerRef}
-            className={`min-h-full bg-white px-8 py-8 transition-opacity [&_.at-main]:!mx-0 [&_.at-main]:!w-full [&_.at-main]:!max-w-none [&_.at-viewport]:!overflow-visible ${
+            className={`min-h-full bg-white px-8 py-8 transition-opacity [&_.at-cursor-bar]:!bg-[rgba(218,165,32,0.18)] [&_.at-cursor-beat]:!w-[20px] [&_.at-cursor-beat]:!animate-none [&_.at-cursor-beat]:!bg-[#e53935] [&_.at-cursor-beat]:!opacity-100 [&_.at-cursor-beat]:!shadow-[0_0_10px_rgba(229,57,53,0.65)] [&_.at-main]:!mx-0 [&_.at-main]:!w-full [&_.at-main]:!max-w-none [&_.at-viewport]:!overflow-visible ${
               renderError ? "opacity-0" : "opacity-100"
             }`}
           />
@@ -594,22 +934,22 @@ function GuitarProViewer({
 
         <aside className="m-4 ml-0 min-h-0 overflow-hidden rounded-[26px] bg-[#f0f0f0]">
           {!sidebarExpanded ? (
-            <div className="flex h-full flex-col items-center gap-3 overflow-auto py-4">
+            <div className="flex h-full flex-col items-center gap-2 overflow-auto py-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className={`${buttonBaseClass} h-12 w-12`}
+                className={`${buttonBaseClass} h-9 w-9`}
                 title="Abrir instrumentos"
               >
-                <FaChevronLeft />
+                <FaChevronLeft className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={() => updateMasterVolume(masterVolume)}
-                className={`${buttonBaseClass} h-12 w-12`}
+                className={`${buttonBaseClass} h-9 w-9`}
                 title={`Volume master ${Math.round(masterVolume * 100)}%`}
               >
-                <FaVolumeHigh />
+                <FaVolumeHigh className="h-4 w-4" />
               </button>
               {tracks.map((track, index) => {
                 const Icon = getTrackIcon(track);
@@ -619,31 +959,33 @@ function GuitarProViewer({
                     key={`${normalizeTrackLabel(track, index)}-${index}-rail`}
                     type="button"
                     onClick={() => renderSelectedTrack(index)}
-                    className={`relative flex h-14 w-14 items-center justify-center rounded-[18px] text-black ${
+                    className={`relative flex h-9 w-9 items-center justify-center rounded-full text-black ${
                       isActive ? "neuphormism-b-btn-gold" : "neuphormism-b-btn"
                     }`}
                     title={normalizeTrackLabel(track, index)}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4" />
                     {isActive ? (
-                      <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-[#2f6f3e]" />
+                      <span className="absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full bg-[#2f6f3e]" />
                     ) : null}
                   </button>
                 );
               })}
             </div>
           ) : (
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[26px] bg-white">
-              <div className="flex shrink-0 items-center justify-between px-8 py-6">
-                <h3 className="text-[2rem] font-black text-black">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] bg-[#f0f0f0] text-black shadow-inner">
+              <div className="flex shrink-0 items-center justify-between border-b border-white/70 bg-[#f7f7f7] px-3 py-2 shadow-sm">
+                <h3 className="text-[0.85rem] font-black uppercase tracking-[0.08em] text-black">
                   Instrumentos
                 </h3>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSidebarPinned((current) => !current)}
-                    className={`neuphormism-b-btn flex items-center gap-2 rounded-[16px] px-3 py-2 text-sm font-black ${
-                      sidebarPinned ? "text-[goldenrod]" : "text-black"
+                    className={`flex items-center gap-1 rounded-[7px] px-2 py-1 text-[10px] font-black shadow-sm ${
+                      sidebarPinned
+                        ? "neuphormism-b-btn-gold text-black"
+                        : "neuphormism-b-btn text-black"
                     }`}
                   >
                     <FaThumbtack />
@@ -655,19 +997,26 @@ function GuitarProViewer({
                       setSidebarPinned(false);
                       setSidebarOpen(false);
                     }}
-                    className={`${buttonBaseClass} h-10 w-10`}
+                    className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-[7px] text-black active:scale-[0.98]"
                     title="Fechar instrumentos"
                   >
-                    <FaChevronRight />
+                    <FaChevronRight className="h-3 w-3" />
                   </button>
                 </div>
               </div>
 
-              <div className="mx-8 mb-4 rounded-[22px] neuphormism-b-se px-5 py-4">
-                <div className="flex items-center gap-4">
-                  <span className="neuphormism-b-avatar flex h-12 w-12 items-center justify-center rounded-full text-black">
-                    <FaVolumeHigh />
-                  </span>
+              <div className="grid shrink-0 grid-cols-[1.35rem_2rem_minmax(0,1fr)_3.2rem] items-center gap-2 border-b border-white/70 bg-[#f4f4f4] pr-2 shadow-sm">
+                <div className="flex h-full items-center justify-center bg-[goldenrod] text-[10px] font-black text-white">
+                  M
+                </div>
+                <span className="neuphormism-b-avatar flex h-7 w-7 items-center justify-center rounded-full text-black">
+                  <FaVolumeHigh className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 py-2">
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.08em] text-gray-600">
+                    <span>Master</span>
+                    <span>{Math.round(masterVolume * 100)}%</span>
+                  </div>
                   <input
                     type="range"
                     min="0"
@@ -675,10 +1024,12 @@ function GuitarProViewer({
                     step="0.05"
                     value={masterVolume}
                     onChange={(event) => updateMasterVolume(event.target.value)}
-                    className="range-golden min-w-0 flex-1"
+                    className="range-golden w-full"
                   />
-                  <span className="w-14 text-right text-xl font-black text-black">
-                    {Math.round(masterVolume * 100)}%
+                </div>
+                <div className="flex items-center justify-center">
+                  <span className="neuphormism-b-avatar flex h-7 w-7 items-center justify-center rounded-full text-black">
+                    <FaVolumeHigh />
                   </span>
                 </div>
               </div>
@@ -690,163 +1041,385 @@ function GuitarProViewer({
                   const pan = trackPans[index] ?? DEFAULT_TRACK_PAN;
                   const label = normalizeTrackLabel(track, index);
                   const Icon = getTrackIcon(track);
+                  const trackColor = getTrackColor(index);
+                  const trackVu = trackPlaybackLevels[index] || {
+                    active: false,
+                    bars: Array(VU_BAR_COUNT).fill(0),
+                  };
 
                   return (
                     <div
                       key={`${label}-${index}`}
-                      className={`border-b border-gray-200 px-4 py-2 ${
-                        isActive ? "bg-[#e9e9ec]" : "bg-white"
+                      className={`flex min-h-[4.35rem] items-stretch justify-between border-b border-white/80 pr-2 text-black ${
+                        isActive ? "bg-[#e9e9ec]" : "bg-[#f7f7f7]"
                       }`}
                     >
                       <button
                         type="button"
                         onClick={() => renderSelectedTrack(index)}
-                        className="flex w-full items-center justify-between gap-2 text-left"
+                        className="self-stretch w-[1.35rem] shrink-0 text-[10px] font-black text-white"
+                        style={{ backgroundColor: trackColor }}
+                        title={`Track ${index + 1}`}
                       >
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="neuphormism-b-avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-black">
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-black text-black">
-                              {label}
-                            </div>
-                            <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-gray-500">
-                              Track {index + 1}
-                            </div>
-                          </div>
-                        </div>
-                        <div
-                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                            isActive ? "bg-[goldenrod]" : "bg-gray-300"
-                          }`}
-                        />
+                        <span className="flex h-full w-full items-center justify-center">
+                          {index + 1}
+                        </span>
                       </button>
 
-                      <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-                        <div>
-                          <div className="mb-0.5 flex justify-between text-[9px] font-black uppercase tracking-[0.12em] text-gray-500">
-                            <span>Volume</span>
-                            <span>{Math.round(volume * 100)}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={volume}
-                            onChange={(event) =>
-                              updateTrackVolume(index, event.target.value)
-                            }
-                            className="range-golden w-full"
-                          />
+                      <div className="flex flex-col w-full pl-2">
+                        <div className="flex w-full items-center px-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => renderSelectedTrack(index)}
+                            className="block w-full truncate text-left text-[10px] font-black leading-tight text-gray-600 pl-[3em] uppercase"
+                            title={label}
+                          >
+                            {label}
+                          </button>
                         </div>
+                        <div className="flex w-full items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => renderSelectedTrack(index)}
+                            className="neuphormism-b-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-black"
+                            title={label}
+                          >
+                            <Icon className="h-3 w-3 text-black" />
+                          </button>
 
-                        <div>
-                          <div className="mb-0.5 flex justify-between text-[9px] font-black uppercase tracking-[0.12em] text-gray-500">
-                            <span>Pan</span>
-                            <span>
-                              {pan < 0.48
-                                ? "L"
-                                : pan > 0.52
-                                  ? "R"
-                                  : "C"}
-                            </span>
+                          <div className="min-w-0 flex-[1.15] py-2">
+                            <div className="mt-1 flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleTrackMute(index)}
+                                className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                                  track.playbackInfo?.isMute
+                                    ? "bg-[#d66f5f] text-black"
+                                    : "neuphormism-b-btn text-black"
+                                }`}
+                              >
+                                M
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => toggleTrackSolo(index)}
+                                className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                                  track.playbackInfo?.isSolo
+                                    ? "neuphormism-b-btn-gold text-black"
+                                    : "neuphormism-b-btn text-black"
+                                }`}
+                              >
+                                S
+                              </button>
+                            </div>
                           </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.0625"
-                            value={pan}
-                            onChange={(event) =>
-                              updateTrackPan(index, event.target.value)
-                            }
-                            className="range-golden w-full"
-                          />
-                        </div>
-                      </div>
 
-                      <div className="mt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleTrackSolo(index)}
-                          className={`h-7 w-8 rounded-[10px] text-[11px] font-black ${
-                            track.playbackInfo?.isSolo
-                              ? "neuphormism-b-btn-gold text-black"
-                              : "neuphormism-b-btn text-black"
-                          }`}
-                        >
-                          S
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleTrackMute(index)}
-                          className={`h-7 w-8 rounded-[10px] text-[11px] font-black ${
-                            track.playbackInfo?.isMute
-                              ? "neuphormism-b-btn-red text-black"
-                              : "neuphormism-b-btn text-black"
-                          }`}
-                        >
-                          M
-                        </button>
+                          <div className="min-w-0 flex-[4] py-2">
+                            <div
+                              className="mb-1 flex h-3 items-end gap-[2px] rounded-[4px] bg-gray-300 p-[2px] shadow-inner"
+                              title={trackVu.active ? "VU ativo" : "VU parado"}
+                            >
+                              {trackVu.bars.map((level, barIndex) => {
+                                const isLit = trackVu.active && level > 0.08;
+                                const isPeak = level > 100;
+                                const barHeight = `${Math.max(18, Math.round(level * 100))}%`;
+
+                                return (
+                                  <span
+                                    key={`${label}-vu-${barIndex}`}
+                                    className={`flex-1 rounded-[1px] transition-all duration-150 ${
+                                      isLit
+                                        ? isPeak
+                                          ? "bg-[#e53935] shadow-[0_0_6px_rgba(229,57,53,0.55)]"
+                                          : "bg-[goldenrod]"
+                                        : "bg-white/70"
+                                    }`}
+                                    style={{
+                                      height: isLit ? barHeight : "100%",
+                                      opacity: isLit ? 0.55 + level * 0.45 : 1,
+                                    }}
+                                  />
+                                );
+                              })}
+
+                              {trackVu.active ? (
+                                <span
+                                  className="ml-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#4fe535] p-1"
+                                  aria-hidden="true"
+                                />
+                              ) : null}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="1"
+                                  step="0.05"
+                                  value={volume}
+                                  onChange={(event) =>
+                                    updateTrackVolume(index, event.target.value)
+                                  }
+                                  className="range-golden w-full"
+                                  title={`Volume ${Math.round(volume * 100)}%`}
+                                />
+                              </div>
+
+                              <div className="w-10 shrink-0 text-right text-[10px] font-black text-gray-600">
+                                {Math.round(volume * 100)}%
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex w-[3.1rem] h-12 shrink-0 flex-col items-center justify-between ">
+                            <div
+                              className="neuphormism-b-avatar relative h-6 w-6 rounded-full"
+                              title={`Pan ${pan < 0.48 ? "L" : pan > 0.52 ? "R" : "C"}`}
+                            >
+                              <span
+                                className="absolute left-1/2 top-1/2 h-3 w-1 -translate-x-1/2 -translate-y-full origin-bottom rounded-full bg-[#e53935]"
+                                style={{
+                                  transform: `translate(-50%, -100%) rotate(${
+                                    (pan - 0.5) * 270
+                                  }deg)`,
+                                }}
+                              />
+                            </div>
+
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.0625"
+                              value={pan}
+                              onChange={(event) =>
+                                updateTrackPan(index, event.target.value)
+                              }
+                              className="h-[0.9rem] w-9 accent-black"
+                              title="Pan"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* <div className="min-h-0 flex-1 overflow-auto">
+                {tracks.map((track, index) => {
+                  const isActive = index === selectedTrackIndex;
+                  const volume = trackVolumes[index] ?? DEFAULT_TRACK_VOLUME;
+                  const pan = trackPans[index] ?? DEFAULT_TRACK_PAN;
+                  const label = normalizeTrackLabel(track, index);
+                  const Icon = getTrackIcon(track);
+                  const trackColor = getTrackColor(index);
+                  const trackVu = trackPlaybackLevels[index] || {
+                    active: false,
+                    bars: Array(VU_BAR_COUNT).fill(0),
+                  };
+
+                  return (
+                    <div
+                      key={`${label}-${index}`}
+                      className={`grid min-h-[4.35rem] grid-cols-[1.35rem_2.05rem_minmax(0,1.15fr)_minmax(0,4fr)_3.1rem] items-center gap-2 border-b border-white/80 pr-2 text-black ${
+                        isActive ? "bg-[#e9e9ec]" : "bg-[#f7f7f7]"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => renderSelectedTrack(index)}
+                        className="flex h-full items-center justify-center text-[10px] font-black text-white"
+                        style={{ backgroundColor: trackColor }}
+                        title={`Track ${index + 1}`}
+                      >
+                        {index + 1}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => renderSelectedTrack(index)}
+                        className="neuphormism-b-avatar flex h-9 w-9 items-center justify-center rounded-full text-black"
+                        title={label}
+                      >
+                        <Icon className="h-4 w-4 text-black" />
+                      </button>
+
+                      <div className="min-w-0 py-2">
+                        <button
+                          type="button"
+                          onClick={() => renderSelectedTrack(index)}
+                          className="block w-full truncate text-left text-[12px] font-black leading-tight text-black"
+                          title={label}
+                        >
+                          {label}
+                        </button>
+                        <div className="mt-1 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleTrackMute(index)}
+                            className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                              track.playbackInfo?.isMute
+                                ? "bg-[#d66f5f] text-black"
+                                : "neuphormism-b-btn text-black"
+                            }`}
+                          >
+                            M
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleTrackSolo(index)}
+                            className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                              track.playbackInfo?.isSolo
+                                ? "neuphormism-b-btn-gold text-black"
+                                : "neuphormism-b-btn text-black"
+                            }`}
+                          >
+                            S
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 py-2">
+                        <div
+                          className="mb-1 flex h-3 items-end gap-[2px] rounded-[4px] bg-gray-300 p-[2px] shadow-inner"
+                          title={trackVu.active ? "VU ativo" : "VU parado"}
+                        >
+                          {trackVu.bars.map((level, barIndex) => {
+                            const isLit = trackVu.active && level > 0.08;
+                            const isPeak = level > 0.74;
+                            const barHeight = `${Math.max(18, Math.round(level * 100))}%`;
+                            return (
+                              <span
+                                key={`${label}-vu-${barIndex}`}
+                                className={`flex-1 rounded-[1px] transition-all duration-150 ${
+                                  isLit
+                                    ? isPeak
+                                      ? "bg-[#e53935] shadow-[0_0_6px_rgba(229,57,53,0.55)]"
+                                      : "bg-[goldenrod]"
+                                    : "bg-white/70"
+                                }`}
+                                style={{
+                                  height: isLit ? barHeight : "18%",
+                                  opacity: isLit ? 0.55 + level * 0.45 : 1,
+                                }}
+                              />
+                            );
+                          })}
+                          {trackVu.active ? (
+                            <span
+                              className="ml-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#e53935] shadow-[0_0_8px_rgba(229,57,53,0.75)]"
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="grid grid-cols-[minmax(0,4fr)_minmax(0,1fr)] items-center gap-2">
+                          <div className="min-w-0">
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              value={volume}
+                              onChange={(event) =>
+                                updateTrackVolume(index, event.target.value)
+                              }
+                              className="range-golden w-full"
+                              title={`Volume ${Math.round(volume * 100)}%`}
+                            />
+                          </div>
+                          <div className="text-right text-[10px] font-black text-gray-600">
+                            {Math.round(volume * 100)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center gap-1 py-2">
+                        <div
+                          className="neuphormism-b-avatar relative h-8 w-8 rounded-full"
+                          title={`Pan ${pan < 0.48 ? "L" : pan > 0.52 ? "R" : "C"}`}
+                        >
+                          <span
+                            className="absolute left-1/2 top-1/2 h-3.5 w-1 -translate-x-1/2 -translate-y-full origin-bottom rounded-full bg-[#e53935]"
+                            style={{
+                              transform: `translate(-50%, -100%) rotate(${(pan - 0.5) * 270}deg)`,
+                            }}
+                          />
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.0625"
+                          value={pan}
+                          onChange={(event) =>
+                            updateTrackPan(index, event.target.value)
+                          }
+                          className="h-[0.9rem] w-9 accent-black"
+                          title="Pan"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div> */}
             </div>
           )}
         </aside>
       </div>
 
-      <div className="neuphormism-b z-[1] mx-4 mb-3 flex min-h-20 shrink-0 items-center justify-between rounded-[24px] px-5 py-3">
-        <div className="flex items-center gap-3">
+      <div className="neuphormism-b z-[1] mx-4 mb-2 flex min-h-12 shrink-0 items-center justify-between rounded-[18px] px-4 py-1.5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={togglePlayback}
             disabled={!playerReady || Boolean(renderError)}
-            className={`${buttonBaseClass} h-14 w-14 ${
+            className={`${buttonBaseClass} h-10 w-10 ${
               playerReady && !renderError
                 ? "neuphormism-b-btn-gold"
                 : "cursor-not-allowed opacity-55"
             }`}
-            title={playerReady ? "Play/Pause" : `Player carregando ${playerLoadProgress}%`}
+            title={
+              playerReady
+                ? "Play/Pause"
+                : `Player carregando ${playerLoadProgress}%`
+            }
           >
             {isPlaying ? (
-              <FaPause className="h-5 w-5" />
+              <FaPause className="h-4 w-4" />
             ) : (
-              <FaPlay className="h-5 w-5" />
+              <FaPlay className="h-4 w-4" />
             )}
           </button>
           <button
             type="button"
             onClick={stopPlayback}
             disabled={!playerReady}
-            className={`${buttonBaseClass} h-12 w-12 ${
+            className={`${buttonBaseClass} h-9 w-9 ${
               playerReady ? "" : "cursor-not-allowed opacity-55"
             }`}
             title="Stop"
           >
-            <FaStop className="h-4 w-4" />
+            <FaStop className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={() => setZoom((current) => Math.max(0.7, current - 0.1))}
-            className={`${buttonBaseClass} h-12 w-12`}
+            className={`${buttonBaseClass} h-9 w-9`}
             title="Zoom out"
           >
-            <FaMagnifyingGlassMinus className="h-4 w-4" />
+            <FaMagnifyingGlassMinus className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={() => setZoom((current) => Math.min(1.8, current + 0.1))}
-            className={`${buttonBaseClass} h-12 w-12`}
+            className={`${buttonBaseClass} h-9 w-9`}
             title="Zoom in"
           >
-            <FaMagnifyingGlassPlus className="h-4 w-4" />
+            <FaMagnifyingGlassPlus className="h-3.5 w-3.5" />
           </button>
-          <div className="ml-2 min-w-[8rem] text-sm font-black text-gray-600">
+          <div className="ml-1 min-w-[7rem] text-xs font-black text-gray-600">
             {playerReady
               ? `${formatDuration(playbackPosition.currentTime)} / ${formatDuration(
                   playbackPosition.endTime,
@@ -855,29 +1428,38 @@ function GuitarProViewer({
           </div>
         </div>
 
-        <div className="min-w-0 flex-1 px-6">
-          <div className="h-2 rounded-full bg-gray-200">
-            <div
-              className="h-2 rounded-full bg-[goldenrod] transition-[width]"
-              style={{
-                width: `${
-                  playbackPosition.endTime
-                    ? Math.min(
-                        100,
-                        (playbackPosition.currentTime / playbackPosition.endTime) * 100,
-                      )
-                    : playerLoadProgress
-                }%`,
-              }}
+        <div className="min-w-0 flex-1 px-4">
+          <div className="relative h-4">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.1"
+              value={playbackPercent}
+              disabled={!playbackPosition.endTime}
+              onChange={(event) => seekPlayback(event.target.value)}
+              className="absolute inset-0 z-[1] h-4 w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+              aria-label="Guitar Pro playback progress"
+              title={
+                playbackPosition.endTime
+                  ? "Arrastar progresso"
+                  : "Aguardando duracao do player"
+              }
             />
+            <div className="absolute left-0 right-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gray-200">
+              <div
+                className="h-3 rounded-full bg-[goldenrod] transition-[width]"
+                style={{ width: `${playbackPercent}%` }}
+              />
+            </div>
           </div>
         </div>
 
         <div className="min-w-0 text-right">
-          <div className="truncate text-lg font-black text-black">
+          <div className="truncate text-sm font-black text-black">
             {songTitle || fileName}
           </div>
-          <div className="truncate text-sm font-semibold text-gray-500">
+          <div className="truncate text-xs font-semibold text-gray-500">
             {artistName}
             {artistName && fileName ? " · " : ""}
             {fileName}

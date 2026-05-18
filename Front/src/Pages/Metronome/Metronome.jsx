@@ -9,12 +9,12 @@ import {
   FaVolumeMute,
   FaVolumeUp,
 } from "react-icons/fa";
-import clickSound from "../../../public/click.mp3";
 import Stopwatch from "./Stopwatch";
 
 const BPM_MIN = 40;
 const BPM_MAX = 220;
 const TOUCH_BREAKPOINT = 767;
+const clickSound = "/click.mp3";
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
