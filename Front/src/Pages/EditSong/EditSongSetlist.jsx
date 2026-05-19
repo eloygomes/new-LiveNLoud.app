@@ -305,20 +305,29 @@ const buildTagStyle = ({
   willRemove,
   isEditing,
   tagAnimationStyle,
-}) => ({
+}) => {
+  const resolvedBackground = willRemove
+    ? "#f3d4d4"
+    : backgroundColor === "goldenrod"
+      ? "goldenrod"
+      : "#efefef";
+
+  return {
   display: "inline-flex",
   alignItems: "center",
-  padding: "6px 10px",
-  borderRadius: "10px",
+  padding: "10px 20px",
+  borderRadius: "22px",
   margin: "2px",
   cursor: isEditing ? "default" : "pointer",
   fontSize: "12px",
-  backgroundColor,
-  border: willRemove ? "1px solid #dc2626" : "1px solid transparent",
-  color: "#fff",
+  backgroundColor: resolvedBackground,
+  border: willRemove ? "1px solid #dc2626" : "1px solid rgba(255,255,255,0.72)",
+  color: backgroundColor === "goldenrod" ? "#000" : "#6b7280",
+  boxShadow: "8px 8px 18px #bebebe, -8px -8px 18px #ffffff",
   userSelect: "none",
   ...tagAnimationStyle,
-});
+  };
+};
 
 function EditSongSetlistWeb({
   setlist,
@@ -327,6 +336,7 @@ function EditSongSetlistWeb({
   setSetListOptions,
 }) {
   const [newSetlistName, setNewSetlistName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [pendingRemovals, setPendingRemovals] = useState([]);
 
@@ -456,24 +466,27 @@ function EditSongSetlistWeb({
   };
 
   return (
-    <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
+    <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
             Setlist
           </p>
-
-          <p className="mt-1 text-sm font-medium text-gray-500">
-            Update song tags without leaving the edit flow.
-          </p>
         </div>
 
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCreating((current) => !current)}
+            className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
+          >
+            +
+          </button>
           {!isEditing ? (
             <button
               type="button"
               onClick={startEditing}
-              className="text-sm px-4 py-2 rounded-full border transition-colors neuphormism-b-btn"
+              className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
             >
               Edit
             </button>
@@ -482,7 +495,7 @@ function EditSongSetlistWeb({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="text-sm px-4 py-2 rounded-full border transition-colors bg-white text-gray-700 border-gray-300"
+                className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
               >
                 Cancel
               </button>
@@ -490,7 +503,7 @@ function EditSongSetlistWeb({
               <button
                 type="button"
                 onClick={saveChanges}
-                className="text-sm px-4 py-2 rounded-full border transition-colors bg-emerald-500 text-white border-emerald-500 disabled:opacity-60"
+                className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn disabled:opacity-60"
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -500,12 +513,13 @@ function EditSongSetlistWeb({
         </div>
       </div>
 
+      {isCreating ? (
       <div className="mt-5">
         <label
           htmlFor="newSetlistName"
           className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
         >
-          Criar um novo setlist:
+          Create a new setlist:
         </label>
 
         <div className="flex flex-row items-center gap-2">
@@ -521,17 +535,18 @@ function EditSongSetlistWeb({
 
           <button
             type="button"
-            className="px-3 py-2 text-sm neuphormism-b-btn"
+            className="rounded-[12px] px-3 py-2 text-sm font-black neuphormism-b-btn"
             onClick={addNewTag}
           >
-            Add
+            +
           </button>
         </div>
       </div>
+      ) : null}
 
       <div className="mt-5">
         <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
-          Setlists disponíveis
+          Available setlists
         </h1>
 
         <div className="w-full pr-2">
@@ -610,6 +625,7 @@ function EditSongSetlistMobile({
 }) {
   const [newSetlistName, setNewSetlistName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [pendingRemovals, setPendingRemovals] = useState([]);
 
   const tagAnimationStyle = useMemo(() => {
@@ -735,13 +751,16 @@ function EditSongSetlistMobile({
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
             Setlist
           </p>
-
-          <p className="mt-1 text-sm font-medium text-gray-500">
-            Update song tags without leaving the edit flow.
-          </p>
         </div>
 
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCreating((current) => !current)}
+            className="text-sm px-4 py-2 rounded-full border transition-colors neuphormism-b-btn"
+          >
+            +
+          </button>
           {!isEditing ? (
             <button
               type="button"
@@ -773,12 +792,13 @@ function EditSongSetlistMobile({
         </div>
       </div>
 
+      {isCreating ? (
       <div className="mt-5">
         <label
           htmlFor="newSetlistNameMobile"
           className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
         >
-          Criar um novo setlist:
+          Create a new setlist:
         </label>
 
         <div className="flex flex-row items-center gap-2">
@@ -797,14 +817,15 @@ function EditSongSetlistMobile({
             className="px-3 py-2 text-sm neuphormism-b-btn"
             onClick={addNewTag}
           >
-            Add
+            +
           </button>
         </div>
       </div>
+      ) : null}
 
       <div className="mt-5">
         <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
-          Setlists disponíveis
+          Available setlists
         </h1>
 
         <div className="w-full pr-2">

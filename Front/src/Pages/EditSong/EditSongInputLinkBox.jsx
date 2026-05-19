@@ -23,6 +23,7 @@ import {
   getGuitarProFiles,
   isValidGuitarProFile,
 } from "../../utils/guitarPro/validateGuitarProFile";
+import { classifyInstrumentLink } from "../shared/instrumentLinkClassifier";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:edit-auto-submit-voice";
 
@@ -46,6 +47,8 @@ function EditSongInputLinkBox({
   touchLayout = false,
   songData = null,
   onSongDataChange,
+  onResolvedInstrumentLink,
+  modalLayout = false,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -54,7 +57,10 @@ function EditSongInputLinkBox({
   const hasLink = Boolean(link?.trim());
   const guitarProFiles = getGuitarProFiles(songData);
   const hasGuitarProFiles = guitarProFiles.length > 0;
-  const shouldShowGuitarProRow = instrumentName !== "voice";
+  const shouldShowGuitarProRow = false;
+  const expandedControls = touchLayout || modalLayout;
+  const iconButtonClass =
+    "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[12px] text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60";
 
   const notify = useCallback(
     (title, message) => {
@@ -113,10 +119,7 @@ function EditSongInputLinkBox({
         notify("Info", "Clipboard vazio.");
         return;
       }
-      setInstrument(clipboardText);
-      onLinkChange?.(clipboardText);
-      setIsDirty?.(true);
-      setTimeout(() => handledata(clipboardText), 0);
+      routeIncomingLink(clipboardText);
     } catch (error) {
       console.error("Clipboard read failed:", error);
       notify("Error", "Não foi possível ler o clipboard.");
@@ -129,6 +132,19 @@ function EditSongInputLinkBox({
       return;
     }
     setNotesOpen(true);
+  };
+
+  const openGuitarProFile = () => {
+    const selectedFile = guitarProFiles[0];
+    if (!selectedFile) {
+      notify("Error", "Nenhum arquivo Guitar Pro cadastrado.");
+      return;
+    }
+    if (selectedFile.url) {
+      window.open(selectedFile.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    notify("Info", selectedFile.originalName || "Guitar Pro file registered.");
   };
 
   const updateSongGuitarProState = useCallback(
@@ -267,16 +283,13 @@ function EditSongInputLinkBox({
       const redirectedLink = String(event.detail?.link || "").trim();
       if (!redirectedLink) return;
 
-      setInstrument(redirectedLink);
-      onLinkChange?.(redirectedLink);
-      setIsDirty?.(true);
-      setTimeout(() => handledata(redirectedLink), 0);
+      routeIncomingLink(redirectedLink);
     };
 
     window.addEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
     return () =>
       window.removeEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
-  }, [instrumentName, onLinkChange, setInstrument, setIsDirty]);
+  }, [instrumentName]);
 
   useEffect(() => {
     if (!touchLayout || !notesOpen) return undefined;
@@ -288,14 +301,27 @@ function EditSongInputLinkBox({
   const handledata = async (linkOverride) => {
     const userEmail = localStorage.getItem("userEmail");
     const targetLink = (linkOverride ?? link ?? "").trim();
+    const detectedInstrument = classifyInstrumentLink(targetLink);
+    const effectiveInstrumentName = detectedInstrument || instrumentName;
 
     if (!userEmail || !targetLink) return;
 
-    if (isLetrasLink(targetLink) && instrumentName !== "voice") {
+    if (detectedInstrument && detectedInstrument !== instrumentName) {
       setInstrument("");
       onLinkChange?.("");
       setIsDirty?.(true);
-      setVoiceInstrument?.(targetLink);
+      onResolvedInstrumentLink?.(detectedInstrument, targetLink);
+    }
+
+    if (isLetrasLink(targetLink) && effectiveInstrumentName !== "voice") {
+      setInstrument("");
+      onLinkChange?.("");
+      setIsDirty?.(true);
+      if (typeof onResolvedInstrumentLink === "function") {
+        onResolvedInstrumentLink("voice", targetLink);
+      } else {
+        setVoiceInstrument?.(targetLink);
+      }
       notify("Error", "Esse link deve ser usado no campo Voice");
       window.dispatchEvent(
         new CustomEvent(LETRAS_AUTO_SUBMIT_EVENT, {
@@ -311,7 +337,7 @@ function EditSongInputLinkBox({
         artist: "",
         song: "",
         email: userEmail,
-        instrument: `${instrumentName}`,
+        instrument: `${effectiveInstrumentName}`,
         instrument_progressbar: `${progress}`,
         link: targetLink,
       });
@@ -326,6 +352,29 @@ function EditSongInputLinkBox({
     }
   };
 
+  const routeIncomingLink = (rawLink) => {
+    const nextLink = String(rawLink || "").trim();
+    if (!nextLink) return;
+
+    const detectedInstrument = classifyInstrumentLink(nextLink);
+    if (
+      detectedInstrument &&
+      detectedInstrument !== instrumentName &&
+      typeof onResolvedInstrumentLink === "function"
+    ) {
+      setInstrument("");
+      onLinkChange?.("");
+      setIsDirty?.(true);
+      onResolvedInstrumentLink(detectedInstrument, nextLink);
+      notify("Info", `Link moved to ${detectedInstrument}.`);
+    } else {
+      setInstrument(nextLink);
+      onLinkChange?.(nextLink);
+      setIsDirty?.(true);
+    }
+    setTimeout(() => handledata(nextLink), 0);
+  };
+
   // useEffect(() => {
   //   handledata().catch((error) => console.error(error));
   // }, [link, progress]);
@@ -334,27 +383,27 @@ function EditSongInputLinkBox({
 
   return (
     <div
-      className={`flex w-full flex-col ${
-        touchLayout
+      className={`${modalLayout ? "grid gap-4 md:grid-cols-2" : "flex w-full flex-col"} ${
+        expandedControls
           ? "mt-0 rounded-[18px] bg-transparent px-0 py-0"
-          : `mt-3 neuphormism-b-btn px-5 py-3 ${
+          : `mt-0 neuphormism-b-btn px-5 py-4 ${
               hasLink ? "bg-[goldenrod]/15" : ""
             }`
       }`}
     >
       <div
-        className={`flex flex-row justify-between ${
-          touchLayout ? "mb-3 items-center" : ""
+        className={`flex flex-row justify-between ${modalLayout ? "md:col-span-2" : ""} ${
+          expandedControls ? "mb-3 items-center" : ""
         }`}
       >
         <span
           className={`font-bold ${
-            touchLayout ? "text-[1.05rem] text-black" : "pb-2 text-sm"
+            expandedControls ? "text-[1.05rem] text-black" : "pb-2 text-sm"
           }`}
         >
           {instrumentName.charAt(0).toUpperCase() + instrumentName.slice(1)}
         </span>
-        {!touchLayout ? (
+        {!expandedControls ? (
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -414,7 +463,7 @@ function EditSongInputLinkBox({
         ) : null}
       </div>
 
-      {touchLayout && !hasLink ? (
+      {expandedControls && !hasLink ? (
         <button
           type="button"
           className="mb-3 flex w-full items-center justify-center gap-2 rounded-[14px] neuphormism-b-btn px-3 py-3 text-sm font-black text-black"
@@ -425,12 +474,17 @@ function EditSongInputLinkBox({
         </button>
       ) : null}
 
-      <div className={`relative ${touchLayout ? "mt-1" : "flex h-8 flex-row"}`}>
+      <div className={`relative ${expandedControls ? "mt-1" : "flex h-8 flex-row"}`}>
+        {modalLayout ? (
+          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            Link source
+          </p>
+        ) : null}
         <input
           type="text"
           placeholder="Insert your link here"
           className={`w-full border border-gray-300 bg-white pr-11 text-black outline-none focus:border-[goldenrod] ${
-            touchLayout
+            expandedControls
               ? "h-12 rounded-[14px] px-3 text-base font-medium"
               : "h-6 rounded-sm p-1 text-sm"
           } ${isLocked ? "cursor-default" : ""}`}
@@ -445,10 +499,7 @@ function EditSongInputLinkBox({
           onPaste={(e) => {
             e.preventDefault();
             const pasted = e.clipboardData.getData("text").trim();
-            setInstrument(pasted);
-            onLinkChange?.(pasted);
-            setIsDirty?.(true);
-            setTimeout(() => handledata(pasted), 0);
+            routeIncomingLink(pasted);
           }}
           onBlur={() => {
             handledata();
@@ -459,7 +510,7 @@ function EditSongInputLinkBox({
             type="button"
             aria-label={`Remove ${instrumentName} link`}
             className={`absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-700 ${
-              touchLayout ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
+              expandedControls ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
             }`}
             onClick={() => {
               setInstrument("");
@@ -472,7 +523,7 @@ function EditSongInputLinkBox({
         )}
       </div>
 
-      {touchLayout ? (
+      {expandedControls ? (
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button
             type="button"
@@ -528,46 +579,41 @@ function EditSongInputLinkBox({
         </div>
       ) : null}
 
-      <div
-        className={
-          touchLayout
-            ? "mt-5 rounded-[18px] neuphormism-b-se px-4 py-4"
-            : "mt-3 flex items-center"
-        }
-      >
-        {touchLayout ? (
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
-              Progress
-            </span>
-            <span className="text-xl font-black text-black">{rangeProgress}</span>
-          </div>
-        ) : null}
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={progress}
-          style={{ "--range-progress": rangeProgress }}
-          onChange={(e) => {
-            const value = Number(parseInt(e.target.value, 10));
+      <div className="mt-4 flex items-center justify-between rounded-[16px] neuphormism-b-se px-3 py-3">
+        <button
+          type="button"
+          className={iconButtonClass}
+          onClick={() => {
+            const value = Math.max(0, Number(progress || 0) - 5);
             setProgress(value);
             onProgressChange?.(value);
             setIsDirty?.(true);
           }}
-          className="range-golden w-full"
-        />
-        {!touchLayout ? (
-          <div className="w-14 text-right text-sm">{rangeProgress}</div>
-        ) : null}
+          aria-label={`Decrease ${instrumentName} progress`}
+        >
+          <FaMinus />
+        </button>
+        <div className="min-w-[5rem] text-center text-2xl font-black text-black">
+          {rangeProgress}
+        </div>
+        <button
+          type="button"
+          className={iconButtonClass}
+          onClick={() => {
+            const value = Math.min(100, Number(progress || 0) + 5);
+            setProgress(value);
+            onProgressChange?.(value);
+            setIsDirty?.(true);
+          }}
+          aria-label={`Increase ${instrumentName} progress`}
+        >
+          <FaPlus />
+        </button>
       </div>
       {shouldShowGuitarProRow ? (
-        <div
-          className={`mt-3 flex items-center justify-between rounded-[14px] ${
-            touchLayout ? "neuphormism-b-se px-4 py-3" : "bg-white/60 px-3 py-2"
-          }`}
-        >
-          <div className="flex items-center gap-2">
+        <div className="mt-3 rounded-[16px] neuphormism-b-se px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
             <GuitarProIcon
               active={hasGuitarProFiles}
               title={
@@ -579,10 +625,15 @@ function EditSongInputLinkBox({
             <span className="text-sm font-bold text-black">
               Guitar Pro {hasGuitarProFiles ? `(${guitarProFiles.length})` : ""}
             </span>
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.14em] text-gray-500">
+              File
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="flex cursor-pointer items-center justify-center rounded-[10px] bg-[goldenrod] px-3 py-2 text-black">
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black">
               <FaPlus />
+              <span>Add GP</span>
               <input
                 type="file"
                 accept={GUITAR_PRO_ACCEPT}
@@ -594,15 +645,42 @@ function EditSongInputLinkBox({
               type="button"
               onClick={handleGuitarProDelete}
               disabled={!hasGuitarProFiles}
-              className={`flex items-center justify-center rounded-[10px] px-3 py-2 ${
-                hasGuitarProFiles
-                  ? "bg-[#e5e7eb] text-black"
-                  : "cursor-not-allowed bg-[#f3f4f6] text-gray-400"
-              }`}
+              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
             >
               <FaMinus />
+              <span>Remove</span>
+            </button>
+            <button
+              type="button"
+              onClick={openGuitarProFile}
+              disabled={!hasGuitarProFiles}
+              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+            >
+              <FaRegFileAlt />
+              <span>View</span>
             </button>
           </div>
+        </div>
+      ) : null}
+      {modalLayout ? (
+        <div className="rounded-[16px] neuphormism-b-se px-4 py-4 md:row-span-3">
+          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            Notes
+          </p>
+          <textarea
+            className="min-h-[190px] w-full resize-none rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
+            value={notes}
+            onChange={(event) => onNotesChange?.(event.target.value)}
+            placeholder="Write instrument notes here"
+          />
+          <button
+            type="button"
+            className="mt-3 w-full rounded-[14px] px-4 py-3 text-sm font-black neuphormism-b-btn"
+            onClick={() => saveNotes(notes)}
+            disabled={!hasLink || notesSaving}
+          >
+            Save notes
+          </button>
         </div>
       ) : null}
       {notesOpen ? (

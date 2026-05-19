@@ -361,6 +361,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FaChevronDown,
   FaChevronUp,
+  FaCheckCircle,
   FaTimes,
   FaDrum,
   FaGuitar,
@@ -554,19 +555,38 @@ function EditSongColumnB(props) {
 }
 
 function EditSongColumnBWeb(props) {
-  return (
-    <div className="flex flex-row p-5 my-5 neuphormism-b rounded-[30px]">
-      <div className="flex flex-col w-full">
-        <SectionHeader titleTag="h1" />
+  const [activeInstrument, setActiveInstrument] = useState(null);
+  const instrumentCards = INSTRUMENTS.map((instrumentConfig) => ({
+    ...instrumentConfig,
+    link: props[instrumentConfig.stateName],
+    notes: props[instrumentConfig.notesName],
+    progress: props[instrumentConfig.progressName],
+  }));
+  const activeInstrumentConfig = instrumentCards.find(
+    (item) => item.key === activeInstrument,
+  );
 
-        {INSTRUMENTS.map((instrumentConfig) => (
-          <InstrumentInputBox
-            key={instrumentConfig.key}
-            config={instrumentConfig}
+  return (
+    <div className="my-5 flex flex-row rounded-[30px] neuphormism-b p-5">
+      <div className="flex w-full flex-col">
+        <SectionHeader />
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {instrumentCards.map((instrumentCard) => (
+            <InstrumentCard
+              key={instrumentCard.key}
+              card={instrumentCard}
+              isOpen={activeInstrument === instrumentCard.key}
+              onClick={() => setActiveInstrument(instrumentCard.key)}
+            />
+          ))}
+        </div>
+        {activeInstrumentConfig ? (
+          <InstrumentModal
+            config={activeInstrumentConfig}
             props={props}
-            includeOnLinkAdded={false}
+            onClose={() => setActiveInstrument(null)}
           />
-        ))}
+        ) : null}
       </div>
     </div>
   );
@@ -609,7 +629,7 @@ function EditSongColumnBMobile(props) {
         className="flex w-full items-center justify-between"
         onClick={() => setTouchInstrumentsOpen((current) => !current)}
       >
-        <SectionHeader titleTag="h2" />
+        <SectionHeader />
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-black uppercase tracking-[0.08em] text-gray-500">
@@ -650,7 +670,7 @@ function EditSongColumnBMobile(props) {
   );
 }
 
-function SectionHeader({ titleTag: TitleTag }) {
+function SectionHeader() {
   return (
     <div className="text-left">
       <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
@@ -665,53 +685,48 @@ function SectionHeader({ titleTag: TitleTag }) {
 }
 
 function InstrumentCard({ card, isOpen, onClick }) {
-  const { label, short, icon: Icon, link, notes } = card;
+  const { label, short, icon: Icon, link, notes, progress } = card;
   const hasLink = Boolean(link?.trim());
   const hasNotes = Boolean(notes?.trim());
 
   return (
     <button
       type="button"
-      className={`rounded-[18px] p-4 text-left ${
-        hasLink
-          ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
-          : "neuphormism-b-se text-black"
+      className={`rounded-[18px] p-4 text-left transition active:scale-[0.99] neuphormism-b-se ${
+        hasLink ? "text-black" : "text-gray-400 opacity-75"
       }`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
         <div
           className={`flex h-11 w-11 items-center justify-center rounded-full text-black ${
-            hasLink ? "neuphormism-b-btn-gold bg-[goldenrod]" : "neuphormism-b-avatar"
+            hasLink ? "text-[goldenrod] neuphormism-b-btn" : "neuphormism-b-avatar text-gray-400"
           }`}
         >
           <Icon className="text-[14px]" />
         </div>
 
         <div className="flex items-center gap-2">
+          {hasLink ? <FaCheckCircle className="text-sm text-[goldenrod]" /> : null}
           {hasNotes ? (
             <FaRegStickyNote
-              className="text-sm text-black/75"
+              className={`text-sm ${hasLink ? "text-black/75" : "text-gray-400"}`}
               aria-label="Notes registered"
             />
           ) : null}
-          <span className="text-xs font-black uppercase text-black/65">
-            {short}
+          <span className={`text-sm font-black ${hasLink ? "text-black" : "text-gray-400"}`}>
+            {Number(progress || 0)}%
           </span>
         </div>
       </div>
 
-      <div className="mt-4 text-[1.15rem] font-black text-black">{label}</div>
-
-      <div
-        className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${
-          hasLink ? "bg-black/10 text-black" : "bg-white/55 text-gray-600"
-        }`}
-      >
-        {hasLink ? "Link added" : "No URL yet"}
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <div className={`text-[1.05rem] font-black ${hasLink ? "text-black" : "text-gray-400"}`}>{label}</div>
+        <div className={`shrink-0 text-xs font-black ${hasLink ? "text-[goldenrod]" : "text-gray-500"}`}>
+          {hasLink ? "Link added" : "No URL yet"}
+        </div>
       </div>
-
-      <div className="mt-2 text-xs font-medium text-black/55">
+      <div className="mt-2 text-right text-xs font-medium text-black/55">
         {isOpen ? "Tap to close" : "Tap to add"}
       </div>
     </button>
@@ -728,11 +743,14 @@ function InstrumentModal({ config, props, onClose }) {
         aria-label="Close instrument modal"
       />
 
-      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[86vh] md:w-[min(1120px,94vw)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[28px] md:px-5">
         <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-gray-300" />
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <div className="text-[clamp(1.8rem,8vw,2.4rem)] font-black tracking-tight text-black">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              Instrument details
+            </p>
+            <div className="mt-2 text-[clamp(1.8rem,8vw,2.4rem)] font-black tracking-tight text-black">
               {config.label}
             </div>
 
@@ -781,8 +799,17 @@ function InstrumentInputBox({ config, props, includeOnLinkAdded }) {
     setShowSnackBar: props.setShowSnackBar,
     setSnackbarMessage: props.setSnackbarMessage,
     touchLayout: props.touchLayout,
+    modalLayout: true,
     songData: props.songData,
     onSongDataChange: props.onSongDataChange,
+    onResolvedInstrumentLink: (targetInstrument, nextLink) => {
+      const targetConfig = INSTRUMENTS.find(
+        (item) => item.instrumentName === targetInstrument,
+      );
+      if (!targetConfig) return;
+      props[targetConfig.setterName]?.(nextLink);
+      notifyInstrument(props, targetConfig.instrumentName, { link: nextLink });
+    },
   };
 
   if (includeOnLinkAdded) {

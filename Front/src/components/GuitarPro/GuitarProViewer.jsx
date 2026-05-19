@@ -4,19 +4,21 @@ import * as alphaTab from "@coderline/alphatab";
 import {
   FaChevronLeft,
   FaChevronRight,
-  FaDrum,
-  FaGuitar,
-  FaKeyboard,
   FaMagnifyingGlassMinus,
   FaMagnifyingGlassPlus,
-  FaMicrophone,
-  FaMusic,
   FaPause,
   FaPlay,
   FaStop,
   FaThumbtack,
   FaVolumeHigh,
 } from "react-icons/fa6";
+import {
+  GiDrumKit,
+  GiGuitar,
+  GiGuitarBassHead,
+  GiMicrophone,
+  GiPianoKeys,
+} from "react-icons/gi";
 import { API_BASE, downloadGuitarProFile } from "../../Tools/Controllers";
 
 const INSTRUMENT_TRACK_HINTS = {
@@ -237,10 +239,10 @@ function getTrackIcon(track) {
     haystack.includes("drum") ||
     haystack.includes("perc")
   ) {
-    return FaDrum;
+    return GiDrumKit;
   }
   if (haystack.includes("bass") || (program >= 32 && program <= 39)) {
-    return FaMusic;
+    return GiGuitarBassHead;
   }
   if (
     haystack.includes("piano") ||
@@ -249,16 +251,16 @@ function getTrackIcon(track) {
     (program >= 0 && program <= 7) ||
     (program >= 16 && program <= 23)
   ) {
-    return FaKeyboard;
+    return GiPianoKeys;
   }
   if (
     haystack.includes("voice") ||
     haystack.includes("vocal") ||
     haystack.includes("vox")
   ) {
-    return FaMicrophone;
+    return GiMicrophone;
   }
-  return FaGuitar;
+  return GiGuitar;
 }
 
 function findBestTrackIndex(tracks = [], instrumentName = "") {
@@ -897,7 +899,7 @@ function GuitarProViewer({
         className={`grid min-h-0 flex-1 overflow-hidden transition-[grid-template-columns] duration-300 ${
           sidebarExpanded
             ? "grid-cols-[minmax(0,1fr)_30rem]"
-            : "grid-cols-[minmax(0,1fr)_5.75rem]"
+            : "grid-cols-[minmax(0,1fr)_3.5rem]"
         }`}
       >
         <div
@@ -932,24 +934,24 @@ function GuitarProViewer({
           ) : null}
         </div>
 
-        <aside className="m-4 ml-0 min-h-0 overflow-hidden rounded-[26px] bg-[#f0f0f0]">
+        <aside className="m-3 ml-0 min-h-0 overflow-hidden rounded-[20px] bg-[#f0f0f0]">
           {!sidebarExpanded ? (
-            <div className="flex h-full flex-col items-center gap-2 overflow-auto py-3">
+            <div className="flex h-full flex-col items-center gap-1.5 overflow-auto py-2">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className={`${buttonBaseClass} h-9 w-9`}
+                className={`${buttonBaseClass} h-8 w-8`}
                 title="Abrir instrumentos"
               >
-                <FaChevronLeft className="h-4 w-4" />
+                <FaChevronLeft className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => updateMasterVolume(masterVolume)}
-                className={`${buttonBaseClass} h-9 w-9`}
+                className={`${buttonBaseClass} h-8 w-8`}
                 title={`Volume master ${Math.round(masterVolume * 100)}%`}
               >
-                <FaVolumeHigh className="h-4 w-4" />
+                <FaVolumeHigh className="h-3.5 w-3.5" />
               </button>
               {tracks.map((track, index) => {
                 const Icon = getTrackIcon(track);
@@ -959,7 +961,7 @@ function GuitarProViewer({
                     key={`${normalizeTrackLabel(track, index)}-${index}-rail`}
                     type="button"
                     onClick={() => renderSelectedTrack(index)}
-                    className={`relative flex h-9 w-9 items-center justify-center rounded-full text-black ${
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-full text-black ${
                       isActive ? "neuphormism-b-btn-gold" : "neuphormism-b-btn"
                     }`}
                     title={normalizeTrackLabel(track, index)}

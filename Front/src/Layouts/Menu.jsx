@@ -15,6 +15,7 @@ import NotificationBell from "./NotificationBell";
 import SearchBox from "../Pages/Dashboard/SearchBox/SearchBox";
 import { loadSelectedSetlists } from "../Tools/Controllers";
 import { lockPageScroll } from "../Tools/scrollLock";
+import NewSongStartChoice from "../Components/NewSongStartChoice";
 
 export default function RootLayouts() {
   // ===== ESTADO DA BUSCA (navbar) =====
@@ -24,6 +25,7 @@ export default function RootLayouts() {
   const [hasActiveDashboardFilter, setHasActiveDashboardFilter] = useState(
     () => loadSelectedSetlists().length > 0,
   );
+  const [newSongChoiceOpen, setNewSongChoiceOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,9 +172,7 @@ export default function RootLayouts() {
       {/* HEADER */}
       <header>
         {/* Mobile */}
-        {window.innerWidth < 768 &&
-        !isToolDetailRoute &&
-        !hideMobileHeader ? (
+        {window.innerWidth < 768 && !isToolDetailRoute && !hideMobileHeader ? (
           <nav className="fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -218,11 +218,13 @@ export default function RootLayouts() {
         {/* Desktop */}
         {window.innerWidth >= 768 && (
           <nav className="neuphormism-b fixed z-[11900] w-full">
-            <div className="mx-auto max-w-7xl px-2 sm:px-5 lg:px-6">
+            <div className="w-full max-w-none  sm:px-5 lg:px-6 xl:px-10">
               <div className="relative flex h-16 items-center justify-between">
                 <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                   <div className="flex flex-row flex-shrink-0 items-center">
-                    <h1 className="app-logo-mark font-bold text-[clamp(1.6rem,3vw,1.875rem)]">#</h1>
+                    <h1 className="app-logo-mark font-bold text-[clamp(1.6rem,3vw,1.875rem)]">
+                      #
+                    </h1>
                     <h1
                       className="app-logo-text ml-2 mr-5 cursor-pointer text-[clamp(1rem,2.2vw,1.25rem)] font-bold italic"
                       onClick={() => navigate("/")}
@@ -305,9 +307,7 @@ export default function RootLayouts() {
           } md:pb-0 md:pt-16`}
           style={{
             maxHeight:
-              isTouchDashboardLayout && !isPresentationRoute
-                ? "none"
-                : "100vh",
+              isTouchDashboardLayout && !isPresentationRoute ? "none" : "100vh",
           }}
           // className={`flex-1 overflow-y-hidden pt-0 md:pt-16`}
           // style={{ maxHeight: "100vh" }}
@@ -321,25 +321,49 @@ export default function RootLayouts() {
         !(isPresentationRoute && hideMobileChrome) && (
           <nav className="fixed bottom-0 left-0 right-0 z-40 px-0 pb-0">
             <div className="grid grid-cols-4 bg-black px-2 py-2 text-white shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
-              {mobileTabs.map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={() =>
-                    `flex flex-col items-center justify-center gap-1 rounded-[14px] py-2 text-[11px] font-bold ${
+              {mobileTabs.map(({ to, label, icon: Icon }) =>
+                to === "/newsong" ? (
+                  <button
+                    key={to}
+                    type="button"
+                    className={`flex flex-col items-center justify-center gap-1 rounded-[14px] py-2 text-[11px] font-bold ${
                       isMobileTabActive(to)
                         ? "text-[goldenrod]"
                         : "text-[#9d9d9d]"
-                    }`
-                  }
-                >
-                  <Icon className="text-[18px]" />
-                  <span>{label}</span>
-                </NavLink>
-              ))}
+                    }`}
+                    onClick={() => setNewSongChoiceOpen(true)}
+                  >
+                    <Icon className="text-[18px]" />
+                    <span>{label}</span>
+                  </button>
+                ) : (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={() =>
+                      `flex flex-col items-center justify-center gap-1 rounded-[14px] py-2 text-[11px] font-bold ${
+                        isMobileTabActive(to)
+                          ? "text-[goldenrod]"
+                          : "text-[#9d9d9d]"
+                      }`
+                    }
+                  >
+                    <Icon className="text-[18px]" />
+                    <span>{label}</span>
+                  </NavLink>
+                ),
+              )}
             </div>
           </nav>
         )}
+      <NewSongStartChoice
+        open={newSongChoiceOpen}
+        onClose={() => setNewSongChoiceOpen(false)}
+        onChooseLink={() => {
+          setNewSongChoiceOpen(false);
+          navigate("/newsong");
+        }}
+      />
     </>
   );
 }

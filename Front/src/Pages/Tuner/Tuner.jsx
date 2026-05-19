@@ -319,10 +319,10 @@ export default function Tuner() {
 
   return (
     <div
-      className={`min-h-screen overflow-x-hidden bg-[#f0f0f0] px-3 pb-10 pt-4 sm:px-5 lg:px-8 ${isTouchLayout ? "pb-28" : ""}`}
+      className={`min-h-screen overflow-x-hidden bg-[#f0f0f0] px-3 pb-10 pt-4 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4 ${isTouchLayout ? "pb-28" : ""}`}
     >
-      <div className="container mx-auto">
-        <div className="w-full pb-10 md:mx-auto md:w-11/12 lg:pb-0 2xl:w-9/12">
+      <div className="mx-auto w-full max-w-none">
+        <div className="w-full pb-10 lg:pb-0">
           <div
             className={`mb-5 ${
               isTouchLayout
@@ -512,8 +512,8 @@ export default function Tuner() {
               )}
             </section>
 
-            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-315px)] lg:min-h-[560px] lg:grid-cols-[minmax(150px,20%)_minmax(0,1fr)] lg:gap-5">
-              <section className="order-2 neuphormism-b rounded p-3 sm:p-4 lg:order-1 lg:h-full lg:min-h-0">
+            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-315px)] lg:min-h-0 lg:grid-cols-[minmax(96px,10%)_minmax(0,1fr)] lg:gap-4">
+              <section className="order-2 neuphormism-b rounded p-3 sm:p-4 lg:order-1 lg:h-full lg:min-h-0 lg:px-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-[#697180]">
                     Strings
@@ -537,7 +537,7 @@ export default function Tuner() {
                       <button
                         key={`${string.name}-${index}`}
                         type="button"
-                        className={`min-h-[50px] rounded-[14px] px-2 py-2 text-center text-base font-black transition active:scale-[0.98] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:px-0 lg:py-1 ${
+                        className={`min-h-[50px] rounded-[14px] px-2 py-2 text-center text-base font-black transition active:scale-[0.98] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:px-1 lg:py-1 lg:text-sm ${
                           isSelected
                             ? "neuphormism-b-btn-gold text-black"
                             : "neuphormism-b-btn text-black"

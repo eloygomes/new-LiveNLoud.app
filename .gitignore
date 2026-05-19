@@ -3,7 +3,7 @@
 /Server/Python/scrapper/env
 /Server/Python/scrapper/ex
 Front/src/assets/auto-rotate-img.gif
-.env
+*.env
 /Server/liveNloud/.env
 /Server/liveNloud/node/.env
 node_modules/
@@ -11,3 +11,17 @@ node_modules/
 Front/deploy.sh
 Front/coverage/
 Front/.vitest/
+
+Front/deploy
+Front/deploy_sustenido_prod.sh
+Front/deploy.sh
+
+Server/liveNloud/db/BACKUPS/scripts/1. backup-database-sustenido.sh
+Server/liveNloud/db/BACKUPS/scripts/2. backup-database-live.sh
+Server/liveNloud/db/BACKUPS/scripts/3. copy-database-live-to-sustenido.sh
+Server/liveNloud/db/BACKUPS/scripts/4. copy-database-sustenido-to-live.sh
+
+
+
+Front/.env.live
+Front/.env.sustenido

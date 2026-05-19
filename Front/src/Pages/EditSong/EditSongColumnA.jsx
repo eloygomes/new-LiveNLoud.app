@@ -2,8 +2,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { FaChevronDown, FaChevronUp, FaListUl, FaTimes, FaVideo } from "react-icons/fa";
 import EditSongEmbed from "./EditSongEmbed";
-import GeralProgressBar from "./GeralProgressBar";
 import EditSongSongData from "./EditSongSongData";
+import GuitarProFileBox from "../shared/GuitarProFileBox";
 import { deleteOneSong, updateSongData } from "../../Tools/Controllers"; // Sua função que salva/atualiza no backend
 import { useNavigate } from "react-router-dom";
 import EditSongSetlist from "./EditSongSetlist";
@@ -41,10 +41,15 @@ function EditSongColumnA({
   registerInstrumentUpdaters,
   isDirty,
   setIsDirty,
+  setShowSnackBar,
+  setSnackbarMessage,
   touchLayout = false,
   songDataOpen = false,
   onToggleSongData,
   middleContent = null,
+  songData = null,
+  onSongDataChange,
+  onPageActionsChange,
 }) {
   // Dados principais da música
   const [songName, setSongName] = useState("");
@@ -532,6 +537,7 @@ function EditSongColumnA({
 
   // Deletar a música
   const handleDelete = async () => {
+    if (!window.confirm(`Delete "${songName}" by ${artistName}?`)) return;
     try {
       await deleteOneSong(artistName, songName);
       console.log("Song data deleted successfully:", artistName, songName);
@@ -540,6 +546,14 @@ function EditSongColumnA({
       console.error("Error deleting song data:", error);
     }
   };
+
+  useEffect(() => {
+    onPageActionsChange?.({
+      canUpdate: isDirty === undefined ? hasPendingChanges : isDirty,
+      onDelete: handleDelete,
+      onUpdate: handleUpdate,
+    });
+  }, [hasPendingChanges, isDirty, songName, artistName, geralPercentage, setlist]);
 
   return touchLayout ? (
     <>
@@ -576,16 +590,23 @@ function EditSongColumnA({
               setTomData={setTomData}
               setTunerData={setTunerData}
               touchLayout
+              geralPercentage={geralPercentage}
             />
           </div>
         ) : null}
       </div>
 
-      <div className="mt-4 flex justify-center [&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!mr-0 [&_.neuphormism-b]:!w-full [&_.neuphormism-b]:!max-w-[420px]">
-        <GeralProgressBar geralPercentage={geralPercentage} compact={touchLayout} />
-      </div>
-
       {middleContent}
+
+      <GuitarProFileBox
+        artistName={artistName}
+        songName={songName}
+        songData={songData}
+        onSongDataChange={onSongDataChange}
+        setShowSnackBar={setShowSnackBar}
+        setSnackbarMessage={setSnackbarMessage}
+        setIsDirty={setIsDirty}
+      />
 
       <div className="mt-4 rounded-[20px] neuphormism-b p-3">
         <button
@@ -737,79 +758,57 @@ function EditSongColumnA({
         </div>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <button
-          className="neuphormism-b-btn-red-cancel rounded-[16px] px-4 py-3 text-base font-black sm:text-lg"
-          onClick={handleDelete}
-        >
-          Discard
-        </button>
-        <button
-          className="neuphormism-b-btn-green-save rounded-[16px] px-4 py-3 text-base font-black disabled:opacity-50 sm:text-lg"
-          onClick={handleUpdate}
-          disabled={isDirty === undefined ? !hasPendingChanges : !isDirty}
-        >
-          Save Song
-        </button>
-      </div>
     </>
   ) : (
     <>
-      <EditSongSongData
-        songName={songName}
-        artistName={artistName}
-        capoData={capoData}
-        tomData={tomData}
-        tunerData={tunerData}
-        fistTime={firstPlay}
-        lastTime={lastPlay}
-        setSongName={setSongName}
-        setArtistName={setArtistName}
-        setCapoData={setCapoData}
-        setTomData={setTomData}
-        setTunerData={setTunerData}
-      />
-
-      <GeralProgressBar geralPercentage={geralPercentage} />
-
-      <EditSongEmbed
-        ytEmbedSongList={embedLink}
-        setEmbedLink={(updater) => {
-          setEmbedLink((prevLinks) => {
-            const nextLinks =
-              typeof updater === "function" ? updater(prevLinks) : updater;
-            setIsDirty?.(true);
-            return nextLinks;
-          });
-        }}
-      />
-
-      {/* Exibe as tags de setlist: 
-          setListOptions: array global de opções,
-          setlist: array com as tags selecionadas para esta música */}
-      <EditSongSetlist
-        setlist={setlist}
-        setSetlist={setSetlistAndMarkDirty}
-        setlistOptions={setListOptions}
-        setSetListOptions={setSetListOptionsAndMarkDirty}
-      />
-
-      <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">
-        <button
-          className="rounded-[16px] px-5 py-3 text-base font-black neuphormism-b-btn-green-save disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={handleUpdate}
-          disabled={isDirty === undefined ? !hasPendingChanges : !isDirty}
-        >
-          Update
-        </button>
-
-        <button
-          className="ml-5 rounded-[16px] px-5 py-3 text-base font-black neuphormism-b-btn-red-cancel"
-          onClick={handleDelete}
-        >
-          Delete
-        </button>
+      <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="min-w-0">
+          <EditSongSongData
+            songName={songName}
+            artistName={artistName}
+            capoData={capoData}
+            tomData={tomData}
+            tunerData={tunerData}
+            fistTime={firstPlay}
+            lastTime={lastPlay}
+            setSongName={setSongName}
+            setArtistName={setArtistName}
+            setCapoData={setCapoData}
+            setTomData={setTomData}
+            setTunerData={setTunerData}
+            geralPercentage={geralPercentage}
+          />
+        </div>
+        <div className="min-w-0">
+          <GuitarProFileBox
+            artistName={artistName}
+            songName={songName}
+            songData={songData}
+            onSongDataChange={onSongDataChange}
+            setShowSnackBar={setShowSnackBar}
+            setSnackbarMessage={setSnackbarMessage}
+            setIsDirty={setIsDirty}
+          />
+          <EditSongEmbed
+            ytEmbedSongList={embedLink}
+            setEmbedLink={(updater) => {
+              setEmbedLink((prevLinks) => {
+                const nextLinks =
+                  typeof updater === "function" ? updater(prevLinks) : updater;
+                setIsDirty?.(true);
+                return nextLinks;
+              });
+            }}
+          />
+          <EditSongSetlist
+            setlist={setlist}
+            setSetlist={setSetlistAndMarkDirty}
+            setlistOptions={setListOptions}
+            setSetListOptions={setSetListOptionsAndMarkDirty}
+          />
+        </div>
       </div>
+
     </>
   );
 }

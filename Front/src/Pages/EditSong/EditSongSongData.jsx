@@ -10,6 +10,7 @@ function EditSongSongData({
   fistTime,
   lastTime,
   touchLayout = false,
+  geralPercentage = 0,
 }) {
   const addedDate = formatDisplayDate(fistTime) || "-";
   const lastPlayDate = formatDisplayDate(lastTime) || "not played yet";
@@ -18,6 +19,14 @@ function EditSongSongData({
     return (
       <div className="w-full">
         <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between rounded-[14px] bg-[#f8f8f8] px-3 py-2">
+            <div className="text-[11px] font-bold uppercase text-gray-500">
+              Done
+            </div>
+            <div className="text-xl font-black text-black">
+              {Number(geralPercentage || 0)}%
+            </div>
+          </div>
           <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
             <div className="text-[11px] font-bold uppercase text-gray-500">
               Artist
@@ -84,8 +93,8 @@ function EditSongSongData({
   }
 
   return (
-    <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
-      <div className="flex flex-col w-full">
+    <div className="my-5 h-[calc(100%-2.5rem)] rounded-[30px] neuphormism-b px-6 py-6">
+      <div className="flex h-full w-full flex-col">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
             Song data
@@ -156,6 +165,14 @@ function EditSongSongData({
               {lastPlayDate}
             </div>
           </div>
+        </div>
+        <div className="mt-auto flex items-center justify-between rounded-[22px] neuphormism-b-se px-4 py-3">
+          <span className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            Progress of the song
+          </span>
+          <span className="text-2xl font-black text-black">
+            {Number(geralPercentage || 0)}%
+          </span>
         </div>
       </div>
     </div>

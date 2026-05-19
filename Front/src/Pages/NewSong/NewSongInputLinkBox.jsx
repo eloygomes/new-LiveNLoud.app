@@ -25,6 +25,7 @@ import {
   getGuitarProFiles,
   isValidGuitarProFile,
 } from "../../utils/guitarPro/validateGuitarProFile";
+import { classifyInstrumentLink } from "../shared/instrumentLinkClassifier";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 
@@ -156,6 +157,8 @@ function NewSongInputLinkBox({
   touchLayout = false,
   songData = null,
   onSongDataChange,
+  onResolvedInstrumentLink,
+  modalLayout = false,
 }) {
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
   const [notesOpen, setNotesOpen] = useState(false);
@@ -166,7 +169,10 @@ function NewSongInputLinkBox({
   const hasLink = Boolean(instrument?.trim());
   const guitarProFiles = getGuitarProFiles(songData);
   const hasGuitarProFiles = guitarProFiles.length > 0;
-  const shouldShowGuitarProRow = instrumentName !== "voice";
+  const shouldShowGuitarProRow = false;
+  const expandedControls = touchLayout || modalLayout;
+  const iconButtonClass =
+    "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[12px] text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60";
 
   const buildUserErrorMessage = useCallback(() => {
     return "Não foi possivel adicionar o link, tente mais tarde";
@@ -220,9 +226,7 @@ function NewSongInputLinkBox({
         notify("Info", "Clipboard vazio.");
         return;
       }
-      setInstrument?.(clipboardText);
-      primeArtistSongFromLink(clipboardText);
-      setTimeout(() => handleSubmit(clipboardText), 0);
+      routeIncomingLink(clipboardText);
     } catch (error) {
       console.error("Clipboard read failed:", error);
       notify("Error", "Não foi possível ler o clipboard.");
@@ -235,6 +239,19 @@ function NewSongInputLinkBox({
       return;
     }
     setNotesOpen(true);
+  };
+
+  const openGuitarProFile = () => {
+    const selectedFile = guitarProFiles[0];
+    if (!selectedFile) {
+      notify("Error", "Nenhum arquivo Guitar Pro cadastrado.");
+      return;
+    }
+    if (selectedFile.url) {
+      window.open(selectedFile.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    notify("Info", selectedFile.originalName || "Guitar Pro file registered.");
   };
 
   const updateSongGuitarProState = useCallback(
@@ -379,7 +396,9 @@ function NewSongInputLinkBox({
       if (inFlightRef.current) return;
 
       const link = (linkOverride ?? instrument ?? "").trim();
-      console.groupCollapsed(`[${instrumentName}] SUBMIT`);
+      const detectedInstrument = classifyInstrumentLink(link);
+      const effectiveInstrumentName = detectedInstrument || instrumentName;
+      console.groupCollapsed(`[${effectiveInstrumentName}] SUBMIT`);
       console.log("link:", link);
 
       if (guard(!!link, "Error", "Insira um link válido.")) {
@@ -387,10 +406,19 @@ function NewSongInputLinkBox({
         return;
       }
 
-      if (isLetrasLink(link) && instrumentName !== "voice") {
+      if (detectedInstrument && detectedInstrument !== instrumentName) {
+        setInstrument?.("");
+        onResolvedInstrumentLink?.(detectedInstrument, link);
+      }
+
+      if (isLetrasLink(link) && effectiveInstrumentName !== "voice") {
         console.warn(`[${instrumentName}] Letras link redirected to voice`, { link });
         setInstrument?.("");
-        setVoiceInstrument?.(link);
+        if (typeof onResolvedInstrumentLink === "function") {
+          onResolvedInstrumentLink("voice", link);
+        } else {
+          setVoiceInstrument?.(link);
+        }
         notify("Error", "Esse link deve ser usado no campo Voice");
         window.dispatchEvent(
           new CustomEvent(LETRAS_AUTO_SUBMIT_EVENT, {
@@ -428,12 +456,12 @@ function NewSongInputLinkBox({
         notify("Load", "Carregando...");
 
         // 2) Verifica se já existe no banco geral (para evitar scrape desnecessário)
-        console.time(`[${instrumentName}] checkCifraExists`);
-        const existsRes = await checkCifraExists({ instrumentName, link });
-        console.timeEnd(`[${instrumentName}] checkCifraExists`);
+        console.time(`[${effectiveInstrumentName}] checkCifraExists`);
+        const existsRes = await checkCifraExists({ instrumentName: effectiveInstrumentName, link });
+        console.timeEnd(`[${effectiveInstrumentName}] checkCifraExists`);
 
         if (existsRes?.exists) {
-          console.log(`[${instrumentName}] já existe no DB`, existsRes.data);
+          console.log(`[${effectiveInstrumentName}] já existe no DB`, existsRes.data);
           setCifraExiste?.(true);
           setCifraFROMDB?.(existsRes.data);
           localStorage.setItem("cifraFROMDB", JSON.stringify(existsRes.data));
@@ -454,7 +482,7 @@ function NewSongInputLinkBox({
         }
 
         console.log(
-          `[${instrumentName}] não encontrado no DB. Fazendo scrape…`
+          `[${effectiveInstrumentName}] não encontrado no DB. Fazendo scrape…`
         );
 
         // 3) Scrape → Python grava no user DB e manda para generalCifras internamente
@@ -462,19 +490,19 @@ function NewSongInputLinkBox({
           artist: finalArtist,
           song: finalSong,
           email,
-          instrumentName,
+          instrumentName: effectiveInstrumentName,
           progress,
           link,
         };
         console.log("[scrape payload]", payload);
 
-        console.time(`[${instrumentName}] scrapeCifra`);
+        console.time(`[${effectiveInstrumentName}] scrapeCifra`);
         const scrapedRaw = await scrapeCifra(payload);
-        console.timeEnd(`[${instrumentName}] scrapeCifra`);
+        console.timeEnd(`[${effectiveInstrumentName}] scrapeCifra`);
         console.log("🔎 scrapeCifra RAW:", scrapedRaw);
 
         // 4) Se o backend já retornar o doc, atualiza UI; caso contrário, segue o fluxo normal
-        const parsed = normalizeScrapeDoc(scrapedRaw, instrumentName);
+        const parsed = normalizeScrapeDoc(scrapedRaw, effectiveInstrumentName);
         console.log("✅ parsed:", parsed);
         if (parsed?.doc) {
           setCifraFROMDB?.(parsed.doc);
@@ -511,7 +539,7 @@ function NewSongInputLinkBox({
         for (let i = 1; i <= MAX_RETRIES; i++) {
           try {
             console.time(`[${instrumentName}] polling #${i}`);
-            const chk = await checkCifraExists({ instrumentName, link });
+            const chk = await checkCifraExists({ instrumentName: effectiveInstrumentName, link });
             console.timeEnd(`[${instrumentName}] polling #${i}`);
             if (chk?.exists) {
               found = chk.data;
@@ -534,7 +562,7 @@ function NewSongInputLinkBox({
           if (!songName && found?.song) setSongName?.(found.song);
         } else {
           console.warn(
-            `[${instrumentName}] documento geral ainda não visível (ok, Python cuida disso).`
+            `[${effectiveInstrumentName}] documento geral ainda não visível (ok, Python cuida disso).`
           );
         }
 
@@ -549,11 +577,11 @@ function NewSongInputLinkBox({
         updateScrapeStatus(true);
         onLinkAdded?.();
       } catch (err) {
-        console.error(`[${instrumentName}] handleSubmit error`, err);
-        console.error(`[${instrumentName}] handleSubmit full response`, err?.response?.data);
+        console.error(`[${effectiveInstrumentName}] handleSubmit error`, err);
+        console.error(`[${effectiveInstrumentName}] handleSubmit full response`, err?.response?.data);
         const msg = buildUserErrorMessage(err);
         console.error(
-          `[${instrumentName}] user-facing error from:`,
+          `[${effectiveInstrumentName}] user-facing error from:`,
           err?.response?.data?.message || "unknown"
         );
         notify("Error", msg);
@@ -581,12 +609,44 @@ function NewSongInputLinkBox({
       setCifraFROMDB,
       setInstrument,
       setVoiceInstrument,
+      onResolvedInstrumentLink,
       setScrapeStatus,
       primeArtistSongFromLink,
       updateScrapeStatus,
       buildUserErrorMessage,
       onLinkAdded,
     ]
+  );
+
+  const routeIncomingLink = useCallback(
+    (rawLink) => {
+      const nextLink = String(rawLink || "").trim();
+      if (!nextLink) return;
+
+      const detectedInstrument = classifyInstrumentLink(nextLink);
+      if (
+        detectedInstrument &&
+        detectedInstrument !== instrumentName &&
+        typeof onResolvedInstrumentLink === "function"
+      ) {
+        setInstrument?.("");
+        onResolvedInstrumentLink(detectedInstrument, nextLink);
+        notify("Info", `Link moved to ${detectedInstrument}.`);
+        updateScrapeStatus(false);
+      } else {
+        setInstrument?.(nextLink);
+      }
+      primeArtistSongFromLink(nextLink);
+      setTimeout(() => handleSubmit(nextLink), 0);
+    },
+    [
+      handleSubmit,
+      instrumentName,
+      onResolvedInstrumentLink,
+      primeArtistSongFromLink,
+      setInstrument,
+      updateScrapeStatus,
+    ],
   );
 
   useEffect(() => {
@@ -596,16 +656,14 @@ function NewSongInputLinkBox({
       const link = String(event.detail?.link || "").trim();
       if (!link) return;
 
-      setInstrument?.(link);
-      primeArtistSongFromLink(link);
-      setTimeout(() => handleSubmit(link), 0);
+      routeIncomingLink(link);
     };
 
     window.addEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
     return () => {
       window.removeEventListener(LETRAS_AUTO_SUBMIT_EVENT, handleVoiceAutoSubmit);
     };
-  }, [handleSubmit, instrumentName, primeArtistSongFromLink, setInstrument]);
+  }, [instrumentName, routeIncomingLink]);
 
   useEffect(() => {
     if (!touchLayout || !notesOpen) return undefined;
@@ -616,28 +674,28 @@ function NewSongInputLinkBox({
 
   return (
     <div
-      className={`flex w-full flex-col ${
-        touchLayout
+      className={`${modalLayout ? "grid gap-4 md:grid-cols-2" : "flex w-full flex-col"} ${
+        expandedControls
           ? "mt-0 rounded-[18px] bg-transparent px-0 py-0"
-          : `mt-3 neuphormism-b px-5 py-3 ${
+          : `mt-0 neuphormism-b px-5 py-4 ${
               hasLink ? "bg-[goldenrod]/15" : ""
             }`
       }`}
     >
       {/* Header */}
       <div
-        className={`flex justify-between ${
-          touchLayout ? "mb-3 items-center" : ""
+        className={`flex justify-between ${modalLayout ? "md:col-span-2" : ""} ${
+          expandedControls ? "mb-3 items-center" : ""
         }`}
       >
         <span
           className={`font-bold ${
-            touchLayout ? "text-[1.05rem] text-black" : "text-sm"
+            expandedControls ? "text-[1.05rem] text-black" : "text-sm"
           }`}
         >
           {instrumentName[0].toUpperCase() + instrumentName.slice(1)}
         </span>
-        {!touchLayout ? (
+        {!expandedControls ? (
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -698,7 +756,7 @@ function NewSongInputLinkBox({
       </div>
 
       {/* Link input */}
-      {touchLayout && !hasLink ? (
+      {expandedControls && !hasLink ? (
         <button
           type="button"
           className="mb-3 flex w-full items-center justify-center gap-2 rounded-[14px] neuphormism-b-btn px-3 py-3 text-sm font-black text-black"
@@ -709,12 +767,17 @@ function NewSongInputLinkBox({
         </button>
       ) : null}
 
-      <div className={`relative ${touchLayout ? "mt-1" : "mt-2"}`}>
+      <div className={`relative ${expandedControls ? "mt-1" : "mt-2"} ${modalLayout ? "md:col-span-1" : ""}`}>
+        {modalLayout ? (
+          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            Link source
+          </p>
+        ) : null}
         <input
           type="text"
           placeholder="Insert your link here"
           className={`w-full border border-gray-300 bg-white pr-11 text-black outline-none focus:border-[goldenrod] ${
-            touchLayout
+            expandedControls
               ? "h-12 rounded-[14px] px-3 text-base font-medium"
               : "h-6 rounded-sm p-1 text-sm"
           } ${isLocked ? "cursor-default" : ""}`}
@@ -724,9 +787,7 @@ function NewSongInputLinkBox({
           onPaste={(e) => {
             e.preventDefault();
             const pasted = e.clipboardData.getData("text").trim();
-            setInstrument(pasted);
-            primeArtistSongFromLink(pasted);
-            setTimeout(() => handleSubmit(pasted), 0);
+            routeIncomingLink(pasted);
           }}
           onBlur={() => {
             if (blurTimer.current) clearTimeout(blurTimer.current);
@@ -738,7 +799,7 @@ function NewSongInputLinkBox({
             type="button"
             aria-label={`Remove ${instrumentName} link`}
             className={`absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-700 ${
-              touchLayout ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
+              expandedControls ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
             }`}
             onClick={() => {
               setInstrument("");
@@ -750,7 +811,7 @@ function NewSongInputLinkBox({
         )}
       </div>
 
-      {touchLayout ? (
+      {expandedControls ? (
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button
             type="button"
@@ -806,50 +867,37 @@ function NewSongInputLinkBox({
         </div>
       ) : null}
 
-      {/* Slider progress (NÃO BLOQUEAR MESMO EM LOADING) */}
-      <div
-        className={
-          touchLayout
-            ? "mt-5 rounded-[18px] neuphormism-b-se px-4 py-4"
-            : "mt-3 flex items-center"
-        }
-      >
-        {touchLayout ? (
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
-              Progress
-            </span>
-            <span className="text-xl font-black text-black">{rangeProgress}</span>
-          </div>
-        ) : null}
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={progress}
-          style={{ "--range-progress": rangeProgress }}
-          onChange={(e) => setProgress(Number(e.target.value))}
-          onMouseUp={() => {
+      <div className="mt-4 flex items-center justify-between rounded-[16px] neuphormism-b-se px-3 py-3">
+        <button
+          type="button"
+          className={iconButtonClass}
+          onClick={() => setProgress(Math.max(0, Number(progress || 0) - 5))}
+          onBlur={() => {
             if (instrument?.trim()) handleSubmit();
           }}
-          onTouchEnd={() => {
+          aria-label={`Decrease ${instrumentName} progress`}
+        >
+          <FaMinus />
+        </button>
+        <div className="min-w-[5rem] text-center text-2xl font-black text-black">
+          {rangeProgress}
+        </div>
+        <button
+          type="button"
+          className={iconButtonClass}
+          onClick={() => setProgress(Math.min(100, Number(progress || 0) + 5))}
+          onBlur={() => {
             if (instrument?.trim()) handleSubmit();
           }}
-          className={
-            touchLayout ? "range-golden w-full" : "range-golden w-full"
-          }
-        />
-        {!touchLayout ? (
-          <div className="w-14 text-right text-sm">{rangeProgress}</div>
-        ) : null}
+          aria-label={`Increase ${instrumentName} progress`}
+        >
+          <FaPlus />
+        </button>
       </div>
       {shouldShowGuitarProRow ? (
-        <div
-          className={`mt-3 flex items-center justify-between rounded-[14px] ${
-            touchLayout ? "neuphormism-b-se px-4 py-3" : "bg-white/60 px-3 py-2"
-          }`}
-        >
-          <div className="flex items-center gap-2">
+        <div className="mt-3 rounded-[16px] neuphormism-b-se px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
             <GuitarProIcon
               active={hasGuitarProFiles}
               title={
@@ -861,10 +909,15 @@ function NewSongInputLinkBox({
             <span className="text-sm font-bold text-black">
               Guitar Pro {hasGuitarProFiles ? `(${guitarProFiles.length})` : ""}
             </span>
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.14em] text-gray-500">
+              File
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="flex cursor-pointer items-center justify-center rounded-[10px] bg-[goldenrod] px-3 py-2 text-black">
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black">
               <FaPlus />
+              <span>Add GP</span>
               <input
                 type="file"
                 accept={GUITAR_PRO_ACCEPT}
@@ -876,15 +929,42 @@ function NewSongInputLinkBox({
               type="button"
               onClick={handleGuitarProDelete}
               disabled={!hasGuitarProFiles}
-              className={`flex items-center justify-center rounded-[10px] px-3 py-2 ${
-                hasGuitarProFiles
-                  ? "bg-[#e5e7eb] text-black"
-                  : "cursor-not-allowed bg-[#f3f4f6] text-gray-400"
-              }`}
+              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
             >
               <FaMinus />
+              <span>Remove</span>
+            </button>
+            <button
+              type="button"
+              onClick={openGuitarProFile}
+              disabled={!hasGuitarProFiles}
+              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+            >
+              <FaRegFileAlt />
+              <span>View</span>
             </button>
           </div>
+        </div>
+      ) : null}
+      {modalLayout ? (
+        <div className="rounded-[16px] neuphormism-b-se px-4 py-4 md:row-span-3">
+          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            Notes
+          </p>
+          <textarea
+            className="min-h-[190px] w-full resize-none rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
+            value={notes}
+            onChange={(event) => onNotesChange?.(event.target.value)}
+            placeholder="Write instrument notes here"
+          />
+          <button
+            type="button"
+            className="mt-3 w-full rounded-[14px] px-4 py-3 text-sm font-black neuphormism-b-btn"
+            onClick={() => saveNotes(notes)}
+            disabled={!hasLink || notesSaving}
+          >
+            Save notes
+          </button>
         </div>
       ) : null}
       {notesOpen ? (

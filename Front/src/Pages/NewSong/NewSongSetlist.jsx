@@ -22,6 +22,7 @@ function NewSongSetlist({
   // Guardamos os setlists já existentes
   const [setlists, setSetlists] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [pendingRemovals, setPendingRemovals] = useState([]);
 
   const tagAnimationStyle = useMemo(
@@ -115,23 +116,26 @@ function NewSongSetlist({
   // console.log("setlistOptions", setlistOptions);
 
   return (
-    <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
+    <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
             Setlist
           </p>
-
-          <p className="mt-1 text-sm font-medium text-gray-500">
-            Tag this song for rehearsal, show, or collection groups.
-          </p>
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCreating((current) => !current)}
+            className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
+          >
+            +
+          </button>
           {!isEditing ? (
             <button
               type="button"
               onClick={startEditing}
-              className="text-sm px-4 py-2 rounded-full border transition-colors neuphormism-b-btn"
+              className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
             >
               Edit
             </button>
@@ -140,14 +144,14 @@ function NewSongSetlist({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="text-sm px-4 py-2 rounded-full border transition-colors bg-white text-gray-700 border-gray-300"
+                className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveChanges}
-                className="text-sm px-4 py-2 rounded-full border transition-colors bg-emerald-500 text-white border-emerald-500 disabled:opacity-60"
+                className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn disabled:opacity-60"
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -157,12 +161,13 @@ function NewSongSetlist({
         </div>
       </div>
 
+      {isCreating ? (
       <div className="mt-5">
         <label
           htmlFor="newSetlistName"
           className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
         >
-          Criar um novo setlist:
+          Create a new setlist:
         </label>
         <div className="flex flex-row items-center gap-2">
           <input
@@ -181,17 +186,18 @@ function NewSongSetlist({
           />
           <button
             type="button"
-            className="px-3 py-2 text-sm neuphormism-b-btn"
+            className="rounded-[12px] px-3 py-2 text-sm font-black neuphormism-b-btn"
             onClick={handleAddNew}
           >
-            Add
+            +
           </button>
         </div>
       </div>
+      ) : null}
 
       <div className="mt-5">
         <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
-          Setlists disponíveis
+          Available setlists
         </h1>
         <div className="w-full pr-2">
           {setlistOptions.length === 0 ? (
@@ -211,22 +217,23 @@ function NewSongSetlist({
                 return (
                   <div
                     key={index}
-                    className={`flex items-center gap-1 ${
+                    className={`neuphormism-b-btn flex items-center gap-1 ${
                       willRemove ? "opacity-60 ring-2 ring-red-400" : ""
                     } ${isEditing ? "cursor-default" : ""}`}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      padding: "6px 10px",
-                      borderRadius: "10px",
+                      padding: "10px 20px",
+                      borderRadius: "22px",
                       margin: "2px",
                       cursor: isEditing ? "default" : "pointer",
                       fontSize: "12px",
-                      backgroundColor,
+                      backgroundColor: willRemove ? "#f3d4d4" : isActive ? "goldenrod" : "#efefef",
                       border: willRemove
                         ? "1px solid #dc2626"
-                        : "1px solid transparent",
-                      color: "#fff",
+                        : "1px solid rgba(255,255,255,0.72)",
+                      color: isActive ? "#000" : "#6b7280",
+                      boxShadow: "8px 8px 18px #bebebe, -8px -8px 18px #ffffff",
                       userSelect: "none",
                       ...tagAnimationStyle,
                     }}

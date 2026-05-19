@@ -50,6 +50,7 @@ function NewSong() {
 
   const [dataFromUrl, setDataFromUrl] = useState("");
   const [songData, setSongData] = useState(null);
+  const [pageActions, setPageActions] = useState(null);
   const [scrapeStatus, setScrapeStatus] = useState({
     guitar01: false,
     guitar02: false,
@@ -124,12 +125,34 @@ function NewSong() {
         <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-0">
           <div className="origin-top">
             <div className="px-1 py-2">
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                Plus
-              </p>
-              <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
-                Add New Song
-              </h1>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                    Plus
+                  </p>
+                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                    Add New Song
+                  </h1>
+                  <p className="mt-2 text-sm font-medium text-gray-500">
+                    Bring the song data, instrument sources, videos, and setlists together.
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-black"
+                    onClick={pageActions?.onDelete}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-black disabled:opacity-50"
+                    onClick={pageActions?.onSave}
+                    disabled={!pageActions?.canSave}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="mt-4">
@@ -213,11 +236,12 @@ function NewSong() {
                     songName={songName}
                     setSongName={setSongName}
                     setScrapeStatus={handleScrapeStatus}
-                    onLinkAdded={() => setSongDataOpen(true)}
-                    songData={songData}
-                    onSongDataChange={setSongData}
-                    touchLayout
-                  />
+                onLinkAdded={() => setSongDataOpen(true)}
+                songData={songData}
+                onSongDataChange={setSongData}
+                onPageActionsChange={setPageActions}
+                touchLayout
+              />
                 }
               />
             </div>
@@ -228,23 +252,100 @@ function NewSong() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] px-6 pb-24 pt-8">
+    <div className="min-h-screen bg-[#f0f0f0] px-4 pb-24 pt-6 lg:px-6 lg:pb-8">
           <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
             <SnackBar snackbarMessage={snackbarMessage} />
           </div>
-          <div className="mx-auto w-full max-w-7xl">
-            <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row justify-between">
-              <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
-                New Song
-              </h1>
-              <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
-                Bring the song data, instrument sources, videos, and setlists
-                together without leaving the page.
-              </p>
+          <div className="mx-auto w-full max-w-none">
+            <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row items-center justify-between gap-4">
+              <div>
+                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
+                  New Song
+                </h1>
+                <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
+                  Bring the song data, instrument sources, videos, and setlists
+                  together without leaving the page.
+                </p>
+              </div>
+              <div className="flex shrink-0 justify-end gap-3">
+                <button
+                  className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-black"
+                  onClick={pageActions?.onDelete}
+                >
+                  Delete
+                </button>
+                <button
+                  className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-black disabled:opacity-50"
+                  onClick={pageActions?.onSave}
+                  disabled={!pageActions?.canSave}
+                >
+                  Save
+                </button>
+              </div>
             </section>
 
-            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
-              <div className="left-column min-w-0">
+            <div className="mt-6 flex flex-col gap-1">
+              <NewSongColumnB
+                guitar01={guitar01}
+                setGuitar01={setGuitar01}
+                guitar02={guitar02}
+                setGuitar02={setGuitar02}
+                bass={bass}
+                setBass={setBass}
+                keyboard={key}
+                setKey={setKey}
+                drums={drums}
+                setDrums={setDrums}
+                voice={voice}
+                setVoice={setVoice}
+                progBarG01={progBarG01}
+                setProgBarG01={setProgBarG01}
+                notesGuitar01={notesGuitar01}
+                setNotesGuitar01={setNotesGuitar01}
+                progBarG02={progBarG02}
+                setProgBarG02={setProgBarG02}
+                notesGuitar02={notesGuitar02}
+                setNotesGuitar02={setNotesGuitar02}
+                progBarBass={progBarBass}
+                setProgBarBass={setProgBarBass}
+                notesBass={notesBass}
+                setNotesBass={setNotesBass}
+                progBarKey={progBarKey}
+                setProgBarKey={setProgBarKey}
+                notesKey={notesKey}
+                setNotesKey={setNotesKey}
+                progBarDrums={progBarDrums}
+                setProgBarDrums={setProgBarDrums}
+                notesDrums={notesDrums}
+                setNotesDrums={setNotesDrums}
+                progBarVoice={progBarVoice}
+                setProgBarVoice={setProgBarVoice}
+                notesVoice={notesVoice}
+                setNotesVoice={setNotesVoice}
+                setArtistExtractedFromUrl={setArtistExtractedFromUrl}
+                setSongExtractedFromUrl={setSongExtractedFromUrl}
+                gettingSongData={gettingSongData}
+                setShowSnackBar={setShowSnackBar}
+                setSnackbarMessage={setSnackbarMessage}
+                dataFromUrl={dataFromUrl}
+                setSongScrapado={setSongScrapado}
+                songScrapado={songScrapado}
+                setArtistScrapado={setArtistScrapado}
+                artistScrapado={artistScrapado}
+                artistName={artistName}
+                setArtistName={setArtistName}
+                songName={songName}
+                setSongName={setSongName}
+                cifraExiste={cifraExiste}
+                setCifraExiste={setCifraExiste}
+                setCifraFROMDB={setCifraFROMDB}
+                cifraFROMDB={cifraFROMDB}
+                setScrapeStatus={handleScrapeStatus}
+                onLinkAdded={gettingSongData}
+                songData={songData}
+                onSongDataChange={setSongData}
+              />
+              <div className="min-w-0">
                 <NewSongColumnA
                   dataFromUrl={dataFromUrl}
                   artistExtractedFromUrl={artistExtractedFromUrl}
@@ -271,63 +372,9 @@ function NewSong() {
                   setShowSnackBar={setShowSnackBar}
                   setSnackbarMessage={setSnackbarMessage}
                   scrapeStatus={scrapeStatus}
-                />
-              </div>
-              <div className="right-column min-w-0">
-                <NewSongColumnB
-                  guitar01={guitar01}
-                  setGuitar01={setGuitar01}
-                  guitar02={guitar02}
-                  setGuitar02={setGuitar02}
-                  bass={bass}
-                  setBass={setBass}
-                  keyboard={key}
-                  setKey={setKey}
-                  drums={drums}
-                  setDrums={setDrums}
-                  voice={voice}
-                  setVoice={setVoice}
-                  progBarG01={progBarG01}
-                  setProgBarG01={setProgBarG01}
-                  notesGuitar01={notesGuitar01}
-                  setNotesGuitar01={setNotesGuitar01}
-                  progBarG02={progBarG02}
-                  setProgBarG02={setProgBarG02}
-                  notesGuitar02={notesGuitar02}
-                  setNotesGuitar02={setNotesGuitar02}
-                  progBarBass={progBarBass}
-                  setProgBarBass={setProgBarBass}
-                  notesBass={notesBass}
-                  setNotesBass={setNotesBass}
-                  progBarKey={progBarKey}
-                  setProgBarKey={setProgBarKey}
-                  notesKey={notesKey}
-                  setNotesKey={setNotesKey}
-                  progBarDrums={progBarDrums}
-                  setProgBarDrums={setProgBarDrums}
-                  notesDrums={notesDrums}
-                  setNotesDrums={setNotesDrums}
-                  progBarVoice={progBarVoice}
-                  setProgBarVoice={setProgBarVoice}
-                  notesVoice={notesVoice}
-                  setNotesVoice={setNotesVoice}
-                  setArtistExtractedFromUrl={setArtistExtractedFromUrl}
-                  setSongExtractedFromUrl={setSongExtractedFromUrl}
-                  gettingSongData={gettingSongData} // mantém prop
-                  setShowSnackBar={setShowSnackBar}
-                  setSnackbarMessage={setSnackbarMessage}
-                  dataFromUrl={dataFromUrl}
-                  setSongScrapado={setSongScrapado}
-                  songScrapado={songScrapado}
-                  setArtistScrapado={setArtistScrapado}
-                  artistScrapado={artistScrapado}
-                  artistName={artistName}
-                  setArtistName={setArtistName}
-                  songName={songName}
-                  setSongName={setSongName}
-                  setScrapeStatus={handleScrapeStatus}
                   songData={songData}
                   onSongDataChange={setSongData}
+                  onPageActionsChange={setPageActions}
                 />
               </div>
             </div>

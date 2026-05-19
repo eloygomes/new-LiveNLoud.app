@@ -13,6 +13,7 @@ function EditSong() {
   const [dataFromAPI, setDataFromAPI] = useState([]);
   const [songData, setSongData] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [pageActions, setPageActions] = useState(null);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
     title: "",
@@ -76,12 +77,34 @@ function EditSong() {
 
         <div className="origin-top">
           <div className="px-1 py-2">
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-              Edit
-            </p>
-            <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
-              Update Song
-            </h1>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  Edit
+                </p>
+                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                  Update Song
+                </h1>
+                <p className="mt-2 text-sm font-medium text-gray-500">
+                  Update song info, revise links, and keep the current setlist structure.
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-black"
+                  onClick={pageActions?.onDelete}
+                >
+                  Delete
+                </button>
+                <button
+                  className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-black disabled:opacity-50"
+                  onClick={pageActions?.onUpdate}
+                  disabled={!pageActions?.canUpdate}
+                >
+                  Update
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="mt-4">
@@ -124,6 +147,7 @@ function EditSong() {
                   touchLayout
                 />
               }
+              onPageActionsChange={setPageActions}
             />
           </div>
         </div>
@@ -132,23 +156,61 @@ function EditSong() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] px-6 pb-24 pt-8">
+    <div className="min-h-screen bg-[#f0f0f0] px-4 pb-24 pt-6 lg:px-6 lg:pb-8">
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
       </div>
-      <div className="mx-auto w-full max-w-7xl">
-        <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row justify-between">
-          <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
-            Edit Song
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
-            Update song info, revise links, and keep the current setlist
-            structure without leaving context.
-          </p>
+      <div className="mx-auto w-full max-w-none">
+        <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row items-center justify-between gap-4">
+          <div>
+            <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
+              Edit Song
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
+              Update song info, revise links, and keep the current setlist
+              structure without leaving context.
+            </p>
+          </div>
+          <div className="flex shrink-0 justify-end gap-3">
+            <button
+              className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-black"
+              onClick={pageActions?.onDelete}
+            >
+              Delete
+            </button>
+            <button
+              className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-black disabled:opacity-50"
+              onClick={pageActions?.onUpdate}
+              disabled={!pageActions?.canUpdate}
+            >
+              Update
+            </button>
+          </div>
         </section>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)]">
-          <div className="left-column min-w-0">
+        <div className="mt-6 flex flex-col gap-1">
+          <EditSongColumnB
+            dataFromAPI={dataFromAPI}
+            progGuitar01={progGuitar01}
+            setProgGuitar01={setProgGuitar01}
+            progGuitar02={progGuitar02}
+            setProgGuitar02={setProgGuitar02}
+            progBass={progBass}
+            setProgBass={setProgBass}
+            progKey={progKey}
+            setProgKey={setProgKey}
+            progDrums={progDrums}
+            setProgDrums={setProgDrums}
+            progVoice={progVoice}
+            setProgVoice={setProgVoice}
+            instrumentUpdatersRef={instrumentUpdatersRef}
+            setIsDirty={setIsDirty}
+            setShowSnackBar={setShowSnackBar}
+            setSnackbarMessage={setSnackbarMessage}
+            songData={songData}
+            onSongDataChange={handleSongDataChange}
+          />
+          <div className="min-w-0">
             <EditSongColumnA
               dataFromAPI={dataFromAPI}
               progGuitar01={progGuitar01}
@@ -160,29 +222,11 @@ function EditSong() {
               registerInstrumentUpdaters={registerInstrumentUpdaters}
               isDirty={isDirty}
               setIsDirty={setIsDirty}
-            />
-          </div>
-          <div className="right-column min-w-0">
-            <EditSongColumnB
-              dataFromAPI={dataFromAPI}
-              progGuitar01={progGuitar01}
-              setProgGuitar01={setProgGuitar01}
-              progGuitar02={progGuitar02}
-              setProgGuitar02={setProgGuitar02}
-              progBass={progBass}
-              setProgBass={setProgBass}
-              progKey={progKey}
-              setProgKey={setProgKey}
-              progDrums={progDrums}
-              setProgDrums={setProgDrums}
-              progVoice={progVoice}
-              setProgVoice={setProgVoice}
-              instrumentUpdatersRef={instrumentUpdatersRef}
-              setIsDirty={setIsDirty}
               setShowSnackBar={setShowSnackBar}
               setSnackbarMessage={setSnackbarMessage}
               songData={songData}
               onSongDataChange={handleSongDataChange}
+              onPageActionsChange={setPageActions}
             />
           </div>
         </div>

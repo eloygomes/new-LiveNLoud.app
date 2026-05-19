@@ -595,7 +595,9 @@ export default function Calendar() {
   return (
     <div
       className={`flex justify-center ${
-        isTouchLayout ? "min-h-screen bg-[#f0f0f0] pb-28 pt-3" : "h-screen"
+        isTouchLayout
+          ? "min-h-screen bg-[#f0f0f0] pb-28 pt-3"
+          : "h-[calc(100vh-4rem)] overflow-hidden bg-[#f0f0f0]"
       }`}
     >
       <InviteResponseModal
@@ -622,12 +624,12 @@ export default function Calendar() {
         defaultDate={newEventDate}
       />
 
-      <div className="container mx-auto">
+      <div className="mx-auto w-full max-w-none">
         <div
           className={`${
             isTouchLayout
               ? "w-full px-3 pb-4"
-              : "w-11/12 2xl:w-9/12 mx-auto pb-10"
+              : "w-full px-6 pb-4"
           }`}
         >
           <div
@@ -708,7 +710,7 @@ export default function Calendar() {
             className={`grid grid-cols-1 gap-5 items-stretch ${
               isTouchLayout
                 ? ""
-                : "xl:grid-cols-[minmax(0,1.65fr),360px] min-h-[calc(100vh-260px)]"
+                : "xl:grid-cols-[minmax(0,1.65fr),360px] h-[calc(100vh-260px)] min-h-0"
             }`}
           >
             <div className="neuphormism-b p-5 min-h-0 flex flex-col">

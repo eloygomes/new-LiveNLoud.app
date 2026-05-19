@@ -280,11 +280,11 @@ function Metronome() {
     vertical = false,
   }) => (
     <div
-      className={`neuphormism-b rounded-[24px] ${vertical ? "flex h-full min-h-[280px] flex-col items-center justify-between px-3 py-5" : "px-4 py-4"}`}
+      className={`neuphormism-b rounded-[24px] ${vertical ? "flex h-full min-h-[340px] flex-col items-center justify-between px-3 py-5" : "px-4 py-4"}`}
     >
       {label === "Tempo" && (
         <div
-          className={`grid gap-3 mt-1 mb-3 ${
+          className={`grid gap-3 mt-1 mb-6 ${
             isTouchLayout ? "grid-cols-4 " : "grid-cols-5"
           }`}
         >
@@ -370,7 +370,7 @@ function Metronome() {
           step={step}
           value={value}
           onChange={onChange}
-          className={`range-golden appearance-none bg-transparent ${thin ? "range-golden-thin" : ""} ${vertical ? "range-golden-vertical h-[190px] w-5" : "w-full"}`}
+          className={`range-golden appearance-none bg-transparent ${thin ? "range-golden-thin" : ""} ${vertical ? "range-golden-vertical !h-[250px] w-5" : "w-full"}`}
         />
         {!hideButtons ? (
           <div
@@ -521,9 +521,9 @@ function Metronome() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] px-6 pb-8 pt-4">
-      <div className="container mx-auto">
-        <div className="w-full pb-10 md:mx-auto md:w-11/12 2xl:w-9/12">
+    <div className="min-h-screen bg-[#f0f0f0] px-4 pb-8 pt-4 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">
+      <div className="mx-auto w-full max-w-none">
+        <div className="w-full pb-10 lg:pb-0">
           <div className="mb-5 flex items-center gap-6 neuphormism-b p-5">
             <div>
               <h1 className="text-4xl font-bold">METRONOME</h1>
@@ -536,15 +536,15 @@ function Metronome() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
-            <section className="neuphormism-b rounded p-6">
-              <div className="flex flex-col ">
-                <div className="space-y-4">
+            <section className="neuphormism-b flex flex-col rounded p-6">
+              <div className="flex h-full flex-col">
+                <div className="flex h-full flex-col gap-6">
                   <div className="neuphormism-b rounded px-5 py-1">
-                  <div className=" flex flex-row justify-between gap-4">
-                    <div className="flex flex-row justify-between ">
-                      <button
-                        type="button"
-                        className={`my-2 h-[48px] w-[136px] shrink-0 ${
+                    <div className=" flex flex-row justify-between gap-6">
+                      <div className="flex flex-row justify-between ">
+                        <button
+                          type="button"
+                          className={`my-2 h-[48px] w-[136px] shrink-0 ${
                             isTimerActive
                               ? "neuphormism-b-btn-gold text-sm font-bold uppercase tracking-[0.14em] text-black active:scale-[0.98]"
                               : `${bpmButtonClass}`
@@ -563,7 +563,7 @@ function Metronome() {
                         </button>
                       </div>
                       <div className="flex min-w-0 flex-row justify-between ">
-                        <div className="flex w-full flex-rows items-center justify-between gap-4 ">
+                        <div className="flex w-full flex-rows items-center justify-between gap-6 ">
                           <button
                             type="button"
                             className={`${bpmButtonClass} my-2 h-[48px] w-[116px] shrink-0 py-2`}
@@ -585,8 +585,8 @@ function Metronome() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-row gap-4 ">
-                    <div className="h-full w-3/12 ">
+                  <div className="flex min-h-[360px] flex-1 flex-row gap-6">
+                    <div className="h-full w-[17.5%]">
                       {renderSlider({
                         iconStart: <FaVolumeMute size={14} />,
                         iconEnd: <FaVolumeUp size={14} />,
@@ -611,7 +611,7 @@ function Metronome() {
                       })}
                     </div>
                     <div
-                      className={`w-full h-full gap-3 rounded-[30px] px-8 py-16 text-center transition-colors ${
+                      className={`h-full flex-1 gap-3 rounded-[30px] px-8 py-16 text-center transition-colors ${
                         isOn
                           ? "neuphormism-d-bg-black text-white"
                           : "neuphormism-d text-black"
@@ -626,10 +626,10 @@ function Metronome() {
                         </div>
                       </div>
                     </div>
-                    <div className="w-3/12 flex h-full flex-col justify-between gap-4">
+                    <div className="flex h-full w-[17.5%] flex-col justify-between gap-6">
                       <button
                         type="button"
-                        className={`${bpmButtonClass} h-full min-h-[124px] min-w-[150px] py-6 ${
+                        className={`${bpmButtonClass} h-full flex-1 min-w-[150px] py-6 ${
                           isPlaying
                             ? "bg-black text-[goldenrod]"
                             : "neuphormism-b-btn-gold"
@@ -646,7 +646,7 @@ function Metronome() {
 
                       <button
                         type="button"
-                        className={`${bpmButtonClass} h-full min-h-[124px] min-w-[150px] py-6`}
+                        className={`${bpmButtonClass} h-full flex-1 min-w-[150px] py-6`}
                         onClick={() => setIsMuted((prev) => !prev)}
                       >
                         <span className="mr-2 shrink-0">
@@ -675,7 +675,7 @@ function Metronome() {
               </div>
             </section>
 
-            <section className="flex h-[min(72vh,820px)] min-h-0 flex-col">
+            <section className="flex h-[min(72vh,820px)] min-h-0 flex-col lg:h-[calc(100vh-12rem)]">
               <Stopwatch />
             </section>
           </div>

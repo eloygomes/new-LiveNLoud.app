@@ -224,7 +224,7 @@ function UserProfile() {
       setUploadError("");
 
       const response = await fetch(
-        "https://api.live.eloygomes.com/api/uploadProfileImage",
+        `${import.meta.env.VITE_API_BASE_URL}/api/uploadProfileImage`,
         {
           method: "POST",
           body: formData,

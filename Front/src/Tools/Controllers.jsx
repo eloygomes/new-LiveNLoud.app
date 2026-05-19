@@ -15,13 +15,7 @@ import {
    Config & HTTP client
    ========================= */
 
-const ENV_BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
-  (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
-  null;
-
-// Local backend must be selected explicitly with VITE_API_BASE_URL.
-const API_BASE = ENV_BASE || "https://api.live.eloygomes.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const SESSION_TIMESTAMP_KEY = "auth:sessionTimestamp";
 const OFFLINE_MODE_KEY = "offline:isOfflineMode";
 const OFFLINE_SYNC_QUEUE_KEY = "offline:syncQueue";

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import defaultProfileImageUrl from "../../assets/userPerfil.jpg";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const DEFAULT_SETLISTS = [
   "guitar01",
   "guitar02",
@@ -101,7 +103,7 @@ function UserRegistrationForm() {
 
     try {
       // 1️⃣ Criação na autenticação JWT
-      const signupResponse = await postJson("https://api.live.eloygomes.com/api/auth/signup", {
+      const signupResponse = await postJson(`${API_BASE_URL}/api/auth/signup`, {
         email,
         password,
         fullName,
@@ -111,7 +113,7 @@ function UserRegistrationForm() {
       // 2️⃣ Cadastro inicial de estrutura vazia com dados do usuário
       const userdata = createDefaultUserdata(email, username, fullName);
 
-      await postJson("https://api.live.eloygomes.com/api/signup", {
+      await postJson(`${API_BASE_URL}/api/signup`, {
         databaseComing: "liveNloud_",
         collectionComing: "data",
         userdata,
@@ -127,7 +129,7 @@ function UserRegistrationForm() {
       );
 
       const uploadResponse = await fetch(
-        "https://api.live.eloygomes.com/api/uploadProfileImage",
+        `${API_BASE_URL}/api/uploadProfileImage`,
         {
           method: "POST",
           body: formData,

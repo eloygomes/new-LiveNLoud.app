@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { FaGear, FaPenToSquare } from "react-icons/fa6";
-import { FaFileCode } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
 import ToolBox from "./ToolBox";
@@ -35,6 +34,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import ChordSheetJS from "chordsheetjs";
 import GuitarProViewerModal from "../../components/GuitarPro/GuitarProViewerModal";
+import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
 
 const escapeHtml = (value = "") =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -1425,9 +1425,7 @@ function Presentation() {
                             : "No Guitar Pro file available"
                         }
                       >
-                        <FaFileCode
-                          className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                        />
+                        <GuitarProIcon active={canOpenGuitarPro} />
                         <span className="sr-only">Guitar Pro</span>
                       </button>
                     ) : null}

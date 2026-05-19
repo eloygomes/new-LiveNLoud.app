@@ -1,5 +1,5 @@
 // src/Pages/Dashboard/youtubeAuth.jsx
-const API_BASE = "https://api.live.eloygomes.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // Single source of truth for JWT key lookup (login + export)
 export function pickJwtToken() {

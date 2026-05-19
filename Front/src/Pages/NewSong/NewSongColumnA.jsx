@@ -358,8 +358,8 @@ import {
   FaVideo,
 } from "react-icons/fa";
 import NewSongEmbed from "./NewSongEmbed";
-import GeralProgressBar from "./GeralProgressBar";
 import NewSongSongData from "./NewSongSongData";
+import GuitarProFileBox from "../shared/GuitarProFileBox";
 import { useNavigate } from "react-router-dom";
 import NewSongSetlist from "./NewSongSetlist";
 import {
@@ -409,6 +409,9 @@ function NewSongColumnA({
   songDataOpen = false,
   onToggleSongData,
   middleContent = null,
+  songData = null,
+  onSongDataChange,
+  onPageActionsChange,
 }) {
   const [songName, setSongName] = useState(null);
   const [artistName, setArtistName] = useState(null);
@@ -762,6 +765,22 @@ function NewSongColumnA({
     }
   };
 
+  const handleDeleteDraft = () => {
+    if (!window.confirm(`Discard "${songName || "this song"}"?`)) return;
+    deleteOneSong(artistName, songName);
+    hasSaved.current = true;
+    addedSongName.current = null;
+    navigate("/");
+  };
+
+  useEffect(() => {
+    onPageActionsChange?.({
+      canSave: canSaveSong,
+      onDelete: handleDeleteDraft,
+      onSave: () => createNewSong({ geralPercentage, setlist }),
+    });
+  }, [canSaveSong, geralPercentage, setlist, songName, artistName]);
+
   return touchLayout ? (
     <>
       <div className="rounded-[20px] neuphormism-b p-3">
@@ -795,16 +814,22 @@ function NewSongColumnA({
               fistTime={addedInDATE}
               lastTime=""
               touchLayout
+              geralPercentage={geralPercentage}
             />
           </div>
         ) : null}
       </div>
 
-      <div className="mt-4 flex justify-center [&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!mr-0 [&_.neuphormism-b]:!w-full [&_.neuphormism-b]:!max-w-[420px]">
-        <GeralProgressBar geralPercentage={geralPercentage} compact={touchLayout} />
-      </div>
-
       {middleContent}
+
+      <GuitarProFileBox
+        artistName={artistName}
+        songName={songName}
+        songData={songData}
+        onSongDataChange={onSongDataChange}
+        setShowSnackBar={setShowSnackBar}
+        setSnackbarMessage={setSnackbarMessage}
+      />
 
       <div className="mt-4 rounded-[20px] neuphormism-b p-3">
         <button
@@ -967,73 +992,41 @@ function NewSongColumnA({
         </div>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <button
-          className="neuphormism-b-btn-red-cancel rounded-[16px] px-4 py-3 text-base font-black sm:text-lg"
-          onClick={() => {
-            deleteOneSong(artistName, songName);
-            hasSaved.current = true;
-            addedSongName.current = null;
-            navigate("/");
-          }}
-        >
-          Discard
-        </button>
-        <button
-          className="neuphormism-b-btn-green-save rounded-[16px] px-4 py-3 text-base font-black disabled:opacity-50 sm:text-lg"
-          onClick={() => {
-            createNewSong({ geralPercentage, setlist });
-          }}
-          disabled={!canSaveSong}
-        >
-          Save Song
-        </button>
-      </div>
     </>
   ) : (
     <>
-      <NewSongSongData
-        songName={isLoadingData ? "Carregando..." : songName}
-        artistName={isLoadingData ? "Carregando..." : artistName}
-        capoData={capoData}
-        tomData={tomData}
-        tunerData={tunerData}
-        fistTime={addedInDATE}
-        lastTime=""
-      />
-      <GeralProgressBar geralPercentage={geralPercentage} />
-
-      <NewSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
-
-      <NewSongSetlist
-        setlistOptions={setListOptions}
-        setSetlistOptions={setSetListOptions}
-        setlist={setlist}
-        setSetlist={setSetlist}
-      />
-
-      <div className="flex flex-row neuphormism-b p-5 my-5 mr-5 justify-start">
-        <button
-          className="neuphormism-b-btn-green-save rounded-[16px] px-5 py-3 text-base font-black disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={() => {
-            createNewSong({ geralPercentage, setlist });
-          }}
-          disabled={!canSaveSong}
-        >
-          Save
-        </button>
-        <button
-          className="ml-4 rounded-[16px] px-5 py-3 text-base font-black neuphormism-b-btn-red-cancel"
-          onClick={() => {
-            deleteOneSong(artistName, songName);
-            hasSaved.current = true;
-            addedSongName.current = null;
-            navigate("/");
-          }}
-        >
-          Discard
-        </button>
+      <div className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="min-w-0">
+          <NewSongSongData
+            songName={isLoadingData ? "Carregando..." : songName}
+            artistName={isLoadingData ? "Carregando..." : artistName}
+            capoData={capoData}
+            tomData={tomData}
+            tunerData={tunerData}
+            fistTime={addedInDATE}
+            lastTime=""
+            geralPercentage={geralPercentage}
+          />
+        </div>
+        <div className="min-w-0">
+          <GuitarProFileBox
+            artistName={artistName}
+            songName={songName}
+            songData={songData}
+            onSongDataChange={onSongDataChange}
+            setShowSnackBar={setShowSnackBar}
+            setSnackbarMessage={setSnackbarMessage}
+          />
+          <NewSongEmbed ytEmbedSongList={embedLink} setEmbedLink={setEmbedLink} />
+          <NewSongSetlist
+            setlistOptions={setListOptions}
+            setSetlistOptions={setSetListOptions}
+            setlist={setlist}
+            setSetlist={setSetlist}
+          />
+        </div>
       </div>
+
     </>
   );
 }

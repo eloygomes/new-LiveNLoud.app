@@ -376,9 +376,9 @@ function ChordLibrary() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-10 pt-4 sm:px-5 lg:px-8">
-      <div className="container mx-auto">
-        <div className="w-full pb-10 md:mx-auto md:w-11/12 2xl:w-9/12">
+    <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-10 pt-4 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">
+      <div className="mx-auto w-full max-w-none">
+        <div className="w-full pb-10 lg:pb-0">
           <div
             className={`mb-5 ${
               isTouchLayout
@@ -407,7 +407,7 @@ function ChordLibrary() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-start">
+          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-stretch">
           <section className="order-2 hidden rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-5 xl:order-1 xl:block neuphormism-b">
             <p className="text-lg font-black uppercase text-black">
               Build chord
@@ -468,7 +468,7 @@ function ChordLibrary() {
             </div>
           </section>
 
-          <section className="order-1 flex min-h-[700px] flex-col rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:min-h-[760px] sm:p-5 xl:order-2 neuphormism-b">
+          <section className="order-1 flex min-h-[700px] flex-col rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:min-h-[760px] sm:p-5 xl:order-2 xl:min-h-0 neuphormism-b">
             <div className="flex flex-col gap-4">
               <div className="hidden rounded px-4 py-4 shadow-[6px_6px_14px_rgba(190,190,190,0.55),-6px_-6px_14px_rgba(255,255,255,0.9)] sm:px-5 xl:block">
                 <div className="min-w-0">

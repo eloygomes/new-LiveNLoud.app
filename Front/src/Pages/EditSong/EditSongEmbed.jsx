@@ -114,6 +114,7 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
   };
 
   const handleDeleteVideo = (urlToDelete) => {
+    if (!window.confirm("Delete this video from the song?")) return;
     setEmbedLink((prevLinks = []) =>
       prevLinks.filter((link) => link !== urlToDelete),
     );
@@ -124,13 +125,25 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
   };
 
   return (
-    <div className="flex flex-col neuphormism-b rounded-[30px] p-5 my-5 mr-5">
+    <div className="my-5 flex flex-col rounded-[30px] neuphormism-b p-5">
       <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
         Videos
       </p>
 
       {selectedVideo && (
-        <div className="mb-4 p-3 border border-gray-300 rounded-md bg-gray-100">
+        <div className="mb-4 rounded-[18px] neuphormism-b-se p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+              Preview
+            </span>
+            <button
+              type="button"
+              className="rounded-[10px] px-3 py-1 text-xs font-black neuphormism-b-btn"
+              onClick={() => setSelectedVideo(null)}
+            >
+              Close
+            </button>
+          </div>
           <iframe
             width="100%"
             height="315"
@@ -143,7 +156,7 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
         </div>
       )}
 
-      <div className="flex flex-row">
+      <div className="flex flex-row gap-2">
         <input
           type="text"
           name="ytlink"
@@ -163,35 +176,35 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
         />
         <button
           type="button"
-          className="ml-2 px-3 py-1 neuphormism-b-btn text-xs"
+          className="neuphormism-b-btn flex h-9 min-w-[4.5rem] items-center justify-center rounded-[12px] px-3 text-xs font-black uppercase text-black"
           onClick={handleAddVideo}
         >
           Add
         </button>
       </div>
       {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
-      <div className="flex flex-col px-1 py-2 my-2 m-0">
-        <ul className="flex flex-col">
+      <div className="my-3">
+        <ul className="flex flex-col gap-2">
           {videoItems.map(({ title, url }, index) => (
             <li
               key={`${url}-${index}`}
-              className="flex items-center justify-between text-[6pt] py-3 px-1 my-2 neuphormism-b-btn"
+              className="flex items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left neuphormism-b-se"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                <span className="min-w-0 truncate text-sm font-medium text-black">{title}</span>
                 <button
                   type="button"
                   onClick={() => handleDeleteVideo(url)}
-                  className="px-1 text-red-600 font-bold hover:text-red-800"
+                  className="neuphormism-b-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-xs font-black text-red-700"
                   aria-label="Delete video"
                 >
                   X
                 </button>
-                <span className="truncate">{title}</span>
               </div>
               <button
                 type="button"
                 onClick={() => handlePlayClick(url)}
-                className="px-1 font-extrabold tracking-wide hover:font-black"
+                className="rounded-[12px] px-3 py-2 text-xs font-black uppercase text-black neuphormism-b-btn"
               >
                 PLAY
               </button>
