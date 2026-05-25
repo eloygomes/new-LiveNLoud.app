@@ -358,6 +358,166 @@ main{
   scrollbar-gutter: stable;
 }
 
+.presentation-two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2rem;
+  align-content: start;
+}
+
+.presentation-content-flow {
+  min-height: 100%;
+}
+
+.presentation-render-block {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.presentation-render-block > div {
+  min-width: 0;
+}
+
+.presentation-expanded-cifra {
+  width: 100%;
+  max-width: none !important;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+.presentation-expanded-cifra-horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.presentation-expanded-cifra-vertical {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.presentation-horizontal-columns {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  height: 100%;
+  width: max-content;
+  min-width: max-content;
+  gap: 1.25rem 2rem;
+  padding-bottom: 6rem;
+}
+
+.presentation-horizontal-columns .presentation-render-block {
+  width: min(42vw, 42rem);
+  flex: 0 0 auto;
+}
+
+.presentation-horizontal-nav-dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 1.5rem;
+  z-index: 35;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.presentation-horizontal-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.6rem 0.75rem 0;
+  border-radius: 18px;
+  pointer-events: auto;
+}
+
+.presentation-horizontal-nav-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.presentation-horizontal-nav {
+  min-width: 5.5rem;
+  height: 3.5rem;
+  padding: 0 1.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.presentation-horizontal-drag-handle {
+  margin-inline: -0.75rem;
+  padding: 0.1rem 0.75rem;
+  background: #7f8490;
+  color: #fff;
+  text-align: center;
+  font-size: 6pt;
+  line-height: 1.1;
+  font-weight: 700;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25);
+  cursor: move;
+  user-select: none;
+}
+
+.presentation-horizontal-nav-group {
+  opacity: 0.5;
+  transition: opacity 160ms ease;
+}
+
+.presentation-horizontal-nav-group:hover {
+  opacity: 1;
+}
+
+.presentation-progression-block {
+  border: 2px dashed var(--progression-color, #d4a017);
+  border-radius: 20px;
+  padding: 0;
+  overflow: visible;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
+  pointer-events: none;
+}
+
+.presentation-progression-block > div:last-child {
+  pointer-events: auto;
+}
+
+.presentation-progression-badge {
+  position: absolute;
+  left: 1rem;
+  top: 0.55rem;
+  z-index: 4;
+  display: inline-flex;
+  min-width: 2rem;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: var(--progression-color, #d4a017);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.presentation-progression-badge-number {
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.presentation-progression-badge-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
 .presentation-live-content pre,
 .presentation-live-content div,
 .presentation-live-content span {
@@ -403,7 +563,58 @@ main{
   font-weight: inherit;
 }
 
+.presentation-live-content.presentation-two-columns {
+  gap: 1.75rem 2.5rem;
+}
+
 @media (max-width: 767px) {
+  .presentation-two-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .presentation-horizontal-columns {
+    display: block;
+    width: 100%;
+    min-width: 100%;
+    padding-bottom: 0;
+  }
+
+  .presentation-horizontal-columns .presentation-render-block {
+    width: 100%;
+  }
+
+  .presentation-horizontal-nav-dock {
+    bottom: 1rem;
+  }
+
+  .presentation-horizontal-nav-group {
+    gap: 0.35rem;
+    padding: 0.45rem 0.55rem 0;
+  }
+
+  .presentation-horizontal-nav-buttons {
+    gap: 0.5rem;
+  }
+
+  .presentation-horizontal-drag-handle {
+    margin-inline: -0.55rem;
+  }
+
+  .presentation-progression-block {
+    padding: 0;
+  }
+
+  .presentation-progression-badge {
+    left: 0.8rem;
+    gap: 0.35rem;
+    padding: 0.38rem 0.7rem;
+  }
+
+  .presentation-progression-badge-title {
+    font-size: 0.62rem;
+  }
+
   .tab,
   .presentation-tom,
   .presentation-lyrics,

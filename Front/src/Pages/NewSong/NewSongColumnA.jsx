@@ -383,6 +383,64 @@ function slugToTitle(input = "") {
     .join(" ");
 }
 
+function hasText(value) {
+  return typeof value === "string" ? value.trim() !== "" : value != null;
+}
+
+function firstText(...values) {
+  return values.find((value) => hasText(value)) ?? "";
+}
+
+function hasPresentationContent(instrumentData = {}) {
+  return ["songCifra", "songTabs", "songChords", "songLyrics"].some((field) =>
+    hasText(instrumentData?.[field]),
+  );
+}
+
+function normalizeLinkForCompare(value = "") {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+    const path = url.pathname.replace(/\/+$/, "");
+    return `${host}${path}`;
+  } catch {
+    return String(value || "")
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .replace(/\/+$/, "")
+      .toLowerCase();
+  }
+}
+
+function readStoredCifraDoc() {
+  try {
+    return JSON.parse(localStorage.getItem("cifraFROMDB") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function pickInstrumentSource({ songData, storedCifraDoc, instrumentKey, link }) {
+  const candidates = [songData?.[instrumentKey], storedCifraDoc?.[instrumentKey]]
+    .filter((candidate) => candidate && typeof candidate === "object");
+  const normalizedLink = normalizeLinkForCompare(link);
+
+  return (
+    candidates.find(
+      (candidate) =>
+        candidate.link &&
+        normalizeLinkForCompare(candidate.link) === normalizedLink,
+    ) ||
+    candidates.find((candidate) =>
+      ["songCifra", "songTabs", "songChords", "songLyrics"].some((field) =>
+        hasText(candidate[field]),
+      ),
+    ) ||
+    {}
+  );
+}
+
 function NewSongColumnA({
   dataFromUrl,
   artistExtractedFromUrl,
@@ -694,8 +752,9 @@ function NewSongColumnA({
       ).trim();
       const savedSongName = resolvedSongName;
       const savedArtistName = resolvedArtistName;
+      const storedCifraDoc = readStoredCifraDoc();
 
-      const instrumentsToSave = [
+      const requestedInstruments = [
         { key: "guitar01", link: guitar01, progress: progBarG01 },
         { key: "guitar02", link: guitar02, progress: progBarG02 },
         { key: "bass", link: bass, progress: progBarBass },
@@ -704,7 +763,7 @@ function NewSongColumnA({
         { key: "voice", link: voice, progress: progBarVoice },
       ].filter((entry) => entry.link && entry.link.trim());
 
-      if (!instrumentsToSave.length) {
+      if (!requestedInstruments.length) {
         setShowSnackBar?.(true);
         setSnackbarMessage?.({
           title: "Error",
@@ -722,23 +781,66 @@ function NewSongColumnA({
         return;
       }
 
+      const instrumentsToSave = requestedInstruments
+        .map(({ key, link, progress }) => {
+          const sourceInstrument = pickInstrumentSource({
+            songData,
+            storedCifraDoc,
+            instrumentKey: key,
+            link,
+          });
+          const currentInstrumentCifra =
+            key === instrumentName ? songCifra : "";
+          const instrumentPayload = {
+            active: true,
+            capo: firstText(capoData, sourceInstrument.capo),
+            link: link.trim(),
+            progress: progress ?? 0,
+            songCifra: firstText(
+              sourceInstrument.songCifra,
+              currentInstrumentCifra,
+            ),
+            songTabs: sourceInstrument.songTabs || "",
+            songChords: sourceInstrument.songChords || "",
+            songLyrics: sourceInstrument.songLyrics || "",
+            tuning: firstText(tunerData, sourceInstrument.tuning),
+            presentationLayouts: sourceInstrument.presentationLayouts,
+          };
+
+          return { key, instrumentPayload, sourceInstrument };
+        })
+        .filter(({ instrumentPayload }) =>
+          hasPresentationContent(instrumentPayload),
+        );
+
+      if (!instrumentsToSave.length) {
+        setShowSnackBar?.(true);
+        setSnackbarMessage?.({
+          title: "Error",
+          message:
+            "Nenhum instrumento carregou conteúdo de apresentação ainda. Aguarde a importação da cifra antes de salvar.",
+        });
+        return;
+      }
+
       for (let index = 0; index < instrumentsToSave.length; index += 1) {
-        const { key, link, progress } = instrumentsToSave[index];
+        const { key, instrumentPayload, sourceInstrument } =
+          instrumentsToSave[index];
         await createNewSongOnServer({
           songName: resolvedSongName,
           artistName: resolvedArtistName,
           instrumentName: key,
           geralPercentage,
           setlist,
-          capo: capoData || "",
-          tom: tomData || "",
-          tuning: tunerData || "",
+          capo: firstText(capoData, sourceInstrument.capo, storedCifraDoc?.capo),
+          tom: firstText(tomData, storedCifraDoc?.tom),
+          tuning: firstText(
+            tunerData,
+            sourceInstrument.tuning,
+            storedCifraDoc?.tuning,
+          ),
           embedLink,
-          instrumentFields: {
-            active: true,
-            link: link.trim(),
-            progress: progress ?? 0,
-          },
+          instrumentFields: instrumentPayload,
         });
       }
 

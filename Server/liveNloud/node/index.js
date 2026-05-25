@@ -498,12 +498,23 @@ async function findGeneralCifraDoc({ instrument, link, artist, song }) {
     ],
   };
 
-  // 3) último recurso: artist + song (pode haver múltiplos; pegamos o mais recente)
-  const byTitle = { artist, song };
-
   let doc = await collection.findOne(byNorm);
   if (!doc) doc = await collection.findOne(byRaw);
-  if (!doc) doc = await collection.findOne(byTitle);
+  if (!doc && artist && song) {
+    const titleCandidates = await collection
+      .find({
+        $or: [
+          { [`instruments.${inst}`]: true },
+          { [`instruments.${inst}`]: "true" },
+        ],
+      })
+      .toArray();
+    doc = titleCandidates.find(
+      (candidate) =>
+        normalizeName(candidate.artist) === normalizeName(artist) &&
+        normalizeName(candidate.song) === normalizeName(song),
+    );
+  }
 
   return doc || null;
 }
@@ -536,7 +547,7 @@ app.post("/api/scrape", async (req, res) => {
         .json({ message: "instrument e link são obrigatórios." });
     }
 
-    // 1) dispara o scraper Python
+    // 1) evita chamar o Python quando a cifra já está no banco geral
     const pyPayload = {
       artist,
       song,
@@ -547,10 +558,28 @@ app.post("/api/scrape", async (req, res) => {
     };
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
-    console.time(requestLabel);
-    const response = await postJson(`${pythonApiUrl}/scrape`, pyPayload, {
-      Host: "localhost",
+    const existingGeneralDoc = await findGeneralCifraDoc({
+      instrument,
+      link: cleanLink,
+      artist,
+      song,
     });
+
+    if (existingGeneralDoc) {
+      console.log("[SCRAPE] returning existing general document:", {
+        _id: existingGeneralDoc._id,
+        artist: existingGeneralDoc.artist,
+        song: existingGeneralDoc.song,
+      });
+      return res.status(200).json({
+        message: "Data already available",
+        document: existingGeneralDoc,
+      });
+    }
+
+    // 2) dispara o scraper Python
+    console.time(requestLabel);
+    const response = await postJson(`${pythonApiUrl}/scrape`, pyPayload);
     console.timeEnd(requestLabel);
     console.log("[SCRAPE] python resp:", response.status, response.data);
 
@@ -669,7 +698,7 @@ app.post("/api/signup", async (req, res) => {
 // Rota para adicionar ou atualizar uma música
 app.post("/api/newsong", async (req, res) => {
   try {
-    const { userdata } = req.body;
+    let { userdata } = req.body;
     const { databaseComing, collectionComing } = req.body;
 
     // Verifica se os nomes estão presentes e válidos
@@ -687,6 +716,8 @@ app.post("/api/newsong", async (req, res) => {
         message: "Parâmetros obrigatórios: email, artist e song.",
       });
     }
+
+    userdata = await hydrateUserdataFromGeneralCifra(userdata);
 
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
@@ -1313,12 +1344,12 @@ app.post("/api/createMusic", async (req, res) => {
       artist,
       progressBar,
       instruments,
-      guitar01: stripProgress(guitar01),
-      guitar02: stripProgress(guitar02),
-      bass: stripProgress(bass),
-      keys: stripProgress(keys),
-      drums: stripProgress(drums),
-      voice: stripProgress(voice),
+      guitar01: prepareInstrumentBlockForStorage(stripProgress(guitar01)),
+      guitar02: prepareInstrumentBlockForStorage(stripProgress(guitar02)),
+      bass: prepareInstrumentBlockForStorage(stripProgress(bass)),
+      keys: prepareInstrumentBlockForStorage(stripProgress(keys)),
+      drums: prepareInstrumentBlockForStorage(stripProgress(drums)),
+      voice: prepareInstrumentBlockForStorage(stripProgress(voice)),
       embedVideos,
       email,
       setlist,
@@ -1333,29 +1364,44 @@ app.post("/api/createMusic", async (req, res) => {
     const existing = await collection.findOne(filter);
 
     if (existing) {
-      // Merge instruments flags (true se qualquer um dos lados for true)
-      const mergedInstruments = {
-        ...existing.instruments,
-        ...incoming.instruments,
-      };
-
       // Helper para mesclar sub-documento de instrumento
       const mergeInstrument = (inst) => {
         if (!incoming[inst]) return existing[inst]; // nada novo
         const oldDoc = existing[inst] || {};
-        return { ...oldDoc, ...incoming[inst] }; // incoming contém link específico
+        return prepareInstrumentBlockForStorage(
+          mergeInstrumentBlock(oldDoc, incoming[inst]),
+        );
       };
+
+      const mergedBlocks = {
+        guitar01: mergeInstrument("guitar01"),
+        guitar02: mergeInstrument("guitar02"),
+        bass: mergeInstrument("bass"),
+        keys: mergeInstrument("keys"),
+        drums: mergeInstrument("drums"),
+        voice: mergeInstrument("voice"),
+      };
+
+      const mergedInstruments = normalizeInstrumentFlags({
+        ...existing,
+        ...incoming,
+        ...mergedBlocks,
+        instruments: {
+          ...existing.instruments,
+          ...incoming.instruments,
+        },
+      });
 
       const update = {
         $set: {
           progressBar: incoming.progressBar ?? existing.progressBar,
           instruments: mergedInstruments,
-          guitar01: mergeInstrument("guitar01"),
-          guitar02: mergeInstrument("guitar02"),
-          bass: mergeInstrument("bass"),
-          keys: mergeInstrument("keys"),
-          drums: mergeInstrument("drums"),
-          voice: mergeInstrument("voice"),
+          guitar01: mergedBlocks.guitar01,
+          guitar02: mergedBlocks.guitar02,
+          bass: mergedBlocks.bass,
+          keys: mergedBlocks.keys,
+          drums: mergedBlocks.drums,
+          voice: mergedBlocks.voice,
           updateIn: incoming.updateIn,
         },
         $addToSet: {
@@ -3980,15 +4026,85 @@ function uniqueArray(values = []) {
   );
 }
 
+function isPlainObject(value) {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isExplicitTrue(value) {
+  return value === true || String(value).trim().toLowerCase() === "true";
+}
+
+function isExplicitFalse(value) {
+  return value === false || String(value).trim().toLowerCase() === "false";
+}
+
+function hasStoredValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (Array.isArray(value)) return value.length > 0;
+  if (isPlainObject(value)) return Object.keys(value).length > 0;
+  return true;
+}
+
+function instrumentBlockHasContent(block = {}) {
+  return [
+    "link",
+    "songCifra",
+    "songTabs",
+    "songChords",
+    "songLyrics",
+    "notes",
+  ].some((key) => hasStoredValue(block?.[key]));
+}
+
+function buildInitialPresentationLayouts(songCifra = "") {
+  return {
+    default: {
+      songCifra,
+      fontSizeStep: 0,
+      twoColumns: false,
+      showProgressionMarkers: false,
+      progressionMarkOverrides: {},
+    },
+    expanded: {
+      songCifra,
+      fontSizeStep: 0,
+      twoColumns: true,
+      showProgressionMarkers: false,
+      progressionMarkOverrides: {},
+    },
+  };
+}
+
+function ensurePresentationLayoutsForInstrument(block = {}) {
+  if (!isPlainObject(block)) return block;
+
+  const songCifra =
+    typeof block.songCifra === "string" ? block.songCifra : "";
+  const hasLayouts =
+    isPlainObject(block.presentationLayouts) &&
+    (isPlainObject(block.presentationLayouts.default) ||
+      isPlainObject(block.presentationLayouts.expanded));
+
+  if (!songCifra.trim() || hasLayouts) {
+    return block;
+  }
+
+  return {
+    ...block,
+    presentationLayouts: buildInitialPresentationLayouts(songCifra),
+  };
+}
+
 function normalizeInstrumentFlags(entry = {}) {
   return SONG_INSTRUMENT_KEYS.reduce((flags, key) => {
     const currentFlag = entry.instruments?.[key];
     const block = entry[key];
     flags[key] = Boolean(
-      currentFlag === true ||
-      currentFlag?.active ||
-      block?.active ||
-      (typeof block?.link === "string" && block.link.trim()),
+      isExplicitTrue(currentFlag) ||
+      isExplicitTrue(currentFlag?.active) ||
+      isExplicitTrue(block?.active) ||
+      instrumentBlockHasContent(block),
     );
     return flags;
   }, {});
@@ -3996,7 +4112,7 @@ function normalizeInstrumentFlags(entry = {}) {
 
 function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
   if (!incomingBlock) {
-    return existingBlock || {};
+    return ensurePresentationLayoutsForInstrument(existingBlock || {});
   }
 
   if (incomingBlock === false) {
@@ -4008,20 +4124,49 @@ function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
     };
   }
 
-  return {
-    ...(existingBlock || {}),
-    ...incomingBlock,
-    active:
-      incomingBlock.active ??
-      existingBlock?.active ??
-      Boolean(incomingBlock.link || existingBlock?.link),
-  };
+  if (!isPlainObject(incomingBlock)) {
+    return ensurePresentationLayoutsForInstrument(existingBlock || {});
+  }
+
+  const merged = { ...(existingBlock || {}) };
+
+  Object.entries(incomingBlock).forEach(([key, value]) => {
+    if (key === "active") return;
+
+    const existingValue = merged[key];
+    const incomingIsEmpty = !hasStoredValue(value);
+    const existingHasValue = hasStoredValue(existingValue);
+
+    if (incomingIsEmpty && existingHasValue) {
+      return;
+    }
+
+    merged[key] = value;
+  });
+
+  if (isExplicitTrue(incomingBlock.active)) {
+    merged.active = true;
+  } else if (isExplicitFalse(incomingBlock.active)) {
+    merged.active = false;
+  } else if (!hasStoredValue(merged.active)) {
+    merged.active = instrumentBlockHasContent(merged);
+  }
+
+  return ensurePresentationLayoutsForInstrument(merged);
 }
 
 function mergeSongEntries(...entries) {
   const today = new Date().toISOString().split("T")[0];
   const merged = entries.reduce((acc, entry = {}) => {
     const instrumentName = normalizeInstrument(entry.instrumentName);
+    const existingInstrumentBlocks = SONG_INSTRUMENT_KEYS.reduce(
+      (blocks, key) => ({
+        ...blocks,
+        [key]: acc[key],
+      }),
+      {},
+    );
+    const existingInstrumentFlags = acc.instruments;
 
     acc = {
       ...acc,
@@ -4038,6 +4183,10 @@ function mergeSongEntries(...entries) {
       setlist: uniqueArray([...(acc.setlist || []), ...(entry.setlist || [])]),
       updateIn: today,
     };
+    SONG_INSTRUMENT_KEYS.forEach((key) => {
+      acc[key] = existingInstrumentBlocks[key];
+    });
+    acc.instruments = existingInstrumentFlags;
 
     SONG_INSTRUMENT_KEYS.forEach((key) => {
       const hasNestedInstrumentPayload =
@@ -4073,6 +4222,56 @@ function mergeSongEntries(...entries) {
   return merged;
 }
 
+async function hydrateUserdataFromGeneralCifra(userdata = {}) {
+  if (!userdata?.artist || !userdata?.song) {
+    return userdata;
+  }
+
+  const hydrated = { ...userdata };
+
+  for (const instrument of SONG_INSTRUMENT_KEYS) {
+    const nestedInstrumentPayload = isPlainObject(hydrated.instruments?.[instrument])
+      ? hydrated.instruments[instrument]
+      : null;
+    const block = hydrated[instrument] || nestedInstrumentPayload;
+
+    if (!isPlainObject(block) || !hasStoredValue(block.link)) {
+      continue;
+    }
+
+    if (hasStoredValue(block.songCifra)) {
+      hydrated[instrument] = prepareInstrumentBlockForStorage(block);
+      continue;
+    }
+
+    const generalDoc = await findGeneralCifraDoc({
+      instrument,
+      link: block.link,
+      artist: hydrated.artist,
+      song: hydrated.song,
+    });
+    const generalBlock = generalDoc?.[instrument];
+
+    if (!isPlainObject(generalBlock) || !instrumentBlockHasContent(generalBlock)) {
+      continue;
+    }
+
+    const nextBlock = prepareInstrumentBlockForStorage(
+      mergeInstrumentBlock(block, generalBlock),
+    );
+    hydrated[instrument] = nextBlock;
+
+    if (nestedInstrumentPayload) {
+      hydrated.instruments = {
+        ...(hydrated.instruments || {}),
+        [instrument]: nextBlock,
+      };
+    }
+  }
+
+  return hydrated;
+}
+
 /** Normaliza link para comparação estável (sem http/https, sem www, minúsculo, sem barra final) */
 function normalizeLink(u) {
   try {
@@ -4103,6 +4302,11 @@ function withLinkNorm(subdoc = {}) {
     return { ...subdoc, linkNorm: normalizeLink(subdoc.link) };
   }
   return subdoc;
+}
+
+function prepareInstrumentBlockForStorage(subdoc = {}) {
+  if (!isPlainObject(subdoc)) return subdoc;
+  return withLinkNorm(ensurePresentationLayoutsForInstrument(subdoc));
 }
 
 (async () => {
@@ -4187,7 +4391,7 @@ app.put("/api/updateSetlists", async (req, res) => {
 
 app.get("/api/generalCifra", async (req, res) => {
   try {
-    let { instrument, link } = req.query || {};
+    let { instrument, link, artist, song } = req.query || {};
     if (!instrument || !link) {
       return res
         .status(400)
@@ -4239,6 +4443,21 @@ app.get("/api/generalCifra", async (req, res) => {
 
     let doc = await collection.findOne(filter);
     if (!doc) doc = await collection.findOne(fallback);
+    if (!doc && artist && song) {
+      const titleCandidates = await collection
+        .find({
+          $or: [
+            { [`instruments.${instrument}`]: true },
+            { [`instruments.${instrument}`]: "true" },
+          ],
+        })
+        .toArray();
+      doc = titleCandidates.find(
+        (candidate) =>
+          normalizeName(candidate.artist) === normalizeName(artist) &&
+          normalizeName(candidate.song) === normalizeName(song),
+      );
+    }
 
     if (!doc)
       return res.status(404).json({ message: "Documento não encontrado" });

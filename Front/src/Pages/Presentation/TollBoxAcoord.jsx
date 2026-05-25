@@ -1,11 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Link } from "react-router-dom";
+import { IoChevronForward, IoChevronBack } from "react-icons/io5";
 
 import ScrollControlPanel from "./ScrollControlPanel";
 import ToolBoxMini from "./ToolBoxMini";
@@ -55,6 +51,22 @@ export default function TollBoxAcoord({
   handleSaveCifra,
   handleDiscardDraft,
   startEditingCifra,
+  marksEditorOpen = false,
+  onToggleMarksEditor,
+  onToggleMarksVisibility,
+  markEntries = [],
+  onChangeMarkTitle,
+  onChangeMarkPosition,
+  activeLayoutLabel = "Default layout",
+  transposeSteps = 0,
+  setTransposeSteps,
+  displayKey = "--",
+  isTwoColumns = false,
+  setIsTwoColumns,
+  isExpandedCifra = false,
+  setIsExpandedCifra,
+  showProgressionMarkers = false,
+  setShowProgressionMarkers,
   isTouchLayout = false,
   closeToolBox,
   activeTouchPanel,
@@ -70,13 +82,13 @@ export default function TollBoxAcoord({
   isSavingNotes = false,
   onSelectInstrument = () => {},
 }) {
-  const [expanded, setExpanded] = useState(false); // Estado para controlar o acordeão aberto
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
   // Estados para controlar qual ferramenta está ativa
   const [TunerStatus, setTunerStatus] = useState(false);
   const [MetronomeStatus, setMetronomeStatus] = useState(true);
   const [ChordLibraryStatus, setChordLibraryStatus] = useState(false);
+  const [activeDesktopPanel, setActiveDesktopPanel] = useState(null);
 
   useEffect(() => {
     if (songDataFetched && songDataFetched.instruments) {
@@ -94,10 +106,6 @@ export default function TollBoxAcoord({
 
   const chordLibraryModal = () => {
     setChordModalStatus(true);
-  };
-
-  const handleAccordionChange = (panel) => (event, isExpanded) => {
-    setExpanded(isExpanded ? panel : false);
   };
 
   if (!songDataFetched || !songDataFetched.instruments) {
@@ -137,6 +145,16 @@ export default function TollBoxAcoord({
       handleSaveCifra={handleSaveCifra}
       handleDiscardDraft={handleDiscardDraft}
       startEditingCifra={startEditingCifra}
+      marksEditorOpen={marksEditorOpen}
+      onToggleMarksEditor={onToggleMarksEditor}
+      onToggleMarksVisibility={onToggleMarksVisibility}
+      markEntries={markEntries}
+      onChangeMarkTitle={onChangeMarkTitle}
+      onChangeMarkPosition={onChangeMarkPosition}
+      activeLayoutLabel={activeLayoutLabel}
+      touchFontSizeLabel={touchFontSizeLabel}
+      isTwoColumns={isTwoColumns}
+      showProgressionMarkers={showProgressionMarkers}
     />
   );
 
@@ -247,6 +265,84 @@ export default function TollBoxAcoord({
       </ul>
     );
   };
+
+  const renderTransposeContent = () => (
+    <div className={isTouchLayout ? "space-y-3" : " space-y-3"}>
+      <div className="py-3 text-black">
+        <div className="text-center text-[0.7rem] font-black uppercase tracking-[0.14em] text-black/55">
+          Tom
+        </div>
+        <div className="mt-3 flex flex-col items-center justify-center gap-2">
+          <button
+            type="button"
+            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-black text-black"
+            onClick={() => setTransposeSteps?.((value) => value + 1)}
+            aria-label="Transpose up"
+          >
+            +
+          </button>
+          <div className="min-w-0 py-3 text-center">
+            <div className="text-[2rem] font-black leading-none">
+              {displayKey}
+            </div>
+            <div className="mt-1 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-black/55">
+              {transposeSteps > 0
+                ? `+${transposeSteps} semitons`
+                : `${transposeSteps} semitons`}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-black text-black"
+            onClick={() => setTransposeSteps?.((value) => value - 1)}
+            aria-label="Transpose down"
+          >
+            -
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderLayoutContent = () => (
+    <div className={isTouchLayout ? "space-y-3" : "space-y-3"}>
+      <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
+        <div className="text-sm font-black text-black">Expand layout</div>
+        <button
+          type="button"
+          className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] ${
+            isExpandedCifra
+              ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+              : isTouchLayout
+                ? "bg-white text-black"
+                : "neuphormism-b-se text-black"
+          }`}
+          onClick={() => setIsExpandedCifra?.((value) => !value)}
+        >
+          {isExpandedCifra ? "On" : "Off"}
+        </button>
+      </div>
+
+      <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
+        <div className="text-sm font-black text-black">
+          Progression marks
+        </div>
+        <button
+          type="button"
+          className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] ${
+            showProgressionMarkers
+              ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+              : isTouchLayout
+                ? "bg-white text-black"
+                : "neuphormism-b-se text-black"
+          }`}
+          onClick={() => setShowProgressionMarkers?.((value) => !value)}
+        >
+          {showProgressionMarkers ? "On" : "Off"}
+        </button>
+      </div>
+    </div>
+  );
 
   const renderFontSizeContent = () => (
     <div className="rounded-[18px] px-1 py-3">
@@ -390,13 +486,76 @@ export default function TollBoxAcoord({
     </div>
   );
 
+  const hasVideos = embedLinks.length > 0;
+  const sections = [
+    {
+      id: "panel-editor",
+      label: "Editor",
+      content: renderEditorContent(),
+      open: openTouchEditorDetails,
+    },
+    {
+      id: "panel-transpose",
+      label: "Transpose",
+      content: renderTransposeContent(),
+    },
+    {
+      id: "panel-notes",
+      label: "Notes",
+      content: isTouchLayout ? (
+        <SongInstrumentNotes
+          instrumentName={instrumentSelected}
+          title={`${instrumentSelected} notes`}
+          value={instrumentNotes}
+          onChange={onInstrumentNotesChange}
+          onSave={onSaveInstrumentNotes}
+          isSaving={isSavingNotes}
+          mobile
+        />
+      ) : (
+        renderNotesContent()
+      ),
+    },
+    {
+      id: "panel1",
+      label: "Instruments",
+      content: renderInstrumentsContent(),
+    },
+    {
+      id: "panel-layout",
+      label: "Layout",
+      content: renderLayoutContent(),
+    },
+    {
+      id: "panel-font",
+      label: "Font Size",
+      content: renderFontSizeContent(),
+    },
+    ...(hasVideos
+      ? [{ id: "panel2", label: "Videos", content: renderVideosContent() }]
+      : []),
+    { id: "panel4", label: "Highlight", content: renderHighlightContent() },
+    { id: "panel5", label: "Tools", content: renderToolsContent() },
+    { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
+  ];
+
   if (isTouchLayout) {
-    const sections = [
+    const touchSections = [
       {
         id: "panel-editor",
         label: "Editor",
         content: renderEditorContent(),
         open: openTouchEditorDetails,
+      },
+      {
+        id: "panel-transpose",
+        label: "Transpose",
+        content: renderTransposeContent(),
+      },
+      {
+        id: "panel-layout",
+        label: "Layout",
+        content: renderLayoutContent(),
       },
       {
         id: "panel-font",
@@ -423,13 +582,15 @@ export default function TollBoxAcoord({
         label: "Instruments",
         content: renderInstrumentsContent(),
       },
-      { id: "panel2", label: "Videos", content: renderVideosContent() },
+      ...(hasVideos
+        ? [{ id: "panel2", label: "Videos", content: renderVideosContent() }]
+        : []),
       { id: "panel4", label: "Highlight", content: renderHighlightContent() },
       { id: "panel5", label: "Tools", content: renderToolsContent() },
       { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
     ];
 
-    const activeSection = sections.find(
+    const activeSection = touchSections.find(
       (section) => section.id === activeTouchPanel,
     );
 
@@ -474,7 +635,7 @@ export default function TollBoxAcoord({
 
     return (
       <div className="space-y-3">
-        {sections.map((section) => {
+        {touchSections.map((section) => {
           const shouldBlinkEditor =
             section.id === "panel-editor" &&
             isEditing &&
@@ -505,190 +666,48 @@ export default function TollBoxAcoord({
     );
   }
 
+  const activeDesktopSection = sections.find(
+    (section) => section.id === activeDesktopPanel,
+  );
+
   return (
-    <div>
-      <Accordion
-        expanded={expanded === "panel-editor"}
-        onChange={handleAccordionChange("panel-editor")}
-        className="mb-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel-editor-content"
-          id="panel-editor-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Editor
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderEditorContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion
-        expanded={expanded === "panel-notes"}
-        onChange={handleAccordionChange("panel-notes")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel-notes-content"
-          id="panel-notes-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Notes
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderNotesContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Accordion para Instruments */}
-      <Accordion
-        expanded={expanded === "panel1"}
-        onChange={handleAccordionChange("panel1")}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel1-content"
-          id="panel1-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Instruments
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderInstrumentsContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      <Accordion
-        expanded={expanded === "panel-font"}
-        onChange={handleAccordionChange("panel-font")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel-font-content"
-          id="panel-font-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Font Size
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderFontSizeContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Accordion para Embed Links */}
-      <Accordion
-        expanded={expanded === "panel2"}
-        onChange={handleAccordionChange("panel2")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel2-content"
-          id="panel2-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Videos
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderVideosContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Accordion para Navegação */}
-      {/* <Accordion
-        expanded={expanded === "panel3"}
-        onChange={handleAccordionChange("panel3")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel3-content"
-          id="panel3-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Navigation
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          <ul className="mb-5">
-            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
-              <a href="#">intro</a>
-            </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
-              <a href="#">verse</a>
-            </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
-              <a href="#">chorus</a>
-            </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
-              <a href="#">bridge</a>
-            </li>
-            <li className="hover:bg-gray-300 neuphormism-b-se p-2 my-3 font-normal">
-              <a href="#">chorus</a>
-            </li>
-          </ul>
-        </AccordionDetails>
-      </Accordion> */}
-
-      {/* Accordion para Highlight */}
-      <Accordion
-        expanded={expanded === "panel4"}
-        onChange={handleAccordionChange("panel4")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel4-content"
-          id="panel4-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Highlight
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderHighlightContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Accordion para Tools */}
-      <Accordion
-        expanded={expanded === "panel5"}
-        onChange={handleAccordionChange("panel5")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel5-content"
-          id="panel5-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Tools
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderToolsContent()}
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Accordion para Scrolling */}
-      <Accordion
-        expanded={expanded === "panel6"}
-        onChange={handleAccordionChange("panel6")}
-        className="my-2"
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel6-content"
-          id="panel6-header"
-          className="neuphormism-b text-sm font-semibold py-1 rounded-lg"
-        >
-          Scrolling
-        </AccordionSummary>
-        <AccordionDetails className="neuphormism-b text-sm font-semibold">
-          {renderScrollingContent()}
-        </AccordionDetails>
-      </Accordion>
+    <div className="space-y-2">
+      {activeDesktopSection ? (
+        <div className="neuphormism-b rounded-lg p-2">
+          <button
+            type="button"
+            className="neuphormism-b-btn mb-3 flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-black text-black"
+            onClick={() => setActiveDesktopPanel(null)}
+          >
+            <IoChevronBack className="h-4 w-4" />
+            <span>{activeDesktopSection.label}</span>
+          </button>
+          <div className="neuphormism-b rounded-[14px] p-2 text-sm font-semibold">
+            {activeDesktopSection.id === "panel-editor" ? (
+              <div className="max-h-[68vh] overflow-y-auto">
+                {activeDesktopSection.content}
+              </div>
+            ) : (
+              activeDesktopSection.content
+            )}
+          </div>
+        </div>
+      ) : (
+        sections.map((section) => (
+          <button
+            key={section.id}
+            type="button"
+            className="neuphormism-b flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-sm font-semibold text-black"
+            onClick={() => {
+              section.open?.();
+              setActiveDesktopPanel(section.id);
+            }}
+          >
+            <span>{section.label}</span>
+            <IoChevronForward className="h-4 w-4" />
+          </button>
+        ))
+      )}
     </div>
   );
 }

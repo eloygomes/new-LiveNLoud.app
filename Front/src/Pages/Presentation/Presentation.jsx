@@ -16,8 +16,10 @@ import { useRef } from "react";
 import SnackBar from "../../Tools/SnackBar";
 import MobileSnackBar from "../../Tools/MobileSnackBar";
 import ToolBoxYT from "./ToolBoxYT";
+import DraggableComponent from "./DraggableComponent";
 
 import { processSongCifra } from "./ProcessSongCifra";
+import { inferDisplayKey, transposeCifra } from "./transposeCifra";
 import PresentationChordTooltip, {
   findChordTooltipData,
 } from "./PresentationChordTooltip";
@@ -143,9 +145,211 @@ const PRESENTATION_INSTRUMENTS = [
   { key: "voice", label: "Voice" },
 ];
 const PRESENTATION_INSTRUMENT_MAP = { keyboard: "keys", key: "keys" };
+const PROGRESSION_MARKER_COLORS = [
+  "#d4a017",
+  "#3d7eff",
+  "#2a9d8f",
+  "#e76f51",
+  "#8a5cf6",
+  "#c44569",
+];
+
+const getProgressionMarkerTitle = (block = "", progressionIndex = null) => {
+  const sectionMatch = block.match(/\[([^\]]+)\]/);
+  if (sectionMatch?.[1]) return sectionMatch[1];
+  if (progressionIndex == null) return "";
+  return `Part ${progressionIndex}`;
+};
+
+const buildProgressionBlocks = (htmlBlocks, { hideTabs = false } = {}) => {
+  let progressionCounter = 0;
+
+  return htmlBlocks.reduce((blocksToRender, block, index) => {
+    const classMatch = block.match(/class="([^"]*)"/);
+    const classes = classMatch ? classMatch[1].split(" ") : [];
+
+    const shouldHideTabBlock =
+      hideTabs &&
+      (classes.includes("presentation-combined-tab-chords") ||
+        classes.includes("presentation-tab") ||
+        classes.includes("presentation-tab-section"));
+
+    if (shouldHideTabBlock) {
+      return blocksToRender;
+    }
+
+    const isProgressionEligible =
+      !classes.includes("presentation-blank-line") &&
+      !block.includes('class="presentation-blank-line"');
+
+    const progressionIndex = isProgressionEligible ? ++progressionCounter : null;
+
+    blocksToRender.push({
+      block,
+      classes,
+      index,
+      blockKey: `block-${index}`,
+      isProgressionEligible,
+      progressionIndex,
+      progressionTitle: getProgressionMarkerTitle(block, progressionIndex),
+    });
+
+    return blocksToRender;
+  }, []);
+};
+
+const clampPresentationFontSizeStep = (value = 0) =>
+  Math.max(-3, Math.min(4, Number.isFinite(value) ? value : 0));
+
+const normalizeProgressionMarkOverrides = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.entries(value).reduce((nextValue, [blockKey, override]) => {
+    if (!override || typeof override !== "object" || Array.isArray(override)) {
+      return nextValue;
+    }
+
+    nextValue[blockKey] = {
+      ...(override.position !== undefined ? { position: override.position } : {}),
+      ...(typeof override.title === "string" ? { title: override.title } : {}),
+    };
+
+    return nextValue;
+  }, {});
+};
+
+const normalizePresentationLayoutVariant = (
+  layout = {},
+  { fallbackSongCifra = "", defaultTwoColumns = false } = {},
+) => ({
+  songCifra:
+    typeof layout?.songCifra === "string" ? layout.songCifra : fallbackSongCifra,
+  fontSizeStep: clampPresentationFontSizeStep(layout?.fontSizeStep),
+  twoColumns:
+    typeof layout?.twoColumns === "boolean"
+      ? layout.twoColumns
+      : defaultTwoColumns,
+  showProgressionMarkers:
+    typeof layout?.showProgressionMarkers === "boolean"
+      ? layout.showProgressionMarkers
+      : false,
+  progressionMarkOverrides: normalizeProgressionMarkOverrides(
+    layout?.progressionMarkOverrides,
+  ),
+});
+
+const buildInstrumentPresentationLayouts = (instrumentData = {}) => {
+  const storedLayouts =
+    instrumentData?.presentationLayouts &&
+    typeof instrumentData.presentationLayouts === "object" &&
+    !Array.isArray(instrumentData.presentationLayouts)
+      ? instrumentData.presentationLayouts
+      : {};
+  const baseSongCifra =
+    typeof instrumentData?.songCifra === "string" ? instrumentData.songCifra : "";
+
+  return {
+    default: {
+      ...normalizePresentationLayoutVariant(storedLayouts.default, {
+        fallbackSongCifra: baseSongCifra,
+        defaultTwoColumns: false,
+      }),
+      twoColumns: false,
+    },
+    expanded: {
+      ...normalizePresentationLayoutVariant(storedLayouts.expanded, {
+        fallbackSongCifra: baseSongCifra,
+        defaultTwoColumns: true,
+      }),
+      twoColumns: true,
+    },
+  };
+};
+
+const toPresentationLayoutPayload = (layouts = {}) => ({
+  default: {
+    ...normalizePresentationLayoutVariant(layouts.default, {
+      fallbackSongCifra: "",
+      defaultTwoColumns: false,
+    }),
+    twoColumns: false,
+  },
+  expanded: {
+    ...normalizePresentationLayoutVariant(layouts.expanded, {
+      fallbackSongCifra: "",
+      defaultTwoColumns: true,
+    }),
+    twoColumns: true,
+  },
+});
+
+const getPresentationLayoutSettingsSnapshot = (layouts = {}) =>
+  JSON.stringify({
+    default: {
+      fontSizeStep: layouts.default?.fontSizeStep ?? 0,
+      twoColumns: Boolean(layouts.default?.twoColumns),
+      showProgressionMarkers: Boolean(layouts.default?.showProgressionMarkers),
+      progressionMarkOverrides: layouts.default?.progressionMarkOverrides || {},
+    },
+    expanded: {
+      fontSizeStep: layouts.expanded?.fontSizeStep ?? 0,
+      twoColumns: Boolean(layouts.expanded?.twoColumns),
+      showProgressionMarkers: Boolean(layouts.expanded?.showProgressionMarkers),
+      progressionMarkOverrides: layouts.expanded?.progressionMarkOverrides || {},
+    },
+  });
+
+const hidePresentationLayoutMarkers = (layouts = {}) => ({
+  default: {
+    ...(layouts.default || {}),
+    showProgressionMarkers: false,
+  },
+  expanded: {
+    ...(layouts.expanded || {}),
+    showProgressionMarkers: false,
+  },
+});
+
+const getPresentationLayoutsStorageKey = ({
+  artist = "",
+  song = "",
+  instrument = "",
+} = {}) =>
+  [
+    "presentation-layouts",
+    String(artist || "").trim().toLowerCase(),
+    String(song || "").trim().toLowerCase(),
+    String(instrument || "").trim().toLowerCase(),
+  ].join("::");
+
+const getPresentationLayoutModeStorageKey = ({
+  artist = "",
+  song = "",
+  instrument = "",
+} = {}) =>
+  [
+    "presentation-layout-mode",
+    String(artist || "").trim().toLowerCase(),
+    String(song || "").trim().toLowerCase(),
+    String(instrument || "").trim().toLowerCase(),
+  ].join("::");
 
 const instrumentHasPresentationContent = (instrumentData) => {
   if (!instrumentData) return false;
+
+  const presentationLayouts = buildInstrumentPresentationLayouts(instrumentData);
+  if (
+    [presentationLayouts.default, presentationLayouts.expanded].some(
+      (layout) =>
+        typeof layout.songCifra === "string" &&
+        layout.songCifra.trim() !== "" &&
+        layout.songCifra !== "Loading...",
+    )
+  ) {
+    return true;
+  }
 
   return ["songCifra", "songChords", "songTabs", "songLyrics"].some(
     (field) => {
@@ -181,10 +385,9 @@ function Presentation() {
   const [hideTabs, setHideTabs] = useState(false); // Estado para controlar a visibilidade das tabs
   const [hideChords, setHideChords] = useState(false); // Estado para controlar a visibilidade dos acordes
 
-  const [songCifraData, setSongCifraData] = useState("");
-  const [songLyrics, setSongLyrics] = useState("");
-  const [songChords, setSongChords] = useState("");
-  const [songTabs, setSongTabs] = useState("");
+  const [transposeSteps, setTransposeSteps] = useState(0);
+  const [isExpandedCifra, setIsExpandedCifra] = useState(false);
+  const [marksEditorOpen, setMarksEditorOpen] = useState(false);
 
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
@@ -192,7 +395,6 @@ function Presentation() {
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [setlistSongs, setSetlistSongs] = useState([]);
-  const [touchFontSizeStep, setTouchFontSizeStep] = useState(0);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
     title: "",
@@ -255,6 +457,33 @@ function Presentation() {
     [chordHelpers],
   );
 
+  const currentInstrumentData = useMemo(() => {
+    if (!songDataFetched || !instrumentSelected) return {};
+    return songDataFetched[instrumentSelected] || {};
+  }, [songDataFetched, instrumentSelected]);
+
+  const activeLayoutVariant = isExpandedCifra ? "expanded" : "default";
+  const instrumentPresentationLayouts = useMemo(
+    () => buildInstrumentPresentationLayouts(currentInstrumentData),
+    [currentInstrumentData],
+  );
+  const activePresentationLayout =
+    instrumentPresentationLayouts[activeLayoutVariant];
+  const songCifraData = activePresentationLayout?.songCifra || "";
+  const songLyrics = currentInstrumentData?.songLyrics || "";
+  const songChords = currentInstrumentData?.songChords || "";
+  const songTabs = currentInstrumentData?.songTabs || "";
+  const isTwoColumns = isExpandedCifra;
+  const showProgressionMarkers = Boolean(
+    activePresentationLayout?.showProgressionMarkers,
+  );
+  const progressionMarkOverrides =
+    activePresentationLayout?.progressionMarkOverrides || {};
+  const touchFontSizeStep = activePresentationLayout?.fontSizeStep ?? 0;
+  const activeLayoutLabel = isExpandedCifra
+    ? "Expanded layout"
+    : "Default layout";
+
   const normalizedSongCifra = useMemo(
     () => normalizeCifra(songCifraData),
     [songCifraData, normalizeCifra],
@@ -266,6 +495,16 @@ function Presentation() {
     }
   }, [normalizedSongCifra, isEditing]);
 
+  const previousActiveLayoutVariantRef = useRef(activeLayoutVariant);
+
+  useEffect(() => {
+    if (previousActiveLayoutVariantRef.current === activeLayoutVariant) return;
+
+    previousActiveLayoutVariantRef.current = activeLayoutVariant;
+    setDraftCifra(normalizedSongCifra);
+    setSaveError("");
+  }, [activeLayoutVariant, normalizedSongCifra]);
+
   // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
   const contentSelected = useMemo(() => {
     const defaultContent =
@@ -275,7 +514,7 @@ function Presentation() {
       case "tabs":
         return songTabs;
       case "chords":
-        return songLyrics;
+        return songChords;
       case "lyrics":
         return songLyrics;
       case "full":
@@ -293,27 +532,12 @@ function Presentation() {
 
   const handleDataFromAPI = (data, instrumentSelected) => {
     if (data && data[instrumentSelected]) {
-      const instrumentData = data[instrumentSelected];
-      setSongCifraData(instrumentData.songCifra || "");
-      setSongLyrics(instrumentData.songLyrics || "");
-      setSongChords(instrumentData.songChords || "");
-      setSongTabs(instrumentData.songTabs || "");
       return data[instrumentSelected];
     } else {
       console.log("Instrumento não encontrado ou data é undefined");
-      // zera pra evitar 'Loading...' cair no parser
-      setSongCifraData("");
-      setSongLyrics("");
-      setSongChords("");
-      setSongTabs("");
       return null;
     }
   };
-
-  const currentInstrumentData = useMemo(() => {
-    if (!songDataFetched || !instrumentSelected) return {};
-    return songDataFetched[instrumentSelected] || {};
-  }, [songDataFetched, instrumentSelected]);
 
   const availableInstrumentOptions = useMemo(() => {
     if (!songDataFetched) return [];
@@ -495,6 +719,113 @@ function Presentation() {
     });
   }, []);
 
+  const presentationLayoutIdentity = `${artistFromURL}::${songFromURL}::${instrumentSelected}`;
+  const presentationLayoutStorageKey = useMemo(
+    () =>
+      getPresentationLayoutsStorageKey({
+        artist: artistFromURL,
+        song: songFromURL,
+        instrument: instrumentSelected,
+      }),
+    [artistFromURL, instrumentSelected, songFromURL],
+  );
+  const presentationLayoutModeStorageKey = useMemo(
+    () =>
+      getPresentationLayoutModeStorageKey({
+        artist: artistFromURL,
+        song: songFromURL,
+        instrument: instrumentSelected,
+      }),
+    [artistFromURL, instrumentSelected, songFromURL],
+  );
+  const presentationLayoutSettingsSnapshot = useMemo(
+    () =>
+      getPresentationLayoutSettingsSnapshot(
+        hidePresentationLayoutMarkers(instrumentPresentationLayouts),
+      ),
+    [instrumentPresentationLayouts],
+  );
+  const lastHydratedLayoutIdentityRef = useRef("");
+  const skipNextLayoutPersistRef = useRef(false);
+  const skipNextModePersistRef = useRef(false);
+
+  const updatePresentationLayoutVariant = useCallback(
+    (variantKey, update) => {
+      setSongDataFetched((prev) => {
+        if (!prev || !instrumentSelected) return prev;
+
+        const currentInstrument = prev[instrumentSelected] || {};
+        const currentLayouts = buildInstrumentPresentationLayouts(
+          currentInstrument,
+        );
+        const currentVariantLayout = currentLayouts[variantKey];
+        const nextVariantLayoutInput =
+          typeof update === "function"
+            ? update(currentVariantLayout, currentLayouts)
+            : {
+                ...currentVariantLayout,
+                ...(update || {}),
+              };
+        const nextVariantLayout = normalizePresentationLayoutVariant(
+          nextVariantLayoutInput,
+          {
+            fallbackSongCifra:
+              currentVariantLayout?.songCifra || currentInstrument.songCifra || "",
+            defaultTwoColumns: variantKey === "expanded",
+          },
+        );
+        const nextLayouts = {
+          ...currentLayouts,
+          [variantKey]: nextVariantLayout,
+        };
+        const nextInstrument = {
+          ...currentInstrument,
+          presentationLayouts: toPresentationLayoutPayload(nextLayouts),
+          songCifra: nextLayouts.default.songCifra,
+        };
+
+        return {
+          ...prev,
+          [instrumentSelected]: nextInstrument,
+          updateIn: new Date().toISOString().split("T")[0],
+        };
+      });
+    },
+    [instrumentSelected],
+  );
+
+  const updateActivePresentationLayout = useCallback(
+    (update) => {
+      updatePresentationLayoutVariant(activeLayoutVariant, update);
+    },
+    [activeLayoutVariant, updatePresentationLayoutVariant],
+  );
+
+  const setActiveShowProgressionMarkers = useCallback(
+    (valueOrUpdater) => {
+      updateActivePresentationLayout((currentLayout) => ({
+        ...currentLayout,
+        showProgressionMarkers:
+          typeof valueOrUpdater === "function"
+            ? valueOrUpdater(currentLayout.showProgressionMarkers)
+            : Boolean(valueOrUpdater),
+      }));
+    },
+    [updateActivePresentationLayout],
+  );
+
+  const adjustActiveFontSizeStep = useCallback(
+    (delta) => {
+      updateActivePresentationLayout((currentLayout) => ({
+        ...currentLayout,
+        fontSizeStep: clampPresentationFontSizeStep(
+          (currentLayout.fontSizeStep ?? 0) + delta,
+        ),
+      }));
+    },
+    [updateActivePresentationLayout],
+  );
+
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
       setSaveError("Sem dados da música carregados para salvar.");
@@ -507,9 +838,27 @@ function Presentation() {
     setIsSavingCifra(true);
     setSaveError("");
 
+    const currentLayouts = buildInstrumentPresentationLayouts(currentInstrumentData);
+    const nextLayouts = {
+      ...currentLayouts,
+      [activeLayoutVariant]: normalizePresentationLayoutVariant(
+        {
+          ...currentLayouts[activeLayoutVariant],
+          songCifra: draftCifra,
+        },
+        {
+          fallbackSongCifra: draftCifra,
+          defaultTwoColumns: activeLayoutVariant === "expanded",
+        },
+      ),
+    };
+    const persistedLayouts = toPresentationLayoutPayload(
+      hidePresentationLayoutMarkers(nextLayouts),
+    );
     const updatedBlock = {
       ...currentInstrumentData,
-      songCifra: draftCifra,
+      songCifra: nextLayouts.default.songCifra,
+      presentationLayouts: persistedLayouts,
     };
 
     const nextSongData = {
@@ -521,9 +870,13 @@ function Presentation() {
     try {
       await updateSongEntry(nextSongData);
 
-      setSongCifraData(draftCifra);
       setSongDataFetched((prev) => ({
+        ...(prev || {}),
         ...nextSongData,
+        [instrumentSelected]: {
+          ...updatedBlock,
+          presentationLayouts: toPresentationLayoutPayload(nextLayouts),
+        },
       }));
       setIsEditing(false);
       const timestamp = new Date().toLocaleTimeString();
@@ -542,6 +895,17 @@ function Presentation() {
   };
 
   const hasDraftChanges = (normalizedSongCifra || "") !== (draftCifra || "");
+  const shouldUseTwoColumns = isTwoColumns;
+  const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
+  const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
+  const transposedContent = useMemo(
+    () => transposeCifra(contentSelected, transposeSteps),
+    [contentSelected, transposeSteps],
+  );
+  const displayKey = useMemo(
+    () => inferDisplayKey(transposedContent || contentSelected),
+    [contentSelected, transposedContent],
+  );
 
   // Processar o songCifraData usando o algoritmo fornecido
   // console.log("htmlBlocks", htmlBlocks);
@@ -553,14 +917,14 @@ function Presentation() {
 
   // const { htmlBlocks } = processSongCifra(contentSelected);
   const isParsableString =
-    typeof contentSelected === "string" &&
-    contentSelected.trim() !== "" &&
-    contentSelected !== "Loading...";
+    typeof transposedContent === "string" &&
+    transposedContent.trim() !== "" &&
+    transposedContent !== "Loading...";
 
   let htmlBlocks = [];
   if (isParsableString) {
     try {
-      htmlBlocks = processSongCifra(contentSelected).htmlBlocks || [];
+      htmlBlocks = processSongCifra(transposedContent).htmlBlocks || [];
     } catch (e) {
       console.warn("processSongCifra falhou, usando fallback vazio:", e);
       htmlBlocks = [];
@@ -568,6 +932,52 @@ function Presentation() {
   } else {
     htmlBlocks = []; // ainda carregando ou sem conteúdo válido
   }
+
+  const visibleContentBlocks = useMemo(
+    () => buildProgressionBlocks(htmlBlocks, { hideTabs }),
+    [hideTabs, htmlBlocks],
+  );
+
+  const marksEditorSource = useMemo(() => {
+    if (!isEditing || !["default", "full"].includes(selectContenttoShow)) {
+      return transposedContent;
+    }
+    return transposeCifra(draftCifra, transposeSteps);
+  }, [
+    draftCifra,
+    isEditing,
+    selectContenttoShow,
+    transposedContent,
+    transposeSteps,
+  ]);
+
+  const markEntries = useMemo(() => {
+    if (
+      typeof marksEditorSource !== "string" ||
+      marksEditorSource.trim() === "" ||
+      marksEditorSource === "Loading..."
+    ) {
+      return [];
+    }
+
+    try {
+      const sourceBlocks =
+        processSongCifra(marksEditorSource).htmlBlocks || [];
+      return buildProgressionBlocks(sourceBlocks, { hideTabs: false })
+        .filter((entry) => entry.isProgressionEligible)
+        .map((entry) => {
+          const override = progressionMarkOverrides[entry.blockKey] || {};
+          return {
+            blockKey: entry.blockKey,
+            defaultPosition: entry.progressionIndex,
+            position: override.position ?? entry.progressionIndex,
+            title: override.title ?? entry.progressionTitle,
+          };
+        });
+    } catch {
+      return [];
+    }
+  }, [marksEditorSource, progressionMarkOverrides]);
 
   // console.log("songLyrics", songLyrics);
   // console.log("songChords", songChords);
@@ -734,24 +1144,39 @@ function Presentation() {
 
         const dataFromSong = await allDataFromOneSong(decodedArtist, decodedSong);
         const dataFromSongparsedResult = JSON.parse(dataFromSong);
+        const hydratedSongData = { ...dataFromSongparsedResult };
+
+        PRESENTATION_INSTRUMENTS.forEach(({ key }) => {
+          const instrumentData = hydratedSongData[key];
+          if (!instrumentData) return;
+
+          const sanitizedLayouts = hidePresentationLayoutMarkers(
+            buildInstrumentPresentationLayouts(instrumentData),
+          );
+
+          hydratedSongData[key] = {
+            ...instrumentData,
+            songCifra: sanitizedLayouts.default.songCifra || instrumentData.songCifra || "",
+            presentationLayouts: toPresentationLayoutPayload(sanitizedLayouts),
+          };
+        });
+
         const firstAvailableInstrument =
           PRESENTATION_INSTRUMENTS.find(
             ({ key }) =>
-              isInstrumentRegistered(dataFromSongparsedResult, key) &&
-              instrumentHasPresentationContent(dataFromSongparsedResult[key]),
+              isInstrumentRegistered(hydratedSongData, key) &&
+              instrumentHasPresentationContent(hydratedSongData[key]),
           )?.key || requestedInstrument;
         const selectedInstrument =
-          isInstrumentRegistered(dataFromSongparsedResult, requestedInstrument) &&
-          instrumentHasPresentationContent(
-            dataFromSongparsedResult[requestedInstrument],
-          )
+          isInstrumentRegistered(hydratedSongData, requestedInstrument) &&
+          instrumentHasPresentationContent(hydratedSongData[requestedInstrument])
             ? requestedInstrument
             : firstAvailableInstrument;
 
-        setSongDataFetched(dataFromSongparsedResult);
+        setSongDataFetched(hydratedSongData);
         setEmbedLinks(
-          Array.isArray(dataFromSongparsedResult.embedVideos)
-            ? dataFromSongparsedResult.embedVideos
+          Array.isArray(hydratedSongData.embedVideos)
+            ? hydratedSongData.embedVideos
             : [],
         );
         setInstrumentSelected(selectedInstrument);
@@ -767,7 +1192,7 @@ function Presentation() {
           );
         }
 
-        handleDataFromAPI(dataFromSongparsedResult, selectedInstrument);
+        handleDataFromAPI(hydratedSongData, selectedInstrument);
       } catch (error) {
         console.error("Error fetching song data:", error);
         setSongDataFetched(null);
@@ -889,6 +1314,43 @@ function Presentation() {
       unregisterScrollViewport(viewport);
     };
   }, [effectiveLiveMode, hideChords, selectContenttoShow, isEditing]);
+
+  const scrollExpandedLayout = useCallback((direction) => {
+    const viewport = presentationContentRef.current;
+    if (!viewport) return;
+
+    viewport.scrollBy({
+      left: direction * Math.max(280, viewport.clientWidth * 0.82),
+      behavior: "smooth",
+    });
+  }, []);
+
+  useEffect(() => {
+    const viewport = presentationContentRef.current;
+    if (
+      !viewport ||
+      !shouldUseHorizontalColumnFlow ||
+      isEditing ||
+      effectiveLiveMode
+    ) {
+      return undefined;
+    }
+
+    const handleWheel = (event) => {
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY;
+
+      if (!delta) return;
+      event.preventDefault();
+      viewport.scrollLeft += delta;
+    };
+
+    viewport.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      viewport.removeEventListener("wheel", handleWheel);
+    };
+  }, [effectiveLiveMode, isEditing, shouldUseHorizontalColumnFlow]);
 
   useEffect(() => {
     if (!effectiveLiveMode) return undefined;
@@ -1028,6 +1490,154 @@ function Presentation() {
     [isEditing],
   );
 
+  useEffect(() => {
+    if (!editor) return;
+
+    editor.setEditable(isEditing);
+    const editorText = editor.getText({ blockSeparator: "\n" });
+    if (editorText !== (draftCifra || "")) {
+      editor.commands.setContent(plainTextToHtml(draftCifra || ""), false);
+    }
+  }, [draftCifra, editor, isEditing]);
+
+  useEffect(() => {
+    if (!presentationLayoutModeStorageKey || typeof window === "undefined") {
+      return;
+    }
+
+    skipNextModePersistRef.current = true;
+    const storedLayoutMode = window.localStorage.getItem(
+      presentationLayoutModeStorageKey,
+    );
+    setIsExpandedCifra(storedLayoutMode === "expanded");
+  }, [presentationLayoutModeStorageKey]);
+
+  useEffect(() => {
+    if (
+      !presentationLayoutIdentity ||
+      !presentationLayoutStorageKey ||
+      !songDataFetched
+    ) {
+      return;
+    }
+
+    if (lastHydratedLayoutIdentityRef.current === presentationLayoutIdentity) {
+      return;
+    }
+
+    lastHydratedLayoutIdentityRef.current = presentationLayoutIdentity;
+    skipNextLayoutPersistRef.current = true;
+
+    if (typeof window === "undefined") return;
+
+    try {
+      const rawStoredLayouts = window.localStorage.getItem(
+        presentationLayoutStorageKey,
+      );
+      if (!rawStoredLayouts) return;
+
+      const parsedStoredLayouts = JSON.parse(rawStoredLayouts);
+      setSongDataFetched((prev) => {
+        if (!prev || !instrumentSelected) return prev;
+
+        const currentInstrument = prev[instrumentSelected] || {};
+        const currentLayouts = buildInstrumentPresentationLayouts(
+          currentInstrument,
+        );
+        const nextLayouts = hidePresentationLayoutMarkers({
+          default: normalizePresentationLayoutVariant(
+            parsedStoredLayouts?.default,
+            {
+              fallbackSongCifra: currentLayouts.default.songCifra,
+              defaultTwoColumns: false,
+            },
+          ),
+          expanded: normalizePresentationLayoutVariant(
+            parsedStoredLayouts?.expanded,
+            {
+              fallbackSongCifra: currentLayouts.expanded.songCifra,
+              defaultTwoColumns: true,
+            },
+          ),
+        });
+        const currentSnapshot = getPresentationLayoutSettingsSnapshot(
+          hidePresentationLayoutMarkers(currentLayouts),
+        );
+        const nextSnapshot = getPresentationLayoutSettingsSnapshot(nextLayouts);
+
+        if (
+          currentSnapshot === nextSnapshot &&
+          currentInstrument.songCifra === nextLayouts.default.songCifra
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [instrumentSelected]: {
+            ...currentInstrument,
+            songCifra: nextLayouts.default.songCifra,
+            presentationLayouts: toPresentationLayoutPayload(nextLayouts),
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Erro ao hidratar layouts da presentation:", error);
+    }
+  }, [
+    instrumentSelected,
+    presentationLayoutIdentity,
+    presentationLayoutStorageKey,
+    songDataFetched,
+  ]);
+
+  useEffect(() => {
+    if (!presentationLayoutStorageKey || typeof window === "undefined") return;
+    if (skipNextLayoutPersistRef.current) {
+      skipNextLayoutPersistRef.current = false;
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        presentationLayoutStorageKey,
+        JSON.stringify(
+          toPresentationLayoutPayload(
+            hidePresentationLayoutMarkers(instrumentPresentationLayouts),
+          ),
+        ),
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao persistir layouts da presentation no navegador:",
+        error,
+      );
+    }
+  }, [
+    instrumentPresentationLayouts,
+    presentationLayoutSettingsSnapshot,
+    presentationLayoutStorageKey,
+  ]);
+
+  useEffect(() => {
+    if (!presentationLayoutModeStorageKey || typeof window === "undefined") {
+      return;
+    }
+    if (skipNextModePersistRef.current) {
+      skipNextModePersistRef.current = false;
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        presentationLayoutModeStorageKey,
+        isExpandedCifra ? "expanded" : "default",
+      );
+    } catch (error) {
+      console.error("Erro ao persistir modo da presentation:", error);
+    }
+  }, [isExpandedCifra, presentationLayoutModeStorageKey]);
+
   // Função para alternar a visibilidade das tabs
   const toggleTabsVisibility = () => {
     setHideTabs(!hideTabs);
@@ -1125,7 +1735,25 @@ function Presentation() {
           notes: plainText,
         });
         if (result?.song) {
-          setSongDataFetched(result.song);
+          setSongDataFetched((prev) => {
+            if (!prev || !instrumentSelected) return result.song;
+
+            const previousInstrument = prev[instrumentSelected] || {};
+            const nextInstrument = result.song?.[instrumentSelected] || {};
+
+            return {
+              ...prev,
+              ...result.song,
+              [instrumentSelected]: {
+                ...nextInstrument,
+                presentationLayouts:
+                  nextInstrument.presentationLayouts ||
+                  previousInstrument.presentationLayouts,
+                songCifra:
+                  nextInstrument.songCifra || previousInstrument.songCifra,
+              },
+            };
+          });
         } else {
           handleInstrumentNotesChange(plainText);
         }
@@ -1150,6 +1778,40 @@ function Presentation() {
     setNotesModalStatus(true);
     pushSnackbarMessage("Notes", "Notas abertas para este instrumento.");
   }, [pushSnackbarMessage]);
+
+  const toggleMarksEditor = useCallback(() => {
+    setMarksEditorOpen((current) => !current);
+  }, []);
+
+  const toggleMarksVisibility = useCallback(() => {
+    setActiveShowProgressionMarkers((current) => !current);
+  }, [setActiveShowProgressionMarkers]);
+
+  const handleChangeMarkTitle = useCallback((blockKey, title) => {
+    updateActivePresentationLayout((currentLayout) => ({
+      ...currentLayout,
+      progressionMarkOverrides: {
+        ...(currentLayout.progressionMarkOverrides || {}),
+        [blockKey]: {
+          ...(currentLayout.progressionMarkOverrides?.[blockKey] || {}),
+          title,
+        },
+      },
+    }));
+  }, [updateActivePresentationLayout]);
+
+  const handleChangeMarkPosition = useCallback((blockKey, position) => {
+    updateActivePresentationLayout((currentLayout) => ({
+      ...currentLayout,
+      progressionMarkOverrides: {
+        ...(currentLayout.progressionMarkOverrides || {}),
+        [blockKey]: {
+          ...(currentLayout.progressionMarkOverrides?.[blockKey] || {}),
+          position,
+        },
+      },
+    }));
+  }, [updateActivePresentationLayout]);
 
   return (
     <div
@@ -1191,14 +1853,25 @@ function Presentation() {
           handleSaveCifra={handleSaveCifra}
           handleDiscardDraft={handleDiscardDraft}
           startEditingCifra={startEditingCifra}
+          marksEditorOpen={marksEditorOpen}
+          onToggleMarksEditor={toggleMarksEditor}
+          onToggleMarksVisibility={toggleMarksVisibility}
+          markEntries={markEntries}
+          onChangeMarkTitle={handleChangeMarkTitle}
+          onChangeMarkPosition={handleChangeMarkPosition}
+          activeLayoutLabel={activeLayoutLabel}
+          transposeSteps={transposeSteps}
+          setTransposeSteps={setTransposeSteps}
+          displayKey={displayKey}
+          isTwoColumns={isTwoColumns}
+          isExpandedCifra={isExpandedCifra}
+          setIsExpandedCifra={setIsExpandedCifra}
+          showProgressionMarkers={showProgressionMarkers}
+          setShowProgressionMarkers={setActiveShowProgressionMarkers}
           isTouchLayout={isTouchLayout}
           touchFontSizeLabel={touchFontSizeLabel}
-          decreaseTouchFontSize={() =>
-            setTouchFontSizeStep((current) => Math.max(-3, current - 1))
-          }
-          increaseTouchFontSize={() =>
-            setTouchFontSizeStep((current) => Math.min(4, current + 1))
-          }
+          decreaseTouchFontSize={() => adjustActiveFontSizeStep(-1)}
+          increaseTouchFontSize={() => adjustActiveFontSizeStep(1)}
           onVideoModalChange={setIsVideoModalOpen}
           linktoplay={touchVideoLink}
           setLinktoplay={setTouchVideoLink}
@@ -1216,14 +1889,14 @@ function Presentation() {
       )}
       <div
         className={`container mx-auto h-full min-h-0 ${
-          effectiveLiveMode ? "max-w-none" : ""
+          effectiveLiveMode || isExpandedCifra ? "max-w-none px-0" : ""
         }`}
       >
         <div
           className={`flex min-h-0 flex-col ${
             effectiveLiveMode ? "h-[100dvh]" : "h-full"
           } ${
-            effectiveLiveMode
+            effectiveLiveMode || isExpandedCifra
               ? "w-full max-w-none px-0"
               : "w-11/12 2xl:w-9/12 mx-auto"
           }`}
@@ -1545,6 +2218,39 @@ function Presentation() {
             </div>
           ) : null}
 
+          {!effectiveLiveMode && shouldUseHorizontalColumnFlow ? (
+            <div className="presentation-horizontal-nav-dock">
+              <DraggableComponent
+                handle=".drag-handle"
+                defaultPosition={{ x: 0, y: 0 }}
+              >
+                <div className="presentation-horizontal-nav-group neuphormism-b">
+                  <div className="presentation-horizontal-nav-buttons">
+                    <button
+                      type="button"
+                      className="presentation-horizontal-nav neuphormism-b-btn font-black text-black"
+                      onClick={() => scrollExpandedLayout(-1)}
+                      aria-label="Navigate left through expanded cifra"
+                    >
+                      &lt;&lt;
+                    </button>
+                    <button
+                      type="button"
+                      className="presentation-horizontal-nav neuphormism-b-btn font-black text-black"
+                      onClick={() => scrollExpandedLayout(1)}
+                      aria-label="Navigate right through expanded cifra"
+                    >
+                      &gt;&gt;
+                    </button>
+                  </div>
+                  <div className="drag-handle presentation-horizontal-drag-handle">
+                    Click and hold to drag
+                  </div>
+                </div>
+              </DraggableComponent>
+            </div>
+          ) : null}
+
           <div
             ref={presentationContentRef}
             tabIndex={effectiveLiveMode ? 0 : -1}
@@ -1554,6 +2260,14 @@ function Presentation() {
                 : `presentation-scroll-content neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
             } ${hideChords ? "hide-chords" : ""} ${
               selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
+            } ${
+              shouldUseHorizontalColumnFlow
+                ? "presentation-expanded-cifra-horizontal"
+                : ""
+            } ${
+              shouldUseExpandedVerticalFlow
+                ? "presentation-expanded-cifra-vertical"
+                : ""
             }`}
             style={{
               "--touch-presentation-font-scale": String(
@@ -1622,40 +2336,85 @@ function Presentation() {
                 <p>Carregando editor...</p>
               )
             ) : (
-              htmlBlocks
-                .reduce((blocksToRender, block, index) => {
-                  const classMatch = block.match(/class="([^"]*)"/);
-                  const classes = classMatch ? classMatch[1].split(" ") : [];
+              <div
+                className={`presentation-content-flow ${
+                  shouldUseTwoColumns ? "presentation-two-columns" : ""
+                } ${
+                  shouldUseHorizontalColumnFlow
+                    ? "presentation-horizontal-columns"
+                    : ""
+                }`}
+              >
+                {visibleContentBlocks.map(
+                  (
+                    {
+                      block,
+                      index,
+                      isProgressionEligible,
+                      progressionIndex,
+                      progressionTitle,
+                    },
+                    visibleIndex,
+                    visibleBlocks,
+                  ) => {
+                    const displayPosition =
+                      progressionMarkOverrides[`block-${index}`]?.position ??
+                      progressionIndex;
+                    const numericDisplayPosition =
+                      Number.parseInt(displayPosition, 10) || progressionIndex;
+                    const progressionColor =
+                      progressionIndex != null
+                        ? PROGRESSION_MARKER_COLORS[
+                            ((numericDisplayPosition -
+                              1) %
+                              PROGRESSION_MARKER_COLORS.length)
+                          ]
+                        : undefined;
+                    const displayTitle =
+                      progressionMarkOverrides[`block-${index}`]?.title ??
+                      progressionTitle;
 
-                  const shouldHideTabBlock =
-                    hideTabs &&
-                    (classes.includes("presentation-combined-tab-chords") ||
-                      classes.includes("presentation-tab") ||
-                      classes.includes("presentation-tab-section"));
-
-                  if (!shouldHideTabBlock) {
-                    blocksToRender.push({ block, index });
-                  }
-
-                  return blocksToRender;
-                }, [])
-                .map(({ block, index }, visibleIndex, visibleBlocks) => (
-                  <div
-                    key={index}
-                    className={
-                      selectContenttoShow === "tabs"
-                        ? "presentation-tab-filter-block"
-                        : undefined
-                    }
-                    style={
-                      !effectiveLiveMode &&
-                      visibleIndex === visibleBlocks.length - 1
-                        ? { paddingBottom: 200 }
-                        : undefined
-                    }
-                    dangerouslySetInnerHTML={{ __html: block }}
-                  />
-                ))
+                    return (
+                      <div
+                        key={index}
+                        className={`presentation-render-block ${
+                          selectContenttoShow === "tabs"
+                            ? "presentation-tab-filter-block"
+                            : ""
+                        } ${
+                          showProgressionMarkers && isProgressionEligible
+                            ? "presentation-progression-block"
+                            : ""
+                        }`}
+                        style={{
+                          ...(!effectiveLiveMode &&
+                          visibleIndex === visibleBlocks.length - 1 &&
+                          !shouldUseHorizontalColumnFlow
+                            ? { paddingBottom: 200 }
+                            : {}),
+                          ...(showProgressionMarkers &&
+                          isProgressionEligible &&
+                          progressionColor
+                            ? { "--progression-color": progressionColor }
+                            : {}),
+                        }}
+                      >
+                        {showProgressionMarkers && isProgressionEligible ? (
+                          <div className="presentation-progression-badge">
+                            <span className="presentation-progression-badge-number">
+                              {displayPosition}
+                            </span>
+                            <span className="presentation-progression-badge-title">
+                              {displayTitle}
+                            </span>
+                          </div>
+                        ) : null}
+                        <div dangerouslySetInnerHTML={{ __html: block }} />
+                      </div>
+                    );
+                  },
+                )}
+              </div>
             )}
           </div>
           {!isEditing && (

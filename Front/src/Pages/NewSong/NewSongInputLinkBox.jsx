@@ -174,8 +174,18 @@ function NewSongInputLinkBox({
   const iconButtonClass =
     "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[12px] text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60";
 
-  const buildUserErrorMessage = useCallback(() => {
-    return "Não foi possivel adicionar o link, tente mais tarde";
+  const buildUserErrorMessage = useCallback((error) => {
+    const responseMessage =
+      error?.response?.data?.details ||
+      error?.response?.data?.message ||
+      error?.response?.data?.error?.message ||
+      error?.message;
+
+    if (typeof responseMessage === "string" && responseMessage.trim()) {
+      return responseMessage.trim();
+    }
+
+    return "Não foi possível adicionar o link, tente mais tarde.";
   }, []);
 
   const notify = (title, message) => {
@@ -457,7 +467,12 @@ function NewSongInputLinkBox({
 
         // 2) Verifica se já existe no banco geral (para evitar scrape desnecessário)
         console.time(`[${effectiveInstrumentName}] checkCifraExists`);
-        const existsRes = await checkCifraExists({ instrumentName: effectiveInstrumentName, link });
+        const existsRes = await checkCifraExists({
+          instrumentName: effectiveInstrumentName,
+          link,
+          artist: finalArtist,
+          song: finalSong,
+        });
         console.timeEnd(`[${effectiveInstrumentName}] checkCifraExists`);
 
         if (existsRes?.exists) {
@@ -539,7 +554,12 @@ function NewSongInputLinkBox({
         for (let i = 1; i <= MAX_RETRIES; i++) {
           try {
             console.time(`[${instrumentName}] polling #${i}`);
-            const chk = await checkCifraExists({ instrumentName: effectiveInstrumentName, link });
+            const chk = await checkCifraExists({
+              instrumentName: effectiveInstrumentName,
+              link,
+              artist: finalArtist,
+              song: finalSong,
+            });
             console.timeEnd(`[${instrumentName}] polling #${i}`);
             if (chk?.exists) {
               found = chk.data;

@@ -626,6 +626,9 @@ function normalizeScrapeDoc(scraped) {
       tom: cleanText(pythonSongData.tom || pythonSongData.key),
       link: cleanText(pythonSongData.source_url),
       songCifra: pythonSongData.song_cifra || pythonSongData.songLyrics || "",
+      songTabs: pythonSongData.songTabs || "",
+      songChords: pythonSongData.songChords || "",
+      songLyrics: pythonSongData.songLyrics || "",
     };
   }
 
@@ -670,6 +673,29 @@ function normalizeScrapeDoc(scraped) {
     tom: cleanText(doc.tom || doc.tone || doc.key),
     link: cleanText(instrumentDoc.link || doc.link),
     songCifra: instrumentDoc.songCifra || doc.songCifra || "",
+    songTabs: instrumentDoc.songTabs || doc.songTabs || "",
+    songChords: instrumentDoc.songChords || doc.songChords || "",
+    songLyrics: instrumentDoc.songLyrics || doc.songLyrics || "",
+    presentationLayouts: instrumentDoc.presentationLayouts || doc.presentationLayouts,
+  };
+}
+
+function buildInitialPresentationLayouts(songCifra = "") {
+  return {
+    default: {
+      songCifra,
+      fontSizeStep: 0,
+      twoColumns: false,
+      showProgressionMarkers: false,
+      progressionMarkOverrides: {},
+    },
+    expanded: {
+      songCifra,
+      fontSizeStep: 0,
+      twoColumns: true,
+      showProgressionMarkers: false,
+      progressionMarkOverrides: {},
+    },
   };
 }
 
@@ -702,6 +728,30 @@ async function scrapeSong(session, pageContext) {
   return normalizeScrapeDoc(data);
 }
 
+async function fetchExistingSongDoc(session, pageContext) {
+  const instrumentName = getSelectedInstrument();
+  const params = new URLSearchParams({
+    instrument: instrumentName,
+    link: cleanText(pageContext.link),
+    artist: cleanText(pageContext.artist),
+    song: cleanText(pageContext.song),
+  });
+  const response = await fetch(`${API_BASE}/api/generalCifra?${params}`, {
+    headers: {
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+  });
+
+  if (response.status === 404) return null;
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.message || "Could not load existing song data.");
+  }
+
+  return normalizeScrapeDoc({ document: data });
+}
+
 function buildSongPayload(email, scrapedDoc = null) {
   const pageContext = state.pageContext;
   const instrumentName = getSelectedInstrument();
@@ -714,6 +764,7 @@ function buildSongPayload(email, scrapedDoc = null) {
   const embedVideos = parseVideoLinks(elements.videosInput.value);
   const progress = getProgressValue();
   const today = new Date().toISOString().split("T")[0];
+  const layoutSongCifra = scrapedDoc?.songCifra || "";
   const instruments = getEmptyInstrumentsMap();
   instruments[instrumentName] = true;
   const instrumentBlocks = {
@@ -732,6 +783,14 @@ function buildSongPayload(email, scrapedDoc = null) {
     link: mergedLink,
     progress,
     songCifra: scrapedDoc?.songCifra || "",
+    songTabs: scrapedDoc?.songTabs || "",
+    songChords: scrapedDoc?.songChords || "",
+    songLyrics: scrapedDoc?.songLyrics || "",
+    presentationLayouts:
+      scrapedDoc?.presentationLayouts ||
+      (layoutSongCifra.trim()
+        ? buildInitialPresentationLayouts(layoutSongCifra)
+        : undefined),
     tuning: mergedTuning,
   };
 
@@ -922,7 +981,15 @@ elements.saveButton.addEventListener("click", async () => {
   setNotice("Buscando dados da cifra...");
 
   try {
-    const scrapedDoc = await scrapeSong(session, freshPageContext);
+    let scrapedDoc = null;
+    try {
+      scrapedDoc = await fetchExistingSongDoc(session, freshPageContext);
+    } catch (lookupError) {
+      debugError("Existing song lookup failed", lookupError);
+    }
+    if (!scrapedDoc) {
+      scrapedDoc = await scrapeSong(session, freshPageContext);
+    }
     const payload = buildSongPayload(session.email, scrapedDoc);
     setNotice("Salvando cifra...");
     await saveSong(payload, session.accessToken);

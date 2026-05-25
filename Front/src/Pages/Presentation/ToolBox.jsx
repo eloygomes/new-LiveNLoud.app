@@ -29,6 +29,22 @@ function ToolBox({
   handleSaveCifra,
   handleDiscardDraft,
   startEditingCifra,
+  marksEditorOpen,
+  onToggleMarksEditor,
+  onToggleMarksVisibility,
+  markEntries,
+  onChangeMarkTitle,
+  onChangeMarkPosition,
+  activeLayoutLabel,
+  transposeSteps,
+  setTransposeSteps,
+  displayKey,
+  isTwoColumns,
+  setIsTwoColumns,
+  isExpandedCifra,
+  setIsExpandedCifra,
+  showProgressionMarkers,
+  setShowProgressionMarkers,
   isTouchLayout = false,
   touchFontSizeLabel,
   decreaseTouchFontSize,
@@ -52,7 +68,7 @@ function ToolBox({
   const [activeTouchPanel, setActiveTouchPanel] = useState(null);
 
   // dimensões aproximadas apenas para layout; não afetam o drag
-  const BOX_WIDTH = 180;
+  const BOX_WIDTH = 320;
 
   if (!toolBoxBtnStatus && !videoModalStatus && !chordModalStatus && !notesModalStatus) {
     return null;
@@ -110,10 +126,7 @@ function ToolBox({
             handle=".drag-handle"
             defaultPosition={{ x: -380, y: -40 }}
           >
-            <div className="min-h-[300px] min-w-[300px] resize overflow-auto">
-              <div className="drag-handle cursor-move select-none rounded-t-[14px] bg-gray-500 px-3 py-1 text-center text-[7pt] font-bold text-white">
-                Click and hold to drag
-              </div>
+            <div className="neuphormism-b min-h-[300px] min-w-[300px] resize overflow-hidden rounded-[16px] px-2 pt-2">
               <SongInstrumentNotes
                 instrumentName={instrumentSelected}
                 title={`${instrumentSelected} notes`}
@@ -124,6 +137,9 @@ function ToolBox({
                 isSaving={isSavingNotes}
                 autoFocus={false}
               />
+              <div className="drag-handle mx-[-8px] mt-2 bg-[#7f8490] px-3 py-1 text-center text-[7pt] font-bold text-white shadow-[inset_0_1px_2px_rgba(255,255,255,0.25)] cursor-move select-none">
+                Click and hold to drag
+              </div>
             </div>
           </DraggableComponent>
         </div>
@@ -176,6 +192,22 @@ function ToolBox({
               handleSaveCifra={handleSaveCifra}
               handleDiscardDraft={handleDiscardDraft}
               startEditingCifra={startEditingCifra}
+              marksEditorOpen={marksEditorOpen}
+              onToggleMarksEditor={onToggleMarksEditor}
+              onToggleMarksVisibility={onToggleMarksVisibility}
+              markEntries={markEntries}
+              onChangeMarkTitle={onChangeMarkTitle}
+              onChangeMarkPosition={onChangeMarkPosition}
+              activeLayoutLabel={activeLayoutLabel}
+              transposeSteps={transposeSteps}
+              setTransposeSteps={setTransposeSteps}
+              displayKey={displayKey}
+              isTwoColumns={isTwoColumns}
+              setIsTwoColumns={setIsTwoColumns}
+              isExpandedCifra={isExpandedCifra}
+              setIsExpandedCifra={setIsExpandedCifra}
+              showProgressionMarkers={showProgressionMarkers}
+              setShowProgressionMarkers={setShowProgressionMarkers}
               isTouchLayout
               touchFontSizeLabel={touchFontSizeLabel}
               decreaseTouchFontSize={decreaseTouchFontSize}
@@ -204,7 +236,7 @@ function ToolBox({
             handle=".drag-handle"
             defaultPosition={{ x: 0, y: 0 }}
           >
-            <div className="w-40 flex flex-col justify-between neuphormism-b p-2">
+            <div className="flex w-[20rem] max-w-[calc(100vw-2rem)] flex-col justify-between neuphormism-b p-2">
               <div className="border-b-2 border-gray-300 w-full flex flex-row justify-between py-2 drag-handle cursor-move select-none">
                 <h1 className="text-sm font-bold">ToolBox</h1>
                 <button
@@ -244,6 +276,22 @@ function ToolBox({
                 handleSaveCifra={handleSaveCifra}
                 handleDiscardDraft={handleDiscardDraft}
                 startEditingCifra={startEditingCifra}
+                marksEditorOpen={marksEditorOpen}
+                onToggleMarksEditor={onToggleMarksEditor}
+                onToggleMarksVisibility={onToggleMarksVisibility}
+                markEntries={markEntries}
+                onChangeMarkTitle={onChangeMarkTitle}
+                onChangeMarkPosition={onChangeMarkPosition}
+                activeLayoutLabel={activeLayoutLabel}
+                transposeSteps={transposeSteps}
+                setTransposeSteps={setTransposeSteps}
+                displayKey={displayKey}
+                isTwoColumns={isTwoColumns}
+                setIsTwoColumns={setIsTwoColumns}
+                isExpandedCifra={isExpandedCifra}
+                setIsExpandedCifra={setIsExpandedCifra}
+                showProgressionMarkers={showProgressionMarkers}
+                setShowProgressionMarkers={setShowProgressionMarkers}
                 touchFontSizeLabel={touchFontSizeLabel}
                 decreaseTouchFontSize={decreaseTouchFontSize}
                 increaseTouchFontSize={increaseTouchFontSize}

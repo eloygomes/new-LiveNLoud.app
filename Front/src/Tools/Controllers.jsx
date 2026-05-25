@@ -113,7 +113,11 @@ async function request(path, options = {}, retry = true) {
     throw createHttpError(response, responseData);
   }
 
-  return { data: responseData, status: response.status, headers: response.headers };
+  return {
+    data: responseData,
+    status: response.status,
+    headers: response.headers,
+  };
 }
 
 let refreshPromise = null;
@@ -126,7 +130,9 @@ function getJwtExpiryMs(token) {
     if (!payload) return 0;
 
     const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+    const json = atob(
+      normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="),
+    );
     const decoded = JSON.parse(json);
 
     return decoded?.exp ? decoded.exp * 1000 : 0;
@@ -137,19 +143,21 @@ function getJwtExpiryMs(token) {
 
 async function refreshAccessToken() {
   const refreshToken =
-    typeof window !== "undefined"
-      ? localStorage.getItem("refreshToken")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
 
   if (!refreshToken) {
     throw new Error("Refresh token not found.");
   }
 
-  const { data } = await request("/api/auth/refresh", {
-    method: "POST",
-    data: { refreshToken },
-    skipAuth: true,
-  }, false);
+  const { data } = await request(
+    "/api/auth/refresh",
+    {
+      method: "POST",
+      data: { refreshToken },
+      skipAuth: true,
+    },
+    false,
+  );
 
   if (!data?.accessToken) {
     throw new Error("Access token refresh failed.");
@@ -247,6 +255,29 @@ function normalizeInstrument(i) {
 const getUserEmail = () =>
   (typeof window !== "undefined" && localStorage.getItem("userEmail")) || null;
 
+function songMatchesTarget(song = {}, artist = "", title = "") {
+  return (
+    String(song.artist || "")
+      .trim()
+      .toLowerCase() ===
+      String(artist || "")
+        .trim()
+        .toLowerCase() &&
+    String(song.song || "")
+      .trim()
+      .toLowerCase() ===
+      String(title || "")
+        .trim()
+        .toLowerCase()
+  );
+}
+
+function findCachedSong(artist = "", title = "") {
+  return readCachedOfflineSongs().find((song) =>
+    songMatchesTarget(song, artist, title),
+  );
+}
+
 const syncStoredUserProfile = (profile = {}) => {
   if (typeof window === "undefined") return;
 
@@ -282,7 +313,9 @@ function readOfflineSyncQueue() {
   if (typeof window === "undefined") return [];
 
   try {
-    const parsed = JSON.parse(localStorage.getItem(OFFLINE_SYNC_QUEUE_KEY) || "[]");
+    const parsed = JSON.parse(
+      localStorage.getItem(OFFLINE_SYNC_QUEUE_KEY) || "[]",
+    );
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -317,7 +350,10 @@ function isOfflineContentEnabled() {
 
 function setOfflineReauthRequired(required) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(OFFLINE_REAUTH_REQUIRED_KEY, required ? "true" : "false");
+  localStorage.setItem(
+    OFFLINE_REAUTH_REQUIRED_KEY,
+    required ? "true" : "false",
+  );
 }
 
 export function markOfflineReauthRequired(required = true) {
@@ -418,7 +454,9 @@ function mergeOfflineSongSnapshot(incomingSong = {}, cachedSong = null) {
     offlineEnabled: Boolean(cachedSong.offlineEnabled),
     requiresSync: Boolean(cachedSong.requiresSync),
     lastOfflineSyncTime:
-      cachedSong.lastOfflineSyncTime || incomingSong.lastOfflineSyncTime || null,
+      cachedSong.lastOfflineSyncTime ||
+      incomingSong.lastOfflineSyncTime ||
+      null,
   };
 }
 
@@ -470,13 +508,23 @@ async function backfillOfflineSongDetails(email, songs = []) {
   const nextSongs = cachedSongs.map((cachedSong) => {
     const updatedSong = mergedDetailedSongs.find(
       (entry) =>
-        String(entry.artist || "").trim().toLowerCase() ===
-          String(cachedSong.artist || "").trim().toLowerCase() &&
-        String(entry.song || "").trim().toLowerCase() ===
-          String(cachedSong.song || "").trim().toLowerCase(),
+        String(entry.artist || "")
+          .trim()
+          .toLowerCase() ===
+          String(cachedSong.artist || "")
+            .trim()
+            .toLowerCase() &&
+        String(entry.song || "")
+          .trim()
+          .toLowerCase() ===
+          String(cachedSong.song || "")
+            .trim()
+            .toLowerCase(),
     );
 
-    return updatedSong ? mergeOfflineSongSnapshot(updatedSong, cachedSong) : cachedSong;
+    return updatedSong
+      ? mergeOfflineSongSnapshot(updatedSong, cachedSong)
+      : cachedSong;
   });
 
   writeCachedOfflineSongs(nextSongs);
@@ -524,12 +572,8 @@ export const fetchAllSongData = async (email, artist, song) => {
   try {
     const { data } = await fetchApi.post(url, { email, artist, song });
     const cachedSongs = readCachedOfflineSongs();
-    const targetIndex = cachedSongs.findIndex(
-      (entry) =>
-        String(entry.artist || "").trim().toLowerCase() ===
-          String(artist || "").trim().toLowerCase() &&
-        String(entry.song || "").trim().toLowerCase() ===
-          String(song || "").trim().toLowerCase(),
+    const targetIndex = cachedSongs.findIndex((entry) =>
+      songMatchesTarget(entry, artist, song),
     );
     if (targetIndex >= 0) {
       cachedSongs[targetIndex] = { ...cachedSongs[targetIndex], ...data };
@@ -539,14 +583,8 @@ export const fetchAllSongData = async (email, artist, song) => {
     return JSON.stringify(data);
   } catch (error) {
     console.error(`Error fetching song data from ${API_BASE + url}`, error);
-    const cachedSong = readCachedOfflineSongs().find(
-      (entry) =>
-        String(entry.artist || "").trim().toLowerCase() ===
-          String(artist || "").trim().toLowerCase() &&
-        String(entry.song || "").trim().toLowerCase() ===
-          String(song || "").trim().toLowerCase(),
-    );
-    if (cachedSong?.offlineEnabled) {
+    const cachedSong = findCachedSong(artist, song);
+    if (cachedSong) {
       setOfflineModeEnabled(true);
       return JSON.stringify(cachedSong);
     }
@@ -578,12 +616,8 @@ export const allDataFromOneSong = async (artist, song) => {
       song,
     });
     const cachedSongs = readCachedOfflineSongs();
-    const targetIndex = cachedSongs.findIndex(
-      (entry) =>
-        String(entry.artist || "").trim().toLowerCase() ===
-          String(artist || "").trim().toLowerCase() &&
-        String(entry.song || "").trim().toLowerCase() ===
-          String(song || "").trim().toLowerCase(),
+    const targetIndex = cachedSongs.findIndex((entry) =>
+      songMatchesTarget(entry, artist, song),
     );
     if (targetIndex >= 0) {
       cachedSongs[targetIndex] = { ...cachedSongs[targetIndex], ...data };
@@ -593,14 +627,8 @@ export const allDataFromOneSong = async (artist, song) => {
     return JSON.stringify(data);
   } catch (error) {
     console.error(`Error fetching song data from ${API_BASE + url}`, error);
-    const cachedSong = readCachedOfflineSongs().find(
-      (entry) =>
-        String(entry.artist || "").trim().toLowerCase() ===
-          String(artist || "").trim().toLowerCase() &&
-        String(entry.song || "").trim().toLowerCase() ===
-          String(song || "").trim().toLowerCase(),
-    );
-    if (cachedSong?.offlineEnabled) {
+    const cachedSong = findCachedSong(artist, song);
+    if (cachedSong) {
       setOfflineModeEnabled(true);
       return JSON.stringify(cachedSong);
     }
@@ -852,7 +880,10 @@ export const deleteUserAccountOnDb = async (password) => {
   }
 };
 
-export const deleteUserAccount = async ({ password, email = getUserEmail() }) => {
+export const deleteUserAccount = async ({
+  password,
+  email = getUserEmail(),
+}) => {
   const url = "/api/deleteUserAccount";
 
   try {
@@ -909,7 +940,9 @@ export async function login(userEmail, userPassword) {
       localStorage.setItem("refreshToken", refreshToken);
     }
 
-    const persistedQueue = pruneLocalOnlyOfflineMutations(readOfflineSyncQueue());
+    const persistedQueue = pruneLocalOnlyOfflineMutations(
+      readOfflineSyncQueue(),
+    );
     writeOfflineSyncQueue(persistedQueue);
 
     if (persistedQueue.length) {
@@ -931,7 +964,11 @@ export async function tryOfflineLogin(userEmail = "") {
   }
 
   const normalizedEmail =
-    String(userEmail || "").trim().toLowerCase() || getUserEmail() || "";
+    String(userEmail || "")
+      .trim()
+      .toLowerCase() ||
+    getUserEmail() ||
+    "";
   const allowed = canOfflineLoginForEmail(normalizedEmail);
 
   if (!allowed || !normalizedEmail) {
@@ -960,7 +997,9 @@ export async function setOfflineContentAvailability(enabled) {
     }));
 
     writeCachedOfflineSongs(nextSongs);
-    writeOfflineSyncQueue(pruneLocalOnlyOfflineMutations(readOfflineSyncQueue()));
+    writeOfflineSyncQueue(
+      pruneLocalOnlyOfflineMutations(readOfflineSyncQueue()),
+    );
     setOfflineContentEnabled(false);
     setOfflineModeEnabled(false);
     setOfflineReauthRequired(false);
@@ -974,13 +1013,17 @@ export async function setOfflineContentAvailability(enabled) {
 
   let responseData = null;
   try {
-    const { data } = await fetchApi.get(`/api/alldata/${encodeURIComponent(email)}`);
+    const { data } = await fetchApi.get(
+      `/api/alldata/${encodeURIComponent(email)}`,
+    );
     responseData = data;
     setOfflineModeEnabled(false);
   } catch (error) {
     responseData = { userdata: readCachedOfflineSongs() };
     if (!responseData.userdata.length) {
-      throw new Error("Unable to download offline content without a connection.");
+      throw new Error(
+        "Unable to download offline content without a connection.",
+      );
     }
     setOfflineModeEnabled(true);
   }
@@ -1043,7 +1086,9 @@ export async function fetchNotifications() {
 }
 
 export async function markNotificationAsRead(notificationId) {
-  const { data } = await fetchApi.put(`/api/notifications/${notificationId}/read`);
+  const { data } = await fetchApi.put(
+    `/api/notifications/${notificationId}/read`,
+  );
   return data;
 }
 
@@ -1071,9 +1116,12 @@ export async function createInvitation({ identifier, message = "" }) {
 }
 
 export async function respondToInvitation(invitationId, status) {
-  const { data } = await fetchApi.put(`/api/invitations/${invitationId}/respond`, {
-    status,
-  });
+  const { data } = await fetchApi.put(
+    `/api/invitations/${invitationId}/respond`,
+    {
+      status,
+    },
+  );
   return data;
 }
 
@@ -1100,7 +1148,10 @@ export async function createCalendarEvent(payload) {
 }
 
 export async function updateCalendarEvent(eventId, payload) {
-  const { data } = await fetchApi.put(`/api/calendar/events/${eventId}`, payload);
+  const { data } = await fetchApi.put(
+    `/api/calendar/events/${eventId}`,
+    payload,
+  );
   return data;
 }
 
@@ -1110,9 +1161,12 @@ export async function deleteCalendarEvent(eventId) {
 }
 
 export async function respondToCalendarEvent(eventId, status) {
-  const { data } = await fetchApi.put(`/api/calendar/events/${eventId}/respond`, {
-    status,
-  });
+  const { data } = await fetchApi.put(
+    `/api/calendar/events/${eventId}/respond`,
+    {
+      status,
+    },
+  );
   return data;
 }
 
@@ -1278,19 +1332,27 @@ export async function fetchUserSongs() {
       .map((song) => {
         const cachedSong = cachedSongs.find(
           (entry) =>
-            String(entry.artist || "").trim().toLowerCase() ===
-              String(song.artist || "").trim().toLowerCase() &&
-            String(entry.song || "").trim().toLowerCase() ===
-              String(song.song || "").trim().toLowerCase(),
+            String(entry.artist || "")
+              .trim()
+              .toLowerCase() ===
+              String(song.artist || "")
+                .trim()
+                .toLowerCase() &&
+            String(entry.song || "")
+              .trim()
+              .toLowerCase() ===
+              String(song.song || "")
+                .trim()
+                .toLowerCase(),
         );
 
         return mergeOfflineSongSnapshot(song, cachedSong);
       })
       .filter(
-      (item) =>
-        item.song?.trim() !== "" &&
-        item.artist?.trim() !== "" &&
-        item.progressBar !== undefined,
+        (item) =>
+          item.song?.trim() !== "" &&
+          item.artist?.trim() !== "" &&
+          item.progressBar !== undefined,
       );
     writeCachedOfflineSongs(songs);
     setOfflineModeEnabled(false);
@@ -1360,10 +1422,18 @@ export async function syncOfflineQueue() {
       } else {
         const cachedSong = readCachedOfflineSongs().find(
           (entry) =>
-            String(entry.artist || "").trim().toLowerCase() ===
-              String(mutation.payload?.artist || "").trim().toLowerCase() &&
-            String(entry.song || "").trim().toLowerCase() ===
-              String(mutation.payload?.song || "").trim().toLowerCase(),
+            String(entry.artist || "")
+              .trim()
+              .toLowerCase() ===
+              String(mutation.payload?.artist || "")
+                .trim()
+                .toLowerCase() &&
+            String(entry.song || "")
+              .trim()
+              .toLowerCase() ===
+              String(mutation.payload?.song || "")
+                .trim()
+                .toLowerCase(),
         );
 
         await fetchApi.post("/api/newsong", {
@@ -1431,15 +1501,58 @@ export async function createNewSongOnServer({
     voice: instrumentName === "voice",
   };
 
-  const block = (name) => ({
-    active: `${flags[name] ? (instrumentFields.active ?? "") : ""}`,
-    capo: `${flags[name] ? (instrumentFields.capo ?? "") : ""}`,
-    lastPlay: `${flags[name] ? (instrumentFields.lastPlay ?? "") : ""}`,
-    link: `${flags[name] ? (instrumentFields.link ?? "") : ""}`,
-    progress: `${flags[name] ? (instrumentFields.progress ?? "") : ""}`,
-    songCifra: `${flags[name] ? (instrumentFields.songCifra ?? "") : ""}`,
-    tuning: `${flags[name] ? (instrumentFields.tuning ?? "") : ""}`,
+  const buildInitialPresentationLayouts = (songCifra = "") => ({
+    default: {
+      songCifra,
+      fontSizeStep: 0,
+      twoColumns: false,
+      showProgressionMarkers: false,
+      progressionMarkOverrides: {},
+    },
+    expanded: {
+      songCifra,
+      fontSizeStep: 0,
+      twoColumns: true,
+      showProgressionMarkers: false,
+      progressionMarkOverrides: {},
+    },
   });
+
+  const block = (name) => {
+    if (!flags[name]) {
+      return {
+        active: "",
+        capo: "",
+        lastPlay: "",
+        link: "",
+        progress: "",
+        songCifra: "",
+        songTabs: "",
+        songChords: "",
+        songLyrics: "",
+        tuning: "",
+      };
+    }
+
+    const songCifraValue = instrumentFields.songCifra ?? "";
+    return {
+      active: instrumentFields.active ?? true,
+      capo: instrumentFields.capo ?? "",
+      lastPlay: instrumentFields.lastPlay ?? "",
+      link: instrumentFields.link ?? "",
+      progress: instrumentFields.progress ?? "",
+      songCifra: songCifraValue,
+      songTabs: instrumentFields.songTabs ?? "",
+      songChords: instrumentFields.songChords ?? "",
+      songLyrics: instrumentFields.songLyrics ?? "",
+      tuning: instrumentFields.tuning ?? "",
+      presentationLayouts:
+        instrumentFields.presentationLayouts ||
+        (String(songCifraValue || "").trim()
+          ? buildInitialPresentationLayouts(songCifraValue)
+          : undefined),
+    };
+  };
 
   const userdata = {
     song: songName,
@@ -1494,11 +1607,15 @@ export async function uploadProfileImage(file, opts = {}) {
   formData.append("profileImage", file);
   formData.append("email", email);
 
-  const response = await fetchApi.post(`${API_BASE}/api/uploadProfileImage`, formData, {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+  const response = await fetchApi.post(
+    `${API_BASE}/api/uploadProfileImage`,
+    formData,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+      },
     },
-  });
+  );
   if (typeof onProgress === "function") onProgress(100);
   return response;
 }
@@ -1508,13 +1625,13 @@ export async function uploadProfileImage(file, opts = {}) {
    ========================= */
 
 /** Checa se a cifra já existe no banco geral (usa link normalizado). */
-export async function checkCifraExists({ instrumentName, link }) {
+export async function checkCifraExists({ instrumentName, link, artist, song }) {
   const linkNorm = normalizeLink(link);
   console.log("[checkCifraExists] →", { instrumentName, link, linkNorm });
 
   try {
     const res = await fetchApi.get("/api/generalCifra", {
-      params: { instrument: instrumentName, link: linkNorm },
+      params: { instrument: instrumentName, link, artist, song },
     });
     console.log("[checkCifraExists] ✔ encontrado:", res.data);
     return { exists: true, data: res.data };
