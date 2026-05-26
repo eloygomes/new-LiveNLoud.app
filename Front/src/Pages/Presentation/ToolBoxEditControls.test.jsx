@@ -1,0 +1,93 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import ToolBoxEditControls from "./ToolBoxEditControls";
+
+const baseProps = {
+  isEditing: false,
+  isSavingCifra: false,
+  hasDraftChanges: false,
+  songCifraData: "C G\nAmazing grace",
+  handleSaveCifra: vi.fn(),
+  handleDiscardDraft: vi.fn(),
+  startEditingCifra: vi.fn(),
+  marksEditorOpen: false,
+  onToggleMarksEditor: vi.fn(),
+  onToggleMarksVisibility: vi.fn(),
+  markEntries: [],
+  onChangeMarkTitle: vi.fn(),
+  onChangeMarkPosition: vi.fn(),
+  activeLayoutLabel: "Expanded Layout",
+  touchFontSizeLabel: "100%",
+  showProgressionMarkers: false,
+  progressionBadgeSide: "right",
+  onChangeProgressionBadgeSide: vi.fn(),
+  onDecreaseFontSize: vi.fn(),
+  onIncreaseFontSize: vi.fn(),
+};
+
+describe("ToolBoxEditControls", () => {
+  it("renders the updated layout header and font size controls", () => {
+    render(<ToolBoxEditControls {...baseProps} />);
+
+    expect(screen.queryByText("Expanded Layout")).not.toBeInTheDocument();
+    expect(screen.queryByText("Active layout")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Decrease font size")).toBeInTheDocument();
+    expect(screen.getByLabelText("Increase font size")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.queryByText("Columns")).not.toBeInTheDocument();
+    expect(screen.queryByText("Detected blocks")).not.toBeInTheDocument();
+    expect(screen.getByText("Progression marks")).toBeInTheDocument();
+    expect(screen.getByText("Mark tag side")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Right" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Off" })).toBeInTheDocument();
+    expect(screen.queryByText("Show Marks")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Edit cifra")).not.toBeInTheDocument();
+  });
+
+  it("wires font size controls to the provided callbacks", () => {
+    const onDecreaseFontSize = vi.fn();
+    const onIncreaseFontSize = vi.fn();
+
+    render(
+      <ToolBoxEditControls
+        {...baseProps}
+        onDecreaseFontSize={onDecreaseFontSize}
+        onIncreaseFontSize={onIncreaseFontSize}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText("Decrease font size"));
+    fireEvent.click(screen.getByLabelText("Increase font size"));
+
+    expect(onDecreaseFontSize).toHaveBeenCalledTimes(1);
+    expect(onIncreaseFontSize).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles the mark badge side from the editor controls", () => {
+    const onChangeProgressionBadgeSide = vi.fn();
+
+    render(
+      <ToolBoxEditControls
+        {...baseProps}
+        onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Right" }));
+
+    expect(onChangeProgressionBadgeSide).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the marks empty state when the editor opens without detected blocks", () => {
+    render(
+      <ToolBoxEditControls
+        {...baseProps}
+        marksEditorOpen
+      />,
+    );
+
+    expect(
+      screen.getByText("No marks detected for the current cifra."),
+    ).toBeInTheDocument();
+  });
+});

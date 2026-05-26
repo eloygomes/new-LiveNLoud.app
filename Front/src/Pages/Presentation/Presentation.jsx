@@ -1,12 +1,18 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { FaGear, FaPenToSquare } from "react-icons/fa6";
+import {
+  FaDownLeftAndUpRightToCenter,
+  FaGear,
+  FaPenToSquare,
+  FaUpRightAndDownLeftFromCenter,
+} from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
 import ToolBox from "./ToolBox";
 import {
   allDataFromOneSong,
   fetchUserSongs,
+  loadDashboardVisibleSongs,
   loadSelectedSetlists,
   updateLastPlayed,
   updateInstrumentNotes,
@@ -28,109 +34,15 @@ import {
   registerScrollViewport,
   unregisterScrollViewport,
 } from "./presentationScrollController";
-import { useEditor, EditorContent } from "@tiptap/react";
-import { Extension } from "@tiptap/core";
-import { Plugin } from "@tiptap/pm/state";
-import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
 import ChordSheetJS from "chordsheetjs";
 import GuitarProViewerModal from "../../components/GuitarPro/GuitarProViewerModal";
 import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
-
-const escapeHtml = (value = "") =>
-  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const plainTextToHtml = (text = "") =>
-  text
-    .split("\n")
-    .map((line) => {
-      const displayLine = line.trimStart();
-      if (!displayLine.length) {
-        return "<p>&nbsp;</p>";
-      }
-      const preservedSpaces = escapeHtml(displayLine)
-        .replace(/ /g, "&nbsp;")
-        .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
-      return `<p>${preservedSpaces}</p>`;
-    })
-    .join("");
-
-const editorNonChordWords = new Set([
-  "Coração",
-  "Dedilhado",
-  "Final",
-  "Estrofes",
-  "Frase",
-  "Casta_nhos",
-  "Escala",
-  "coração",
-  "dedilhado",
-  "final",
-  "estrofes",
-  "frase",
-  "casta_nhos",
-  "escala",
-  "Fontes",
-]);
-
-const editorChordRegexString =
-  "([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?(?:\\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?)?)";
-const editorChordValidationRegex = new RegExp(
-  "^" + editorChordRegexString + "$",
-);
-const editorChordPattern = new RegExp(
-  "(\\b|\\s|[-:])" + editorChordRegexString + "(?=\\s|$)",
-  "g",
-);
-
-function isEditorChord(value) {
-  return (
-    !editorNonChordWords.has(value) && editorChordValidationRegex.test(value)
-  );
-}
-
-const ChordHighlight = Extension.create({
-  name: "chordHighlight",
-
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        props: {
-          decorations(state) {
-            const decorations = [];
-
-            state.doc.descendants((node, position) => {
-              if (!node.isText || !node.text) return;
-
-              editorChordPattern.lastIndex = 0;
-              let match;
-
-              while ((match = editorChordPattern.exec(node.text)) !== null) {
-                const chord = match[2];
-                if (!isEditorChord(chord)) continue;
-
-                const chordStart = match.index + match[0].indexOf(chord);
-                decorations.push(
-                  Decoration.inline(
-                    position + chordStart,
-                    position + chordStart + chord.length,
-                    {
-                      class: "notespresentation presentation-editor-chord",
-                      "data-chord": chord,
-                    },
-                  ),
-                );
-              }
-            });
-
-            return DecorationSet.create(state.doc, decorations);
-          },
-        },
-      }),
-    ];
-  },
-});
+import {
+  buildInstrumentPresentationLayouts,
+  getPresentationLayoutSettingsSnapshot,
+  normalizePresentationLayoutVariant,
+  toPresentationLayoutPayload,
+} from "./presentationLayoutHelpers";
 
 const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
@@ -145,6 +57,24 @@ const PRESENTATION_INSTRUMENTS = [
   { key: "voice", label: "Voice" },
 ];
 const PRESENTATION_INSTRUMENT_MAP = { keyboard: "keys", key: "keys" };
+
+const safeDecodeURIComponent = (value = "") => {
+  try {
+    return decodeURIComponent(value || "");
+  } catch {
+    return value || "";
+  }
+};
+
+const normalizePresentationInstrumentValue = (value = "") => {
+  const normalized = PRESENTATION_INSTRUMENT_MAP[value] || value || "keys";
+  return PRESENTATION_INSTRUMENTS.some(
+    (instrument) => instrument.key === normalized,
+  )
+    ? normalized
+    : "keys";
+};
+
 const PROGRESSION_MARKER_COLORS = [
   "#d4a017",
   "#3d7eff",
@@ -159,6 +89,100 @@ const getProgressionMarkerTitle = (block = "", progressionIndex = null) => {
   if (sectionMatch?.[1]) return sectionMatch[1];
   if (progressionIndex == null) return "";
   return `Part ${progressionIndex}`;
+};
+
+const getColumnLabelFromIndex = (value = 1) => {
+  let index = Math.max(1, Number.parseInt(value, 10) || 1);
+  let label = "";
+
+  while (index > 0) {
+    index -= 1;
+    label = String.fromCharCode(65 + (index % 26)) + label;
+    index = Math.floor(index / 26);
+  }
+
+  return label;
+};
+
+const MAX_EXPANDED_COLUMN_LINE_UNITS = 32;
+
+const estimateHtmlLineUnits = (html = "") => {
+  const text = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/pre>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ");
+
+  return Math.max(
+    1,
+    text
+      .split("\n")
+      .map((line) => line.trimEnd())
+      .filter((line) => line.length > 0).length,
+  );
+};
+
+const splitHtmlBlockByPreElements = (html = "") => {
+  const preMatches = Array.from(html.matchAll(/<pre\b[\s\S]*?<\/pre>/gi)).map(
+    (match) => match[0],
+  );
+
+  if (preMatches.length <= 1) {
+    return [html];
+  }
+
+  const wrapperMatch = html.match(/^<div\b([^>]*)>/i);
+  const wrapperAttributes = wrapperMatch?.[1] || "";
+
+  return preMatches.map(
+    (preHtml, index) =>
+      `<div${wrapperAttributes} data-column-fragment="${index + 1}">\n${preHtml}\n</div>`,
+  );
+};
+
+const splitBlocksIntoColumnChunks = (
+  blocks = [],
+  maxLineUnits = MAX_EXPANDED_COLUMN_LINE_UNITS,
+) => {
+  const chunks = [];
+  let currentChunk = [];
+  let currentLineUnits = 0;
+
+  blocks.forEach((entry) => {
+    splitHtmlBlockByPreElements(entry.block).forEach((fragmentHtml, index) => {
+      const fragment = {
+        ...entry,
+        block:
+          index === 0 && fragmentHtml === entry.block
+            ? entry.block
+            : fragmentHtml,
+        blockKey:
+          index === 0
+            ? entry.blockKey
+            : `${entry.blockKey}-fragment-${index + 1}`,
+      };
+      const lineUnits = estimateHtmlLineUnits(fragment.block);
+
+      if (
+        currentChunk.length &&
+        currentLineUnits + lineUnits > maxLineUnits
+      ) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+        currentLineUnits = 0;
+      }
+
+      currentChunk.push(fragment);
+      currentLineUnits += lineUnits;
+    });
+  });
+
+  if (currentChunk.length) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks.length ? chunks : [blocks];
 };
 
 const buildProgressionBlocks = (htmlBlocks, { hideTabs = false } = {}) => {
@@ -197,120 +221,6 @@ const buildProgressionBlocks = (htmlBlocks, { hideTabs = false } = {}) => {
     return blocksToRender;
   }, []);
 };
-
-const clampPresentationFontSizeStep = (value = 0) =>
-  Math.max(-3, Math.min(4, Number.isFinite(value) ? value : 0));
-
-const normalizeProgressionMarkOverrides = (value) => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
-  }
-
-  return Object.entries(value).reduce((nextValue, [blockKey, override]) => {
-    if (!override || typeof override !== "object" || Array.isArray(override)) {
-      return nextValue;
-    }
-
-    nextValue[blockKey] = {
-      ...(override.position !== undefined ? { position: override.position } : {}),
-      ...(typeof override.title === "string" ? { title: override.title } : {}),
-    };
-
-    return nextValue;
-  }, {});
-};
-
-const normalizePresentationLayoutVariant = (
-  layout = {},
-  { fallbackSongCifra = "", defaultTwoColumns = false } = {},
-) => ({
-  songCifra:
-    typeof layout?.songCifra === "string" ? layout.songCifra : fallbackSongCifra,
-  fontSizeStep: clampPresentationFontSizeStep(layout?.fontSizeStep),
-  twoColumns:
-    typeof layout?.twoColumns === "boolean"
-      ? layout.twoColumns
-      : defaultTwoColumns,
-  showProgressionMarkers:
-    typeof layout?.showProgressionMarkers === "boolean"
-      ? layout.showProgressionMarkers
-      : false,
-  progressionMarkOverrides: normalizeProgressionMarkOverrides(
-    layout?.progressionMarkOverrides,
-  ),
-});
-
-const buildInstrumentPresentationLayouts = (instrumentData = {}) => {
-  const storedLayouts =
-    instrumentData?.presentationLayouts &&
-    typeof instrumentData.presentationLayouts === "object" &&
-    !Array.isArray(instrumentData.presentationLayouts)
-      ? instrumentData.presentationLayouts
-      : {};
-  const baseSongCifra =
-    typeof instrumentData?.songCifra === "string" ? instrumentData.songCifra : "";
-
-  return {
-    default: {
-      ...normalizePresentationLayoutVariant(storedLayouts.default, {
-        fallbackSongCifra: baseSongCifra,
-        defaultTwoColumns: false,
-      }),
-      twoColumns: false,
-    },
-    expanded: {
-      ...normalizePresentationLayoutVariant(storedLayouts.expanded, {
-        fallbackSongCifra: baseSongCifra,
-        defaultTwoColumns: true,
-      }),
-      twoColumns: true,
-    },
-  };
-};
-
-const toPresentationLayoutPayload = (layouts = {}) => ({
-  default: {
-    ...normalizePresentationLayoutVariant(layouts.default, {
-      fallbackSongCifra: "",
-      defaultTwoColumns: false,
-    }),
-    twoColumns: false,
-  },
-  expanded: {
-    ...normalizePresentationLayoutVariant(layouts.expanded, {
-      fallbackSongCifra: "",
-      defaultTwoColumns: true,
-    }),
-    twoColumns: true,
-  },
-});
-
-const getPresentationLayoutSettingsSnapshot = (layouts = {}) =>
-  JSON.stringify({
-    default: {
-      fontSizeStep: layouts.default?.fontSizeStep ?? 0,
-      twoColumns: Boolean(layouts.default?.twoColumns),
-      showProgressionMarkers: Boolean(layouts.default?.showProgressionMarkers),
-      progressionMarkOverrides: layouts.default?.progressionMarkOverrides || {},
-    },
-    expanded: {
-      fontSizeStep: layouts.expanded?.fontSizeStep ?? 0,
-      twoColumns: Boolean(layouts.expanded?.twoColumns),
-      showProgressionMarkers: Boolean(layouts.expanded?.showProgressionMarkers),
-      progressionMarkOverrides: layouts.expanded?.progressionMarkOverrides || {},
-    },
-  });
-
-const hidePresentationLayoutMarkers = (layouts = {}) => ({
-  default: {
-    ...(layouts.default || {}),
-    showProgressionMarkers: false,
-  },
-  expanded: {
-    ...(layouts.expanded || {}),
-    showProgressionMarkers: false,
-  },
-});
 
 const getPresentationLayoutsStorageKey = ({
   artist = "",
@@ -375,6 +285,22 @@ function Presentation() {
   const navigate = useNavigate();
   const { artist: routeArtist, song: routeSong, instrument: routeInstrument } =
     useParams();
+  const decodedRouteArtist = useMemo(
+    () => safeDecodeURIComponent(routeArtist),
+    [routeArtist],
+  );
+  const decodedRouteSong = useMemo(
+    () => safeDecodeURIComponent(routeSong),
+    [routeSong],
+  );
+  const decodedRouteInstrument = useMemo(
+    () =>
+      normalizePresentationInstrumentValue(
+        safeDecodeURIComponent(routeInstrument || "keys"),
+      ),
+    [routeInstrument],
+  );
+  const presentationRouteKey = `${decodedRouteArtist}::${decodedRouteSong}::${decodedRouteInstrument}`;
   const [toolBoxBtnStatus, setToolBoxBtnStatus] = useState(false);
   const [artistFromURL, setArtistFromURL] = useState("");
   const [songFromURL, setSongFromURL] = useState("");
@@ -395,6 +321,7 @@ function Presentation() {
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [setlistSongs, setSetlistSongs] = useState([]);
+  const [isRouteSongLoading, setIsRouteSongLoading] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
     title: "",
@@ -408,6 +335,14 @@ function Presentation() {
   ] = useState({});
   const presentationContentRef = useRef(null);
   const tooltipHideTimeoutRef = useRef(null);
+  const editOriginalCifraRef = useRef("");
+
+  const clearTooltipHideTimeout = useCallback(() => {
+    if (tooltipHideTimeoutRef.current) {
+      window.clearTimeout(tooltipHideTimeoutRef.current);
+      tooltipHideTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     const bodyOverflow = document.body.style.overflow;
@@ -477,6 +412,8 @@ function Presentation() {
   const showProgressionMarkers = Boolean(
     activePresentationLayout?.showProgressionMarkers,
   );
+  const progressionBadgeSide =
+    activePresentationLayout?.progressionBadgeSide === "left" ? "left" : "right";
   const progressionMarkOverrides =
     activePresentationLayout?.progressionMarkOverrides || {};
   const touchFontSizeStep = activePresentationLayout?.fontSizeStep ?? 0;
@@ -488,12 +425,13 @@ function Presentation() {
     () => normalizeCifra(songCifraData),
     [songCifraData, normalizeCifra],
   );
+  const editableSongCifra = normalizedSongCifra;
 
   useEffect(() => {
     if (!isEditing) {
-      setDraftCifra(normalizedSongCifra);
+      setDraftCifra(editableSongCifra);
     }
-  }, [normalizedSongCifra, isEditing]);
+  }, [editableSongCifra, isEditing]);
 
   const previousActiveLayoutVariantRef = useRef(activeLayoutVariant);
 
@@ -501,9 +439,9 @@ function Presentation() {
     if (previousActiveLayoutVariantRef.current === activeLayoutVariant) return;
 
     previousActiveLayoutVariantRef.current = activeLayoutVariant;
-    setDraftCifra(normalizedSongCifra);
+    setDraftCifra(editableSongCifra);
     setSaveError("");
-  }, [activeLayoutVariant, normalizedSongCifra]);
+  }, [activeLayoutVariant, editableSongCifra]);
 
   // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
   const contentSelected = useMemo(() => {
@@ -557,27 +495,77 @@ function Presentation() {
   );
 
   const normalizePresentationInstrument = useCallback((value = "") => {
-    const normalized = PRESENTATION_INSTRUMENT_MAP[value] || value || "keys";
-    return PRESENTATION_INSTRUMENTS.some(
-      (instrument) => instrument.key === normalized,
-    )
-      ? normalized
-      : "keys";
+    return normalizePresentationInstrumentValue(value);
   }, []);
+
+  const resetTransientPresentationState = useCallback(() => {
+    clearTooltipHideTimeout();
+    setActiveChordTooltip(null);
+    setToolBoxBtnStatus(false);
+    setNotesModalStatus(false);
+    setIsVideoModalOpen(false);
+    setIsTouchVideoActive(false);
+    setIsTouchVideoMenuOpen(false);
+    setGuitarProViewerOpen(false);
+    setSelectedGuitarProFile(null);
+    setIsEditing(false);
+    setSaveError("");
+    setMarksEditorOpen(false);
+    presentationContentRef.current?.scrollTo?.({ top: 0, left: 0 });
+  }, [clearTooltipHideTimeout]);
+
+  const navigatePresentationPath = useCallback(
+    (path) => {
+      resetTransientPresentationState();
+
+      if (
+        document.fullscreenElement &&
+        typeof document.exitFullscreen === "function"
+      ) {
+        try {
+          document.exitFullscreen();
+        } catch (error) {
+          console.warn("Failed to exit fullscreen before navigation:", error);
+        }
+      }
+
+      if (window.location.pathname === path) {
+        setIsRouteSongLoading(false);
+        return;
+      }
+
+      navigate(path);
+    },
+    [navigate, resetTransientPresentationState],
+  );
+
+  useEffect(() => {
+    resetTransientPresentationState();
+  }, [presentationRouteKey, resetTransientPresentationState]);
 
   const goToInstrument = useCallback(
     (instrumentKey) => {
       if (!instrumentKey) return;
 
-      navigate(
+      const nextInstrument = normalizePresentationInstrumentValue(instrumentKey);
+      setIsRouteSongLoading(true);
+      setInstrumentSelected(nextInstrument);
+
+      navigatePresentationPath(
         `/presentation/${encodeURIComponent(
-          artistFromURL || "",
-        )}/${encodeURIComponent(songFromURL || "")}/${encodeURIComponent(
-          instrumentKey,
+          decodedRouteArtist || artistFromURL || "",
+        )}/${encodeURIComponent(decodedRouteSong || songFromURL || "")}/${encodeURIComponent(
+          nextInstrument,
         )}`,
       );
     },
-    [artistFromURL, navigate, songFromURL],
+    [
+      artistFromURL,
+      decodedRouteArtist,
+      decodedRouteSong,
+      navigatePresentationPath,
+      songFromURL,
+    ],
   );
 
   const goToEditSong = useCallback(() => {
@@ -585,20 +573,22 @@ function Presentation() {
     localStorage.setItem("artist", artistFromURL || "");
 
     navigate(
-      `/editsong/${encodeURIComponent(artistFromURL || "")}/${encodeURIComponent(
-        songFromURL || "",
-      )}`,
+      `/editsong/${encodeURIComponent(
+        decodedRouteArtist || artistFromURL || "",
+      )}/${encodeURIComponent(decodedRouteSong || songFromURL || "")}`,
     );
-  }, [artistFromURL, navigate, songFromURL]);
+  }, [artistFromURL, decodedRouteArtist, decodedRouteSong, navigate, songFromURL]);
 
   const startEditingCifra = () => {
+    editOriginalCifraRef.current = editableSongCifra;
     setSaveError("");
     setIsEditing(true);
-    setDraftCifra(normalizedSongCifra);
+    setDraftCifra(editableSongCifra);
+    setActiveShowProgressionMarkers(true);
   };
 
   const handleDiscardDraft = () => {
-    setDraftCifra(normalizedSongCifra);
+    setDraftCifra(editOriginalCifraRef.current || editableSongCifra);
     setIsEditing(false);
     setSaveError("");
   };
@@ -614,7 +604,9 @@ function Presentation() {
   const [isTouchVideoMenuOpen, setIsTouchVideoMenuOpen] = useState(false);
   const [notesModalStatus, setNotesModalStatus] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [resizingProgressionWidths, setResizingProgressionWidths] = useState({});
   const liveModeRootRef = useRef(null);
+  const draggedProgressionGroupKeyRef = useRef("");
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth < 768;
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
@@ -653,8 +645,12 @@ function Presentation() {
   }, [guitarProFiles, instrumentSelected]);
 
   const currentSetlistSongIndex = useMemo(() => {
-    const normalizedArtist = artistFromURL.trim().toLowerCase();
-    const normalizedSong = songFromURL.trim().toLowerCase();
+    const normalizedArtist = (artistFromURL || decodedRouteArtist)
+      .trim()
+      .toLowerCase();
+    const normalizedSong = (songFromURL || decodedRouteSong)
+      .trim()
+      .toLowerCase();
 
     if (!normalizedArtist || !normalizedSong) return -1;
 
@@ -663,7 +659,7 @@ function Presentation() {
         (song.artist || "").trim().toLowerCase() === normalizedArtist &&
         (song.song || "").trim().toLowerCase() === normalizedSong,
     );
-  }, [artistFromURL, setlistSongs, songFromURL]);
+  }, [artistFromURL, decodedRouteArtist, decodedRouteSong, setlistSongs, songFromURL]);
 
   const previousSetlistSong =
     currentSetlistSongIndex > 0
@@ -679,15 +675,30 @@ function Presentation() {
     (song) => {
       if (!song) return;
 
-      navigate(
-        `/presentation/${encodeURIComponent(
-          song.artist || "",
-        )}/${encodeURIComponent(song.song || "")}/${encodeURIComponent(
-          instrumentSelected,
+      const nextArtist = String(song.artist || "").trim();
+      const nextSong = String(song.song || "").trim();
+      if (!nextArtist || !nextSong) return;
+
+      const nextInstrument = instrumentSelected || decodedRouteInstrument;
+      setIsRouteSongLoading(true);
+      setArtistFromURL(nextArtist);
+      setSongFromURL(nextSong);
+      setSongDataFetched(undefined);
+      setEmbedLinks([]);
+
+      navigatePresentationPath(
+        `/presentation/${encodeURIComponent(nextArtist)}/${encodeURIComponent(
+          nextSong,
+        )}/${encodeURIComponent(
+          nextInstrument,
         )}`,
       );
     },
-    [instrumentSelected, navigate],
+    [
+      decodedRouteInstrument,
+      instrumentSelected,
+      navigatePresentationPath,
+    ],
   );
 
   const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
@@ -739,10 +750,7 @@ function Presentation() {
     [artistFromURL, instrumentSelected, songFromURL],
   );
   const presentationLayoutSettingsSnapshot = useMemo(
-    () =>
-      getPresentationLayoutSettingsSnapshot(
-        hidePresentationLayoutMarkers(instrumentPresentationLayouts),
-      ),
+    () => getPresentationLayoutSettingsSnapshot(instrumentPresentationLayouts),
     [instrumentPresentationLayouts],
   );
   const lastHydratedLayoutIdentityRef = useRef("");
@@ -814,6 +822,14 @@ function Presentation() {
     [updateActivePresentationLayout],
   );
 
+  const toggleActiveProgressionBadgeSide = useCallback(() => {
+    updateActivePresentationLayout((currentLayout) => ({
+      ...currentLayout,
+      progressionBadgeSide:
+        currentLayout?.progressionBadgeSide === "left" ? "right" : "left",
+    }));
+  }, [updateActivePresentationLayout]);
+
   const adjustActiveFontSizeStep = useCallback(
     (delta) => {
       updateActivePresentationLayout((currentLayout) => ({
@@ -852,9 +868,7 @@ function Presentation() {
         },
       ),
     };
-    const persistedLayouts = toPresentationLayoutPayload(
-      hidePresentationLayoutMarkers(nextLayouts),
-    );
+    const persistedLayouts = toPresentationLayoutPayload(nextLayouts);
     const updatedBlock = {
       ...currentInstrumentData,
       songCifra: nextLayouts.default.songCifra,
@@ -894,17 +908,23 @@ function Presentation() {
     }
   };
 
-  const hasDraftChanges = (normalizedSongCifra || "") !== (draftCifra || "");
+  const hasDraftChanges =
+    ((isEditing ? editOriginalCifraRef.current : editableSongCifra) || "") !==
+    (draftCifra || "");
   const shouldUseTwoColumns = isTwoColumns;
   const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
   const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
+  const renderContentSelected =
+    isEditing && ["default", "full"].includes(selectContenttoShow)
+      ? draftCifra
+      : contentSelected;
   const transposedContent = useMemo(
-    () => transposeCifra(contentSelected, transposeSteps),
-    [contentSelected, transposeSteps],
+    () => transposeCifra(renderContentSelected, transposeSteps),
+    [renderContentSelected, transposeSteps],
   );
   const displayKey = useMemo(
-    () => inferDisplayKey(transposedContent || contentSelected),
-    [contentSelected, transposedContent],
+    () => inferDisplayKey(transposedContent || renderContentSelected),
+    [renderContentSelected, transposedContent],
   );
 
   // Processar o songCifraData usando o algoritmo fornecido
@@ -921,22 +941,133 @@ function Presentation() {
     transposedContent.trim() !== "" &&
     transposedContent !== "Loading...";
 
-  let htmlBlocks = [];
-  if (isParsableString) {
+  const htmlBlocks = useMemo(() => {
+    if (!isParsableString) {
+      return [];
+    }
+
     try {
-      htmlBlocks = processSongCifra(transposedContent).htmlBlocks || [];
+      return processSongCifra(transposedContent).htmlBlocks || [];
     } catch (e) {
       console.warn("processSongCifra falhou, usando fallback vazio:", e);
-      htmlBlocks = [];
+      return [];
     }
-  } else {
-    htmlBlocks = []; // ainda carregando ou sem conteúdo válido
-  }
+  }, [isParsableString, transposedContent]);
 
   const visibleContentBlocks = useMemo(
     () => buildProgressionBlocks(htmlBlocks, { hideTabs }),
     [hideTabs, htmlBlocks],
   );
+
+  const progressionRenderGroups = useMemo(() => {
+    const groupedBlocks = new Map();
+
+    visibleContentBlocks.forEach((entry, visibleIndex) => {
+      const blockKey = entry.blockKey || `block-${entry.index}`;
+      const override = progressionMarkOverrides[blockKey] || {};
+      const rawPosition = override.position ?? entry.progressionIndex;
+      const numericPosition =
+        Number.parseInt(rawPosition, 10) || entry.progressionIndex || visibleIndex + 1;
+      const groupKey = entry.isProgressionEligible
+        ? `progression-${numericPosition}`
+        : `raw-${entry.index}`;
+      const existingGroup = groupedBlocks.get(groupKey);
+      const fallbackTitle = entry.progressionTitle;
+      const width = Number.isFinite(Number(override.width))
+        ? Number(override.width)
+        : undefined;
+      const height = Number.isFinite(Number(override.height))
+        ? Number(override.height)
+        : undefined;
+
+      if (existingGroup) {
+        existingGroup.blocks.push(entry);
+        existingGroup.blockKeys.push(blockKey);
+        existingGroup.width = existingGroup.width ?? width;
+        existingGroup.height = existingGroup.height ?? height;
+        return;
+      }
+
+      groupedBlocks.set(groupKey, {
+        groupKey,
+        blockKeys: [blockKey],
+        blocks: [entry],
+        isProgressionEligible: entry.isProgressionEligible,
+        columnIndex: numericPosition,
+        displayPosition: numericPosition,
+        displayTitle: override.title ?? fallbackTitle,
+        firstVisibleIndex: visibleIndex,
+        width,
+        height,
+      });
+    });
+
+    return Array.from(groupedBlocks.values()).sort((left, right) => {
+      if (left.isProgressionEligible && right.isProgressionEligible) {
+        return left.columnIndex - right.columnIndex;
+      }
+
+      return left.firstVisibleIndex - right.firstVisibleIndex;
+    });
+  }, [progressionMarkOverrides, visibleContentBlocks]);
+
+  const progressionRenderColumns = useMemo(() => {
+    let visualColumnIndex = 0;
+
+    return progressionRenderGroups.flatMap((group) => {
+      if (!group.isProgressionEligible) {
+        visualColumnIndex += 1;
+        return [
+          {
+            ...group,
+            visualColumnIndex,
+            visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
+          },
+        ];
+      }
+
+      const chunks = splitBlocksIntoColumnChunks(group.blocks);
+
+      return chunks.map((blocksChunk, chunkIndex) => {
+        visualColumnIndex += 1;
+        return {
+          ...group,
+          baseGroupKey: group.groupKey,
+          groupKey:
+            chunkIndex === 0
+              ? group.groupKey
+              : `${group.groupKey}-overflow-${chunkIndex + 1}`,
+          blocks: blocksChunk,
+          blockKeys: group.blockKeys,
+          isOverflowContinuation: chunkIndex > 0,
+          visualColumnIndex,
+          visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
+        };
+      });
+    });
+  }, [progressionRenderGroups]);
+
+  const activeProgressionRenderColumns = useMemo(() => {
+    if (shouldUseHorizontalColumnFlow) {
+      return progressionRenderColumns;
+    }
+
+    return progressionRenderGroups.map((group, index) => {
+      const visualColumnIndex =
+        Number.parseInt(group.displayPosition, 10) || index + 1;
+
+      return {
+        ...group,
+        baseGroupKey: group.groupKey,
+        visualColumnIndex,
+        visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
+      };
+    });
+  }, [
+    progressionRenderColumns,
+    progressionRenderGroups,
+    shouldUseHorizontalColumnFlow,
+  ]);
 
   const marksEditorSource = useMemo(() => {
     if (!isEditing || !["default", "full"].includes(selectContenttoShow)) {
@@ -971,6 +1102,9 @@ function Presentation() {
             blockKey: entry.blockKey,
             defaultPosition: entry.progressionIndex,
             position: override.position ?? entry.progressionIndex,
+            columnLabel: getColumnLabelFromIndex(
+              override.position ?? entry.progressionIndex,
+            ),
             title: override.title ?? entry.progressionTitle,
           };
         });
@@ -992,13 +1126,6 @@ function Presentation() {
   // console.log("htmlBlocks", htmlBlocks);
 
   const didPingRef = useRef(false);
-
-  const clearTooltipHideTimeout = useCallback(() => {
-    if (tooltipHideTimeoutRef.current) {
-      window.clearTimeout(tooltipHideTimeoutRef.current);
-      tooltipHideTimeoutRef.current = null;
-    }
-  }, []);
 
   const scheduleTooltipHide = useCallback(() => {
     clearTooltipHideTimeout();
@@ -1127,18 +1254,21 @@ function Presentation() {
   }, [artistFromURL, songFromURL, instrumentSelected]);
 
   useEffect(() => {
+    let active = true;
+
     const fetchData = async () => {
       try {
         didPingRef.current = false;
-        const decodedArtist = decodeURIComponent(routeArtist || "");
-        const decodedSong = decodeURIComponent(routeSong || "");
-        const requestedInstrument = normalizePresentationInstrument(
-          decodeURIComponent(routeInstrument || "keys"),
-        );
+        const decodedArtist = decodedRouteArtist;
+        const decodedSong = decodedRouteSong;
+        const requestedInstrument = decodedRouteInstrument;
 
+        setIsRouteSongLoading(true);
         setInstrumentSelected(requestedInstrument);
         setSongFromURL(decodedSong);
         setArtistFromURL(decodedArtist);
+        setSongDataFetched(undefined);
+        setEmbedLinks([]);
         localStorage.setItem("song", decodedSong);
         localStorage.setItem("artist", decodedArtist);
 
@@ -1146,12 +1276,14 @@ function Presentation() {
         const dataFromSongparsedResult = JSON.parse(dataFromSong);
         const hydratedSongData = { ...dataFromSongparsedResult };
 
+        if (!active) return;
+
         PRESENTATION_INSTRUMENTS.forEach(({ key }) => {
           const instrumentData = hydratedSongData[key];
           if (!instrumentData) return;
 
-          const sanitizedLayouts = hidePresentationLayoutMarkers(
-            buildInstrumentPresentationLayouts(instrumentData),
+          const sanitizedLayouts = buildInstrumentPresentationLayouts(
+            instrumentData,
           );
 
           hydratedSongData[key] = {
@@ -1194,24 +1326,49 @@ function Presentation() {
 
         handleDataFromAPI(hydratedSongData, selectedInstrument);
       } catch (error) {
+        if (!active) return;
         console.error("Error fetching song data:", error);
         setSongDataFetched(null);
         setEmbedLinks([]);
         handleDataFromAPI(null, "");
+      } finally {
+        if (active) {
+          setIsRouteSongLoading(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      active = false;
+    };
   }, [
+    decodedRouteArtist,
+    decodedRouteInstrument,
+    decodedRouteSong,
     navigate,
-    normalizePresentationInstrument,
-    routeArtist,
-    routeInstrument,
-    routeSong,
   ]);
 
   useEffect(() => {
     const loadSetlistNavigation = async () => {
+      const currentArtist = decodedRouteArtist.trim().toLowerCase();
+      const currentSong = decodedRouteSong.trim().toLowerCase();
+      const dashboardVisibleSongs = loadDashboardVisibleSongs();
+
+      if (dashboardVisibleSongs.length && currentArtist && currentSong) {
+        const currentSongIsVisibleOnDashboard = dashboardVisibleSongs.some(
+          (song) =>
+            String(song.artist || "").trim().toLowerCase() === currentArtist &&
+            String(song.song || "").trim().toLowerCase() === currentSong,
+        );
+
+        if (currentSongIsVisibleOnDashboard) {
+          setSetlistSongs(dashboardVisibleSongs);
+          return;
+        }
+      }
+
       const selectedSetlists = loadSelectedSetlists().map((setlist) =>
         setlist.trim().toLowerCase(),
       );
@@ -1236,7 +1393,7 @@ function Presentation() {
     };
 
     loadSetlistNavigation();
-  }, []);
+  }, [decodedRouteArtist, decodedRouteSong]);
 
   useEffect(() => {
     const contentNode = presentationContentRef.current;
@@ -1319,10 +1476,48 @@ function Presentation() {
     const viewport = presentationContentRef.current;
     if (!viewport) return;
 
-    viewport.scrollBy({
-      left: direction * Math.max(280, viewport.clientWidth * 0.82),
+    const blocks = Array.from(
+      viewport.querySelectorAll(".presentation-render-block"),
+    );
+    if (!blocks.length) return;
+
+    const columnOffsets = Array.from(
+      new Set(blocks.map((block) => Math.round(block.offsetLeft))),
+    ).sort((left, right) => left - right);
+    if (!columnOffsets.length) return;
+
+    const currentLeft = viewport.scrollLeft + 20;
+    const targetLeft =
+      direction > 0
+        ? columnOffsets.find((offset) => offset > currentLeft + 8) ??
+          columnOffsets[columnOffsets.length - 1]
+        : columnOffsets
+            .slice()
+            .reverse()
+            .find((offset) => offset < currentLeft - 8) ?? columnOffsets[0];
+
+    viewport.scrollTo({
+      left: Math.max(0, targetLeft - 20),
       behavior: "smooth",
     });
+  }, []);
+
+  const handlePresentationContentInput = useCallback((event) => {
+    const contentBlocks = Array.from(
+      event.currentTarget.querySelectorAll(".presentation-render-content-block"),
+    );
+
+    if (!contentBlocks.length) {
+      setDraftCifra(event.currentTarget.innerText);
+      return;
+    }
+
+    setDraftCifra(
+      contentBlocks
+        .map((block) => block.innerText)
+        .join("\n\n")
+        .trimEnd(),
+    );
   }, []);
 
   useEffect(() => {
@@ -1466,40 +1661,6 @@ function Presentation() {
     };
   }, [effectiveLiveMode, isTouchLayout]);
 
-  const editor = useEditor(
-    {
-      extensions: [
-        StarterKit.configure({ codeBlock: false }),
-        Placeholder.configure({
-          placeholder: "Edite a cifra aqui...",
-        }),
-        ChordHighlight,
-      ],
-      content: plainTextToHtml(draftCifra || ""),
-      editable: isEditing,
-      editorProps: {
-        attributes: {
-          class:
-            "presentation-cifra-editor min-h-[60vh] w-full whitespace-pre-wrap font-mono text-base leading-6 focus:outline-none",
-        },
-      },
-      onUpdate: ({ editor }) => {
-        setDraftCifra(editor.getText({ blockSeparator: "\n" }));
-      },
-    },
-    [isEditing],
-  );
-
-  useEffect(() => {
-    if (!editor) return;
-
-    editor.setEditable(isEditing);
-    const editorText = editor.getText({ blockSeparator: "\n" });
-    if (editorText !== (draftCifra || "")) {
-      editor.commands.setContent(plainTextToHtml(draftCifra || ""), false);
-    }
-  }, [draftCifra, editor, isEditing]);
-
   useEffect(() => {
     if (!presentationLayoutModeStorageKey || typeof window === "undefined") {
       return;
@@ -1544,7 +1705,7 @@ function Presentation() {
         const currentLayouts = buildInstrumentPresentationLayouts(
           currentInstrument,
         );
-        const nextLayouts = hidePresentationLayoutMarkers({
+        const nextLayouts = {
           default: normalizePresentationLayoutVariant(
             parsedStoredLayouts?.default,
             {
@@ -1559,9 +1720,9 @@ function Presentation() {
               defaultTwoColumns: true,
             },
           ),
-        });
+        };
         const currentSnapshot = getPresentationLayoutSettingsSnapshot(
-          hidePresentationLayoutMarkers(currentLayouts),
+          currentLayouts,
         );
         const nextSnapshot = getPresentationLayoutSettingsSnapshot(nextLayouts);
 
@@ -1602,9 +1763,7 @@ function Presentation() {
       window.localStorage.setItem(
         presentationLayoutStorageKey,
         JSON.stringify(
-          toPresentationLayoutPayload(
-            hidePresentationLayoutMarkers(instrumentPresentationLayouts),
-          ),
+          toPresentationLayoutPayload(instrumentPresentationLayouts),
         ),
       );
     } catch (error) {
@@ -1700,6 +1859,35 @@ function Presentation() {
     setIsVideoModalOpen(false);
     setIsTouchVideoMenuOpen(false);
   }, []);
+
+  useEffect(() => {
+    const handleForcedCleanup = async () => {
+      clearTooltipHideTimeout();
+      setActiveChordTooltip(null);
+      setIsPseudoLiveMode(false);
+      setIsLiveMode(false);
+      closeTouchVideo();
+
+      if (
+        document.fullscreenElement &&
+        typeof document.exitFullscreen === "function"
+      ) {
+        try {
+          await document.exitFullscreen();
+        } catch (error) {
+          console.warn("Failed to exit fullscreen during presentation cleanup:", error);
+        }
+      }
+    };
+
+    window.addEventListener("presentation-force-cleanup", handleForcedCleanup);
+    return () => {
+      window.removeEventListener(
+        "presentation-force-cleanup",
+        handleForcedCleanup,
+      );
+    };
+  }, [clearTooltipHideTimeout, closeTouchVideo]);
 
   const instrumentNotes = currentInstrumentData?.notes || "";
 
@@ -1813,12 +2001,159 @@ function Presentation() {
     }));
   }, [updateActivePresentationLayout]);
 
+  const handleChangeMarkWidth = useCallback((blockKeys, width) => {
+    const normalizedWidth = Math.max(260, Math.min(1200, Math.round(width)));
+
+    updateActivePresentationLayout((currentLayout) => {
+      const currentOverrides = currentLayout.progressionMarkOverrides || {};
+      const nextOverrides = { ...currentOverrides };
+
+      blockKeys.forEach((blockKey) => {
+        nextOverrides[blockKey] = {
+          ...(currentOverrides[blockKey] || {}),
+          width: normalizedWidth,
+        };
+      });
+
+      return {
+        ...currentLayout,
+        progressionMarkOverrides: nextOverrides,
+      };
+    });
+  }, [updateActivePresentationLayout]);
+
+  const handleChangeMarkHeight = useCallback((blockKeys, height) => {
+    const normalizedHeight = Math.max(80, Math.min(1400, Math.round(height)));
+
+    updateActivePresentationLayout((currentLayout) => {
+      const currentOverrides = currentLayout.progressionMarkOverrides || {};
+      const nextOverrides = { ...currentOverrides };
+
+      blockKeys.forEach((blockKey) => {
+        nextOverrides[blockKey] = {
+          ...(currentOverrides[blockKey] || {}),
+          height: normalizedHeight,
+        };
+      });
+
+      return {
+        ...currentLayout,
+        progressionMarkOverrides: nextOverrides,
+      };
+    });
+  }, [updateActivePresentationLayout]);
+
+  const handleStartProgressionResize = useCallback((event, group) => {
+    if (!group?.blockKeys?.length) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const blockNode = event.currentTarget.closest(".presentation-render-block");
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const blockRect = blockNode?.getBoundingClientRect();
+    const startWidth = blockRect?.width || group.width || 620;
+    const startHeight = blockRect?.height || group.height || 180;
+    const axis = event.currentTarget.dataset.resizeAxis || "width";
+    const resizingKey = group.baseGroupKey || group.groupKey;
+
+    const handleMouseMove = (moveEvent) => {
+      const nextWidth = Math.max(
+        260,
+        Math.min(1200, startWidth + moveEvent.clientX - startX),
+      );
+      const nextHeight = Math.max(
+        80,
+        Math.min(1400, startHeight + moveEvent.clientY - startY),
+      );
+
+      setResizingProgressionWidths((current) => ({
+        ...current,
+        [resizingKey]:
+          axis === "height"
+            ? { ...(current[resizingKey] || {}), height: nextHeight }
+            : { ...(current[resizingKey] || {}), width: nextWidth },
+      }));
+    };
+
+    const handleMouseUp = (upEvent) => {
+      const nextWidth = Math.max(
+        260,
+        Math.min(1200, startWidth + upEvent.clientX - startX),
+      );
+      const nextHeight = Math.max(
+        80,
+        Math.min(1400, startHeight + upEvent.clientY - startY),
+      );
+
+      if (axis === "height") {
+        handleChangeMarkHeight(group.blockKeys, nextHeight);
+      } else {
+        handleChangeMarkWidth(group.blockKeys, nextWidth);
+      }
+      setResizingProgressionWidths((current) => {
+        const next = { ...current };
+        delete next[resizingKey];
+        return next;
+      });
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  }, [handleChangeMarkHeight, handleChangeMarkWidth]);
+
+  const handleDropProgressionGroup = useCallback((targetGroupKey) => {
+    const draggedGroupKey = draggedProgressionGroupKeyRef.current;
+    draggedProgressionGroupKeyRef.current = "";
+
+    if (!draggedGroupKey || draggedGroupKey === targetGroupKey) return;
+
+    const orderedGroups = progressionRenderGroups.filter(
+      (group) => group.isProgressionEligible,
+    );
+    const draggedGroup = orderedGroups.find(
+      (group) => group.groupKey === draggedGroupKey,
+    );
+    const targetIndex = orderedGroups.findIndex(
+      (group) => group.groupKey === targetGroupKey,
+    );
+
+    if (!draggedGroup || targetIndex < 0) return;
+
+    const withoutDragged = orderedGroups.filter(
+      (group) => group.groupKey !== draggedGroupKey,
+    );
+    withoutDragged.splice(targetIndex, 0, draggedGroup);
+
+    updateActivePresentationLayout((currentLayout) => {
+      const currentOverrides = currentLayout.progressionMarkOverrides || {};
+      const nextOverrides = { ...currentOverrides };
+
+      withoutDragged.forEach((group, groupIndex) => {
+        group.blockKeys.forEach((blockKey) => {
+          nextOverrides[blockKey] = {
+            ...(currentOverrides[blockKey] || {}),
+            position: groupIndex + 1,
+          };
+        });
+      });
+
+      return {
+        ...currentLayout,
+        progressionMarkOverrides: nextOverrides,
+      };
+    });
+  }, [progressionRenderGroups, updateActivePresentationLayout]);
+
   return (
     <div
       ref={liveModeRootRef}
       tabIndex={effectiveLiveMode ? -1 : undefined}
-      className={`flex justify-center ${
-        effectiveLiveMode ? "h-[100dvh]" : "h-screen"
+      className={`flex min-h-0 justify-center ${
+        effectiveLiveMode ? "h-[100dvh]" : "h-full"
       } ${effectiveLiveMode ? "presentation-live-shell" : ""} ${
         isPseudoLiveMode ? "overflow-hidden" : ""
       }`}
@@ -1859,15 +2194,11 @@ function Presentation() {
           markEntries={markEntries}
           onChangeMarkTitle={handleChangeMarkTitle}
           onChangeMarkPosition={handleChangeMarkPosition}
-          activeLayoutLabel={activeLayoutLabel}
+          progressionBadgeSide={progressionBadgeSide}
           transposeSteps={transposeSteps}
           setTransposeSteps={setTransposeSteps}
           displayKey={displayKey}
-          isTwoColumns={isTwoColumns}
-          isExpandedCifra={isExpandedCifra}
-          setIsExpandedCifra={setIsExpandedCifra}
           showProgressionMarkers={showProgressionMarkers}
-          setShowProgressionMarkers={setActiveShowProgressionMarkers}
           isTouchLayout={isTouchLayout}
           touchFontSizeLabel={touchFontSizeLabel}
           decreaseTouchFontSize={() => adjustActiveFontSizeStep(-1)}
@@ -1885,6 +2216,7 @@ function Presentation() {
           onOpenInstrumentNotes={openInstrumentNotesWindow}
           isSavingNotes={isSavingNotes}
           onSelectInstrument={goToInstrument}
+          onChangeProgressionBadgeSide={toggleActiveProgressionBadgeSide}
         />
       )}
       <div
@@ -2035,84 +2367,127 @@ function Presentation() {
                     className={
                       isTouchLayout
                         ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
-                        : "order-1 flex flex-row items-stretch gap-3"
+                        : "order-1 flex flex-col items-stretch gap-2"
                     }
                   >
-                    <button
-                      type="button"
-                      className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                        toolBoxBtnStatus ||
-                        isEditing ||
-                        (isTouchLayout &&
-                          !toolBoxBtnStatus &&
-                          (isVideoModalOpen || isTouchVideoActive))
-                          ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
-                          : ""
-                      } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
-                      onClick={() => {
-                        if (isTouchLayout && isTouchVideoActive) {
-                          setIsTouchVideoMenuOpen(true);
-                          return;
-                        }
-                        toolBoxBtnStatusChange(
-                          toolBoxBtnStatus,
-                          setToolBoxBtnStatus,
-                        );
-                      }}
-                      aria-label="Options"
-                      title="Open presentation options"
+                    {!isTouchLayout ? (
+                      <div className="w-full text-center text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                        {activeLayoutLabel}
+                      </div>
+                    ) : null}
+                    <div
+                      className={
+                        isTouchLayout
+                          ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
+                          : "flex flex-row items-stretch gap-3"
+                      }
                     >
-                      <FaGear
-                        className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"}
-                      />
-                      <span className="sr-only">Options</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                        isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                      }`}
-                      onClick={goToEditSong}
-                      aria-label="Edit song"
-                      title="Open this song in the editor"
-                    >
-                      <FaPenToSquare
-                        className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                      />
-                      <span className="sr-only">Edit Song</span>
-                    </button>
-                    {instrumentSelected !== "voice" ? (
                       <button
                         type="button"
-                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black ${
-                          canOpenGuitarPro
-                            ? "text-black"
-                            : "cursor-not-allowed text-gray-400 opacity-60"
+                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                          toolBoxBtnStatus ||
+                          isEditing ||
+                          (isTouchLayout &&
+                            !toolBoxBtnStatus &&
+                            (isVideoModalOpen || isTouchVideoActive))
+                            ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
+                            : ""
                         } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
-                        onClick={openGuitarProViewer}
-                        disabled={!canOpenGuitarPro}
-                        aria-label="Open Guitar Pro viewer"
+                        onClick={() => {
+                          if (isTouchLayout && isTouchVideoActive) {
+                            setIsTouchVideoMenuOpen(true);
+                            return;
+                          }
+                          toolBoxBtnStatusChange(
+                            toolBoxBtnStatus,
+                            setToolBoxBtnStatus,
+                          );
+                        }}
+                        aria-label="Options"
+                        title="Open presentation options"
+                      >
+                        <FaGear
+                          className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"}
+                        />
+                        <span className="sr-only">Options</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`flex items-center justify-center gap-2 font-black ${
+                          isExpandedCifra
+                            ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                            : "neuphormism-b-btn text-black"
+                        } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
+                        onClick={() => setIsExpandedCifra((value) => !value)}
+                        aria-label={
+                          isExpandedCifra
+                            ? "Disable expanded layout"
+                            : "Enable expanded layout"
+                        }
                         title={
-                          canOpenGuitarPro
-                            ? "Open Guitar Pro viewer"
-                            : "No Guitar Pro file available"
+                          isExpandedCifra
+                            ? "Disable expanded layout"
+                            : "Enable expanded layout"
                         }
                       >
-                        <GuitarProIcon active={canOpenGuitarPro} />
-                        <span className="sr-only">Guitar Pro</span>
+                        {isExpandedCifra ? (
+                          <FaDownLeftAndUpRightToCenter
+                            className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                          />
+                        ) : (
+                          <FaUpRightAndDownLeftFromCenter
+                            className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                          />
+                        )}
+                        <span className="sr-only">Expanded layout</span>
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
-                        isTouchLayout
-                          ? "h-10 w-16 px-3 text-xs tracking-[0.08em]"
-                          : "min-w-[6.5rem] px-6 py-3 text-base"
-                      }`}
-                      onClick={enterLiveMode}
-                    >
-                      LIVE
-                    </button>
+                      <button
+                        type="button"
+                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                          isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
+                        }`}
+                        onClick={goToEditSong}
+                        aria-label="Edit song"
+                        title="Open this song in the editor"
+                      >
+                        <FaPenToSquare
+                          className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                        />
+                        <span className="sr-only">Edit Song</span>
+                      </button>
+                      {instrumentSelected !== "voice" ? (
+                        <button
+                          type="button"
+                          className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black ${
+                            canOpenGuitarPro
+                              ? "text-black"
+                              : "cursor-not-allowed text-gray-400 opacity-60"
+                          } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
+                          onClick={openGuitarProViewer}
+                          disabled={!canOpenGuitarPro}
+                          aria-label="Open Guitar Pro viewer"
+                          title={
+                            canOpenGuitarPro
+                              ? "Open Guitar Pro viewer"
+                              : "No Guitar Pro file available"
+                          }
+                        >
+                          <GuitarProIcon active={canOpenGuitarPro} />
+                          <span className="sr-only">Guitar Pro</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
+                          isTouchLayout
+                            ? "h-10 w-16 px-3 text-xs tracking-[0.08em]"
+                            : "min-w-[6.5rem] px-6 py-3 text-base"
+                        }`}
+                        onClick={enterLiveMode}
+                      >
+                        LIVE
+                      </button>
+                    </div>
                   </div>
                 </div>
                 {isTouchLayout ? (
@@ -2279,7 +2654,31 @@ function Presentation() {
               lineHeight: 1.45,
             }}
           >
-            {isCurrentInstrumentUnavailable ? (
+            {isRouteSongLoading ? (
+              <div
+                className={`flex min-h-[18rem] flex-col items-center justify-center px-4 text-center ${
+                  effectiveLiveMode ? "text-white" : "text-black"
+                }`}
+              >
+                <div
+                  className={`text-xs font-black uppercase tracking-[0.18em] ${
+                    effectiveLiveMode ? "text-[goldenrod]" : "text-[#a27b13]"
+                  }`}
+                >
+                  Loading song
+                </div>
+                <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
+                  {songFromURL || "Loading..."}
+                </h2>
+                <p
+                  className={`mt-2 text-sm font-bold ${
+                    effectiveLiveMode ? "text-white/70" : "text-black/60"
+                  }`}
+                >
+                  {artistFromURL || "Preparing presentation"}
+                </p>
+              </div>
+            ) : isCurrentInstrumentUnavailable ? (
               <div
                 className={`flex min-h-[18rem] flex-col items-center justify-center px-4 text-center ${
                   effectiveLiveMode ? "text-white" : "text-black"
@@ -2329,12 +2728,6 @@ function Presentation() {
                   </div>
                 </div>
               </div>
-            ) : isEditing ? (
-              editor ? (
-                <EditorContent editor={editor} />
-              ) : (
-                <p>Carregando editor...</p>
-              )
             ) : (
               <div
                 className={`presentation-content-flow ${
@@ -2344,39 +2737,57 @@ function Presentation() {
                     ? "presentation-horizontal-columns"
                     : ""
                 }`}
+                key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}`}
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onInput={isEditing ? handlePresentationContentInput : undefined}
               >
-                {visibleContentBlocks.map(
+                {activeProgressionRenderColumns.map(
                   (
                     {
-                      block,
-                      index,
+                      groupKey,
+                      baseGroupKey,
+                      blockKeys,
+                      blocks,
                       isProgressionEligible,
-                      progressionIndex,
-                      progressionTitle,
+                      displayPosition,
+                      displayTitle,
+                      width,
+                      height,
+                      isOverflowContinuation,
+                      visualColumnIndex,
+                      visualColumnLabel,
                     },
                     visibleIndex,
-                    visibleBlocks,
+                    visibleGroups,
                   ) => {
-                    const displayPosition =
-                      progressionMarkOverrides[`block-${index}`]?.position ??
-                      progressionIndex;
                     const numericDisplayPosition =
-                      Number.parseInt(displayPosition, 10) || progressionIndex;
+                      Number.parseInt(visualColumnIndex, 10) ||
+                      Number.parseInt(displayPosition, 10) ||
+                      visibleIndex + 1;
                     const progressionColor =
-                      progressionIndex != null
+                      isProgressionEligible
                         ? PROGRESSION_MARKER_COLORS[
                             ((numericDisplayPosition -
                               1) %
                               PROGRESSION_MARKER_COLORS.length)
                           ]
                         : undefined;
-                    const displayTitle =
-                      progressionMarkOverrides[`block-${index}`]?.title ??
-                      progressionTitle;
+                    const resizingDimensions =
+                      resizingProgressionWidths[baseGroupKey || groupKey] || {};
+                    const displayWidth = resizingDimensions.width ?? width;
+                    const displayHeight =
+                      isOverflowContinuation &&
+                      shouldUseHorizontalColumnFlow
+                        ? undefined
+                        : resizingDimensions.height ?? height;
+                    const headerLabel =
+                      visualColumnLabel ||
+                      getColumnLabelFromIndex(numericDisplayPosition);
 
                     return (
                       <div
-                        key={index}
+                        key={groupKey}
                         className={`presentation-render-block ${
                           selectContenttoShow === "tabs"
                             ? "presentation-tab-filter-block"
@@ -2386,9 +2797,41 @@ function Presentation() {
                             ? "presentation-progression-block"
                             : ""
                         }`}
+                        draggable={isEditing && isProgressionEligible}
+                        onDragStart={
+                          isEditing &&
+                          isProgressionEligible &&
+                          !isOverflowContinuation
+                            ? (event) => {
+                                draggedProgressionGroupKeyRef.current =
+                                  baseGroupKey || groupKey;
+                                event.dataTransfer.effectAllowed = "move";
+                              }
+                            : undefined
+                        }
+                        onDragOver={
+                          isEditing && isProgressionEligible
+                            ? (event) => {
+                                event.preventDefault();
+                                event.dataTransfer.dropEffect = "move";
+                              }
+                            : undefined
+                        }
+                        onDrop={
+                          isEditing &&
+                          isProgressionEligible &&
+                          !isOverflowContinuation
+                            ? (event) => {
+                                event.preventDefault();
+                                handleDropProgressionGroup(
+                                  baseGroupKey || groupKey,
+                                );
+                              }
+                            : undefined
+                        }
                         style={{
                           ...(!effectiveLiveMode &&
-                          visibleIndex === visibleBlocks.length - 1 &&
+                          visibleIndex === visibleGroups.length - 1 &&
                           !shouldUseHorizontalColumnFlow
                             ? { paddingBottom: 200 }
                             : {}),
@@ -2397,10 +2840,33 @@ function Presentation() {
                           progressionColor
                             ? { "--progression-color": progressionColor }
                             : {}),
+                          ...(displayWidth ? { width: `${displayWidth}px` } : {}),
+                          ...(displayHeight
+                            ? {
+                                minHeight: `${displayHeight}px`,
+                              }
+                            : {}),
                         }}
                       >
+                        {isEditing &&
+                        showProgressionMarkers &&
+                        isProgressionEligible ? (
+                          <div
+                            className="presentation-progression-column-header"
+                            contentEditable={false}
+                          >
+                            {headerLabel}
+                          </div>
+                        ) : null}
                         {showProgressionMarkers && isProgressionEligible ? (
-                          <div className="presentation-progression-badge">
+                          <div
+                            className={`presentation-progression-badge ${
+                              progressionBadgeSide === "left"
+                                ? "presentation-progression-badge-left"
+                                : "presentation-progression-badge-right"
+                            }`}
+                            contentEditable={false}
+                          >
                             <span className="presentation-progression-badge-number">
                               {displayPosition}
                             </span>
@@ -2409,7 +2875,69 @@ function Presentation() {
                             </span>
                           </div>
                         ) : null}
-                        <div dangerouslySetInnerHTML={{ __html: block }} />
+                        {isEditing &&
+                        isProgressionEligible &&
+                        !isOverflowContinuation ? (
+                          <>
+                            <button
+                              type="button"
+                              className="presentation-progression-drag-handle"
+                              draggable
+                              onDragStart={(event) => {
+                                draggedProgressionGroupKeyRef.current =
+                                  baseGroupKey || groupKey;
+                                event.dataTransfer.effectAllowed = "move";
+                              }}
+                              contentEditable={false}
+                              aria-label="Reorder progression block"
+                            >
+                              ::
+                            </button>
+                            <button
+                              type="button"
+                              className="presentation-progression-resize-handle"
+                              data-resize-axis="width"
+                              onMouseDown={(event) =>
+                                handleStartProgressionResize(event, {
+                                  groupKey,
+                                  baseGroupKey,
+                                  blockKeys,
+                                  width,
+                                  height,
+                                })
+                              }
+                              contentEditable={false}
+                              aria-label="Resize progression block"
+                            >
+                              ↔
+                            </button>
+                            <button
+                              type="button"
+                              className="presentation-progression-height-handle"
+                              data-resize-axis="height"
+                              onMouseDown={(event) =>
+                                handleStartProgressionResize(event, {
+                                  groupKey,
+                                  baseGroupKey,
+                                  blockKeys,
+                                  width,
+                                  height,
+                                })
+                              }
+                              contentEditable={false}
+                              aria-label="Resize progression block height"
+                            >
+                              ↕
+                            </button>
+                          </>
+                        ) : null}
+                        {blocks.map((entry) => (
+                          <div
+                            key={entry.blockKey}
+                            className="presentation-render-content-block"
+                            dangerouslySetInnerHTML={{ __html: entry.block }}
+                          />
+                        ))}
                       </div>
                     );
                   },

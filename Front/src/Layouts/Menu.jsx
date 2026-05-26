@@ -67,6 +67,7 @@ export default function RootLayouts() {
     isPresentationRoute ||
     (isDashboardRoute && !isTouchDashboardLayout) ||
     (isToolsRoute && isTouchDashboardLayout);
+  const desktopZoomViewportHeight = "calc(100vh / var(--desktop-app-zoom))";
   const mobileTabs = [
     { to: "/", label: "Songlist", icon: FaListUl },
     { to: "/newsong", label: "Plus", icon: FaPlusCircle },
@@ -167,6 +168,37 @@ export default function RootLayouts() {
     window.dispatchEvent(new CustomEvent("dashboard-mobile-open-filter"));
   };
 
+  const handleHomeNavigation = (event) => {
+    event?.preventDefault();
+    window.dispatchEvent(new CustomEvent("close-all-modals"));
+    window.dispatchEvent(
+      new CustomEvent("presentation-force-cleanup", {
+        detail: { target: "/" },
+      }),
+    );
+
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try {
+        document.exitFullscreen();
+      } catch (error) {
+        console.warn("Failed to exit fullscreen before navigating home:", error);
+      }
+    }
+
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+
+    if (window.location.pathname === "/") {
+      setHideMobileChrome(false);
+      setIsSearchOpen(false);
+      return;
+    }
+
+    setHideMobileChrome(false);
+    setIsSearchOpen(false);
+    navigate("/");
+  };
+
   return (
     <>
       {/* HEADER */}
@@ -176,7 +208,7 @@ export default function RootLayouts() {
           <nav className="fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="cursor-pointer" onClick={() => navigate("/")}>
+                <div className="cursor-pointer" onClick={handleHomeNavigation}>
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
                     {mobileHeaderCopy.eyebrow}
                   </p>
@@ -227,7 +259,7 @@ export default function RootLayouts() {
                     </h1>
                     <h1
                       className="app-logo-text ml-2 mr-5 cursor-pointer text-[clamp(1rem,2.2vw,1.25rem)] font-bold italic"
-                      onClick={() => navigate("/")}
+                      onClick={handleHomeNavigation}
                     >
                       SUSTENIDO
                     </h1>
@@ -295,6 +327,14 @@ export default function RootLayouts() {
         className={
           isPresentationRoute ? "h-screen overflow-hidden" : "min-h-screen"
         }
+        style={
+          window.innerWidth >= 768
+            ? {
+                height: desktopZoomViewportHeight,
+                minHeight: desktopZoomViewportHeight,
+              }
+            : undefined
+        }
       >
         <div
           data-scroll-removed-mongo-user="true"
@@ -306,8 +346,14 @@ export default function RootLayouts() {
             hideMobileChrome && isPresentationRoute ? "pb-0" : "pb-24"
           } md:pb-0 md:pt-16`}
           style={{
+            height:
+              window.innerWidth >= 768 ? desktopZoomViewportHeight : undefined,
             maxHeight:
-              isTouchDashboardLayout && !isPresentationRoute ? "none" : "100vh",
+              isTouchDashboardLayout && !isPresentationRoute
+                ? "none"
+                : desktopZoomViewportHeight,
+            minHeight:
+              window.innerWidth >= 768 ? desktopZoomViewportHeight : undefined,
           }}
           // className={`flex-1 overflow-y-hidden pt-0 md:pt-16`}
           // style={{ maxHeight: "100vh" }}

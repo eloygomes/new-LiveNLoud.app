@@ -1,5 +1,24 @@
 import PropTypes from "prop-types";
 
+const getColumnIndexFromLabel = (value = "") => {
+  const normalizedValue = String(value).trim();
+  const numericValue = Number.parseInt(normalizedValue, 10);
+
+  if (Number.isFinite(numericValue) && numericValue > 0) {
+    return numericValue;
+  }
+
+  const letters = normalizedValue.toUpperCase().replace(/[^A-Z]/g, "");
+  if (!letters) return 1;
+
+  return letters
+    .split("")
+    .reduce(
+      (index, letter) => index * 26 + letter.charCodeAt(0) - 64,
+      0,
+    );
+};
+
 function ToolBoxEditControls({
   isEditing,
   isSavingCifra,
@@ -14,42 +33,40 @@ function ToolBoxEditControls({
   markEntries,
   onChangeMarkTitle,
   onChangeMarkPosition,
-  activeLayoutLabel,
   touchFontSizeLabel,
-  isTwoColumns,
   showProgressionMarkers,
+  progressionBadgeSide,
+  onChangeProgressionBadgeSide,
+  onDecreaseFontSize,
+  onIncreaseFontSize,
 }) {
   const canEditCifra = Boolean(songCifraData);
-  const marksToggleLabel = showProgressionMarkers ? "Hide Marks" : "Show Marks";
   const marksEditorToggleLabel = marksEditorOpen ? "Close Mark Editor" : "Edit Marks";
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-[14px] bg-white/65 px-3 py-3 shadow-[0_4px_10px_rgba(0,0,0,0.04)]">
-        <div className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-black/45">
-          Active layout
-        </div>
-        <div className="mt-1 text-base font-black leading-tight text-black">
-          {activeLayoutLabel}
-        </div>
-        <div className="mt-3 space-y-2 text-[0.74rem] font-bold uppercase tracking-[0.08em] text-black/55">
-          <div className="flex items-center justify-between gap-3 rounded-[10px] bg-white/70 px-3 py-2">
-            <span>Font</span>
-            <span className="text-black">{touchFontSizeLabel}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3 rounded-[10px] bg-white/70 px-3 py-2">
-            <span>Columns</span>
-            <span className="text-black">{isTwoColumns ? "Auto" : "Off"}</span>
-          </div>
-          <div className="flex items-center justify-between gap-3 rounded-[10px] bg-white/70 px-3 py-2">
-            <span>Marks visible</span>
-            <span className="text-black">
-              {showProgressionMarkers ? "On" : "Off"}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-3 rounded-[10px] bg-white/70 px-3 py-2">
-            <span>Detected blocks</span>
-            <span className="text-black">{markEntries.length}</span>
+      <div className="rounded-[14px] px-1 py-1">
+        <div className="rounded-[18px] px-1 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-black leading-none text-black active:scale-[0.98]"
+              onClick={onDecreaseFontSize}
+              aria-label="Decrease font size"
+            >
+              -
+            </button>
+            <div className="min-w-0 flex-1 text-center text-[0.95rem] font-black leading-none tracking-tight text-black">
+              {touchFontSizeLabel}
+            </div>
+            <button
+              type="button"
+              className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-black leading-none text-black active:scale-[0.98]"
+              onClick={onIncreaseFontSize}
+              aria-label="Increase font size"
+            >
+              +
+            </button>
           </div>
         </div>
       </div>
@@ -88,14 +105,34 @@ function ToolBoxEditControls({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-2">
-        <button
-          type="button"
-          className="rounded-md neuphormism-b-btn px-3 py-2 text-sm font-bold text-black"
-          onClick={onToggleMarksVisibility}
-        >
-          {marksToggleLabel}
-        </button>
+      <div className="space-y-3">
+        <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
+          <div className="text-sm font-black text-black">Progression marks</div>
+          <button
+            type="button"
+            className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] ${
+              showProgressionMarkers
+                ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                : "neuphormism-b-se text-black"
+            }`}
+            onClick={onToggleMarksVisibility}
+          >
+            {showProgressionMarkers ? "On" : "Off"}
+          </button>
+        </div>
+
+        <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
+          <div className="text-sm font-black text-black">Mark tag side</div>
+          <button
+            type="button"
+            className="w-full rounded-[14px] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] neuphormism-b-se text-black"
+            onClick={onChangeProgressionBadgeSide}
+          >
+            {progressionBadgeSide === "left" ? "Left" : "Right"}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2">
         <button
           type="button"
           className="rounded-md neuphormism-b-btn px-3 py-2 text-sm font-bold text-black disabled:opacity-50"
@@ -104,6 +141,7 @@ function ToolBoxEditControls({
         >
           {marksEditorToggleLabel}
         </button>
+        </div>
       </div>
 
       {marksEditorOpen ? (
@@ -123,14 +161,16 @@ function ToolBoxEditControls({
                       Block {entry.defaultPosition}
                     </div>
                     <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={entry.position}
+                      type="text"
+                      value={entry.columnLabel || entry.position}
                       onChange={(event) =>
-                        onChangeMarkPosition?.(entry.blockKey, event.target.value)
+                        onChangeMarkPosition?.(
+                          entry.blockKey,
+                          getColumnIndexFromLabel(event.target.value),
+                        )
                       }
-                      className="w-20 rounded-[10px] border border-gray-300 bg-white px-2 py-2 text-sm font-bold text-black outline-none"
+                      aria-label={`Column for block ${entry.defaultPosition}`}
+                      className="w-20 rounded-[10px] border border-gray-300 bg-white px-2 py-2 text-center text-sm font-black uppercase tracking-[0.12em] text-black outline-none"
                     />
                   </div>
                   <input
@@ -172,15 +212,18 @@ ToolBoxEditControls.propTypes = {
       defaultPosition: PropTypes.number.isRequired,
       position: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
         .isRequired,
+      columnLabel: PropTypes.string,
       title: PropTypes.string.isRequired,
     }),
   ).isRequired,
   onChangeMarkTitle: PropTypes.func.isRequired,
   onChangeMarkPosition: PropTypes.func.isRequired,
-  activeLayoutLabel: PropTypes.string.isRequired,
   touchFontSizeLabel: PropTypes.string.isRequired,
-  isTwoColumns: PropTypes.bool.isRequired,
   showProgressionMarkers: PropTypes.bool.isRequired,
+  progressionBadgeSide: PropTypes.oneOf(["left", "right"]).isRequired,
+  onChangeProgressionBadgeSide: PropTypes.func.isRequired,
+  onDecreaseFontSize: PropTypes.func.isRequired,
+  onIncreaseFontSize: PropTypes.func.isRequired,
 };
 
 export default ToolBoxEditControls;

@@ -25,3 +25,7 @@ Server/liveNloud/db/BACKUPS/scripts/4. copy-database-sustenido-to-live.sh
 
 Front/.env.live
 Front/.env.sustenido
+
+# Local documentation, analyses, and daily logs
+/docs
+/docs/**

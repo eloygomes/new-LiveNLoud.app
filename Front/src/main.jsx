@@ -13,6 +13,8 @@ import {
   RouterProvider,
   Navigate,
   useSearchParams,
+  useParams,
+  useLocation,
 } from "react-router-dom";
 import Menu from "./Layouts/Menu";
 import Dashboard from "./Pages/Dashboard/Dashboard";
@@ -193,6 +195,16 @@ const YouTubePopupDone = () => {
   );
 };
 
+const PresentationRoute = () => {
+  const { artist = "", song = "", instrument = "" } = useParams();
+  const location = useLocation();
+  return (
+    <Presentation
+      key={`${location.pathname}${location.search}::${artist}::${song}::${instrument}`}
+    />
+  );
+};
+
 // Configuração das rotas
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -235,7 +247,7 @@ const router = createBrowserRouter(
         <Route path="/newsong" element={<ProtectedRoute element={NewSong} />} />
         <Route
           path="/presentation/:artist/:song/:instrument"
-          element={<ProtectedRoute element={Presentation} />}
+          element={<ProtectedRoute element={PresentationRoute} />}
         />
         <Route path="/tuner" element={<ProtectedRoute element={Tuner} />} />
         <Route

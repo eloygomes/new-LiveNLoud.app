@@ -35,16 +35,11 @@ function ToolBox({
   markEntries,
   onChangeMarkTitle,
   onChangeMarkPosition,
-  activeLayoutLabel,
+  progressionBadgeSide,
   transposeSteps,
   setTransposeSteps,
   displayKey,
-  isTwoColumns,
-  setIsTwoColumns,
-  isExpandedCifra,
-  setIsExpandedCifra,
   showProgressionMarkers,
-  setShowProgressionMarkers,
   isTouchLayout = false,
   touchFontSizeLabel,
   decreaseTouchFontSize,
@@ -62,6 +57,7 @@ function ToolBox({
   onOpenInstrumentNotes,
   isSavingNotes = false,
   onSelectInstrument,
+  onChangeProgressionBadgeSide,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -198,16 +194,11 @@ function ToolBox({
               markEntries={markEntries}
               onChangeMarkTitle={onChangeMarkTitle}
               onChangeMarkPosition={onChangeMarkPosition}
-              activeLayoutLabel={activeLayoutLabel}
+              progressionBadgeSide={progressionBadgeSide}
               transposeSteps={transposeSteps}
               setTransposeSteps={setTransposeSteps}
               displayKey={displayKey}
-              isTwoColumns={isTwoColumns}
-              setIsTwoColumns={setIsTwoColumns}
-              isExpandedCifra={isExpandedCifra}
-              setIsExpandedCifra={setIsExpandedCifra}
               showProgressionMarkers={showProgressionMarkers}
-              setShowProgressionMarkers={setShowProgressionMarkers}
               isTouchLayout
               touchFontSizeLabel={touchFontSizeLabel}
               decreaseTouchFontSize={decreaseTouchFontSize}
@@ -220,6 +211,7 @@ function ToolBox({
               onSaveInstrumentNotes={onSaveInstrumentNotes}
               isSavingNotes={isSavingNotes}
               onSelectInstrument={onSelectInstrument}
+              onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
             />
           </div>
         </div>
@@ -282,16 +274,11 @@ function ToolBox({
                 markEntries={markEntries}
                 onChangeMarkTitle={onChangeMarkTitle}
                 onChangeMarkPosition={onChangeMarkPosition}
-                activeLayoutLabel={activeLayoutLabel}
+                progressionBadgeSide={progressionBadgeSide}
                 transposeSteps={transposeSteps}
                 setTransposeSteps={setTransposeSteps}
                 displayKey={displayKey}
-                isTwoColumns={isTwoColumns}
-                setIsTwoColumns={setIsTwoColumns}
-                isExpandedCifra={isExpandedCifra}
-                setIsExpandedCifra={setIsExpandedCifra}
                 showProgressionMarkers={showProgressionMarkers}
-                setShowProgressionMarkers={setShowProgressionMarkers}
                 touchFontSizeLabel={touchFontSizeLabel}
                 decreaseTouchFontSize={decreaseTouchFontSize}
                 increaseTouchFontSize={increaseTouchFontSize}
@@ -305,6 +292,7 @@ function ToolBox({
                 onSaveInstrumentNotes={onSaveInstrumentNotes}
                 isSavingNotes={isSavingNotes}
                 onSelectInstrument={onSelectInstrument}
+                onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

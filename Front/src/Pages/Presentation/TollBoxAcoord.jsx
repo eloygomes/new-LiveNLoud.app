@@ -57,16 +57,11 @@ export default function TollBoxAcoord({
   markEntries = [],
   onChangeMarkTitle,
   onChangeMarkPosition,
-  activeLayoutLabel = "Default layout",
+  progressionBadgeSide = "right",
   transposeSteps = 0,
   setTransposeSteps,
   displayKey = "--",
-  isTwoColumns = false,
-  setIsTwoColumns,
-  isExpandedCifra = false,
-  setIsExpandedCifra,
   showProgressionMarkers = false,
-  setShowProgressionMarkers,
   isTouchLayout = false,
   closeToolBox,
   activeTouchPanel,
@@ -81,6 +76,7 @@ export default function TollBoxAcoord({
   onSaveInstrumentNotes,
   isSavingNotes = false,
   onSelectInstrument = () => {},
+  onChangeProgressionBadgeSide,
 }) {
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
@@ -151,10 +147,12 @@ export default function TollBoxAcoord({
       markEntries={markEntries}
       onChangeMarkTitle={onChangeMarkTitle}
       onChangeMarkPosition={onChangeMarkPosition}
-      activeLayoutLabel={activeLayoutLabel}
       touchFontSizeLabel={touchFontSizeLabel}
-      isTwoColumns={isTwoColumns}
       showProgressionMarkers={showProgressionMarkers}
+      progressionBadgeSide={progressionBadgeSide}
+      onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
+      onDecreaseFontSize={decreaseTouchFontSize}
+      onIncreaseFontSize={increaseTouchFontSize}
     />
   );
 
@@ -307,23 +305,6 @@ export default function TollBoxAcoord({
   const renderLayoutContent = () => (
     <div className={isTouchLayout ? "space-y-3" : "space-y-3"}>
       <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
-        <div className="text-sm font-black text-black">Expand layout</div>
-        <button
-          type="button"
-          className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] ${
-            isExpandedCifra
-              ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
-              : isTouchLayout
-                ? "bg-white text-black"
-                : "neuphormism-b-se text-black"
-          }`}
-          onClick={() => setIsExpandedCifra?.((value) => !value)}
-        >
-          {isExpandedCifra ? "On" : "Off"}
-        </button>
-      </div>
-
-      <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
         <div className="text-sm font-black text-black">
           Progression marks
         </div>
@@ -336,7 +317,7 @@ export default function TollBoxAcoord({
                 ? "bg-white text-black"
                 : "neuphormism-b-se text-black"
           }`}
-          onClick={() => setShowProgressionMarkers?.((value) => !value)}
+          onClick={() => onToggleMarksVisibility?.()}
         >
           {showProgressionMarkers ? "On" : "Off"}
         </button>

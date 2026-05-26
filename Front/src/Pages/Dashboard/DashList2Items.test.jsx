@@ -18,6 +18,7 @@ vi.mock("react-router-dom", async () => {
 
 vi.mock("../../Tools/Controllers", () => ({
   requestData: vi.fn(),
+  saveDashboardVisibleSongs: vi.fn(),
 }));
 
 vi.mock("./DashboardSongActionSheet", () => ({

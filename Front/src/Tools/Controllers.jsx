@@ -1254,6 +1254,50 @@ export function saveSelectedSetlists(arr) {
   }
 }
 
+export const DASHBOARD_VISIBLE_SONGS_LS_KEY = "dashboardVisibleSongs";
+
+function normalizeDashboardVisibleSong(song) {
+  const artist = String(song?.artist || "").trim();
+  const songName = String(song?.song || "").trim();
+
+  if (!artist || !songName) return null;
+
+  return {
+    artist,
+    song: songName,
+    instruments: song?.instruments || {},
+    setlist: Array.isArray(song?.setlist) ? song.setlist : [],
+  };
+}
+
+export function saveDashboardVisibleSongs(songs) {
+  try {
+    const visibleSongs = Array.isArray(songs)
+      ? songs.map(normalizeDashboardVisibleSong).filter(Boolean)
+      : [];
+
+    localStorage.setItem(
+      DASHBOARD_VISIBLE_SONGS_LS_KEY,
+      JSON.stringify(visibleSongs),
+    );
+  } catch {
+    // intentionally empty: safe to ignore errors here
+  }
+}
+
+export function loadDashboardVisibleSongs() {
+  try {
+    const saved = localStorage.getItem(DASHBOARD_VISIBLE_SONGS_LS_KEY);
+    const parsed = JSON.parse(saved);
+
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map(normalizeDashboardVisibleSong).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchDistinctSetlists() {
   const email = getUserEmail();
   if (!email) return [];

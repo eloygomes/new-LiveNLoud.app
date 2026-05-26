@@ -6,13 +6,35 @@
   box-sizing: border-box;
 }
 
+:root {
+  --desktop-app-zoom: 0.8;
+}
+
 html,
 body,
-#root {
+#root,
+#REMOVED_MONGO_USER {
   width: 100%;
   max-width: 100%;
+  height: 100%;
   min-height: 100%;
   overflow-x: hidden;
+}
+
+@media (min-width: 768px) {
+  #root,
+  #REMOVED_MONGO_USER {
+    zoom: var(--desktop-app-zoom);
+    width: calc(100% / var(--desktop-app-zoom));
+    height: calc(100vh / var(--desktop-app-zoom));
+    min-height: calc(100vh / var(--desktop-app-zoom));
+  }
+
+  #root > main,
+  #REMOVED_MONGO_USER > main {
+    height: calc(100vh / var(--desktop-app-zoom));
+    min-height: calc(100vh / var(--desktop-app-zoom));
+  }
 }
 
 html {
@@ -329,6 +351,23 @@ main{
   margin-top: 0.25rem;
 }
 
+.presentation-editor-expanded-horizontal {
+  column-width: 38rem;
+  column-gap: 2rem;
+  height: 100%;
+  min-height: 100%;
+  padding-bottom: 4rem;
+}
+
+.presentation-editor-expanded-horizontal p {
+  break-inside: avoid;
+}
+
+.presentation-editor-expanded-vertical {
+  width: 100%;
+  max-width: none;
+}
+
 .hide-chords .notespresentation {
   display: none;
 }
@@ -399,13 +438,13 @@ main{
 
 .presentation-horizontal-columns {
   display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   height: 100%;
   width: max-content;
   min-width: max-content;
-  gap: 1.25rem 2rem;
+  gap: 2rem;
   padding-bottom: 6rem;
 }
 
@@ -470,22 +509,130 @@ main{
 }
 
 .presentation-progression-block {
-  border: 2px dashed var(--progression-color, #d4a017);
-  border-radius: 20px;
+  outline: 2px dashed var(--progression-color, #d4a017);
+  outline-offset: -2px;
+  border-radius: 10px;
   padding: 0;
   overflow: visible;
   box-shadow: inset 0 0 0 1px
     color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: ew-resize;
+  transition: box-shadow 160ms ease, transform 160ms ease;
 }
 
 .presentation-progression-block > div:last-child {
   pointer-events: auto;
 }
 
+.presentation-progression-block::before,
+.presentation-progression-block::after {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--progression-color, #d4a017);
+  box-shadow: 3px 3px 8px rgba(190, 190, 190, 0.55),
+    -3px -3px 8px rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+.presentation-progression-drag-handle,
+.presentation-progression-resize-handle,
+.presentation-progression-height-handle {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--progression-color, #d4a017);
+  box-shadow: 3px 3px 8px rgba(190, 190, 190, 0.55),
+    -3px -3px 8px rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: auto;
+}
+
+.presentation-progression-drag-handle {
+  top: 50%;
+  left: -0.9rem;
+  transform: translateY(-50%);
+  cursor: grab;
+}
+
+.presentation-progression-drag-handle:active {
+  cursor: grabbing;
+}
+
+.presentation-progression-resize-handle {
+  top: 50%;
+  right: -0.9rem;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.presentation-progression-height-handle {
+  bottom: -0.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.presentation-progression-block:hover .presentation-progression-drag-handle,
+.presentation-progression-block:hover .presentation-progression-resize-handle,
+.presentation-progression-block:hover .presentation-progression-height-handle,
+.presentation-progression-drag-handle:focus,
+.presentation-progression-resize-handle:focus,
+.presentation-progression-height-handle:focus {
+  opacity: 1;
+}
+
+.presentation-progression-block::before {
+  content: "↔";
+  left: -0.9rem;
+}
+
+.presentation-progression-block::after {
+  content: "↔";
+  right: -0.9rem;
+}
+
+.presentation-progression-block:hover::before,
+.presentation-progression-block:hover::after,
+.presentation-progression-block:active::before,
+.presentation-progression-block:active::after {
+  opacity: 1;
+}
+
+.presentation-progression-block:hover,
+.presentation-progression-block:active {
+  box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--progression-color, #d4a017) 18%, transparent),
+    0 10px 24px color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
+}
+
 .presentation-progression-badge {
   position: absolute;
-  left: 1rem;
   top: 0.55rem;
   z-index: 4;
   display: inline-flex;
@@ -495,7 +642,7 @@ main{
   justify-content: center;
   gap: 0.45rem;
   padding: 0.45rem 0.85rem;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--progression-color, #d4a017);
   box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
   color: #fff;
@@ -503,6 +650,37 @@ main{
   font-weight: 900;
   line-height: 1;
   pointer-events: none;
+}
+
+.presentation-progression-column-header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1.45rem;
+  z-index: 3;
+  display: inline-flex;
+  width: 100%;
+  height: 0.95rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: 2px;
+  background: var(--progression-color, #d4a017);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.presentation-progression-badge-left {
+  left: 1rem;
+}
+
+.presentation-progression-badge-right {
+  right: 1rem;
 }
 
 .presentation-progression-badge-number {
@@ -516,6 +694,14 @@ main{
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.95;
+}
+
+.presentation-content-flow[contenteditable="true"] {
+  outline: none;
+}
+
+.presentation-content-flow[contenteditable="true"] .presentation-render-block {
+  cursor: text;
 }
 
 .presentation-live-content pre,

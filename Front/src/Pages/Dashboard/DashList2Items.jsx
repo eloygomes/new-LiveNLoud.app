@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import {
   requestData,
+  saveDashboardVisibleSongs,
   setSongOfflineEnabled,
 } from "../../Tools/Controllers";
 import { Link, useNavigate } from "react-router-dom";
@@ -281,6 +282,12 @@ function DashList2Items({
     return dataCopy;
   }, [data, sortColumn, sortOrder]);
 
+  useEffect(() => {
+    if (!isLoading) {
+      saveDashboardVisibleSongs(sortedData);
+    }
+  }, [isLoading, sortedData]);
+
   const renderOptionalCell = (item, columnKey) => {
     if (columnKey === "progression") {
       return (
@@ -381,6 +388,7 @@ function DashList2Items({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    saveDashboardVisibleSongs(sortedData);
                     navigate(
                       `/presentation/${encodeURIComponent(
                         item.artist || "",
@@ -498,6 +506,7 @@ function DashList2Items({
       return;
     }
     setSelectedSong(null);
+    saveDashboardVisibleSongs(sortedData);
     navigate(
       `/presentation/${encodeURIComponent(
         item.artist || "",
@@ -739,7 +748,7 @@ function DashList2Items({
           />
         </div>
       ) : (
-        <div className="dashboard-table-list flex h-full flex-col mb-10">
+        <div className="dashboard-table-list flex h-full flex-col">
           {sortedData.map((item, index) => (
             <div key={index} className="relative group hover:bg-gray-300">
               <Link
@@ -753,7 +762,7 @@ function DashList2Items({
                 }}
               />
               <div
-                className="dashboard-table-row grid items-center gap-2 border-b border-gray-400 p-3 cursor-pointer hover:bg-gray-200 z-0"
+                className="dashboard-table-row grid items-center gap-2 border-b border-gray-400 px-3 py-2 cursor-pointer hover:bg-gray-200 z-0"
                 style={{
                     gridTemplateColumns:
                     gridTemplateColumns ||

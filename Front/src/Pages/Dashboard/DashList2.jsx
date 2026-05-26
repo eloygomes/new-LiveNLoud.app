@@ -340,7 +340,7 @@ function DashList2({ searchTerm = "" }) {
         </div>
       ) : (
         // ----- MODO DESKTOP -----
-        <div className="mx-auto h-[calc(100vh-4rem)] min-h-0 w-full overflow-hidden ">
+        <div className="mx-auto h-full min-h-0 w-full overflow-hidden">
           <div className="mt-0 flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
             {!optStatus ? (
               <div className="dashboard-column-header z-40 shrink-0">
@@ -418,7 +418,7 @@ function DashList2({ searchTerm = "" }) {
 
             <ul
               className={`min-h-0 flex-1 overflow-auto z-0 ${
-                isTabletColumnLimited ? "pb-8" : "pb-60"
+                isTabletColumnLimited ? "pb-4" : "pb-6"
               } ${optStatus ? "mt-[63rem]" : "mt-2"}`}
             >
               <DashList2Items

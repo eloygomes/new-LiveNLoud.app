@@ -24,6 +24,9 @@ const emptyInstrument = {
   link: "",
   progress: "",
   songCifra: "",
+  songTabs: "",
+  songChords: "",
+  songLyrics: "",
   tuning: "",
 };
 
@@ -104,6 +107,45 @@ function cleanText(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function hasText(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function normalizeLinkForApi(value = "") {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+    const path = url.pathname.replace(/\/+$/, "");
+    return `${host}${path}`;
+  } catch {
+    return String(value || "")
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .replace(/\/+$/, "")
+      .toLowerCase();
+  }
+}
+
+function getLayoutSongCifra(presentationLayouts) {
+  if (!presentationLayouts || typeof presentationLayouts !== "object") return "";
+
+  const candidates = [
+    presentationLayouts.default?.songCifra,
+    presentationLayouts.expanded?.songCifra,
+  ];
+
+  return candidates.find((value) => hasText(value)) || "";
+}
+
+function hasPresentationContent(instrumentData = {}) {
+  return (
+    ["songCifra", "songTabs", "songChords", "songLyrics"].some((field) =>
+      hasText(instrumentData?.[field]),
+    ) || hasText(getLayoutSongCifra(instrumentData?.presentationLayouts))
+  );
 }
 
 function setStatus(message) {
@@ -715,6 +757,7 @@ async function scrapeSong(session, pageContext) {
       instrument: instrumentName,
       instrument_progressbar: progress,
       link: cleanText(pageContext.link),
+      linkNorm: normalizeLinkForApi(pageContext.link),
     }),
   });
 
@@ -765,18 +808,7 @@ function buildSongPayload(email, scrapedDoc = null) {
   const progress = getProgressValue();
   const today = new Date().toISOString().split("T")[0];
   const layoutSongCifra = scrapedDoc?.songCifra || "";
-  const instruments = getEmptyInstrumentsMap();
-  instruments[instrumentName] = true;
-  const instrumentBlocks = {
-    guitar01: { ...emptyInstrument },
-    guitar02: { ...emptyInstrument },
-    bass: { ...emptyInstrument },
-    keys: { ...emptyInstrument },
-    drums: { ...emptyInstrument },
-    voice: { ...emptyInstrument },
-  };
-
-  instrumentBlocks[instrumentName] = {
+  const selectedInstrumentPayload = {
     active: true,
     capo: mergedCapo,
     lastPlay: "",
@@ -793,6 +825,25 @@ function buildSongPayload(email, scrapedDoc = null) {
         : undefined),
     tuning: mergedTuning,
   };
+
+  if (!hasPresentationContent(selectedInstrumentPayload)) {
+    throw new Error(
+      "Nenhum instrumento carregou conteúdo de apresentação ainda. Aguarde a importação da cifra antes de salvar.",
+    );
+  }
+
+  const instruments = getEmptyInstrumentsMap();
+  instruments[instrumentName] = true;
+  const instrumentBlocks = {
+    guitar01: { ...emptyInstrument },
+    guitar02: { ...emptyInstrument },
+    bass: { ...emptyInstrument },
+    keys: { ...emptyInstrument },
+    drums: { ...emptyInstrument },
+    voice: { ...emptyInstrument },
+  };
+
+  instrumentBlocks[instrumentName] = selectedInstrumentPayload;
 
   return {
     databaseComing: "liveNloud_",
