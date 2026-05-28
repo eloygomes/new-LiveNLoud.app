@@ -72,11 +72,13 @@ export default function TollBoxAcoord({
   isSavingNotes = false,
   onSelectInstrument = () => {},
   onChangeProgressionBadgeSide,
+  requestedPanel,
   activeProgressionMarkSettings,
   onDecreaseActiveMarkWidth,
   onIncreaseActiveMarkWidth,
   onDecreaseActiveMarkHeight,
   onIncreaseActiveMarkHeight,
+  onRequestDeleteActiveMark,
 }) {
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
@@ -91,6 +93,17 @@ export default function TollBoxAcoord({
       setInstLinkPageStatus(songDataFetched.instruments);
     }
   }, [songDataFetched]);
+
+  useEffect(() => {
+    if (!requestedPanel?.id) return;
+
+    if (isTouchLayout) {
+      setActiveTouchPanel?.(requestedPanel.id);
+      return;
+    }
+
+    setActiveDesktopPanel(requestedPanel.id);
+  }, [isTouchLayout, requestedPanel, setActiveTouchPanel]);
 
   const handlePlayClick = (url) => {
     setLinktoplay(url);
@@ -153,6 +166,7 @@ export default function TollBoxAcoord({
       onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
       onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
       onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
+      onRequestDeleteActiveMark={onRequestDeleteActiveMark}
     />
   );
 

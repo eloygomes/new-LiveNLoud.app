@@ -237,16 +237,68 @@ function shouldForceVoice(pageContext) {
   return pageContext?.source === "letrasmus";
 }
 
-function syncInstrumentUi(pageContext) {
-  if (shouldForceVoice(pageContext)) {
-    state.selectedInstrument = "voice";
-    elements.instrumentSelect.value = "voice";
-    elements.instrumentSelect.disabled = true;
-    return;
+function getHashParams(link) {
+  try {
+    const hash = new URL(link).hash.replace(/^#/, "");
+    return new URLSearchParams(hash);
+  } catch {
+    return new URLSearchParams();
+  }
+}
+
+function getPathSegments(link) {
+  try {
+    return new URL(link).pathname
+      .split("/")
+      .map((segment) => segment.toLowerCase())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function detectInstrumentFromLink(pageContext) {
+  const link = cleanText(pageContext?.link);
+  const source = cleanText(pageContext?.source);
+  if (!link) return "guitar01";
+
+  if (source === "letrasmus") {
+    return "voice";
   }
 
-  elements.instrumentSelect.disabled = false;
+  const segments = getPathSegments(link);
+
+  if (source === "cifraclub") {
+    const instrumentParam = getHashParams(link).get("instrument");
+    const normalizedInstrument = cleanText(instrumentParam).toLowerCase();
+
+    if (normalizedInstrument === "keyboard") return "keys";
+    if (segments.includes("letra")) return "voice";
+    if (segments.includes("tabs-bateria")) return "drums";
+    if (segments.includes("tabs-baixo")) return "bass";
+
+    return "guitar01";
+  }
+
+  if (source === "ultimate_guitar") {
+    const tabSlug = segments[2] || "";
+
+    if (/-bass-\d+$/i.test(tabSlug)) return "bass";
+    if (/-drums-\d+$/i.test(tabSlug)) return "drums";
+    if (/-keyboard-\d+$/i.test(tabSlug) || /-keys-\d+$/i.test(tabSlug)) {
+      return "keys";
+    }
+
+    return "guitar01";
+  }
+
+  return "guitar01";
+}
+
+function syncInstrumentUi(pageContext) {
+  state.selectedInstrument = detectInstrumentFromLink(pageContext);
   elements.instrumentSelect.value = state.selectedInstrument;
+  elements.instrumentSelect.disabled = false;
 }
 
 function setCompatibleLayout(isCompatible) {

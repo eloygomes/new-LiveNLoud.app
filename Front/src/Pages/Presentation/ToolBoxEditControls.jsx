@@ -20,6 +20,7 @@ function ToolBoxEditControls({
   onIncreaseActiveMarkWidth,
   onDecreaseActiveMarkHeight,
   onIncreaseActiveMarkHeight,
+  onRequestDeleteActiveMark,
 }) {
   const canEditCifra = Boolean(songCifraData);
   const markControlsEnabled =
@@ -56,7 +57,7 @@ function ToolBoxEditControls({
           className="min-w-0 rounded-[14px] bg-white/45 px-2 py-2 text-center text-sm font-black leading-none text-black"
           aria-label={`${label} value`}
         >
-          {markControlsEnabled ? `${value}px` : "Select"}
+          {`${value}px`}
         </div>
         <button
           type="button"
@@ -160,30 +161,40 @@ function ToolBoxEditControls({
           </button>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-[14px] px-1 py-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-black text-black">Selected mark</div>
-            <div className="rounded-[999px] bg-white/60 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-black/70">
-              {markControlsEnabled ? activeMarkLabel : "None"}
+        {markControlsEnabled ? (
+          <div className="flex flex-col gap-2 rounded-[14px] px-1 py-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-black text-black">Selected mark</div>
+              <div className="rounded-[999px] bg-white/60 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-black/70">
+                {activeMarkLabel}
+              </div>
             </div>
+            {renderMarkDimensionControl({
+              label: "Width",
+              value: activeProgressionMarkSettings?.width || 0,
+              decreaseLabel: "Decrease selected mark width",
+              increaseLabel: "Increase selected mark width",
+              onDecrease: onDecreaseActiveMarkWidth,
+              onIncrease: onIncreaseActiveMarkWidth,
+            })}
+            {renderMarkDimensionControl({
+              label: "Height",
+              value: activeProgressionMarkSettings?.height || 0,
+              decreaseLabel: "Decrease selected mark height",
+              increaseLabel: "Increase selected mark height",
+              onDecrease: onDecreaseActiveMarkHeight,
+              onIncrease: onIncreaseActiveMarkHeight,
+            })}
+            <button
+              type="button"
+              className="neuphormism-b-btn-red-cancel mt-1 w-full rounded-[14px] px-4 py-3 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-45"
+              onClick={onRequestDeleteActiveMark}
+              disabled={!markControlsEnabled}
+            >
+              Delete block
+            </button>
           </div>
-          {renderMarkDimensionControl({
-            label: "Width",
-            value: activeProgressionMarkSettings?.width || 0,
-            decreaseLabel: "Decrease selected mark width",
-            increaseLabel: "Increase selected mark width",
-            onDecrease: onDecreaseActiveMarkWidth,
-            onIncrease: onIncreaseActiveMarkWidth,
-          })}
-          {renderMarkDimensionControl({
-            label: "Height",
-            value: activeProgressionMarkSettings?.height || 0,
-            decreaseLabel: "Decrease selected mark height",
-            increaseLabel: "Increase selected mark height",
-            onDecrease: onDecreaseActiveMarkHeight,
-            onIncrease: onIncreaseActiveMarkHeight,
-          })}
-        </div>
+        ) : null}
       </div>
     </div>
   );
@@ -209,11 +220,13 @@ ToolBoxEditControls.propTypes = {
     label: PropTypes.string,
     width: PropTypes.number,
     height: PropTypes.number,
+    blockKeys: PropTypes.arrayOf(PropTypes.string),
   }),
   onDecreaseActiveMarkWidth: PropTypes.func,
   onIncreaseActiveMarkWidth: PropTypes.func,
   onDecreaseActiveMarkHeight: PropTypes.func,
   onIncreaseActiveMarkHeight: PropTypes.func,
+  onRequestDeleteActiveMark: PropTypes.func,
 };
 
 export default ToolBoxEditControls;

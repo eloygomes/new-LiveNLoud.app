@@ -96,6 +96,7 @@ describe("presentationLayoutHelpers", () => {
         progressionMarkOverrides: {
           "block-1": {
             position: 4,
+            order: 12,
             width: 560,
             height: 320,
             title: "Verse",
@@ -119,6 +120,7 @@ describe("presentationLayoutHelpers", () => {
       progressionMarkOverrides: {
         "block-1": {
           position: 4,
+          order: 12,
           width: 560,
           height: 320,
           title: "Verse",
@@ -180,7 +182,7 @@ describe("presentationLayoutHelpers", () => {
         showProgressionMarkers: true,
         progressionBadgeSide: "left",
         progressionMarkOverrides: {
-          "block-1": { title: "Intro", position: 1 },
+          "block-1": { title: "Intro", position: 1, order: 3 },
         },
       },
       expanded: {
@@ -188,7 +190,7 @@ describe("presentationLayoutHelpers", () => {
         showProgressionMarkers: true,
         progressionBadgeSide: "right",
         progressionMarkOverrides: {
-          "block-2": { title: "Verse", position: 2 },
+          "block-2": { title: "Verse", position: 2, order: 7 },
         },
       },
     });
@@ -198,10 +200,10 @@ describe("presentationLayoutHelpers", () => {
     expect(payload.default.progressionBadgeSide).toBe("left");
     expect(payload.expanded.progressionBadgeSide).toBe("right");
     expect(payload.default.progressionMarkOverrides).toEqual({
-      "block-1": { title: "Intro", position: 1 },
+      "block-1": { title: "Intro", position: 1, order: 3 },
     });
     expect(payload.expanded.progressionMarkOverrides).toEqual({
-      "block-2": { title: "Verse", position: 2 },
+      "block-2": { title: "Verse", position: 2, order: 7 },
     });
   });
 });

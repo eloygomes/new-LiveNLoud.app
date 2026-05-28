@@ -53,11 +53,13 @@ function ToolBox({
   isSavingNotes = false,
   onSelectInstrument,
   onChangeProgressionBadgeSide,
+  requestedPanel,
   activeProgressionMarkSettings,
   onDecreaseActiveMarkWidth,
   onIncreaseActiveMarkWidth,
   onDecreaseActiveMarkHeight,
   onIncreaseActiveMarkHeight,
+  onRequestDeleteActiveMark,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -207,11 +209,13 @@ function ToolBox({
               isSavingNotes={isSavingNotes}
               onSelectInstrument={onSelectInstrument}
               onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
+              requestedPanel={requestedPanel}
               activeProgressionMarkSettings={activeProgressionMarkSettings}
               onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
               onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
               onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
               onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
+              onRequestDeleteActiveMark={onRequestDeleteActiveMark}
             />
           </div>
         </div>
@@ -288,11 +292,13 @@ function ToolBox({
                 isSavingNotes={isSavingNotes}
                 onSelectInstrument={onSelectInstrument}
                 onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
+                requestedPanel={requestedPanel}
                 activeProgressionMarkSettings={activeProgressionMarkSettings}
                 onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
                 onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
                 onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
                 onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
+                onRequestDeleteActiveMark={onRequestDeleteActiveMark}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

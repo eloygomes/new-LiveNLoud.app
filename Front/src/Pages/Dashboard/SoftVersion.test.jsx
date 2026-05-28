@@ -5,6 +5,6 @@ describe("SoftVersion", () => {
   it("renders the current version label", () => {
     render(<SoftVersion />);
 
-    expect(screen.getByText("0.74.2.0")).toBeInTheDocument();
+    expect(screen.getByText("0.74.3.0")).toBeInTheDocument();
   });
 });

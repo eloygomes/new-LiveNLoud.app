@@ -18,6 +18,9 @@ export const normalizeProgressionMarkOverrides = (value) => {
 
     nextValue[blockKey] = {
       ...(override.position !== undefined ? { position: override.position } : {}),
+      ...(Number.isFinite(Number(override.order))
+        ? { order: Number(override.order) }
+        : {}),
       ...(typeof override.title === "string" ? { title: override.title } : {}),
       ...(Number.isFinite(Number(override.width))
         ? { width: Math.max(260, Math.min(1200, Number(override.width))) }

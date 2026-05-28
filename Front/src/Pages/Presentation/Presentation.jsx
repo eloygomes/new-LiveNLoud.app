@@ -1,9 +1,13 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import {
+  FaAnglesLeft,
+  FaAnglesRight,
   FaDownLeftAndUpRightToCenter,
+  FaFilePen,
   FaGear,
-  FaPenToSquare,
+  FaGripLines,
+  FaSliders,
   FaUpRightAndDownLeftFromCenter,
 } from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
@@ -48,6 +52,45 @@ const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
 };
 
+function ConfirmationModal({
+  open,
+  title,
+  message,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  onConfirm,
+  onCancel,
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/35 px-4">
+      <div className="neuphormism-b w-full max-w-sm rounded-[18px] bg-[#ececec] p-4 text-black shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+        <div className="mb-2 text-lg font-black tracking-tight">{title}</div>
+        <p className="text-sm font-bold leading-relaxed text-black/70">
+          {message}
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            className="neuphormism-b-btn rounded-[14px] px-4 py-3 text-sm font-black text-black"
+            onClick={onCancel}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className="neuphormism-b-btn-red-cancel rounded-[14px] px-4 py-3 text-sm font-black text-black"
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PRESENTATION_INSTRUMENTS = [
   { key: "guitar01", label: "Guitar 1" },
   { key: "guitar02", label: "Guitar 2" },
@@ -75,8 +118,8 @@ const normalizePresentationInstrumentValue = (value = "") => {
     : "keys";
 };
 
-const PROGRESSION_MARKER_COLORS = [
-  "#d4a017",
+const PROGRESSION_MARKER_COLOR = "#d4a017";
+const PROGRESSION_COLUMN_HEADER_COLORS = [
   "#3d7eff",
   "#2a9d8f",
   "#e76f51",
@@ -212,12 +255,18 @@ const splitBlocksIntoColumnChunks = (
   return chunks.length ? chunks : [blocks];
 };
 
-const buildProgressionBlocks = (htmlBlocks, { hideTabs = false } = {}) => {
+const buildProgressionBlocks = (
+  htmlBlocks,
+  { hideTabs = false, dropBlankLines = false } = {},
+) => {
   let progressionCounter = 0;
 
   return htmlBlocks.reduce((blocksToRender, block, index) => {
     const classMatch = block.match(/class="([^"]*)"/);
     const classes = classMatch ? classMatch[1].split(" ") : [];
+    const isBlankLineBlock =
+      classes.includes("presentation-blank-line") ||
+      block.includes('class="presentation-blank-line"');
 
     const shouldHideTabBlock =
       hideTabs &&
@@ -229,9 +278,11 @@ const buildProgressionBlocks = (htmlBlocks, { hideTabs = false } = {}) => {
       return blocksToRender;
     }
 
-    const isProgressionEligible =
-      !classes.includes("presentation-blank-line") &&
-      !block.includes('class="presentation-blank-line"');
+    if (dropBlankLines && isBlankLineBlock) {
+      return blocksToRender;
+    }
+
+    const isProgressionEligible = !isBlankLineBlock;
 
     const progressionIndex = isProgressionEligible ? ++progressionCounter : null;
 
@@ -344,11 +395,15 @@ function Presentation() {
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
   const [draftCifra, setDraftCifra] = useState("");
+  const [hasEditedCifraContent, setHasEditedCifraContent] = useState(false);
+  const [hasEditedLayoutContent, setHasEditedLayoutContent] = useState(false);
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [selectedBlockKeys, setSelectedBlockKeys] = useState([]);
   const [activeProgressionMarkControl, setActiveProgressionMarkControl] =
     useState(null);
+  const [toolBoxRequestedPanel, setToolBoxRequestedPanel] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState(null);
   const [setlistSongs, setSetlistSongs] = useState([]);
   const [isRouteSongLoading, setIsRouteSongLoading] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
@@ -365,6 +420,7 @@ function Presentation() {
   const presentationContentRef = useRef(null);
   const tooltipHideTimeoutRef = useRef(null);
   const editOriginalCifraRef = useRef("");
+  const editOriginalLayoutsRef = useRef(null);
 
   const clearTooltipHideTimeout = useCallback(() => {
     if (tooltipHideTimeoutRef.current) {
@@ -459,6 +515,7 @@ function Presentation() {
   useEffect(() => {
     if (!isEditing) {
       setDraftCifra(editableSongCifra);
+      setHasEditedCifraContent(false);
     }
   }, [editableSongCifra, isEditing]);
 
@@ -469,6 +526,7 @@ function Presentation() {
 
     previousActiveLayoutVariantRef.current = activeLayoutVariant;
     setDraftCifra(editableSongCifra);
+    setHasEditedCifraContent(false);
     setSaveError("");
   }, [activeLayoutVariant, editableSongCifra]);
 
@@ -539,6 +597,9 @@ function Presentation() {
     setSelectedGuitarProFile(null);
     setIsEditing(false);
     setSaveError("");
+    setHasEditedCifraContent(false);
+    setHasEditedLayoutContent(false);
+    editOriginalLayoutsRef.current = null;
     presentationContentRef.current?.scrollTo?.({ top: 0, left: 0 });
   }, [clearTooltipHideTimeout]);
 
@@ -609,17 +670,63 @@ function Presentation() {
 
   const startEditingCifra = () => {
     editOriginalCifraRef.current = editableSongCifra;
+    editOriginalLayoutsRef.current = toPresentationLayoutPayload(
+      instrumentPresentationLayouts,
+    );
     setSaveError("");
     setIsEditing(true);
+    setHasEditedCifraContent(false);
     setSelectedBlockKeys([]);
     setActiveProgressionMarkControl(null);
     setDraftCifra(editableSongCifra);
     setActiveShowProgressionMarkers(true);
   };
 
+  const openEditorToolBox = useCallback(() => {
+    if (!isEditing && editableSongCifra) {
+      startEditingCifra();
+    }
+    setToolBoxRequestedPanel({
+      id: "panel-editor",
+      requestId: Date.now(),
+    });
+    setToolBoxBtnStatus(true);
+  }, [editableSongCifra, isEditing]);
+
   const handleDiscardDraft = () => {
+    const originalLayouts = editOriginalLayoutsRef.current;
+
+    if (originalLayouts && instrumentSelected) {
+      setSongDataFetched((prev) => {
+        if (!prev || !instrumentSelected) return prev;
+        const currentInstrument = prev[instrumentSelected] || {};
+
+        return {
+          ...prev,
+          [instrumentSelected]: {
+            ...currentInstrument,
+            songCifra:
+              originalLayouts.default?.songCifra ||
+              currentInstrument.songCifra ||
+              "",
+            presentationLayouts: originalLayouts,
+          },
+        };
+      });
+
+      if (presentationLayoutStorageKey && typeof window !== "undefined") {
+        window.localStorage.setItem(
+          presentationLayoutStorageKey,
+          JSON.stringify(originalLayouts),
+        );
+      }
+    }
+
     setDraftCifra(editOriginalCifraRef.current || editableSongCifra);
     setIsEditing(false);
+    setHasEditedCifraContent(false);
+    setHasEditedLayoutContent(false);
+    editOriginalLayoutsRef.current = null;
     setSelectedBlockKeys([]);
     setActiveProgressionMarkControl(null);
     setSaveError("");
@@ -791,6 +898,7 @@ function Presentation() {
 
   const updatePresentationLayoutVariant = useCallback(
     (variantKey, update) => {
+      setHasEditedLayoutContent(true);
       setSongDataFetched((prev) => {
         if (!prev || !instrumentSelected) return prev;
 
@@ -906,6 +1014,27 @@ function Presentation() {
       .trimEnd();
   }, [draftCifra]);
 
+  const markCifraContentAsEdited = useCallback((event) => {
+    const inputType = event?.nativeEvent?.inputType || event?.inputType || "";
+    if (!inputType || inputType.startsWith("history")) return;
+    setHasEditedCifraContent(true);
+  }, []);
+
+  const collectSafeEditedPresentationBlocks = useCallback(() => {
+    const nextCifra = collectEditedPresentationBlocks();
+    const currentCifra =
+      typeof draftCifra === "string" ? draftCifra : editableSongCifra || "";
+
+    if (currentCifra.trim() && !String(nextCifra || "").trim()) {
+      console.warn(
+        "Edição ignorada: coleta do conteúdo retornou vazio para uma cifra existente.",
+      );
+      return currentCifra;
+    }
+
+    return nextCifra;
+  }, [collectEditedPresentationBlocks, draftCifra, editableSongCifra]);
+
   const collectEditedPresentationBlocksExcluding = useCallback(
     (excludedBlockKeys = []) => {
       const excludedKeys = new Set(excludedBlockKeys);
@@ -1007,6 +1136,104 @@ function Presentation() {
     return false;
   }, []);
 
+  const focusEditableBlockStart = useCallback((contentBlock) => {
+    if (!contentBlock) return false;
+
+    const selection = window.getSelection?.();
+    if (!selection) return false;
+
+    const ownerDocument = contentBlock.ownerDocument || document;
+    const range = ownerDocument.createRange();
+    const textWalker = ownerDocument.createTreeWalker(
+      contentBlock,
+      window.NodeFilter?.SHOW_TEXT ?? 4,
+    );
+    let firstTextNode = textWalker.nextNode();
+
+    while (firstTextNode && firstTextNode.textContent === "") {
+      firstTextNode = textWalker.nextNode();
+    }
+
+    if (firstTextNode) {
+      range.setStart(firstTextNode, 0);
+    } else {
+      range.setStart(contentBlock, 0);
+    }
+
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    contentBlock
+      .closest(".presentation-content-flow")
+      ?.focus({ preventScroll: true });
+    contentBlock.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return true;
+  }, []);
+
+  const moveEnterToNextEditableBlock = useCallback(
+    (event) => {
+      if (
+        event.key !== "Enter" ||
+        event.shiftKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.isComposing
+      ) {
+        return false;
+      }
+
+      const selection = window.getSelection?.();
+      if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
+        return false;
+      }
+
+      const targetBlock = event.currentTarget;
+      const range = selection.getRangeAt(0);
+      const anchorNode = selection.anchorNode;
+      const anchorElement =
+        anchorNode instanceof HTMLElement
+          ? anchorNode
+          : anchorNode?.parentElement;
+      const currentContentBlock = anchorElement?.closest(
+        ".presentation-render-content-block",
+      );
+
+      if (!currentContentBlock || !targetBlock.contains(currentContentBlock)) {
+        return false;
+      }
+
+      const trailingRange = range.cloneRange();
+      trailingRange.selectNodeContents(currentContentBlock);
+      try {
+        trailingRange.setStart(range.endContainer, range.endOffset);
+      } catch {
+        return false;
+      }
+
+      const trailingText = trailingRange
+        .toString()
+        .replace(/\u00a0/g, " ")
+        .replace(/\u200b/g, "")
+        .trim();
+
+      if (trailingText !== "") return false;
+
+      const contentBlocks = Array.from(
+        targetBlock.querySelectorAll(".presentation-render-content-block"),
+      );
+      const currentIndex = contentBlocks.indexOf(currentContentBlock);
+      const nextContentBlock = contentBlocks[currentIndex + 1];
+
+      if (!nextContentBlock) return false;
+
+      event.preventDefault();
+      focusEditableBlockStart(nextContentBlock);
+      return true;
+    },
+    [focusEditableBlockStart],
+  );
+
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
       setSaveError("Sem dados da música carregados para salvar.");
@@ -1019,11 +1246,12 @@ function Presentation() {
     setIsSavingCifra(true);
     setSaveError("");
 
-    const nextDraftCifra = isEditing
-      ? collectEditedPresentationBlocks()
-      : draftCifra;
+    const nextDraftCifra =
+      isEditing && hasEditedCifraContent
+        ? collectSafeEditedPresentationBlocks()
+        : draftCifra;
     const currentLayouts = buildInstrumentPresentationLayouts(currentInstrumentData);
-    const nextLayouts = {
+    const nextLayoutsWithSavedContent = {
       ...currentLayouts,
       [activeLayoutVariant]: normalizePresentationLayoutVariant(
         {
@@ -1035,6 +1263,16 @@ function Presentation() {
           defaultTwoColumns: activeLayoutVariant === "expanded",
         },
       ),
+    };
+    const nextLayouts = {
+      default: {
+        ...nextLayoutsWithSavedContent.default,
+        showProgressionMarkers: false,
+      },
+      expanded: {
+        ...nextLayoutsWithSavedContent.expanded,
+        showProgressionMarkers: false,
+      },
     };
     const persistedLayouts = toPresentationLayoutPayload(nextLayouts);
     const updatedBlock = {
@@ -1050,19 +1288,40 @@ function Presentation() {
     };
 
     try {
-      await updateSongEntry(nextSongData);
+      const saveResult = await updateSongEntry(nextSongData);
+
+      if (presentationLayoutStorageKey && typeof window !== "undefined") {
+        window.localStorage.setItem(
+          presentationLayoutStorageKey,
+          JSON.stringify(persistedLayouts),
+        );
+      }
 
       setDraftCifra(nextDraftCifra);
-      setSongDataFetched((prev) => ({
-        ...(prev || {}),
-        ...nextSongData,
-        [instrumentSelected]: {
-          ...updatedBlock,
-          presentationLayouts: toPresentationLayoutPayload(nextLayouts),
-        },
-      }));
+      setSongDataFetched((prev) => {
+        const serverSong =
+          saveResult?.song && typeof saveResult.song === "object"
+            ? saveResult.song
+            : {};
+
+        return {
+          ...(prev || {}),
+          ...nextSongData,
+          ...serverSong,
+          [instrumentSelected]: {
+            ...(serverSong?.[instrumentSelected] || {}),
+            ...updatedBlock,
+            songCifra: nextLayouts.default.songCifra,
+            presentationLayouts: persistedLayouts,
+          },
+        };
+      });
       setIsEditing(false);
+      setHasEditedCifraContent(false);
+      setHasEditedLayoutContent(false);
+      editOriginalLayoutsRef.current = null;
       setSelectedBlockKeys([]);
+      setActiveProgressionMarkControl(null);
       const timestamp = new Date().toLocaleTimeString();
       setLastSaveTimestamp(timestamp);
       pushSnackbarMessage("Salvo", `Último salvamento às ${timestamp}`);
@@ -1080,10 +1339,15 @@ function Presentation() {
 
   const hasDraftChanges =
     isEditing ||
+    hasEditedLayoutContent ||
     ((isEditing ? editOriginalCifraRef.current : editableSongCifra) || "") !==
       (draftCifra || "");
   const shouldUseTwoColumns = isTwoColumns;
   const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
+  const shouldCompactHorizontalLiveFlow =
+    effectiveLiveMode && shouldUseHorizontalColumnFlow;
+  const shouldApplyProgressionBlockDimensions =
+    !effectiveLiveMode || isEditing;
   const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
   const renderContentSelected = contentSelected;
   const transposedContent = useMemo(
@@ -1123,8 +1387,12 @@ function Presentation() {
   }, [isParsableString, transposedContent]);
 
   const visibleContentBlocks = useMemo(
-    () => buildProgressionBlocks(htmlBlocks, { hideTabs }),
-    [hideTabs, htmlBlocks],
+    () =>
+      buildProgressionBlocks(htmlBlocks, {
+        hideTabs,
+        dropBlankLines: shouldCompactHorizontalLiveFlow,
+      }),
+    [hideTabs, htmlBlocks, shouldCompactHorizontalLiveFlow],
   );
 
   const progressionRenderGroups = useMemo(() => {
@@ -1676,8 +1944,7 @@ function Presentation() {
     if (
       !viewport ||
       !shouldUseHorizontalColumnFlow ||
-      isEditing ||
-      effectiveLiveMode
+      isEditing
     ) {
       return undefined;
     }
@@ -1696,7 +1963,7 @@ function Presentation() {
     return () => {
       viewport.removeEventListener("wheel", handleWheel);
     };
-  }, [effectiveLiveMode, isEditing, shouldUseHorizontalColumnFlow]);
+  }, [isEditing, shouldUseHorizontalColumnFlow]);
 
   useEffect(() => {
     if (!effectiveLiveMode) return undefined;
@@ -2277,7 +2544,7 @@ function Presentation() {
     const resizing = resizingProgressionWidths[overrideKey] || {};
 
     return {
-      active: Boolean(targetColumn || overrideKey),
+      active: Boolean(targetColumn),
       label:
         targetColumn?.visualColumnLabel ||
         activeProgressionMarkControl.label ||
@@ -2469,7 +2736,9 @@ function Presentation() {
       });
 
       setDraftCifra(nextDraftCifra);
+      setHasEditedCifraContent(false);
       setSelectedBlockKeys([]);
+      setActiveProgressionMarkControl(null);
     },
     [
       collectEditedPresentationBlocksExcluding,
@@ -2477,6 +2746,23 @@ function Presentation() {
       updateActivePresentationLayout,
     ],
   );
+
+  const requestDeleteActiveProgressionMark = useCallback(() => {
+    const blockKeys = activeProgressionMarkSettings?.blockKeys || [];
+    if (!isEditing || !blockKeys.length) return;
+
+    setConfirmationModal({
+      title: "Delete block",
+      message:
+        "This will remove the selected block from the current cifra. This action cannot be undone after saving.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      onConfirm: () => {
+        handleDeleteSelectedBlocks(blockKeys);
+        setConfirmationModal(null);
+      },
+    });
+  }, [activeProgressionMarkSettings, handleDeleteSelectedBlocks, isEditing]);
 
   useEffect(() => {
     if (!isEditing || !selectedBlockKeys.length) return undefined;
@@ -2507,7 +2793,9 @@ function Presentation() {
       tabIndex={effectiveLiveMode ? -1 : undefined}
       className={`flex min-h-0 justify-center ${
         effectiveLiveMode ? "h-[100dvh]" : "h-full"
-      } ${effectiveLiveMode ? "presentation-live-shell" : ""} ${
+      } ${
+        effectiveLiveMode ? "presentation-live-shell" : ""
+      } ${
         isPseudoLiveMode ? "overflow-hidden" : ""
       }`}
       onMouseDown={effectiveLiveMode ? focusLiveViewport : undefined}
@@ -2565,6 +2853,7 @@ function Presentation() {
           isSavingNotes={isSavingNotes}
           onSelectInstrument={goToInstrument}
           onChangeProgressionBadgeSide={toggleActiveProgressionBadgeSide}
+          requestedPanel={toolBoxRequestedPanel}
           activeProgressionMarkSettings={activeProgressionMarkSettings}
           onDecreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(-20)}
           onIncreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(20)}
@@ -2574,8 +2863,18 @@ function Presentation() {
           onIncreaseActiveMarkHeight={() =>
             adjustActiveProgressionMarkHeight(20)
           }
+          onRequestDeleteActiveMark={requestDeleteActiveProgressionMark}
         />
       )}
+      <ConfirmationModal
+        open={Boolean(confirmationModal)}
+        title={confirmationModal?.title}
+        message={confirmationModal?.message}
+        confirmLabel={confirmationModal?.confirmLabel}
+        cancelLabel={confirmationModal?.cancelLabel}
+        onConfirm={confirmationModal?.onConfirm}
+        onCancel={() => setConfirmationModal(null)}
+      />
       <div
         className={`container mx-auto h-full min-h-0 ${
           effectiveLiveMode || isExpandedCifra ? "max-w-none px-0" : ""
@@ -2592,12 +2891,18 @@ function Presentation() {
         >
           {!effectiveLiveMode && (
             <div
-              className={`my-5 flex shrink-0 justify-between neuphormism-b ${
+              className={`relative my-5 flex shrink-0 justify-between neuphormism-b ${
                 isTouchLayout
                   ? "items-stretch gap-3 px-4 py-3"
-                  : "flex-row items-end p-4"
+                  : "min-h-[7.25rem] flex-row items-center px-10 pb-4 pt-8"
               }`}
             >
+              {!isTouchLayout ? (
+                <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  <span>Presentation</span>
+                  <span>{activeLayoutLabel}</span>
+                </div>
+              ) : null}
               <div
                 className={`flex min-w-0 flex-1 flex-col ${
                   isTouchLayout ? "pr-1" : ""
@@ -2631,7 +2936,7 @@ function Presentation() {
                       className={`font-bold text-black ${
                         isTouchLayout
                           ? `${getMobileTitleSizeClass(songFromURL, "song")} truncate`
-                          : "text-4xl"
+                          : "text-[2.45rem] leading-[1.02]"
                       }`}
                       title={songFromURL}
                     >
@@ -2641,7 +2946,7 @@ function Presentation() {
                       className={`font-bold text-black ${
                         isTouchLayout
                           ? `${getMobileTitleSizeClass(artistFromURL, "artist")} truncate`
-                          : "text-4xl"
+                          : "text-[2rem] leading-[1.02]"
                       }`}
                       title={artistFromURL}
                     >
@@ -2676,7 +2981,7 @@ function Presentation() {
                 className={`flex flex-col ${
                   isTouchLayout
                     ? "shrink-0 items-stretch justify-start gap-2"
-                    : "items-stretch gap-2"
+                    : "items-stretch gap-3 pt-2"
                 }`}
               >
                 <div
@@ -2690,7 +2995,7 @@ function Presentation() {
                     className={
                       isTouchLayout
                         ? "hidden"
-                        : "order-2 grid grid-cols-2 gap-1.5 opacity-80"
+                        : "order-2 mt-3 grid grid-cols-2 gap-2 opacity-80"
                     }
                   >
                   <button
@@ -2727,11 +3032,6 @@ function Presentation() {
                         : "order-1 flex flex-col items-stretch gap-2"
                     }
                   >
-                    {!isTouchLayout ? (
-                      <div className="w-full text-center text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                        {activeLayoutLabel}
-                      </div>
-                    ) : null}
                     <div
                       className={
                         isTouchLayout
@@ -2739,6 +3039,20 @@ function Presentation() {
                           : "flex flex-row items-stretch gap-3"
                       }
                     >
+                      <button
+                        type="button"
+                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                          isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
+                        }`}
+                        onClick={openEditorToolBox}
+                        aria-label="Open cifra editor"
+                        title="Open cifra editor"
+                      >
+                        <FaFilePen
+                          className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
+                        />
+                        <span className="sr-only">Editor</span>
+                      </button>
                       <button
                         type="button"
                         className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
@@ -2770,11 +3084,9 @@ function Presentation() {
                       </button>
                       <button
                         type="button"
-                        className={`flex items-center justify-center gap-2 font-black ${
-                          isExpandedCifra
-                            ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
-                            : "neuphormism-b-btn text-black"
-                        } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
+                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                          isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
+                        }`}
                         onClick={() => setIsExpandedCifra((value) => !value)}
                         aria-label={
                           isExpandedCifra
@@ -2804,13 +3116,13 @@ function Presentation() {
                           isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
                         }`}
                         onClick={goToEditSong}
-                        aria-label="Edit song"
-                        title="Open this song in the editor"
+                        aria-label="Song settings"
+                        title="Open song settings"
                       >
-                        <FaPenToSquare
+                        <FaSliders
                           className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
                         />
-                        <span className="sr-only">Edit Song</span>
+                        <span className="sr-only">Song Settings</span>
                       </button>
                       {instrumentSelected !== "voice" ? (
                         <button
@@ -2950,33 +3262,69 @@ function Presentation() {
             </div>
           ) : null}
 
-          {!effectiveLiveMode && shouldUseHorizontalColumnFlow ? (
+          {shouldUseHorizontalColumnFlow ? (
             <div className="presentation-horizontal-nav-dock">
               <DraggableComponent
                 handle=".drag-handle"
                 defaultPosition={{ x: 0, y: 0 }}
               >
-                <div className="presentation-horizontal-nav-group neuphormism-b">
+                <div
+                  className={`presentation-horizontal-nav-group ${
+                    effectiveLiveMode ? "" : "neuphormism-b"
+                  }`}
+                  role="group"
+                  aria-label="Expanded layout navigation"
+                >
                   <div className="presentation-horizontal-nav-buttons">
                     <button
                       type="button"
-                      className="presentation-horizontal-nav neuphormism-b-btn font-black text-black"
+                      className={`presentation-horizontal-nav ${
+                        effectiveLiveMode
+                          ? ""
+                          : "neuphormism-b-btn font-black text-black"
+                      }`}
                       onClick={() => scrollExpandedLayout(-1)}
                       aria-label="Navigate left through expanded cifra"
                     >
-                      &lt;&lt;
+                      {effectiveLiveMode ? (
+                        <>
+                          <FaAnglesLeft aria-hidden="true" />
+                          <span className="sr-only">Previous columns</span>
+                        </>
+                      ) : (
+                        "<<"
+                      )}
                     </button>
                     <button
                       type="button"
-                      className="presentation-horizontal-nav neuphormism-b-btn font-black text-black"
+                      className={`presentation-horizontal-nav ${
+                        effectiveLiveMode
+                          ? ""
+                          : "neuphormism-b-btn font-black text-black"
+                      }`}
                       onClick={() => scrollExpandedLayout(1)}
                       aria-label="Navigate right through expanded cifra"
                     >
-                      &gt;&gt;
+                      {effectiveLiveMode ? (
+                        <>
+                          <FaAnglesRight aria-hidden="true" />
+                          <span className="sr-only">Next columns</span>
+                        </>
+                      ) : (
+                        ">>"
+                      )}
                     </button>
                   </div>
-                  <div className="drag-handle presentation-horizontal-drag-handle">
-                    Click and hold to drag
+                  <div
+                    className="drag-handle presentation-horizontal-drag-handle"
+                    aria-label="Move navigation controls"
+                    title="Move navigation controls"
+                  >
+                    {effectiveLiveMode ? (
+                      <FaGripLines aria-hidden="true" />
+                    ) : (
+                      "Click and hold to drag"
+                    )}
                   </div>
                 </div>
               </DraggableComponent>
@@ -2996,7 +3344,7 @@ function Presentation() {
             className={`min-h-0 flex-1 ${
               effectiveLiveMode
                 ? "presentation-live-content"
-                : `presentation-scroll-content neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "p-5"}`
+                : `presentation-scroll-content neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "px-10 py-5"}`
             } ${hideChords ? "hide-chords" : ""} ${
               selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
             } ${
@@ -3111,9 +3459,29 @@ function Presentation() {
                 key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}`}
                 contentEditable={isEditing}
                 suppressContentEditableWarning
+                onBeforeInput={
+                  isEditing ? markCifraContentAsEdited : undefined
+                }
+                onPaste={
+                  isEditing
+                    ? () => setHasEditedCifraContent(true)
+                    : undefined
+                }
+                onCut={
+                  isEditing
+                    ? () => setHasEditedCifraContent(true)
+                    : undefined
+                }
                 onKeyDown={
                   isEditing
-                    ? (event) => removeEmptyEditableLine(event)
+                    ? (event) => {
+                        if (moveEnterToNextEditableBlock(event)) {
+                          return;
+                        }
+                        if (removeEmptyEditableLine(event)) {
+                          setHasEditedCifraContent(true);
+                        }
+                      }
                     : undefined
                 }
                 onDragOver={
@@ -3150,12 +3518,15 @@ function Presentation() {
                       Number.parseInt(visualColumnIndex, 10) ||
                       Number.parseInt(displayPosition, 10) ||
                       visibleIndex + 1;
-                    const progressionColor =
+                    const progressionColor = isProgressionEligible
+                      ? PROGRESSION_MARKER_COLOR
+                      : undefined;
+                    const progressionHeaderColor =
                       isProgressionEligible
-                        ? PROGRESSION_MARKER_COLORS[
+                        ? PROGRESSION_COLUMN_HEADER_COLORS[
                             ((numericDisplayPosition -
                               1) %
-                              PROGRESSION_MARKER_COLORS.length)
+                              PROGRESSION_COLUMN_HEADER_COLORS.length)
                           ]
                         : undefined;
                     const widthResizingDimensions =
@@ -3213,14 +3584,20 @@ function Presentation() {
                         }`}
                         onMouseDownCapture={
                           isEditing && isProgressionEligible
-                            ? () => {
+                            ? (event) => {
+                                const currentRect =
+                                  event.currentTarget.getBoundingClientRect();
                                 setActiveProgressionMarkControl({
                                   groupKey,
                                   visualColumnOverrideKey,
                                   blockKeys,
                                   label: headerLabel,
-                                  width: displayWidth,
-                                  height: displayHeight,
+                                  width:
+                                    displayWidth ||
+                                    Math.round(currentRect.width),
+                                  height:
+                                    displayHeight ||
+                                    Math.round(currentRect.height),
                                 });
                               }
                             : undefined
@@ -3266,10 +3643,18 @@ function Presentation() {
                           ...(showProgressionMarkers &&
                           isProgressionEligible &&
                           progressionColor
-                            ? { "--progression-color": progressionColor }
+                            ? {
+                                "--progression-color": progressionColor,
+                                "--progression-header-color":
+                                  progressionHeaderColor,
+                              }
                             : {}),
-                          ...(displayWidth ? { width: `${displayWidth}px` } : {}),
-                          ...(displayHeight
+                          ...(shouldApplyProgressionBlockDimensions &&
+                          displayWidth
+                            ? { width: `${displayWidth}px` }
+                            : {}),
+                          ...(shouldApplyProgressionBlockDimensions &&
+                          displayHeight
                             ? {
                                 height: `${displayHeight}px`,
                                 minHeight: `${displayHeight}px`,
@@ -3366,6 +3751,25 @@ function Presentation() {
                             <button
                               type="button"
                               className="presentation-progression-height-handle"
+                              data-resize-axis="height"
+                              onMouseDown={(event) =>
+                                handleStartProgressionResize(event, {
+                                  groupKey,
+                                  baseGroupKey,
+                                  visualColumnOverrideKey,
+                                  blockKeys,
+                                  width,
+                                  height,
+                                })
+                              }
+                              contentEditable={false}
+                              aria-label="Resize progression block height"
+                            >
+                              ↕
+                            </button>
+                            <button
+                              type="button"
+                              className="presentation-progression-height-top-handle"
                               data-resize-axis="height"
                               onMouseDown={(event) =>
                                 handleStartProgressionResize(event, {
