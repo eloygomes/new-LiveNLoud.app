@@ -105,6 +105,30 @@ const getColumnLabelFromIndex = (value = 1) => {
 };
 
 const MAX_EXPANDED_COLUMN_LINE_UNITS = 32;
+const EMPTY_PRESENTATION_BLOCK_PLACEHOLDER = "\u200b";
+const ESTIMATED_PRESENTATION_LINE_HEIGHT_PX = 24;
+const ESTIMATED_PRESENTATION_BLOCK_VERTICAL_CHROME_PX = 56;
+const PROGRESSION_BLOCK_BOTTOM_GUTTER_PX = 8;
+const MIN_PROGRESSION_BLOCK_HEIGHT_PX = 80;
+const MAX_PROGRESSION_BLOCK_HEIGHT_PX = 1400;
+
+const getProgressionVisualColumnOverrideKey = (groupKey = "", chunkIndex = 0) =>
+  `visual-column::${groupKey || "progression"}::${chunkIndex + 1}`;
+
+const getMaxLineUnitsForProgressionHeight = (height) => {
+  const numericHeight = Number(height);
+  if (!Number.isFinite(numericHeight) || numericHeight <= 0) {
+    return MAX_EXPANDED_COLUMN_LINE_UNITS;
+  }
+
+  return Math.max(
+    1,
+    Math.floor(
+      (numericHeight - ESTIMATED_PRESENTATION_BLOCK_VERTICAL_CHROME_PX) /
+        ESTIMATED_PRESENTATION_LINE_HEIGHT_PX,
+    ),
+  );
+};
 
 const estimateHtmlLineUnits = (html = "") => {
   const text = html
@@ -148,6 +172,8 @@ const splitBlocksIntoColumnChunks = (
   const chunks = [];
   let currentChunk = [];
   let currentLineUnits = 0;
+  const getMaxLineUnits =
+    typeof maxLineUnits === "function" ? maxLineUnits : () => maxLineUnits;
 
   blocks.forEach((entry) => {
     splitHtmlBlockByPreElements(entry.block).forEach((fragmentHtml, index) => {
@@ -163,10 +189,11 @@ const splitBlocksIntoColumnChunks = (
             : `${entry.blockKey}-fragment-${index + 1}`,
       };
       const lineUnits = estimateHtmlLineUnits(fragment.block);
+      const currentMaxLineUnits = getMaxLineUnits(chunks.length);
 
       if (
         currentChunk.length &&
-        currentLineUnits + lineUnits > maxLineUnits
+        currentLineUnits + lineUnits > currentMaxLineUnits
       ) {
         chunks.push(currentChunk);
         currentChunk = [];
@@ -313,13 +340,15 @@ function Presentation() {
 
   const [transposeSteps, setTransposeSteps] = useState(0);
   const [isExpandedCifra, setIsExpandedCifra] = useState(false);
-  const [marksEditorOpen, setMarksEditorOpen] = useState(false);
 
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
   const [draftCifra, setDraftCifra] = useState("");
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [selectedBlockKeys, setSelectedBlockKeys] = useState([]);
+  const [activeProgressionMarkControl, setActiveProgressionMarkControl] =
+    useState(null);
   const [setlistSongs, setSetlistSongs] = useState([]);
   const [isRouteSongLoading, setIsRouteSongLoading] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
@@ -510,7 +539,6 @@ function Presentation() {
     setSelectedGuitarProFile(null);
     setIsEditing(false);
     setSaveError("");
-    setMarksEditorOpen(false);
     presentationContentRef.current?.scrollTo?.({ top: 0, left: 0 });
   }, [clearTooltipHideTimeout]);
 
@@ -583,6 +611,8 @@ function Presentation() {
     editOriginalCifraRef.current = editableSongCifra;
     setSaveError("");
     setIsEditing(true);
+    setSelectedBlockKeys([]);
+    setActiveProgressionMarkControl(null);
     setDraftCifra(editableSongCifra);
     setActiveShowProgressionMarkers(true);
   };
@@ -590,6 +620,8 @@ function Presentation() {
   const handleDiscardDraft = () => {
     setDraftCifra(editOriginalCifraRef.current || editableSongCifra);
     setIsEditing(false);
+    setSelectedBlockKeys([]);
+    setActiveProgressionMarkControl(null);
     setSaveError("");
   };
 
@@ -842,6 +874,139 @@ function Presentation() {
     [updateActivePresentationLayout],
   );
 
+  const collectEditedPresentationBlocks = useCallback(() => {
+    const contentNode = presentationContentRef.current;
+    if (!contentNode) return draftCifra;
+
+    const contentBlocks = Array.from(
+      contentNode.querySelectorAll(".presentation-render-content-block"),
+    );
+    if (!contentBlocks.length) return draftCifra;
+
+    return contentBlocks
+      .map((block, domIndex) => {
+        const rawText = block.innerText.replace(/\u00a0/g, " ").trimEnd();
+        return {
+          domIndex,
+          index: Number.parseInt(block.dataset.originalBlockIndex, 10),
+          text:
+            rawText.trim() === ""
+              ? EMPTY_PRESENTATION_BLOCK_PLACEHOLDER
+              : rawText,
+        };
+      })
+      .sort((left, right) => {
+        const leftIndex = Number.isFinite(left.index) ? left.index : 0;
+        const rightIndex = Number.isFinite(right.index) ? right.index : 0;
+        if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+        return left.domIndex - right.domIndex;
+      })
+      .map((block) => block.text)
+      .join("\n\n")
+      .trimEnd();
+  }, [draftCifra]);
+
+  const collectEditedPresentationBlocksExcluding = useCallback(
+    (excludedBlockKeys = []) => {
+      const excludedKeys = new Set(excludedBlockKeys);
+      const contentNode = presentationContentRef.current;
+      if (!contentNode) return draftCifra;
+
+      const contentBlocks = Array.from(
+        contentNode.querySelectorAll(".presentation-render-content-block"),
+      );
+      if (!contentBlocks.length) return draftCifra;
+
+      return contentBlocks
+        .filter((block) => {
+          const blockKeys = (block.dataset.blockKeys || block.dataset.blockKey || "")
+            .split(",")
+            .map((blockKey) => blockKey.trim())
+            .filter(Boolean);
+          return !blockKeys.some((blockKey) => excludedKeys.has(blockKey));
+        })
+        .map((block, domIndex) => {
+          const rawText = block.innerText.replace(/\u00a0/g, " ").trimEnd();
+          return {
+            domIndex,
+            index: Number.parseInt(block.dataset.originalBlockIndex, 10),
+            text:
+              rawText.trim() === ""
+                ? EMPTY_PRESENTATION_BLOCK_PLACEHOLDER
+                : rawText,
+          };
+        })
+        .sort((left, right) => {
+          const leftIndex = Number.isFinite(left.index) ? left.index : 0;
+          const rightIndex = Number.isFinite(right.index) ? right.index : 0;
+          if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+          return left.domIndex - right.domIndex;
+        })
+        .map((block) => block.text)
+        .join("\n\n")
+        .trimEnd();
+    },
+    [draftCifra],
+  );
+
+  const removeEmptyEditableLine = useCallback((event) => {
+    if (event.key !== "Backspace" && event.key !== "Delete") return false;
+
+    const selection = window.getSelection?.();
+    if (!selection || selection.rangeCount === 0) return false;
+
+    const targetBlock = event.currentTarget;
+    const range = selection.getRangeAt(0);
+    const anchorNode = selection.anchorNode;
+    const anchorElement =
+      anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement;
+    if (!anchorElement || !targetBlock.contains(anchorElement)) return false;
+
+    const selectedText = selection.toString().replace(/\u00a0/g, " ");
+    const selectedEmptyElement =
+      !selection.isCollapsed &&
+      Array.from(
+        targetBlock.querySelectorAll(
+          ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div",
+        ),
+      ).find((node) => {
+        if (!selection.containsNode(node, true)) return false;
+        return (node.innerText || node.textContent || "").trim() === "";
+      });
+
+    const currentLineElement = anchorElement.closest(
+      ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div",
+    );
+    const currentLineText =
+      currentLineElement && currentLineElement !== targetBlock
+        ? currentLineElement.innerText || currentLineElement.textContent || ""
+        : "";
+
+    const lineToRemove =
+      selectedEmptyElement ||
+      (currentLineElement &&
+      currentLineElement !== targetBlock &&
+      currentLineText.trim() === ""
+        ? currentLineElement
+        : null);
+
+    if (lineToRemove && targetBlock.contains(lineToRemove)) {
+      event.preventDefault();
+      lineToRemove.remove();
+      targetBlock.focus();
+      return true;
+    }
+
+    if (!selection.isCollapsed && selectedText.trim() === "") {
+      event.preventDefault();
+      range.deleteContents();
+      targetBlock.focus();
+      return true;
+    }
+
+    return false;
+  }, []);
+
   const handleSaveCifra = async () => {
     if (!instrumentSelected || !songDataFetched) {
       setSaveError("Sem dados da música carregados para salvar.");
@@ -854,16 +1019,19 @@ function Presentation() {
     setIsSavingCifra(true);
     setSaveError("");
 
+    const nextDraftCifra = isEditing
+      ? collectEditedPresentationBlocks()
+      : draftCifra;
     const currentLayouts = buildInstrumentPresentationLayouts(currentInstrumentData);
     const nextLayouts = {
       ...currentLayouts,
       [activeLayoutVariant]: normalizePresentationLayoutVariant(
         {
           ...currentLayouts[activeLayoutVariant],
-          songCifra: draftCifra,
+          songCifra: nextDraftCifra,
         },
         {
-          fallbackSongCifra: draftCifra,
+          fallbackSongCifra: nextDraftCifra,
           defaultTwoColumns: activeLayoutVariant === "expanded",
         },
       ),
@@ -884,6 +1052,7 @@ function Presentation() {
     try {
       await updateSongEntry(nextSongData);
 
+      setDraftCifra(nextDraftCifra);
       setSongDataFetched((prev) => ({
         ...(prev || {}),
         ...nextSongData,
@@ -893,6 +1062,7 @@ function Presentation() {
         },
       }));
       setIsEditing(false);
+      setSelectedBlockKeys([]);
       const timestamp = new Date().toLocaleTimeString();
       setLastSaveTimestamp(timestamp);
       pushSnackbarMessage("Salvo", `Último salvamento às ${timestamp}`);
@@ -909,15 +1079,13 @@ function Presentation() {
   };
 
   const hasDraftChanges =
+    isEditing ||
     ((isEditing ? editOriginalCifraRef.current : editableSongCifra) || "") !==
-    (draftCifra || "");
+      (draftCifra || "");
   const shouldUseTwoColumns = isTwoColumns;
   const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
   const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
-  const renderContentSelected =
-    isEditing && ["default", "full"].includes(selectContenttoShow)
-      ? draftCifra
-      : contentSelected;
+  const renderContentSelected = contentSelected;
   const transposedContent = useMemo(
     () => transposeCifra(renderContentSelected, transposeSteps),
     [renderContentSelected, transposeSteps],
@@ -979,9 +1147,16 @@ function Presentation() {
       const height = Number.isFinite(Number(override.height))
         ? Number(override.height)
         : undefined;
+      const renderOrder = Number.isFinite(Number(override.order))
+        ? Number(override.order)
+        : visibleIndex;
+      const groupedEntry = {
+        ...entry,
+        renderOrder,
+      };
 
       if (existingGroup) {
-        existingGroup.blocks.push(entry);
+        existingGroup.blocks.push(groupedEntry);
         existingGroup.blockKeys.push(blockKey);
         existingGroup.width = existingGroup.width ?? width;
         existingGroup.height = existingGroup.height ?? height;
@@ -991,7 +1166,7 @@ function Presentation() {
       groupedBlocks.set(groupKey, {
         groupKey,
         blockKeys: [blockKey],
-        blocks: [entry],
+        blocks: [groupedEntry],
         isProgressionEligible: entry.isProgressionEligible,
         columnIndex: numericPosition,
         displayPosition: numericPosition,
@@ -1002,7 +1177,15 @@ function Presentation() {
       });
     });
 
-    return Array.from(groupedBlocks.values()).sort((left, right) => {
+    return Array.from(groupedBlocks.values()).map((group) => ({
+      ...group,
+      blocks: group.blocks
+        .slice()
+        .sort(
+          (left, right) =>
+            (left.renderOrder ?? left.index) - (right.renderOrder ?? right.index),
+        ),
+    })).sort((left, right) => {
       if (left.isProgressionEligible && right.isProgressionEligible) {
         return left.columnIndex - right.columnIndex;
       }
@@ -1026,26 +1209,56 @@ function Presentation() {
         ];
       }
 
-      const chunks = splitBlocksIntoColumnChunks(group.blocks);
+      const getChunkHeight = (chunkIndex) => {
+        const visualColumnOverrideKey = getProgressionVisualColumnOverrideKey(
+          group.groupKey,
+          chunkIndex,
+        );
+        return (
+          resizingProgressionWidths[visualColumnOverrideKey]?.height ??
+          progressionMarkOverrides[visualColumnOverrideKey]?.height ??
+          (chunkIndex === 0 ? group.height : undefined)
+        );
+      };
+      const chunks = splitBlocksIntoColumnChunks(
+        group.blocks,
+        (chunkIndex) =>
+          getMaxLineUnitsForProgressionHeight(getChunkHeight(chunkIndex)),
+      );
 
       return chunks.map((blocksChunk, chunkIndex) => {
         visualColumnIndex += 1;
+        const visualColumnOverrideKey = getProgressionVisualColumnOverrideKey(
+          group.groupKey,
+          chunkIndex,
+        );
+        const visualColumnOverride =
+          progressionMarkOverrides[visualColumnOverrideKey] || {};
         return {
           ...group,
           baseGroupKey: group.groupKey,
+          visualColumnOverrideKey,
           groupKey:
             chunkIndex === 0
               ? group.groupKey
               : `${group.groupKey}-overflow-${chunkIndex + 1}`,
           blocks: blocksChunk,
-          blockKeys: group.blockKeys,
+          blockKeys: blocksChunk.map((block) => block.blockKey),
+          width:
+            resizingProgressionWidths[visualColumnOverrideKey]?.width ??
+            visualColumnOverride.width ??
+            group.width,
+          height:
+            resizingProgressionWidths[visualColumnOverrideKey]?.height ??
+            visualColumnOverride.height ??
+            (chunkIndex === 0 ? group.height : undefined),
           isOverflowContinuation: chunkIndex > 0,
           visualColumnIndex,
           visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
         };
       });
     });
-  }, [progressionRenderGroups]);
+  }, [progressionMarkOverrides, progressionRenderGroups, resizingProgressionWidths]);
 
   const activeProgressionRenderColumns = useMemo(() => {
     if (shouldUseHorizontalColumnFlow) {
@@ -1068,50 +1281,6 @@ function Presentation() {
     progressionRenderGroups,
     shouldUseHorizontalColumnFlow,
   ]);
-
-  const marksEditorSource = useMemo(() => {
-    if (!isEditing || !["default", "full"].includes(selectContenttoShow)) {
-      return transposedContent;
-    }
-    return transposeCifra(draftCifra, transposeSteps);
-  }, [
-    draftCifra,
-    isEditing,
-    selectContenttoShow,
-    transposedContent,
-    transposeSteps,
-  ]);
-
-  const markEntries = useMemo(() => {
-    if (
-      typeof marksEditorSource !== "string" ||
-      marksEditorSource.trim() === "" ||
-      marksEditorSource === "Loading..."
-    ) {
-      return [];
-    }
-
-    try {
-      const sourceBlocks =
-        processSongCifra(marksEditorSource).htmlBlocks || [];
-      return buildProgressionBlocks(sourceBlocks, { hideTabs: false })
-        .filter((entry) => entry.isProgressionEligible)
-        .map((entry) => {
-          const override = progressionMarkOverrides[entry.blockKey] || {};
-          return {
-            blockKey: entry.blockKey,
-            defaultPosition: entry.progressionIndex,
-            position: override.position ?? entry.progressionIndex,
-            columnLabel: getColumnLabelFromIndex(
-              override.position ?? entry.progressionIndex,
-            ),
-            title: override.title ?? entry.progressionTitle,
-          };
-        });
-    } catch {
-      return [];
-    }
-  }, [marksEditorSource, progressionMarkOverrides]);
 
   // console.log("songLyrics", songLyrics);
   // console.log("songChords", songChords);
@@ -1500,24 +1669,6 @@ function Presentation() {
       left: Math.max(0, targetLeft - 20),
       behavior: "smooth",
     });
-  }, []);
-
-  const handlePresentationContentInput = useCallback((event) => {
-    const contentBlocks = Array.from(
-      event.currentTarget.querySelectorAll(".presentation-render-content-block"),
-    );
-
-    if (!contentBlocks.length) {
-      setDraftCifra(event.currentTarget.innerText);
-      return;
-    }
-
-    setDraftCifra(
-      contentBlocks
-        .map((block) => block.innerText)
-        .join("\n\n")
-        .trimEnd(),
-    );
   }, []);
 
   useEffect(() => {
@@ -1967,39 +2118,9 @@ function Presentation() {
     pushSnackbarMessage("Notes", "Notas abertas para este instrumento.");
   }, [pushSnackbarMessage]);
 
-  const toggleMarksEditor = useCallback(() => {
-    setMarksEditorOpen((current) => !current);
-  }, []);
-
   const toggleMarksVisibility = useCallback(() => {
     setActiveShowProgressionMarkers((current) => !current);
   }, [setActiveShowProgressionMarkers]);
-
-  const handleChangeMarkTitle = useCallback((blockKey, title) => {
-    updateActivePresentationLayout((currentLayout) => ({
-      ...currentLayout,
-      progressionMarkOverrides: {
-        ...(currentLayout.progressionMarkOverrides || {}),
-        [blockKey]: {
-          ...(currentLayout.progressionMarkOverrides?.[blockKey] || {}),
-          title,
-        },
-      },
-    }));
-  }, [updateActivePresentationLayout]);
-
-  const handleChangeMarkPosition = useCallback((blockKey, position) => {
-    updateActivePresentationLayout((currentLayout) => ({
-      ...currentLayout,
-      progressionMarkOverrides: {
-        ...(currentLayout.progressionMarkOverrides || {}),
-        [blockKey]: {
-          ...(currentLayout.progressionMarkOverrides?.[blockKey] || {}),
-          position,
-        },
-      },
-    }));
-  }, [updateActivePresentationLayout]);
 
   const handleChangeMarkWidth = useCallback((blockKeys, width) => {
     const normalizedWidth = Math.max(260, Math.min(1200, Math.round(width)));
@@ -2023,7 +2144,10 @@ function Presentation() {
   }, [updateActivePresentationLayout]);
 
   const handleChangeMarkHeight = useCallback((blockKeys, height) => {
-    const normalizedHeight = Math.max(80, Math.min(1400, Math.round(height)));
+    const normalizedHeight = Math.max(
+      MIN_PROGRESSION_BLOCK_HEIGHT_PX,
+      Math.min(MAX_PROGRESSION_BLOCK_HEIGHT_PX, Math.round(height)),
+    );
 
     updateActivePresentationLayout((currentLayout) => {
       const currentOverrides = currentLayout.progressionMarkOverrides || {};
@@ -2056,17 +2180,40 @@ function Presentation() {
     const startWidth = blockRect?.width || group.width || 620;
     const startHeight = blockRect?.height || group.height || 180;
     const axis = event.currentTarget.dataset.resizeAxis || "width";
-    const resizingKey = group.baseGroupKey || group.groupKey;
+    const resizingKey =
+      group.visualColumnOverrideKey || group.baseGroupKey || group.groupKey;
+    const heightOverrideKeys = group.visualColumnOverrideKey
+      ? [group.visualColumnOverrideKey]
+      : group.blockKeys;
+    const widthOverrideKeys = group.visualColumnOverrideKey
+      ? [group.visualColumnOverrideKey]
+      : group.blockKeys;
+    const viewportRect = presentationContentRef.current?.getBoundingClientRect();
+    const visibleBottomLimit =
+      Math.max(
+        viewportRect?.bottom || window.innerHeight,
+        window.innerHeight,
+      ) - PROGRESSION_BLOCK_BOTTOM_GUTTER_PX;
+    const maxHeightFromViewport = Math.max(
+      MIN_PROGRESSION_BLOCK_HEIGHT_PX,
+      Math.round(visibleBottomLimit - (blockRect?.top || 0)),
+    );
+    const maxAllowedHeight = Math.min(
+      MAX_PROGRESSION_BLOCK_HEIGHT_PX,
+      maxHeightFromViewport,
+    );
+    const clampHeight = (value) =>
+      Math.max(
+        MIN_PROGRESSION_BLOCK_HEIGHT_PX,
+        Math.min(maxAllowedHeight, Math.round(value)),
+      );
 
     const handleMouseMove = (moveEvent) => {
       const nextWidth = Math.max(
         260,
         Math.min(1200, startWidth + moveEvent.clientX - startX),
       );
-      const nextHeight = Math.max(
-        80,
-        Math.min(1400, startHeight + moveEvent.clientY - startY),
-      );
+      const nextHeight = clampHeight(startHeight + moveEvent.clientY - startY);
 
       setResizingProgressionWidths((current) => ({
         ...current,
@@ -2082,15 +2229,12 @@ function Presentation() {
         260,
         Math.min(1200, startWidth + upEvent.clientX - startX),
       );
-      const nextHeight = Math.max(
-        80,
-        Math.min(1400, startHeight + upEvent.clientY - startY),
-      );
+      const nextHeight = clampHeight(startHeight + upEvent.clientY - startY);
 
       if (axis === "height") {
-        handleChangeMarkHeight(group.blockKeys, nextHeight);
+        handleChangeMarkHeight(heightOverrideKeys, nextHeight);
       } else {
-        handleChangeMarkWidth(group.blockKeys, nextWidth);
+        handleChangeMarkWidth(widthOverrideKeys, nextWidth);
       }
       setResizingProgressionWidths((current) => {
         const next = { ...current };
@@ -2105,6 +2249,96 @@ function Presentation() {
     window.addEventListener("mouseup", handleMouseUp);
   }, [handleChangeMarkHeight, handleChangeMarkWidth]);
 
+  const activeProgressionMarkSettings = useMemo(() => {
+    if (!activeProgressionMarkControl) {
+      return {
+        active: false,
+        label: "",
+        width: 0,
+        height: 0,
+      };
+    }
+
+    const targetColumn = activeProgressionRenderColumns.find((column) => {
+      if (
+        activeProgressionMarkControl.visualColumnOverrideKey &&
+        column.visualColumnOverrideKey ===
+          activeProgressionMarkControl.visualColumnOverrideKey
+      ) {
+        return true;
+      }
+      return column.groupKey === activeProgressionMarkControl.groupKey;
+    });
+    const overrideKey =
+      activeProgressionMarkControl.visualColumnOverrideKey ||
+      targetColumn?.visualColumnOverrideKey ||
+      activeProgressionMarkControl.groupKey;
+    const overrides = progressionMarkOverrides[overrideKey] || {};
+    const resizing = resizingProgressionWidths[overrideKey] || {};
+
+    return {
+      active: Boolean(targetColumn || overrideKey),
+      label:
+        targetColumn?.visualColumnLabel ||
+        activeProgressionMarkControl.label ||
+        "",
+      overrideKey,
+      blockKeys:
+        targetColumn?.blockKeys ||
+        activeProgressionMarkControl.blockKeys ||
+        [],
+      width: Math.round(
+        resizing.width ??
+          overrides.width ??
+          targetColumn?.width ??
+          activeProgressionMarkControl.width ??
+          620,
+      ),
+      height: Math.round(
+        resizing.height ??
+          overrides.height ??
+          targetColumn?.height ??
+          activeProgressionMarkControl.height ??
+          260,
+      ),
+    };
+  }, [
+    activeProgressionMarkControl,
+    activeProgressionRenderColumns,
+    progressionMarkOverrides,
+    resizingProgressionWidths,
+  ]);
+
+  const adjustActiveProgressionMarkWidth = useCallback(
+    (delta) => {
+      if (!activeProgressionMarkSettings.active) return;
+      const nextWidth = Math.max(
+        260,
+        Math.min(1200, activeProgressionMarkSettings.width + delta),
+      );
+      handleChangeMarkWidth([activeProgressionMarkSettings.overrideKey], nextWidth);
+    },
+    [activeProgressionMarkSettings, handleChangeMarkWidth],
+  );
+
+  const adjustActiveProgressionMarkHeight = useCallback(
+    (delta) => {
+      if (!activeProgressionMarkSettings.active) return;
+      const nextHeight = Math.max(
+        MIN_PROGRESSION_BLOCK_HEIGHT_PX,
+        Math.min(
+          MAX_PROGRESSION_BLOCK_HEIGHT_PX,
+          activeProgressionMarkSettings.height + delta,
+        ),
+      );
+      handleChangeMarkHeight(
+        [activeProgressionMarkSettings.overrideKey],
+        nextHeight,
+      );
+    },
+    [activeProgressionMarkSettings, handleChangeMarkHeight],
+  );
+
   const handleDropProgressionGroup = useCallback((targetGroupKey) => {
     const draggedGroupKey = draggedProgressionGroupKeyRef.current;
     draggedProgressionGroupKeyRef.current = "";
@@ -2117,28 +2351,35 @@ function Presentation() {
     const draggedGroup = orderedGroups.find(
       (group) => group.groupKey === draggedGroupKey,
     );
-    const targetIndex = orderedGroups.findIndex(
+    const targetGroup = orderedGroups.find(
       (group) => group.groupKey === targetGroupKey,
     );
 
-    if (!draggedGroup || targetIndex < 0) return;
-
-    const withoutDragged = orderedGroups.filter(
-      (group) => group.groupKey !== draggedGroupKey,
-    );
-    withoutDragged.splice(targetIndex, 0, draggedGroup);
+    if (!draggedGroup || !targetGroup) return;
 
     updateActivePresentationLayout((currentLayout) => {
       const currentOverrides = currentLayout.progressionMarkOverrides || {};
       const nextOverrides = { ...currentOverrides };
+      const targetPosition =
+        Number.parseInt(targetGroup.columnIndex, 10) ||
+        Number.parseInt(targetGroup.displayPosition, 10) ||
+        1;
+      const nextOrder =
+        Math.max(
+          ...targetGroup.blocks.map((block) =>
+            Number.isFinite(Number(block.renderOrder))
+              ? Number(block.renderOrder)
+              : Number(block.index) || 0,
+          ),
+          0,
+        ) + 1;
 
-      withoutDragged.forEach((group, groupIndex) => {
-        group.blockKeys.forEach((blockKey) => {
-          nextOverrides[blockKey] = {
-            ...(currentOverrides[blockKey] || {}),
-            position: groupIndex + 1,
-          };
-        });
+      draggedGroup.blockKeys.forEach((blockKey, blockIndex) => {
+        nextOverrides[blockKey] = {
+          ...(currentOverrides[blockKey] || {}),
+          position: targetPosition,
+          order: nextOrder + blockIndex,
+        };
       });
 
       return {
@@ -2147,6 +2388,118 @@ function Presentation() {
       };
     });
   }, [progressionRenderGroups, updateActivePresentationLayout]);
+
+  const handleDropProgressionGroupOnColumn = useCallback((event) => {
+    if (!isEditing || !draggedProgressionGroupKeyRef.current) return;
+
+    const columnNodes = Array.from(
+      event.currentTarget.querySelectorAll(
+        "[data-progression-drop-target='true']",
+      ),
+    );
+    if (!columnNodes.length) return;
+
+    event.preventDefault();
+
+    const pointerX = event.clientX;
+    const targetNode =
+      columnNodes.find((node) => {
+        const rect = node.getBoundingClientRect();
+        return pointerX >= rect.left && pointerX <= rect.right;
+      }) ||
+      columnNodes
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          return {
+            node,
+            distance: Math.abs(pointerX - (rect.left + rect.width / 2)),
+          };
+        })
+        .sort((left, right) => left.distance - right.distance)[0]?.node;
+
+    const targetGroupKey = targetNode?.dataset?.progressionGroupKey;
+    if (targetGroupKey) {
+      handleDropProgressionGroup(targetGroupKey);
+    }
+  }, [handleDropProgressionGroup, isEditing]);
+
+  const toggleSelectedBlockKeys = useCallback((blockKeys = []) => {
+    if (!blockKeys.length) return;
+
+    setSelectedBlockKeys((current) => {
+      const currentSet = new Set(current);
+      const allSelected = blockKeys.every((blockKey) =>
+        currentSet.has(blockKey),
+      );
+
+      if (allSelected) {
+        blockKeys.forEach((blockKey) => currentSet.delete(blockKey));
+      } else {
+        blockKeys.forEach((blockKey) => currentSet.add(blockKey));
+      }
+
+      return Array.from(currentSet);
+    });
+  }, []);
+
+  const handleDeleteSelectedBlocks = useCallback(
+    (blockKeysToDelete = selectedBlockKeys) => {
+      const uniqueBlockKeys = Array.from(new Set(blockKeysToDelete)).filter(
+        Boolean,
+      );
+      if (!uniqueBlockKeys.length) return;
+
+      const nextDraftCifra =
+        collectEditedPresentationBlocksExcluding(uniqueBlockKeys);
+      const deletedBlockKeySet = new Set(uniqueBlockKeys);
+
+      updateActivePresentationLayout((currentLayout) => {
+        const currentOverrides = currentLayout.progressionMarkOverrides || {};
+        const nextOverrides = Object.fromEntries(
+          Object.entries(currentOverrides).filter(
+            ([blockKey]) => !deletedBlockKeySet.has(blockKey),
+          ),
+        );
+
+        return {
+          ...currentLayout,
+          songCifra: nextDraftCifra,
+          progressionMarkOverrides: nextOverrides,
+        };
+      });
+
+      setDraftCifra(nextDraftCifra);
+      setSelectedBlockKeys([]);
+    },
+    [
+      collectEditedPresentationBlocksExcluding,
+      selectedBlockKeys,
+      updateActivePresentationLayout,
+    ],
+  );
+
+  useEffect(() => {
+    if (!isEditing || !selectedBlockKeys.length) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key !== "Delete" && event.key !== "Backspace") return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest(".presentation-render-content-block")
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      handleDeleteSelectedBlocks();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleDeleteSelectedBlocks, isEditing, selectedBlockKeys.length]);
 
   return (
     <div
@@ -2188,12 +2541,7 @@ function Presentation() {
           handleSaveCifra={handleSaveCifra}
           handleDiscardDraft={handleDiscardDraft}
           startEditingCifra={startEditingCifra}
-          marksEditorOpen={marksEditorOpen}
-          onToggleMarksEditor={toggleMarksEditor}
           onToggleMarksVisibility={toggleMarksVisibility}
-          markEntries={markEntries}
-          onChangeMarkTitle={handleChangeMarkTitle}
-          onChangeMarkPosition={handleChangeMarkPosition}
           progressionBadgeSide={progressionBadgeSide}
           transposeSteps={transposeSteps}
           setTransposeSteps={setTransposeSteps}
@@ -2217,6 +2565,15 @@ function Presentation() {
           isSavingNotes={isSavingNotes}
           onSelectInstrument={goToInstrument}
           onChangeProgressionBadgeSide={toggleActiveProgressionBadgeSide}
+          activeProgressionMarkSettings={activeProgressionMarkSettings}
+          onDecreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(-20)}
+          onIncreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(20)}
+          onDecreaseActiveMarkHeight={() =>
+            adjustActiveProgressionMarkHeight(-20)
+          }
+          onIncreaseActiveMarkHeight={() =>
+            adjustActiveProgressionMarkHeight(20)
+          }
         />
       )}
       <div
@@ -2629,6 +2986,13 @@ function Presentation() {
           <div
             ref={presentationContentRef}
             tabIndex={effectiveLiveMode ? 0 : -1}
+            title={
+              !effectiveLiveMode &&
+              !isEditing &&
+              ["default", "full"].includes(selectContenttoShow)
+                ? "Double-click to edit"
+                : undefined
+            }
             className={`min-h-0 flex-1 ${
               effectiveLiveMode
                 ? "presentation-live-content"
@@ -2653,6 +3017,13 @@ function Presentation() {
                 : `${presentationFontScale}rem`,
               lineHeight: 1.45,
             }}
+            onDoubleClick={
+              !effectiveLiveMode &&
+              !isEditing &&
+              ["default", "full"].includes(selectContenttoShow)
+                ? startEditingCifra
+                : undefined
+            }
           >
             {isRouteSongLoading ? (
               <div
@@ -2740,7 +3111,20 @@ function Presentation() {
                 key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}`}
                 contentEditable={isEditing}
                 suppressContentEditableWarning
-                onInput={isEditing ? handlePresentationContentInput : undefined}
+                onKeyDown={
+                  isEditing
+                    ? (event) => removeEmptyEditableLine(event)
+                    : undefined
+                }
+                onDragOver={
+                  isEditing
+                    ? (event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }
+                    : undefined
+                }
+                onDrop={isEditing ? handleDropProgressionGroupOnColumn : undefined}
               >
                 {activeProgressionRenderColumns.map(
                   (
@@ -2754,6 +3138,7 @@ function Presentation() {
                       displayTitle,
                       width,
                       height,
+                      visualColumnOverrideKey,
                       isOverflowContinuation,
                       visualColumnIndex,
                       visualColumnLabel,
@@ -2773,21 +3158,46 @@ function Presentation() {
                               PROGRESSION_MARKER_COLORS.length)
                           ]
                         : undefined;
-                    const resizingDimensions =
-                      resizingProgressionWidths[baseGroupKey || groupKey] || {};
-                    const displayWidth = resizingDimensions.width ?? width;
+                    const widthResizingDimensions =
+                      resizingProgressionWidths[
+                        visualColumnOverrideKey || groupKey
+                      ] || {};
+                    const heightResizingDimensions =
+                      resizingProgressionWidths[
+                        visualColumnOverrideKey || groupKey
+                      ] || {};
+                    const displayWidth = widthResizingDimensions.width ?? width;
                     const displayHeight =
-                      isOverflowContinuation &&
-                      shouldUseHorizontalColumnFlow
-                        ? undefined
-                        : resizingDimensions.height ?? height;
+                      heightResizingDimensions.height ?? height;
                     const headerLabel =
                       visualColumnLabel ||
                       getColumnLabelFromIndex(numericDisplayPosition);
+                    const isBlockSelected = blockKeys.some((blockKey) =>
+                      selectedBlockKeys.includes(blockKey),
+                    );
+                    const contentBlockHtml = blocks
+                      .map((entry) => entry.block)
+                      .join("\n");
+                    const originalBlockIndex = Math.min(
+                      ...blocks.map((entry) =>
+                        Number.isFinite(Number(entry.index))
+                          ? Number(entry.index)
+                          : visibleIndex,
+                      ),
+                    );
 
                     return (
                       <div
                         key={groupKey}
+                        data-progression-drop-target={
+                          isProgressionEligible ? "true" : undefined
+                        }
+                        data-progression-group-key={baseGroupKey || groupKey}
+                        data-progression-column-label={
+                          showProgressionMarkers && isProgressionEligible
+                            ? headerLabel
+                            : undefined
+                        }
                         className={`presentation-render-block ${
                           selectContenttoShow === "tabs"
                             ? "presentation-tab-filter-block"
@@ -2796,7 +3206,25 @@ function Presentation() {
                           showProgressionMarkers && isProgressionEligible
                             ? "presentation-progression-block"
                             : ""
+                        } ${
+                          isBlockSelected
+                            ? "presentation-progression-block-selected"
+                            : ""
                         }`}
+                        onMouseDownCapture={
+                          isEditing && isProgressionEligible
+                            ? () => {
+                                setActiveProgressionMarkControl({
+                                  groupKey,
+                                  visualColumnOverrideKey,
+                                  blockKeys,
+                                  label: headerLabel,
+                                  width: displayWidth,
+                                  height: displayHeight,
+                                });
+                              }
+                            : undefined
+                        }
                         draggable={isEditing && isProgressionEligible}
                         onDragStart={
                           isEditing &&
@@ -2843,21 +3271,12 @@ function Presentation() {
                           ...(displayWidth ? { width: `${displayWidth}px` } : {}),
                           ...(displayHeight
                             ? {
+                                height: `${displayHeight}px`,
                                 minHeight: `${displayHeight}px`,
                               }
                             : {}),
                         }}
                       >
-                        {isEditing &&
-                        showProgressionMarkers &&
-                        isProgressionEligible ? (
-                          <div
-                            className="presentation-progression-column-header"
-                            contentEditable={false}
-                          >
-                            {headerLabel}
-                          </div>
-                        ) : null}
                         {showProgressionMarkers && isProgressionEligible ? (
                           <div
                             className={`presentation-progression-badge ${
@@ -2881,6 +3300,38 @@ function Presentation() {
                           <>
                             <button
                               type="button"
+                              className="presentation-progression-select-handle"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                toggleSelectedBlockKeys(blockKeys);
+                              }}
+                              contentEditable={false}
+                              aria-label={
+                                isBlockSelected
+                                  ? "Unselect progression block"
+                                  : "Select progression block"
+                              }
+                            >
+                              {isBlockSelected ? "✓" : "○"}
+                            </button>
+                            {isBlockSelected ? (
+                              <button
+                                type="button"
+                                className="presentation-progression-delete-handle"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  handleDeleteSelectedBlocks(blockKeys);
+                                }}
+                                contentEditable={false}
+                                aria-label="Delete selected progression block"
+                              >
+                                ×
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
                               className="presentation-progression-drag-handle"
                               draggable
                               onDragStart={(event) => {
@@ -2901,6 +3352,7 @@ function Presentation() {
                                 handleStartProgressionResize(event, {
                                   groupKey,
                                   baseGroupKey,
+                                  visualColumnOverrideKey,
                                   blockKeys,
                                   width,
                                   height,
@@ -2919,6 +3371,7 @@ function Presentation() {
                                 handleStartProgressionResize(event, {
                                   groupKey,
                                   baseGroupKey,
+                                  visualColumnOverrideKey,
                                   blockKeys,
                                   width,
                                   height,
@@ -2931,13 +3384,14 @@ function Presentation() {
                             </button>
                           </>
                         ) : null}
-                        {blocks.map((entry) => (
-                          <div
-                            key={entry.blockKey}
-                            className="presentation-render-content-block"
-                            dangerouslySetInnerHTML={{ __html: entry.block }}
-                          />
-                        ))}
+                        <div
+                          className="presentation-render-content-block"
+                          data-block-keys={blockKeys.join(",")}
+                          data-original-block-index={originalBlockIndex}
+                          dangerouslySetInnerHTML={{
+                            __html: contentBlockHtml,
+                          }}
+                        />
                       </div>
                     );
                   },

@@ -525,33 +525,37 @@ main{
   pointer-events: auto;
 }
 
-.presentation-progression-block::before,
-.presentation-progression-block::after {
+.presentation-progression-block::before {
+  content: attr(data-progression-column-label);
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 0;
+  right: 0;
+  top: -1.45rem;
   z-index: 3;
-  display: none;
+  display: inline-flex;
+  width: 100%;
+  height: 0.95rem;
   align-items: center;
   justify-content: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--progression-color, #d4a017);
-  box-shadow: 3px 3px 8px rgba(190, 190, 190, 0.55),
-    -3px -3px 8px rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+  margin: 0;
+  border-radius: 2px;
+  background: var(--progression-color, #d4a017);
+  color: #fff;
+  font-size: 0.62rem;
   font-weight: 900;
+  letter-spacing: 0.18em;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 160ms ease, transform 160ms ease;
+  opacity: 1;
   pointer-events: none;
+  text-transform: uppercase;
+  user-select: none;
 }
 
 .presentation-progression-drag-handle,
 .presentation-progression-resize-handle,
-.presentation-progression-height-handle {
+.presentation-progression-height-handle,
+.presentation-progression-select-handle,
+.presentation-progression-delete-handle {
   position: absolute;
   z-index: 5;
   display: flex;
@@ -598,37 +602,51 @@ main{
   cursor: ns-resize;
 }
 
+.presentation-progression-select-handle {
+  top: 0.65rem;
+  left: -0.9rem;
+  cursor: pointer;
+}
+
+.presentation-progression-delete-handle {
+  top: -0.9rem;
+  right: -0.9rem;
+  background: #f8d1d1;
+  color: #9b1c1c;
+  cursor: pointer;
+}
+
 .presentation-progression-block:hover .presentation-progression-drag-handle,
 .presentation-progression-block:hover .presentation-progression-resize-handle,
 .presentation-progression-block:hover .presentation-progression-height-handle,
+.presentation-progression-block:hover .presentation-progression-select-handle,
+.presentation-progression-block:hover .presentation-progression-delete-handle,
 .presentation-progression-drag-handle:focus,
 .presentation-progression-resize-handle:focus,
-.presentation-progression-height-handle:focus {
-  opacity: 1;
-}
-
-.presentation-progression-block::before {
-  content: "↔";
-  left: -0.9rem;
-}
-
-.presentation-progression-block::after {
-  content: "↔";
-  right: -0.9rem;
-}
-
-.presentation-progression-block:hover::before,
-.presentation-progression-block:hover::after,
-.presentation-progression-block:active::before,
-.presentation-progression-block:active::after {
+.presentation-progression-height-handle:focus,
+.presentation-progression-select-handle:focus,
+.presentation-progression-delete-handle:focus,
+.presentation-progression-block-selected .presentation-progression-select-handle,
+.presentation-progression-block-selected .presentation-progression-delete-handle {
   opacity: 1;
 }
 
 .presentation-progression-block:hover,
-.presentation-progression-block:active {
+.presentation-progression-block:active,
+.presentation-progression-block-selected {
   box-shadow: inset 0 0 0 1px
       color-mix(in srgb, var(--progression-color, #d4a017) 18%, transparent),
     0 10px 24px color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
+}
+
+.presentation-progression-block-selected {
+  background:
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--progression-color, #d4a017) 7%, transparent),
+      color-mix(in srgb, var(--progression-color, #d4a017) 7%, transparent)
+    ),
+    transparent;
 }
 
 .presentation-progression-badge {
@@ -697,11 +715,22 @@ main{
 }
 
 .presentation-content-flow[contenteditable="true"] {
+  caret-color: #dc2626;
   outline: none;
+  text-shadow: 0.35px 0 0 currentColor;
 }
 
 .presentation-content-flow[contenteditable="true"] .presentation-render-block {
   cursor: text;
+}
+
+.presentation-content-flow[contenteditable="true"] .presentation-render-content-block {
+  padding-inline: 0.8rem;
+}
+
+.presentation-content-flow[contenteditable="true"] .presentation-render-content-block::selection,
+.presentation-content-flow[contenteditable="true"] .presentation-render-content-block *::selection {
+  background: rgba(220, 38, 38, 0.18);
 }
 
 .presentation-live-content pre,

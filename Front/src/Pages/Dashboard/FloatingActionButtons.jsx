@@ -8,8 +8,31 @@ import NewSongStartChoice from "../../Components/NewSongStartChoice";
 export default function FloatingActionButtons() {
   const navigate = useNavigate();
   const [choiceOpen, setChoiceOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth < 768;
+
+  useEffect(() => {
+    const handleOptionsVisibility = (event) => {
+      const open = Boolean(event.detail?.open);
+      setOptionsOpen(open);
+      if (open) {
+        setChoiceOpen(false);
+      }
+    };
+
+    window.addEventListener(
+      "dashboard-options-visibility-change",
+      handleOptionsVisibility,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "dashboard-options-visibility-change",
+        handleOptionsVisibility,
+      );
+    };
+  }, []);
 
   // ⌨️  Atalho: tecla “A” abre a rota /newsong
   useEffect(() => {
@@ -17,7 +40,7 @@ export default function FloatingActionButtons() {
       const isTyping =
         e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA";
 
-      if (!isTyping && e.key.toLowerCase() === "a") {
+      if (!optionsOpen && !isTyping && e.key.toLowerCase() === "a") {
         e.preventDefault(); // evita rolagem ou outros efeitos
         setChoiceOpen(true);
       }
@@ -25,9 +48,9 @@ export default function FloatingActionButtons() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [navigate]);
+  }, [navigate, optionsOpen]);
 
-  if (isTouchLayout) {
+  if (isTouchLayout || optionsOpen) {
     return null;
   }
 

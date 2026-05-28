@@ -313,6 +313,21 @@ export default function Tags({
                         className={`flex items-center gap-1 shadow-sm ${
                           isEditing ? "cursor-default" : ""
                         } ${willRemove ? "ring-2 ring-red-600" : ""}`}
+                        onClick={() => !isEditing && toggleTag(tag)}
+                        onKeyDown={(event) => {
+                          if (isEditing) return;
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleTag(tag);
+                          }
+                        }}
+                        role={isEditing ? undefined : "button"}
+                        tabIndex={isEditing ? undefined : 0}
+                        title={
+                          isActive
+                            ? "Clique para remover este filtro"
+                            : "Clique para adicionar este filtro"
+                        }
                         style={{
                           minWidth: isTouchLayout ? "0" : "80px",
                           display: "inline-flex",
@@ -332,16 +347,7 @@ export default function Tags({
                           ...tagAnimationStyle,
                         }}
                       >
-                        <span
-                          onClick={() => !isEditing && toggleTag(tag)}
-                          title={
-                            isActive
-                              ? "Clique para remover este filtro"
-                              : "Clique para adicionar este filtro"
-                          }
-                        >
-                          {tag}
-                        </span>
+                        <span>{tag}</span>
                         {isEditing && (
                           <RiDeleteBin6Line
                             className={`ml-1 h-4 w-4 ${

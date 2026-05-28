@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import FloatingActionButtons from "./FloatingActionButtons";
 
@@ -29,7 +29,9 @@ describe("FloatingActionButtons", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/newsong");
+    expect(
+      screen.getByRole("button", { name: "Choose new song type" }),
+    ).toBeInTheDocument();
   });
 
   it("does not render on touch layouts", () => {
@@ -44,10 +46,12 @@ describe("FloatingActionButtons", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Choose new song type" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("navigates to /newsong when the A shortcut is pressed outside inputs", () => {
+  it("opens the new song choice when the A shortcut is pressed outside inputs", () => {
     Object.defineProperty(window, "innerWidth", {
       value: 1280,
       configurable: true,
@@ -61,6 +65,31 @@ describe("FloatingActionButtons", () => {
 
     fireEvent.keyDown(window, { key: "a", target: document.body });
 
-    expect(navigateMock).toHaveBeenCalledWith("/newsong");
+    expect(screen.getByText("New song")).toBeInTheDocument();
+  });
+
+  it("hides while dashboard options are open", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 1280,
+      configurable: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <FloatingActionButtons />
+      </MemoryRouter>,
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("dashboard-options-visibility-change", {
+        detail: { open: true },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: "Choose new song type" }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

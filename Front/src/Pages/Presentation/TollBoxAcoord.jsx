@@ -51,12 +51,7 @@ export default function TollBoxAcoord({
   handleSaveCifra,
   handleDiscardDraft,
   startEditingCifra,
-  marksEditorOpen = false,
-  onToggleMarksEditor,
   onToggleMarksVisibility,
-  markEntries = [],
-  onChangeMarkTitle,
-  onChangeMarkPosition,
   progressionBadgeSide = "right",
   transposeSteps = 0,
   setTransposeSteps,
@@ -77,6 +72,11 @@ export default function TollBoxAcoord({
   isSavingNotes = false,
   onSelectInstrument = () => {},
   onChangeProgressionBadgeSide,
+  activeProgressionMarkSettings,
+  onDecreaseActiveMarkWidth,
+  onIncreaseActiveMarkWidth,
+  onDecreaseActiveMarkHeight,
+  onIncreaseActiveMarkHeight,
 }) {
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
@@ -141,18 +141,18 @@ export default function TollBoxAcoord({
       handleSaveCifra={handleSaveCifra}
       handleDiscardDraft={handleDiscardDraft}
       startEditingCifra={startEditingCifra}
-      marksEditorOpen={marksEditorOpen}
-      onToggleMarksEditor={onToggleMarksEditor}
       onToggleMarksVisibility={onToggleMarksVisibility}
-      markEntries={markEntries}
-      onChangeMarkTitle={onChangeMarkTitle}
-      onChangeMarkPosition={onChangeMarkPosition}
       touchFontSizeLabel={touchFontSizeLabel}
       showProgressionMarkers={showProgressionMarkers}
       progressionBadgeSide={progressionBadgeSide}
       onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
       onDecreaseFontSize={decreaseTouchFontSize}
       onIncreaseFontSize={increaseTouchFontSize}
+      activeProgressionMarkSettings={activeProgressionMarkSettings}
+      onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
+      onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
+      onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
+      onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
     />
   );
 

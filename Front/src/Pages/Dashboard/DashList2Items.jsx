@@ -31,6 +31,14 @@ const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
 const DASHBOARD_INSTRUMENT_ICON_CLASS =
   "dashboard-instrument-icon flex h-[15px] w-[15px] items-center justify-center";
 const LONG_PRESS_DELAY = 450;
+const INSTRUMENT_PROGRESSION_COLUMN_MAP = {
+  guitar01Progression: "guitar01",
+  guitar02Progression: "guitar02",
+  bassProgression: "bass",
+  keysProgression: "keys",
+  drumsProgression: "drums",
+  voiceProgression: "voice",
+};
 
 function DashList2Items({
   sortColumn,
@@ -214,6 +222,17 @@ function DashList2Items({
   const getGuitarProFiles = (item) =>
     Array.isArray(item?.guitarProFiles) ? item.guitarProFiles : [];
 
+  const getInstrumentProgress = (item, instrumentKey) => {
+    const value = item?.[instrumentKey]?.progress;
+    const progress = Number(value);
+    if (!Number.isFinite(progress)) return 0;
+    return Math.max(0, Math.min(100, progress));
+  };
+
+  const selectedProgressionInstruments = visibleColumns
+    .map((columnKey) => INSTRUMENT_PROGRESSION_COLUMN_MAP[columnKey])
+    .filter(Boolean);
+
   const optionalCellClass =
     "flex min-w-0 max-w-full items-center justify-center overflow-hidden px-1";
   const dateCellClass =
@@ -240,6 +259,17 @@ function DashList2Items({
             valueA = Number(a.progressBar || 0);
             valueB = Number(b.progressBar || 0);
             break;
+          case "guitar01Progression":
+          case "guitar02Progression":
+          case "bassProgression":
+          case "keysProgression":
+          case "drumsProgression":
+          case "voiceProgression": {
+            const instrumentKey = INSTRUMENT_PROGRESSION_COLUMN_MAP[sortColumn];
+            valueA = getInstrumentProgress(a, instrumentKey);
+            valueB = getInstrumentProgress(b, instrumentKey);
+            break;
+          }
           case "notes":
             valueA = hasInstrumentNotes(a) ? 1 : 0;
             valueB = hasInstrumentNotes(b) ? 1 : 0;
@@ -298,6 +328,24 @@ function DashList2Items({
               style={{ width: `${item.progressBar || 0}%` }}
             >
               {item.progressBar || 0}%
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (INSTRUMENT_PROGRESSION_COLUMN_MAP[columnKey]) {
+      const instrumentKey = INSTRUMENT_PROGRESSION_COLUMN_MAP[columnKey];
+      const progress = getInstrumentProgress(item, instrumentKey);
+
+      return (
+        <div className={optionalCellClass}>
+          <div className="w-full bg-gray-200 rounded-full input-neumorfismo">
+            <div
+              className="bg-[#DAA520] rounded text-center py-1 text-[8pt] leading-none text-black"
+              style={{ width: `${progress}%` }}
+            >
+              {progress}%
             </div>
           </div>
         </div>
@@ -397,7 +445,11 @@ function DashList2Items({
                       )}`,
                     );
                   }}
-                  className={`${DASHBOARD_INSTRUMENT_ICON_CLASS} text-gray-700 transition-colors hover:text-[goldenrod]`}
+                  className={`${DASHBOARD_INSTRUMENT_ICON_CLASS} ${
+                    selectedProgressionInstruments.includes(instrument.key)
+                      ? "text-[goldenrod]"
+                      : "text-gray-700"
+                  } transition-colors hover:text-[goldenrod]`}
                 >
                   {renderCompactInstrumentIcon(instrument)}
                 </button>
@@ -607,7 +659,7 @@ function DashList2Items({
                         {item.artist || "N/A"}
                       </div>
                       {visibleColumns.includes("progression") ? (
-                      <div className="mt-2 flex items-center">
+                        <div className="mt-2 flex items-center">
                           <div className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-1.5 py-0.5">
                             <div className="h-3 w-3 rounded-full border-2 border-[#d7d7d7] border-t-[#d9ad26]" />
                             <span className="text-[10px] font-bold text-[#5b5b5b]">
@@ -625,6 +677,40 @@ function DashList2Items({
                               {item.offlineEnabled ? "offline" : "internet"}
                             </span>
                           ) : null}
+                        </div>
+                      ) : null}
+                      {selectedProgressionInstruments.length ? (
+                        <div className="mt-2 flex flex-col gap-1">
+                          {selectedProgressionInstruments.map(
+                            (instrumentKey) => {
+                              const progress = getInstrumentProgress(
+                                item,
+                                instrumentKey,
+                              );
+                              const instrument = instrumentLabels.find(
+                                (label) => label.key === instrumentKey,
+                              );
+
+                              return (
+                                <div
+                                  key={instrumentKey}
+                                  className="flex items-center gap-2"
+                                >
+                                  <span className="w-8 text-[10px] font-black text-gray-500">
+                                    {instrument?.label || ""}
+                                  </span>
+                                  <div className="h-4 min-w-0 flex-1 rounded-full bg-gray-200 input-neumorfismo">
+                                    <div
+                                      className="h-full rounded bg-[#DAA520] text-center text-[9px] font-bold leading-4 text-black"
+                                      style={{ width: `${progress}%` }}
+                                    >
+                                      {progress}%
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            },
+                          )}
                         </div>
                       ) : null}
                       <div className="mt-2 flex max-w-full gap-2 overflow-x-auto">
@@ -709,7 +795,11 @@ function DashList2Items({
                             className={`flex h-7 w-7 items-center justify-center rounded-[8px] ${
                               item.instruments &&
                               item.instruments[instrument.key]
-                                ? "bg-[goldenrod] text-black"
+                                ? selectedProgressionInstruments.includes(
+                                    instrument.key,
+                                  )
+                                  ? "bg-[goldenrod] text-black"
+                                  : "bg-[#f5f5f5] text-black"
                                 : "bg-[#f5f5f5] text-[#9a9a9a]"
                             }`}
                           >

@@ -28,11 +28,16 @@ const instrumentLabels = [
 
 const columnOptions = [
   { key: "progression", label: "Progression" },
+  { key: "guitar01Progression", label: "Guitar 1 progression" },
+  { key: "guitar02Progression", label: "Guitar 2 progression" },
+  { key: "bassProgression", label: "Bass progression" },
+  { key: "keysProgression", label: "Keys progression" },
+  { key: "drumsProgression", label: "Drums progression" },
+  { key: "voiceProgression", label: "Voice progression" },
   { key: "guitarPro", label: "Guitar Pro" },
   { key: "notes", label: "Notes" },
   { key: "tags", label: "Setlists" },
   { key: "videos", label: "Videos" },
-  { key: "instruments", label: "Instruments" },
   { key: "addedDate", label: "Date added" },
   { key: "lastPlay", label: "Last play" },
 ];
@@ -65,7 +70,9 @@ function OfflineContentCard({
 
   return (
     <section className="neuphormism-b h-full w-full p-4">
-      <div className={`flex ${compact ? "flex-col gap-3" : "items-start justify-between gap-4"}`}>
+      <div
+        className={`flex ${compact ? "flex-col gap-3" : "items-start justify-between gap-4"}`}
+      >
         <div>
           <h1 className="text-sm font-black uppercase">Offline Content</h1>
           <p className="mt-1 text-[11px] font-semibold text-gray-500">
@@ -152,11 +159,15 @@ function ColumnsData({
   maxSelectableColumns = columnOptions.length,
   isColumnLimitedLayout = false,
 }) {
+  const selectedConfigurableColumns = visibleColumns.filter((key) =>
+    columnOptions.some((option) => option.key === key),
+  );
   const allColumnsSelected = columnOptions.every((option) =>
     visibleColumns.includes(option.key),
   );
   const maxColumnsReached =
-    !canSelectAllColumns && visibleColumns.length >= maxSelectableColumns;
+    !canSelectAllColumns &&
+    selectedConfigurableColumns.length >= maxSelectableColumns;
   const orderedColumnOptions = [
     ...visibleColumns
       .map((key) => columnOptions.find((option) => option.key === key))
@@ -466,7 +477,8 @@ export default function DashboardOptions({
       } else {
         onNotify({
           title: "Info",
-          message: "Offline content disabled. Cached songs will no longer open offline.",
+          message:
+            "Offline content disabled. Cached songs will no longer open offline.",
         });
       }
     } catch (error) {
@@ -484,9 +496,10 @@ export default function DashboardOptions({
   } ${
     isSmallScreen
       ? "inset-0 z-[12000] bg-black/45"
-            : `left-1/2 top-[80px] flex h-[calc(100vh-7rem)] w-[91%] -translate-x-1/2 flex-col justify-between bg-[#9da3af14] ${
-                isMiniTabletOptions ? "dashboard-options-mini" : ""
-              }`
+      : // : `left-1/2 top-[80px] z-[9000] flex max-h-[calc(100vh-6rem)] w-[91%] -translate-x-1/2 flex-col ${
+        `left-1/2 top-[80px] z-[9000] flex  w-[91%] -translate-x-1/2 flex-col ${
+          isMiniTabletOptions ? "dashboard-options-mini" : ""
+        }`
   }`;
 
   return (
@@ -504,7 +517,7 @@ export default function DashboardOptions({
         className={
           isSmallScreen
             ? "absolute inset-x-0 bottom-0 flex max-h-[84vh] flex-col overflow-hidden rounded-t-[18px] bg-[#f2f2f2] px-5 pb-3 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] sm:px-7"
-            : ""
+            : "flex  min-h-0 flex-col"
         }
       >
         <div

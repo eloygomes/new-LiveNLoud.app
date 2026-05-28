@@ -29,12 +29,7 @@ function ToolBox({
   handleSaveCifra,
   handleDiscardDraft,
   startEditingCifra,
-  marksEditorOpen,
-  onToggleMarksEditor,
   onToggleMarksVisibility,
-  markEntries,
-  onChangeMarkTitle,
-  onChangeMarkPosition,
   progressionBadgeSide,
   transposeSteps,
   setTransposeSteps,
@@ -58,6 +53,11 @@ function ToolBox({
   isSavingNotes = false,
   onSelectInstrument,
   onChangeProgressionBadgeSide,
+  activeProgressionMarkSettings,
+  onDecreaseActiveMarkWidth,
+  onIncreaseActiveMarkWidth,
+  onDecreaseActiveMarkHeight,
+  onIncreaseActiveMarkHeight,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -188,12 +188,7 @@ function ToolBox({
               handleSaveCifra={handleSaveCifra}
               handleDiscardDraft={handleDiscardDraft}
               startEditingCifra={startEditingCifra}
-              marksEditorOpen={marksEditorOpen}
-              onToggleMarksEditor={onToggleMarksEditor}
               onToggleMarksVisibility={onToggleMarksVisibility}
-              markEntries={markEntries}
-              onChangeMarkTitle={onChangeMarkTitle}
-              onChangeMarkPosition={onChangeMarkPosition}
               progressionBadgeSide={progressionBadgeSide}
               transposeSteps={transposeSteps}
               setTransposeSteps={setTransposeSteps}
@@ -212,6 +207,11 @@ function ToolBox({
               isSavingNotes={isSavingNotes}
               onSelectInstrument={onSelectInstrument}
               onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
+              activeProgressionMarkSettings={activeProgressionMarkSettings}
+              onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
+              onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
+              onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
+              onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
             />
           </div>
         </div>
@@ -268,12 +268,7 @@ function ToolBox({
                 handleSaveCifra={handleSaveCifra}
                 handleDiscardDraft={handleDiscardDraft}
                 startEditingCifra={startEditingCifra}
-                marksEditorOpen={marksEditorOpen}
-                onToggleMarksEditor={onToggleMarksEditor}
                 onToggleMarksVisibility={onToggleMarksVisibility}
-                markEntries={markEntries}
-                onChangeMarkTitle={onChangeMarkTitle}
-                onChangeMarkPosition={onChangeMarkPosition}
                 progressionBadgeSide={progressionBadgeSide}
                 transposeSteps={transposeSteps}
                 setTransposeSteps={setTransposeSteps}
@@ -293,6 +288,11 @@ function ToolBox({
                 isSavingNotes={isSavingNotes}
                 onSelectInstrument={onSelectInstrument}
                 onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
+                activeProgressionMarkSettings={activeProgressionMarkSettings}
+                onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
+                onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
+                onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
+                onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

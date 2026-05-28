@@ -1,24 +1,5 @@
 import PropTypes from "prop-types";
 
-const getColumnIndexFromLabel = (value = "") => {
-  const normalizedValue = String(value).trim();
-  const numericValue = Number.parseInt(normalizedValue, 10);
-
-  if (Number.isFinite(numericValue) && numericValue > 0) {
-    return numericValue;
-  }
-
-  const letters = normalizedValue.toUpperCase().replace(/[^A-Z]/g, "");
-  if (!letters) return 1;
-
-  return letters
-    .split("")
-    .reduce(
-      (index, letter) => index * 26 + letter.charCodeAt(0) - 64,
-      0,
-    );
-};
-
 function ToolBoxEditControls({
   isEditing,
   isSavingCifra,
@@ -27,21 +8,68 @@ function ToolBoxEditControls({
   handleSaveCifra,
   handleDiscardDraft,
   startEditingCifra,
-  marksEditorOpen,
-  onToggleMarksEditor,
   onToggleMarksVisibility,
-  markEntries,
-  onChangeMarkTitle,
-  onChangeMarkPosition,
   touchFontSizeLabel,
   showProgressionMarkers,
   progressionBadgeSide,
   onChangeProgressionBadgeSide,
   onDecreaseFontSize,
   onIncreaseFontSize,
+  activeProgressionMarkSettings,
+  onDecreaseActiveMarkWidth,
+  onIncreaseActiveMarkWidth,
+  onDecreaseActiveMarkHeight,
+  onIncreaseActiveMarkHeight,
 }) {
   const canEditCifra = Boolean(songCifraData);
-  const marksEditorToggleLabel = marksEditorOpen ? "Close Mark Editor" : "Edit Marks";
+  const markControlsEnabled =
+    isEditing && Boolean(activeProgressionMarkSettings?.active);
+  const activeMarkLabel = activeProgressionMarkSettings?.label || "--";
+
+  const renderMarkDimensionControl = ({
+    label,
+    value,
+    decreaseLabel,
+    increaseLabel,
+    onDecrease,
+    onIncrease,
+  }) => (
+    <div className="rounded-[14px] px-1 py-1">
+      <div className="mb-1 text-xs font-black uppercase tracking-[0.08em] text-black/65">
+        {label}
+      </div>
+      <div
+        className={`grid grid-cols-[2.4rem_minmax(0,1fr)_2.4rem] items-center gap-2 rounded-[14px] px-1 py-1 ${
+          markControlsEnabled ? "" : "opacity-45"
+        }`}
+      >
+        <button
+          type="button"
+          className="neuphormism-b-btn flex h-9 w-full items-center justify-center rounded-[14px] text-[1.2rem] font-black leading-none text-black active:scale-[0.98] disabled:cursor-not-allowed"
+          onClick={onDecrease}
+          disabled={!markControlsEnabled}
+          aria-label={decreaseLabel}
+        >
+          -
+        </button>
+        <div
+          className="min-w-0 rounded-[14px] bg-white/45 px-2 py-2 text-center text-sm font-black leading-none text-black"
+          aria-label={`${label} value`}
+        >
+          {markControlsEnabled ? `${value}px` : "Select"}
+        </div>
+        <button
+          type="button"
+          className="neuphormism-b-btn flex h-9 w-full items-center justify-center rounded-[14px] text-[1.2rem] font-black leading-none text-black active:scale-[0.98] disabled:cursor-not-allowed"
+          onClick={onIncrease}
+          disabled={!markControlsEnabled}
+          aria-label={increaseLabel}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -132,65 +160,31 @@ function ToolBoxEditControls({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
-        <button
-          type="button"
-          className="rounded-md neuphormism-b-btn px-3 py-2 text-sm font-bold text-black disabled:opacity-50"
-          onClick={onToggleMarksEditor}
-          disabled={!canEditCifra}
-        >
-          {marksEditorToggleLabel}
-        </button>
+        <div className="flex flex-col gap-2 rounded-[14px] px-1 py-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-black text-black">Selected mark</div>
+            <div className="rounded-[999px] bg-white/60 px-3 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-black/70">
+              {markControlsEnabled ? activeMarkLabel : "None"}
+            </div>
+          </div>
+          {renderMarkDimensionControl({
+            label: "Width",
+            value: activeProgressionMarkSettings?.width || 0,
+            decreaseLabel: "Decrease selected mark width",
+            increaseLabel: "Increase selected mark width",
+            onDecrease: onDecreaseActiveMarkWidth,
+            onIncrease: onIncreaseActiveMarkWidth,
+          })}
+          {renderMarkDimensionControl({
+            label: "Height",
+            value: activeProgressionMarkSettings?.height || 0,
+            decreaseLabel: "Decrease selected mark height",
+            increaseLabel: "Increase selected mark height",
+            onDecrease: onDecreaseActiveMarkHeight,
+            onIncrease: onIncreaseActiveMarkHeight,
+          })}
         </div>
       </div>
-
-      {marksEditorOpen ? (
-        <div className="neuphormism-b mt-1 rounded-[14px] p-3">
-          <div className="mb-3 text-[0.68rem] font-black uppercase tracking-[0.14em] text-black/45">
-            Mark editor
-          </div>
-          <div className="max-h-[38vh] space-y-3 overflow-y-auto pr-1">
-            {markEntries.length ? (
-              markEntries.map((entry) => (
-                <div
-                  key={entry.blockKey}
-                  className="rounded-[12px] bg-white/70 p-3 shadow-[0_4px_10px_rgba(0,0,0,0.04)]"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-black/45">
-                      Block {entry.defaultPosition}
-                    </div>
-                    <input
-                      type="text"
-                      value={entry.columnLabel || entry.position}
-                      onChange={(event) =>
-                        onChangeMarkPosition?.(
-                          entry.blockKey,
-                          getColumnIndexFromLabel(event.target.value),
-                        )
-                      }
-                      aria-label={`Column for block ${entry.defaultPosition}`}
-                      className="w-20 rounded-[10px] border border-gray-300 bg-white px-2 py-2 text-center text-sm font-black uppercase tracking-[0.12em] text-black outline-none"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    value={entry.title}
-                    onChange={(event) =>
-                      onChangeMarkTitle?.(entry.blockKey, event.target.value)
-                    }
-                    className="mt-2 w-full rounded-[10px] border border-gray-300 bg-white px-2 py-2 text-sm font-bold text-black outline-none"
-                  />
-                </div>
-              ))
-            ) : (
-              <div className="rounded-[12px] bg-white/70 px-3 py-3 text-sm font-bold text-black/55 shadow-[0_4px_10px_rgba(0,0,0,0.04)]">
-                No marks detected for the current cifra.
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -203,27 +197,23 @@ ToolBoxEditControls.propTypes = {
   handleSaveCifra: PropTypes.func.isRequired,
   handleDiscardDraft: PropTypes.func.isRequired,
   startEditingCifra: PropTypes.func.isRequired,
-  marksEditorOpen: PropTypes.bool.isRequired,
-  onToggleMarksEditor: PropTypes.func.isRequired,
   onToggleMarksVisibility: PropTypes.func.isRequired,
-  markEntries: PropTypes.arrayOf(
-    PropTypes.shape({
-      blockKey: PropTypes.string.isRequired,
-      defaultPosition: PropTypes.number.isRequired,
-      position: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
-        .isRequired,
-      columnLabel: PropTypes.string,
-      title: PropTypes.string.isRequired,
-    }),
-  ).isRequired,
-  onChangeMarkTitle: PropTypes.func.isRequired,
-  onChangeMarkPosition: PropTypes.func.isRequired,
   touchFontSizeLabel: PropTypes.string.isRequired,
   showProgressionMarkers: PropTypes.bool.isRequired,
   progressionBadgeSide: PropTypes.oneOf(["left", "right"]).isRequired,
   onChangeProgressionBadgeSide: PropTypes.func.isRequired,
   onDecreaseFontSize: PropTypes.func.isRequired,
   onIncreaseFontSize: PropTypes.func.isRequired,
+  activeProgressionMarkSettings: PropTypes.shape({
+    active: PropTypes.bool,
+    label: PropTypes.string,
+    width: PropTypes.number,
+    height: PropTypes.number,
+  }),
+  onDecreaseActiveMarkWidth: PropTypes.func,
+  onIncreaseActiveMarkWidth: PropTypes.func,
+  onDecreaseActiveMarkHeight: PropTypes.func,
+  onIncreaseActiveMarkHeight: PropTypes.func,
 };
 
 export default ToolBoxEditControls;

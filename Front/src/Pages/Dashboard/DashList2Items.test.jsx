@@ -45,6 +45,7 @@ function songFixture() {
       createdAt: "2026-05-10T12:00:00.000Z",
       embedVideos: ["https://youtu.be/1"],
       guitar01: { notes: "Capo 2", lastPlay: "2026-05-11T12:00:00.000Z" },
+      bass: { progress: 72 },
       instruments: {
         guitar01: true,
         guitar02: false,
@@ -93,6 +94,25 @@ describe("DashList2Items", () => {
     expect(screen.getByText("80%")).toBeInTheDocument();
     expect(screen.getByText("Worship")).toBeInTheDocument();
     expect(screen.getByText("11 / 05 / 2026")).toBeInTheDocument();
+  });
+
+  it("renders instrument progression and highlights the selected instrument icon", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 1200,
+      configurable: true,
+    });
+
+    render(
+      <DashList2Items
+        songs={songFixture()}
+        visibleColumns={["bassProgression", "instruments"]}
+      />,
+    );
+
+    expect(screen.getByText("72%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "B" })).toHaveClass(
+      "text-[goldenrod]",
+    );
   });
 
   it("opens the mobile action sheet after a long press", async () => {

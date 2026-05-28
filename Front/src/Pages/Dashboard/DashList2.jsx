@@ -12,8 +12,34 @@ import {
 
 const DEFAULT_VISIBLE_COLUMNS = ["progression", "guitarPro", "notes", "instruments"];
 const TABLET_COLUMNS_LIMIT = 3;
+const FIXED_TRAILING_COLUMNS = ["instruments"];
+const INSTRUMENT_PROGRESSION_COLUMN_KEYS = [
+  "guitar01Progression",
+  "guitar02Progression",
+  "bassProgression",
+  "keysProgression",
+  "drumsProgression",
+  "voiceProgression",
+];
+const INSTRUMENT_PROGRESSION_COLUMNS = [
+  {
+    key: "guitar01Progression",
+    label: "G1 PROGRESSION",
+    sortable: "guitar01Progression",
+  },
+  {
+    key: "guitar02Progression",
+    label: "G2 PROGRESSION",
+    sortable: "guitar02Progression",
+  },
+  { key: "bassProgression", label: "BASS PROGRESSION", sortable: "bassProgression" },
+  { key: "keysProgression", label: "KEYS PROGRESSION", sortable: "keysProgression" },
+  { key: "drumsProgression", label: "DRUMS PROGRESSION", sortable: "drumsProgression" },
+  { key: "voiceProgression", label: "VOICE PROGRESSION", sortable: "voiceProgression" },
+];
 const OPTIONAL_COLUMNS = [
   { key: "progression", label: "PROGRESSION", sortable: "progressBar" },
+  ...INSTRUMENT_PROGRESSION_COLUMNS,
   { key: "guitarPro", label: "GUITAR PRO", sortable: "guitarPro" },
   { key: "notes", label: "NOTES", sortable: "notes" },
   { key: "tags", label: "TAGS", sortable: "tags" },
@@ -25,6 +51,12 @@ const OPTIONAL_COLUMNS = [
 
 const COLUMN_WIDTHS = {
   progression: "minmax(0, 0.6fr)",
+  guitar01Progression: "minmax(0, 0.6fr)",
+  guitar02Progression: "minmax(0, 0.6fr)",
+  bassProgression: "minmax(0, 0.6fr)",
+  keysProgression: "minmax(0, 0.6fr)",
+  drumsProgression: "minmax(0, 0.6fr)",
+  voiceProgression: "minmax(0, 0.6fr)",
   guitarPro: "minmax(0, 0.5fr)",
   notes: "minmax(0, 0.38fr)",
   tags: "minmax(0, 0.72fr)",
@@ -32,6 +64,24 @@ const COLUMN_WIDTHS = {
   instruments: "minmax(0, 0.95fr)",
   addedDate: "minmax(0, 0.55fr)",
   lastPlay: "minmax(0, 0.55fr)",
+};
+
+const normalizeVisibleColumns = (columns, selectableLimit = Infinity) => {
+  const validKeys = OPTIONAL_COLUMNS.map((column) => column.key);
+  const selectedColumns = Array.isArray(columns) ? columns : [];
+  const hasInstrumentProgression = selectedColumns.some((key) =>
+    INSTRUMENT_PROGRESSION_COLUMN_KEYS.includes(key),
+  );
+  const selectedOptionalColumns = selectedColumns.filter(
+    (key) => validKeys.includes(key) && !FIXED_TRAILING_COLUMNS.includes(key),
+  ).filter(
+    (key) => !(hasInstrumentProgression && key === "progression"),
+  ).slice(0, selectableLimit);
+
+  return [
+    ...selectedOptionalColumns,
+    ...FIXED_TRAILING_COLUMNS.filter((key) => validKeys.includes(key)),
+  ];
 };
 
 function DashList2({ searchTerm = "" }) {
@@ -76,15 +126,16 @@ function DashList2({ searchTerm = "" }) {
             OPTIONAL_COLUMNS.some((column) => column.key === key),
           )
         : [];
-      if (!validStored.length) return DEFAULT_VISIBLE_COLUMNS;
+      if (!validStored.length) return normalizeVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
       return typeof window !== "undefined" &&
         window.innerWidth >= 768 &&
         window.innerWidth < 1366 &&
-        validStored.length > TABLET_COLUMNS_LIMIT
-        ? validStored.slice(0, TABLET_COLUMNS_LIMIT)
-        : validStored;
+        validStored.filter((key) => !FIXED_TRAILING_COLUMNS.includes(key)).length >
+          TABLET_COLUMNS_LIMIT
+        ? normalizeVisibleColumns(validStored, TABLET_COLUMNS_LIMIT)
+        : normalizeVisibleColumns(validStored);
     } catch {
-      return DEFAULT_VISIBLE_COLUMNS;
+      return normalizeVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
     }
   });
 
@@ -176,9 +227,12 @@ function DashList2({ searchTerm = "" }) {
     if (!isTabletColumnLimited) return;
 
     setVisibleColumns((current) => {
-      if (current.length <= TABLET_COLUMNS_LIMIT) return current;
+      const selectableCount = current.filter(
+        (key) => !FIXED_TRAILING_COLUMNS.includes(key),
+      ).length;
+      if (selectableCount <= TABLET_COLUMNS_LIMIT) return current;
 
-      const next = current.slice(0, TABLET_COLUMNS_LIMIT);
+      const next = normalizeVisibleColumns(current, TABLET_COLUMNS_LIMIT);
       localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
       return next;
     });
@@ -230,14 +284,35 @@ function DashList2({ searchTerm = "" }) {
     setOptStatus((current) => !current);
   };
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("dashboard-options-visibility-change", {
+        detail: { open: optStatus },
+      }),
+    );
+  }, [optStatus]);
+
   const handleToggleColumn = (columnKey) => {
+    if (FIXED_TRAILING_COLUMNS.includes(columnKey)) return;
+
     setVisibleColumns((current) => {
       const isSelected = current.includes(columnKey);
-      const next = isSelected
+      const nextSelectionBase = isSelected
         ? current.filter((key) => key !== columnKey)
         : [...current, columnKey];
+      const nextSelection = INSTRUMENT_PROGRESSION_COLUMN_KEYS.includes(columnKey)
+        ? nextSelectionBase.filter((key) => key !== "progression")
+        : columnKey === "progression"
+          ? nextSelectionBase.filter(
+              (key) => !INSTRUMENT_PROGRESSION_COLUMN_KEYS.includes(key),
+            )
+          : nextSelectionBase;
+      const next = normalizeVisibleColumns(nextSelection);
+      const selectableCount = next.filter(
+        (key) => !FIXED_TRAILING_COLUMNS.includes(key),
+      ).length;
 
-      if (next.length > maxSelectableColumns) {
+      if (selectableCount > maxSelectableColumns) {
         return current;
       }
 
@@ -247,6 +322,8 @@ function DashList2({ searchTerm = "" }) {
   };
 
   const handleMoveColumn = (columnKey, direction) => {
+    if (FIXED_TRAILING_COLUMNS.includes(columnKey)) return;
+
     setVisibleColumns((current) => {
       const currentIndex = current.indexOf(columnKey);
       const nextIndex = currentIndex + direction;
@@ -258,14 +335,13 @@ function DashList2({ searchTerm = "" }) {
       const next = [...current];
       const [movedColumn] = next.splice(currentIndex, 1);
       next.splice(nextIndex, 0, movedColumn);
-      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
-      return next;
+      const normalizedNext = normalizeVisibleColumns(next);
+      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(normalizedNext));
+      return normalizedNext;
     });
   };
 
-  const orderedVisibleColumns = visibleColumns.filter((key) =>
-    OPTIONAL_COLUMNS.some((column) => column.key === key),
-  );
+  const orderedVisibleColumns = normalizeVisibleColumns(visibleColumns);
   const optionalGridColumns = orderedVisibleColumns
     .map((key) => COLUMN_WIDTHS[key] || "minmax(7rem, 1fr)")
     .join(" ");
@@ -279,8 +355,8 @@ function DashList2({ searchTerm = "" }) {
     .map((key) => getTabletColumnWidth(key))
     .join(" ");
   const listGridTemplateColumns = isTabletColumnLimited
-    ? `2.25rem minmax(0, 1.45fr) minmax(0, 1fr) ${tabletGridColumns}`
-    : `2.5rem minmax(0, 1.75fr) minmax(0, 1.2fr)${
+    ? `4% 16% 15% ${tabletGridColumns}`
+    : `4% 16% 15%${
         orderedVisibleColumns.length ? ` ${optionalGridColumns}` : ""
       }`;
 
@@ -416,23 +492,25 @@ function DashList2({ searchTerm = "" }) {
               </div>
             ) : null}
 
-            <ul
-              className={`min-h-0 flex-1 overflow-auto z-0 ${
-                isTabletColumnLimited ? "pb-4" : "pb-6"
-              } ${optStatus ? "mt-[63rem]" : "mt-2"}`}
-            >
-              <DashList2Items
-                sortColumn={sortColumn}
-                sortOrder={sortOrder}
-                songs={displaySongs}
-                hasAnySongs={songs.length > 0}
-                isLoading={!songsLoaded}
-                visibleColumns={orderedVisibleColumns}
-                gridTemplateColumns={listGridTemplateColumns}
-                offlineMode={offlineInfo.offlineMode}
-                onSongsChanged={loadSongs}
-              />
-            </ul>
+            {!optStatus ? (
+              <ul
+                className={`min-h-0 flex-1 overflow-auto z-0 ${
+                  isTabletColumnLimited ? "pb-4" : "pb-6"
+                } mt-2`}
+              >
+                <DashList2Items
+                  sortColumn={sortColumn}
+                  sortOrder={sortOrder}
+                  songs={displaySongs}
+                  hasAnySongs={songs.length > 0}
+                  isLoading={!songsLoaded}
+                  visibleColumns={orderedVisibleColumns}
+                  gridTemplateColumns={listGridTemplateColumns}
+                  offlineMode={offlineInfo.offlineMode}
+                  onSongsChanged={loadSongs}
+                />
+              </ul>
+            ) : null}
           </div>
         </div>
       )}

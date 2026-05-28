@@ -10,12 +10,7 @@ const baseProps = {
   handleSaveCifra: vi.fn(),
   handleDiscardDraft: vi.fn(),
   startEditingCifra: vi.fn(),
-  marksEditorOpen: false,
-  onToggleMarksEditor: vi.fn(),
   onToggleMarksVisibility: vi.fn(),
-  markEntries: [],
-  onChangeMarkTitle: vi.fn(),
-  onChangeMarkPosition: vi.fn(),
   activeLayoutLabel: "Expanded Layout",
   touchFontSizeLabel: "100%",
   showProgressionMarkers: false,
@@ -78,16 +73,12 @@ describe("ToolBoxEditControls", () => {
     expect(onChangeProgressionBadgeSide).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the marks empty state when the editor opens without detected blocks", () => {
-    render(
-      <ToolBoxEditControls
-        {...baseProps}
-        marksEditorOpen
-      />,
-    );
+  it("does not render the legacy marks editor entry point", () => {
+    render(<ToolBoxEditControls {...baseProps} />);
 
     expect(
-      screen.getByText("No marks detected for the current cifra."),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: /edit marks/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Mark editor")).not.toBeInTheDocument();
   });
 });
