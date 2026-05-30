@@ -38,12 +38,10 @@ const baseProps = {
   setTransposeSteps: vi.fn(),
   displayKey: "C",
   showProgressionMarkers: true,
-  progressionBadgeSide: "right",
   touchFontSizeLabel: "100%",
   decreaseTouchFontSize: vi.fn(),
   increaseTouchFontSize: vi.fn(),
   onSelectInstrument: vi.fn(),
-  onChangeProgressionBadgeSide: vi.fn(),
 };
 
 describe("TollBoxAcoord", () => {

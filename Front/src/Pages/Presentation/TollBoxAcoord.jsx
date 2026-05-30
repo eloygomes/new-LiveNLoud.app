@@ -52,7 +52,6 @@ export default function TollBoxAcoord({
   handleDiscardDraft,
   startEditingCifra,
   onToggleMarksVisibility,
-  progressionBadgeSide = "right",
   transposeSteps = 0,
   setTransposeSteps,
   displayKey = "--",
@@ -64,6 +63,9 @@ export default function TollBoxAcoord({
   touchFontSizeLabel = "100%",
   decreaseTouchFontSize,
   increaseTouchFontSize,
+  blockSpacingLabel = "32px",
+  decreaseBlockSpacing,
+  increaseBlockSpacing,
   setNotesModalStatus,
   onOpenInstrumentNotes,
   instrumentNotes = "",
@@ -71,7 +73,6 @@ export default function TollBoxAcoord({
   onSaveInstrumentNotes,
   isSavingNotes = false,
   onSelectInstrument = () => {},
-  onChangeProgressionBadgeSide,
   requestedPanel,
   activeProgressionMarkSettings,
   onDecreaseActiveMarkWidth,
@@ -155,12 +156,10 @@ export default function TollBoxAcoord({
       handleDiscardDraft={handleDiscardDraft}
       startEditingCifra={startEditingCifra}
       onToggleMarksVisibility={onToggleMarksVisibility}
-      touchFontSizeLabel={touchFontSizeLabel}
+      blockSpacingLabel={blockSpacingLabel}
+      onDecreaseBlockSpacing={decreaseBlockSpacing}
+      onIncreaseBlockSpacing={increaseBlockSpacing}
       showProgressionMarkers={showProgressionMarkers}
-      progressionBadgeSide={progressionBadgeSide}
-      onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
-      onDecreaseFontSize={decreaseTouchFontSize}
-      onIncreaseFontSize={increaseTouchFontSize}
       activeProgressionMarkSettings={activeProgressionMarkSettings}
       onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
       onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
@@ -521,11 +520,6 @@ export default function TollBoxAcoord({
       label: "Layout",
       content: renderLayoutContent(),
     },
-    {
-      id: "panel-font",
-      label: "Font Size",
-      content: renderFontSizeContent(),
-    },
     ...(hasVideos
       ? [{ id: "panel2", label: "Videos", content: renderVideosContent() }]
       : []),
@@ -551,11 +545,6 @@ export default function TollBoxAcoord({
         id: "panel-layout",
         label: "Layout",
         content: renderLayoutContent(),
-      },
-      {
-        id: "panel-font",
-        label: "Font Size",
-        content: renderFontSizeContent(),
       },
       {
         id: "panel-notes",
@@ -588,34 +577,6 @@ export default function TollBoxAcoord({
     const activeSection = touchSections.find(
       (section) => section.id === activeTouchPanel,
     );
-
-    if (activeSection?.id === "panel-editor") {
-      return (
-        <div className="space-y-4">
-          <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
-            Editor
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              className="rounded-[14px] bg-[goldenrod] px-4 py-3 text-center text-lg font-black text-black disabled:opacity-50"
-              onClick={handleTouchSave}
-              disabled={isSavingCifra || !hasDraftChanges}
-            >
-              {isSavingCifra ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              className="rounded-[14px] bg-white px-4 py-3 text-center text-lg font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] disabled:opacity-50"
-              onClick={handleTouchDiscard}
-              disabled={isSavingCifra}
-            >
-              Discard
-            </button>
-          </div>
-        </div>
-      );
-    }
 
     if (activeSection) {
       return (
@@ -679,7 +640,7 @@ export default function TollBoxAcoord({
           </button>
           <div className="neuphormism-b rounded-[14px] p-2 text-sm font-semibold">
             {activeDesktopSection.id === "panel-editor" ? (
-              <div className="max-h-[68vh] overflow-y-auto">
+              <div className="max-h-[82vh] overflow-y-auto">
                 {activeDesktopSection.content}
               </div>
             ) : (

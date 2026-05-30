@@ -12,12 +12,10 @@ const baseProps = {
   startEditingCifra: vi.fn(),
   onToggleMarksVisibility: vi.fn(),
   activeLayoutLabel: "Expanded Layout",
-  touchFontSizeLabel: "100%",
+  blockSpacingLabel: "32px",
+  onDecreaseBlockSpacing: vi.fn(),
+  onIncreaseBlockSpacing: vi.fn(),
   showProgressionMarkers: false,
-  progressionBadgeSide: "right",
-  onChangeProgressionBadgeSide: vi.fn(),
-  onDecreaseFontSize: vi.fn(),
-  onIncreaseFontSize: vi.fn(),
   activeProgressionMarkSettings: { active: false },
   onDecreaseActiveMarkWidth: vi.fn(),
   onIncreaseActiveMarkWidth: vi.fn(),
@@ -27,57 +25,42 @@ const baseProps = {
 };
 
 describe("ToolBoxEditControls", () => {
-  it("renders the updated layout header and font size controls", () => {
+  it("renders editor layout controls without font size", () => {
     render(<ToolBoxEditControls {...baseProps} />);
 
     expect(screen.queryByText("Expanded Layout")).not.toBeInTheDocument();
     expect(screen.queryByText("Active layout")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Decrease font size")).toBeInTheDocument();
-    expect(screen.getByLabelText("Increase font size")).toBeInTheDocument();
-    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Decrease font size")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Increase font size")).not.toBeInTheDocument();
+    expect(screen.getByText("32px")).toBeInTheDocument();
+    expect(screen.getByText("Block spacing")).toBeInTheDocument();
     expect(screen.queryByText("Columns")).not.toBeInTheDocument();
     expect(screen.queryByText("Detected blocks")).not.toBeInTheDocument();
     expect(screen.getByText("Progression marks")).toBeInTheDocument();
-    expect(screen.getByText("Mark tag side")).toBeInTheDocument();
+    expect(screen.queryByText("Mark tag side")).not.toBeInTheDocument();
     expect(screen.queryByText("Selected mark")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Right" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Off" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /off/i })).toBeInTheDocument();
     expect(screen.queryByText("Show Marks")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Edit cifra")).not.toBeInTheDocument();
   });
 
-  it("wires font size controls to the provided callbacks", () => {
-    const onDecreaseFontSize = vi.fn();
-    const onIncreaseFontSize = vi.fn();
+  it("wires block spacing controls to the provided callbacks", () => {
+    const onDecreaseBlockSpacing = vi.fn();
+    const onIncreaseBlockSpacing = vi.fn();
 
     render(
       <ToolBoxEditControls
         {...baseProps}
-        onDecreaseFontSize={onDecreaseFontSize}
-        onIncreaseFontSize={onIncreaseFontSize}
+        onDecreaseBlockSpacing={onDecreaseBlockSpacing}
+        onIncreaseBlockSpacing={onIncreaseBlockSpacing}
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Decrease font size"));
-    fireEvent.click(screen.getByLabelText("Increase font size"));
+    fireEvent.click(screen.getByLabelText("Decrease block spacing"));
+    fireEvent.click(screen.getByLabelText("Increase block spacing"));
 
-    expect(onDecreaseFontSize).toHaveBeenCalledTimes(1);
-    expect(onIncreaseFontSize).toHaveBeenCalledTimes(1);
-  });
-
-  it("toggles the mark badge side from the editor controls", () => {
-    const onChangeProgressionBadgeSide = vi.fn();
-
-    render(
-      <ToolBoxEditControls
-        {...baseProps}
-        onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Right" }));
-
-    expect(onChangeProgressionBadgeSide).toHaveBeenCalledTimes(1);
+    expect(onDecreaseBlockSpacing).toHaveBeenCalledTimes(1);
+    expect(onIncreaseBlockSpacing).toHaveBeenCalledTimes(1);
   });
 
   it("does not render the legacy marks editor entry point", () => {

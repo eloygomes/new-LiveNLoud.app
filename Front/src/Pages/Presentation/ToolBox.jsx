@@ -30,7 +30,6 @@ function ToolBox({
   handleDiscardDraft,
   startEditingCifra,
   onToggleMarksVisibility,
-  progressionBadgeSide,
   transposeSteps,
   setTransposeSteps,
   displayKey,
@@ -39,6 +38,9 @@ function ToolBox({
   touchFontSizeLabel,
   decreaseTouchFontSize,
   increaseTouchFontSize,
+  blockSpacingLabel,
+  decreaseBlockSpacing,
+  increaseBlockSpacing,
   onVideoModalChange,
   linktoplay,
   setLinktoplay,
@@ -52,7 +54,6 @@ function ToolBox({
   onOpenInstrumentNotes,
   isSavingNotes = false,
   onSelectInstrument,
-  onChangeProgressionBadgeSide,
   requestedPanel,
   activeProgressionMarkSettings,
   onDecreaseActiveMarkWidth,
@@ -191,7 +192,6 @@ function ToolBox({
               handleDiscardDraft={handleDiscardDraft}
               startEditingCifra={startEditingCifra}
               onToggleMarksVisibility={onToggleMarksVisibility}
-              progressionBadgeSide={progressionBadgeSide}
               transposeSteps={transposeSteps}
               setTransposeSteps={setTransposeSteps}
               displayKey={displayKey}
@@ -200,6 +200,9 @@ function ToolBox({
               touchFontSizeLabel={touchFontSizeLabel}
               decreaseTouchFontSize={decreaseTouchFontSize}
               increaseTouchFontSize={increaseTouchFontSize}
+              blockSpacingLabel={blockSpacingLabel}
+              decreaseBlockSpacing={decreaseBlockSpacing}
+              increaseBlockSpacing={increaseBlockSpacing}
               closeToolBox={closeTouchToolBox}
               activeTouchPanel={activeTouchPanel}
               setActiveTouchPanel={setActiveTouchPanel}
@@ -208,7 +211,6 @@ function ToolBox({
               onSaveInstrumentNotes={onSaveInstrumentNotes}
               isSavingNotes={isSavingNotes}
               onSelectInstrument={onSelectInstrument}
-              onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
               requestedPanel={requestedPanel}
               activeProgressionMarkSettings={activeProgressionMarkSettings}
               onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
@@ -273,7 +275,6 @@ function ToolBox({
                 handleDiscardDraft={handleDiscardDraft}
                 startEditingCifra={startEditingCifra}
                 onToggleMarksVisibility={onToggleMarksVisibility}
-                progressionBadgeSide={progressionBadgeSide}
                 transposeSteps={transposeSteps}
                 setTransposeSteps={setTransposeSteps}
                 displayKey={displayKey}
@@ -281,6 +282,9 @@ function ToolBox({
                 touchFontSizeLabel={touchFontSizeLabel}
                 decreaseTouchFontSize={decreaseTouchFontSize}
                 increaseTouchFontSize={increaseTouchFontSize}
+                blockSpacingLabel={blockSpacingLabel}
+                decreaseBlockSpacing={decreaseBlockSpacing}
+                increaseBlockSpacing={increaseBlockSpacing}
                 closeToolBox={() =>
                   toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
                 }
@@ -291,7 +295,6 @@ function ToolBox({
                 onSaveInstrumentNotes={onSaveInstrumentNotes}
                 isSavingNotes={isSavingNotes}
                 onSelectInstrument={onSelectInstrument}
-                onChangeProgressionBadgeSide={onChangeProgressionBadgeSide}
                 requestedPanel={requestedPanel}
                 activeProgressionMarkSettings={activeProgressionMarkSettings}
                 onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}

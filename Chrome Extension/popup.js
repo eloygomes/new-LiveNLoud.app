@@ -53,6 +53,8 @@ const state = {
   selectedInstrument: "guitar01",
   availableSetlists: [],
   selectedSetlists: [],
+  detectedInstrumentLinks: {},
+  selectedInstrumentLinks: {},
 };
 
 const elements = {
@@ -73,6 +75,9 @@ const elements = {
   copyLinkButtonProxy: document.getElementById("copyLinkButtonProxy"),
   linkValue: document.getElementById("linkValue"),
   instrumentSelect: document.getElementById("instrumentSelect"),
+  instrumentLinkSuggestions: document.getElementById(
+    "instrumentLinkSuggestions",
+  ),
   songValue: document.getElementById("songValue"),
   artistValue: document.getElementById("artistValue"),
   capoValue: document.getElementById("capoValue"),
@@ -130,7 +135,8 @@ function normalizeLinkForApi(value = "") {
 }
 
 function getLayoutSongCifra(presentationLayouts) {
-  if (!presentationLayouts || typeof presentationLayouts !== "object") return "";
+  if (!presentationLayouts || typeof presentationLayouts !== "object")
+    return "";
 
   const candidates = [
     presentationLayouts.default?.songCifra,
@@ -255,6 +261,181 @@ function getPathSegments(link) {
   } catch {
     return [];
   }
+}
+
+function getUrlFromLink(link) {
+  try {
+    return new URL(link);
+  } catch {
+    return null;
+  }
+}
+
+function getCifraClubInstrumentLinkSuggestions(link) {
+  const url = getUrlFromLink(link);
+  if (!url) return {};
+
+  const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+  if (host !== "cifraclub.com.br") return {};
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length < 2) return {};
+
+  const artistSlug = segments[0];
+  const songSlug = segments[1];
+  const origin = `${url.protocol}//${url.hostname}`;
+  const basePath = `/${artistSlug}/${songSlug}/`;
+  const baseLink = `${origin}${basePath}`;
+
+  return {
+    guitar01: baseLink,
+    guitar02: baseLink,
+    bass: `${origin}${basePath}tabs-baixo/`,
+    keys: `${baseLink}#tabs=false&instrument=keyboard`,
+    drums: `${origin}${basePath}tabs-bateria/`,
+    voice: `${origin}${basePath}letra/`,
+  };
+}
+
+function getInstrumentDisplayName(instrumentName) {
+  const labels = {
+    guitar01: "Guitar 01",
+    guitar02: "Guitar 02",
+    bass: "Bass",
+    keys: "Keys",
+    drums: "Drums",
+    voice: "Voice",
+  };
+
+  return labels[instrumentName] || instrumentName;
+}
+
+function getInstrumentSetlistTag(instrumentName) {
+  const tags = {
+    guitar01: "guitar",
+    guitar02: "guitar",
+    bass: "bass",
+    keys: "keys",
+    drums: "drums",
+    voice: "voice",
+  };
+
+  return tags[instrumentName] || cleanText(instrumentName).toLowerCase();
+}
+
+function getLetrasMusInstrumentLinkSuggestions(link) {
+  const url = getUrlFromLink(link);
+  if (!url) return {};
+
+  const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+  if (host !== "letras.mus.br") return {};
+
+  return {
+    voice: cleanText(link),
+  };
+}
+
+function getUltimateGuitarInstrumentLinkSuggestions(pageContext) {
+  const currentLink = cleanText(pageContext?.link);
+  const currentInstrument = detectInstrumentFromLink(pageContext);
+  if (!currentLink || pageContext?.source !== "ultimate_guitar") return {};
+
+  return {
+    [currentInstrument]: currentLink,
+  };
+}
+
+function buildInstrumentLinkSuggestions(pageContext) {
+  const link = cleanText(pageContext?.link);
+  if (!link) return {};
+
+  return {
+    ...getCifraClubInstrumentLinkSuggestions(link),
+    ...getLetrasMusInstrumentLinkSuggestions(link),
+    ...getUltimateGuitarInstrumentLinkSuggestions(pageContext),
+  };
+}
+
+function resetInstrumentLinkSuggestions() {
+  state.detectedInstrumentLinks = {};
+  state.selectedInstrumentLinks = {};
+  renderInstrumentLinkSuggestions();
+}
+
+function setDetectedInstrumentLinks(pageContext) {
+  const suggestions = buildInstrumentLinkSuggestions(pageContext);
+  state.detectedInstrumentLinks = suggestions;
+  state.selectedInstrumentLinks = Object.keys(suggestions).reduce(
+    (accumulator, instrumentName) => ({
+      ...accumulator,
+      [instrumentName]: true,
+    }),
+    {},
+  );
+  renderInstrumentLinkSuggestions();
+}
+
+function toggleDetectedInstrumentLink(instrumentName, checked) {
+  state.selectedInstrumentLinks = {
+    ...state.selectedInstrumentLinks,
+    [instrumentName]: checked,
+  };
+}
+
+function getConfirmedInstrumentLinks() {
+  return Object.entries(state.detectedInstrumentLinks).reduce(
+    (accumulator, [instrumentName, link]) => {
+      if (state.selectedInstrumentLinks[instrumentName] && cleanText(link)) {
+        accumulator[instrumentName] = cleanText(link);
+      }
+      return accumulator;
+    },
+    {},
+  );
+}
+
+function getConfirmedInstrumentSetlistTags() {
+  return Object.keys(getConfirmedInstrumentLinks())
+    .map((instrumentName) => getInstrumentSetlistTag(instrumentName))
+    .filter(Boolean);
+}
+
+function renderInstrumentLinkSuggestions() {
+  if (!elements.instrumentLinkSuggestions) return;
+
+  elements.instrumentLinkSuggestions.innerHTML = "";
+
+  const entries = Object.entries(state.detectedInstrumentLinks).filter(
+    ([, link]) => cleanText(link),
+  );
+
+  if (!entries.length) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "setlist-tags-empty";
+    emptyState.textContent = "No instrument links detected.";
+    elements.instrumentLinkSuggestions.appendChild(emptyState);
+    return;
+  }
+
+  entries.forEach(([instrumentName, link]) => {
+    const label = document.createElement("label");
+    label.className = "checkbox-field instrument-link-suggestion";
+    label.title = link;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(state.selectedInstrumentLinks[instrumentName]);
+    checkbox.addEventListener("change", () => {
+      toggleDetectedInstrumentLink(instrumentName, checkbox.checked);
+    });
+
+    const content = document.createElement("strong");
+    content.textContent = getInstrumentDisplayName(instrumentName);
+
+    label.appendChild(checkbox);
+    label.appendChild(content);
+    elements.instrumentLinkSuggestions.appendChild(label);
+  });
 }
 
 function detectInstrumentFromLink(pageContext) {
@@ -651,6 +832,12 @@ function renderPageContext(pageContext) {
     setStatus("");
   }
 
+  if (state.pageContext.compatible) {
+    setDetectedInstrumentLinks(state.pageContext);
+  } else {
+    resetInstrumentLinkSuggestions();
+  }
+
   updateSaveButton(state.pageContext);
 }
 
@@ -707,7 +894,7 @@ function parseVideoLinks(raw) {
   );
 }
 
-function normalizeScrapeDoc(scraped) {
+function normalizeScrapeDoc(scraped, instrumentName = getSelectedInstrument()) {
   if (!scraped) return null;
 
   const pythonSongData = scraped?.songData || scraped?.python?.songData || null;
@@ -723,6 +910,7 @@ function normalizeScrapeDoc(scraped) {
       songTabs: pythonSongData.songTabs || "",
       songChords: pythonSongData.songChords || "",
       songLyrics: pythonSongData.songLyrics || "",
+      presentationLayouts: pythonSongData.presentationLayouts,
     };
   }
 
@@ -756,7 +944,6 @@ function normalizeScrapeDoc(scraped) {
 
   if (!doc) return null;
 
-  const instrumentName = getSelectedInstrument();
   const instrumentDoc = doc?.[instrumentName] || {};
 
   return {
@@ -770,7 +957,8 @@ function normalizeScrapeDoc(scraped) {
     songTabs: instrumentDoc.songTabs || doc.songTabs || "",
     songChords: instrumentDoc.songChords || doc.songChords || "",
     songLyrics: instrumentDoc.songLyrics || doc.songLyrics || "",
-    presentationLayouts: instrumentDoc.presentationLayouts || doc.presentationLayouts,
+    presentationLayouts:
+      instrumentDoc.presentationLayouts || doc.presentationLayouts,
   };
 }
 
@@ -793,9 +981,10 @@ function buildInitialPresentationLayouts(songCifra = "") {
   };
 }
 
-async function scrapeSong(session, pageContext) {
+async function scrapeSong(session, pageContext, options = {}) {
   const progress = getProgressValue();
-  const instrumentName = getSelectedInstrument();
+  const instrumentName = options.instrumentName || getSelectedInstrument();
+  const link = cleanText(options.link || pageContext.link);
   const response = await fetch(`${API_BASE}/api/scrape`, {
     method: "POST",
     headers: {
@@ -808,8 +997,8 @@ async function scrapeSong(session, pageContext) {
       email: session.email,
       instrument: instrumentName,
       instrument_progressbar: progress,
-      link: cleanText(pageContext.link),
-      linkNorm: normalizeLinkForApi(pageContext.link),
+      link,
+      linkNorm: normalizeLinkForApi(link),
     }),
   });
 
@@ -820,14 +1009,15 @@ async function scrapeSong(session, pageContext) {
     );
   }
 
-  return normalizeScrapeDoc(data);
+  return normalizeScrapeDoc(data, instrumentName);
 }
 
-async function fetchExistingSongDoc(session, pageContext) {
-  const instrumentName = getSelectedInstrument();
+async function fetchExistingSongDoc(session, pageContext, options = {}) {
+  const instrumentName = options.instrumentName || getSelectedInstrument();
+  const link = cleanText(options.link || pageContext.link);
   const params = new URLSearchParams({
     instrument: instrumentName,
-    link: cleanText(pageContext.link),
+    link,
     artist: cleanText(pageContext.artist),
     song: cleanText(pageContext.song),
   });
@@ -844,12 +1034,59 @@ async function fetchExistingSongDoc(session, pageContext) {
     throw new Error(data?.message || "Could not load existing song data.");
   }
 
-  return normalizeScrapeDoc({ document: data });
+  return normalizeScrapeDoc({ document: data }, instrumentName);
 }
 
-function buildSongPayload(email, scrapedDoc = null) {
+async function collectScrapedDocsForConfirmedInstruments(session, pageContext) {
+  const confirmedInstrumentLinks = getConfirmedInstrumentLinks();
+  const entries = Object.entries(confirmedInstrumentLinks);
+  const scrapedDocsByInstrument = {};
+
+  for (const [instrumentName, link] of entries) {
+    setNotice(
+      `Buscando dados de ${getInstrumentDisplayName(instrumentName)}...`,
+    );
+
+    let scrapedDoc = null;
+    try {
+      scrapedDoc = await fetchExistingSongDoc(session, pageContext, {
+        instrumentName,
+        link,
+      });
+    } catch (lookupError) {
+      debugError(
+        `Existing song lookup failed for ${instrumentName}`,
+        lookupError,
+      );
+    }
+
+    if (!scrapedDoc) {
+      scrapedDoc = await scrapeSong(session, pageContext, {
+        instrumentName,
+        link,
+      });
+    }
+
+    if (scrapedDoc) {
+      scrapedDocsByInstrument[instrumentName] = {
+        ...scrapedDoc,
+        link: cleanText(scrapedDoc.link) || link,
+      };
+    }
+  }
+
+  return scrapedDocsByInstrument;
+}
+
+function buildSongPayload(
+  email,
+  scrapedDoc = null,
+  scrapedDocsByInstrument = {},
+) {
   const pageContext = state.pageContext;
   const instrumentName = getSelectedInstrument();
+  const confirmedInstrumentLinks = getConfirmedInstrumentLinks();
+  const confirmedInstrumentSetlistTags = getConfirmedInstrumentSetlistTags();
   const mergedSong = cleanText(scrapedDoc?.song || pageContext.song);
   const mergedArtist = cleanText(scrapedDoc?.artist || pageContext.artist);
   const mergedLink = cleanText(scrapedDoc?.link || pageContext.link);
@@ -859,19 +1096,21 @@ function buildSongPayload(email, scrapedDoc = null) {
   const embedVideos = parseVideoLinks(elements.videosInput.value);
   const progress = getProgressValue();
   const today = new Date().toISOString().split("T")[0];
-  const layoutSongCifra = scrapedDoc?.songCifra || "";
+  const selectedInstrumentScrapedDoc =
+    scrapedDocsByInstrument[instrumentName] || scrapedDoc || null;
+  const layoutSongCifra = selectedInstrumentScrapedDoc?.songCifra || "";
   const selectedInstrumentPayload = {
     active: true,
     capo: mergedCapo,
     lastPlay: "",
     link: mergedLink,
     progress,
-    songCifra: scrapedDoc?.songCifra || "",
-    songTabs: scrapedDoc?.songTabs || "",
-    songChords: scrapedDoc?.songChords || "",
-    songLyrics: scrapedDoc?.songLyrics || "",
+    songCifra: selectedInstrumentScrapedDoc?.songCifra || "",
+    songTabs: selectedInstrumentScrapedDoc?.songTabs || "",
+    songChords: selectedInstrumentScrapedDoc?.songChords || "",
+    songLyrics: selectedInstrumentScrapedDoc?.songLyrics || "",
     presentationLayouts:
-      scrapedDoc?.presentationLayouts ||
+      selectedInstrumentScrapedDoc?.presentationLayouts ||
       (layoutSongCifra.trim()
         ? buildInitialPresentationLayouts(layoutSongCifra)
         : undefined),
@@ -885,7 +1124,6 @@ function buildSongPayload(email, scrapedDoc = null) {
   }
 
   const instruments = getEmptyInstrumentsMap();
-  instruments[instrumentName] = true;
   const instrumentBlocks = {
     guitar01: { ...emptyInstrument },
     guitar02: { ...emptyInstrument },
@@ -895,7 +1133,41 @@ function buildSongPayload(email, scrapedDoc = null) {
     voice: { ...emptyInstrument },
   };
 
-  instrumentBlocks[instrumentName] = selectedInstrumentPayload;
+  Object.entries(confirmedInstrumentLinks).forEach(
+    ([linkedInstrument, link]) => {
+      instruments[linkedInstrument] = true;
+      const linkedScrapedDoc =
+        scrapedDocsByInstrument[linkedInstrument] || null;
+      const linkedSongCifra = linkedScrapedDoc?.songCifra || "";
+
+      instrumentBlocks[linkedInstrument] = {
+        ...emptyInstrument,
+        active: true,
+        capo: cleanText(linkedScrapedDoc?.capo || mergedCapo),
+        lastPlay: "",
+        link: cleanText(linkedScrapedDoc?.link || link),
+        progress: linkedInstrument === instrumentName ? progress : 0,
+        songCifra: linkedScrapedDoc?.songCifra || "",
+        songTabs: linkedScrapedDoc?.songTabs || "",
+        songChords: linkedScrapedDoc?.songChords || "",
+        songLyrics: linkedScrapedDoc?.songLyrics || "",
+        presentationLayouts:
+          linkedScrapedDoc?.presentationLayouts ||
+          (linkedSongCifra.trim()
+            ? buildInitialPresentationLayouts(linkedSongCifra)
+            : undefined),
+        tuning: cleanText(linkedScrapedDoc?.tuning || mergedTuning),
+      };
+    },
+  );
+
+  instruments[instrumentName] = true;
+  instrumentBlocks[instrumentName] = {
+    ...selectedInstrumentPayload,
+    link:
+      confirmedInstrumentLinks[instrumentName] ||
+      selectedInstrumentPayload.link,
+  };
 
   return {
     databaseComing: "liveNloud_",
@@ -916,7 +1188,9 @@ function buildSongPayload(email, scrapedDoc = null) {
       drums: instrumentBlocks.drums,
       voice: instrumentBlocks.voice,
       embedVideos,
-      setlist: [...state.selectedSetlists],
+      setlist: Array.from(
+        new Set([...state.selectedSetlists, ...confirmedInstrumentSetlistTags]),
+      ),
       addedIn: today,
       updateIn: today,
       email,
@@ -970,6 +1244,7 @@ async function loadSongView(session) {
   setStatus("Carregando página...");
   hideFinalMessage();
   state.selectedSetlists = [];
+  resetInstrumentLinkSuggestions();
 
   const [pageData, setlists] = await Promise.all([
     getPageContext(),
@@ -1084,16 +1359,20 @@ elements.saveButton.addEventListener("click", async () => {
   setNotice("Buscando dados da cifra...");
 
   try {
-    let scrapedDoc = null;
-    try {
-      scrapedDoc = await fetchExistingSongDoc(session, freshPageContext);
-    } catch (lookupError) {
-      debugError("Existing song lookup failed", lookupError);
-    }
-    if (!scrapedDoc) {
-      scrapedDoc = await scrapeSong(session, freshPageContext);
-    }
-    const payload = buildSongPayload(session.email, scrapedDoc);
+    const scrapedDocsByInstrument =
+      await collectScrapedDocsForConfirmedInstruments(
+        session,
+        freshPageContext,
+      );
+    const scrapedDoc =
+      scrapedDocsByInstrument[getSelectedInstrument()] ||
+      Object.values(scrapedDocsByInstrument)[0] ||
+      null;
+    const payload = buildSongPayload(
+      session.email,
+      scrapedDoc,
+      scrapedDocsByInstrument,
+    );
     setNotice("Salvando cifra...");
     await saveSong(payload, session.accessToken);
     const successMessage = "Cifra adicionada com sucesso";

@@ -43,10 +43,68 @@ import GuitarProViewerModal from "../../components/GuitarPro/GuitarProViewerModa
 import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
 import {
   buildInstrumentPresentationLayouts,
+  buildSavedPresentationLayouts,
+  clampLiveCifraZoomPercent,
+  clampPresentationFontSizeStep,
+  getLiveColumnDisplayState,
+  getLiveColumnTargetIndex,
+  getPresentationBlockSpacingPx,
+  getPresentationContentDebugSummary,
   getPresentationLayoutSettingsSnapshot,
+  getPresentationLayoutsDebugSummary,
+  getProgressionColumnsDebugSummary,
+  hasPersistablePresentationLayouts,
   normalizePresentationLayoutVariant,
+  clampPresentationBlockSpacingStep,
+  shouldDropBlankLinesForPresentationFlow,
   toPresentationLayoutPayload,
 } from "./presentationLayoutHelpers";
+
+const PRESENTATION_DEBUG_PREFIX = "[PresentationDebug]";
+
+const shouldLogPresentationDebug = () => {
+  if (typeof window === "undefined") return false;
+
+  let storageValue = "";
+  try {
+    storageValue = window.localStorage?.getItem("presentation-debug") || "";
+  } catch {
+    storageValue = "";
+  }
+
+  if (storageValue === "off") return false;
+  if (storageValue === "on") return true;
+
+  return Boolean(import.meta.env.DEV || window.location?.hostname === "localhost");
+};
+
+const logPresentationDebug = (eventName, payload = {}) => {
+  if (!shouldLogPresentationDebug()) return;
+
+  try {
+    const label = `${PRESENTATION_DEBUG_PREFIX} ${eventName}`;
+    if (console.groupCollapsed) {
+      console.groupCollapsed(label);
+      console.log(payload);
+      console.groupEnd();
+      return;
+    }
+    console.log(label, payload);
+  } catch (error) {
+    console.log(`${PRESENTATION_DEBUG_PREFIX} log-error`, error);
+  }
+};
+
+const getVisibleBlocksDebugSummary = (blocks = []) =>
+  blocks.map((block, index) => ({
+    index,
+    blockKey: block.blockKey,
+    sourceIndex: block.index,
+    progressionIndex: block.progressionIndex,
+    progressionTitle: block.progressionTitle,
+    isProgressionEligible: Boolean(block.isProgressionEligible),
+    classes: block.classes,
+  }));
 
 const toolBoxBtnStatusChange = (status, setStatus) => {
   setStatus(!status);
@@ -497,11 +555,12 @@ function Presentation() {
   const showProgressionMarkers = Boolean(
     activePresentationLayout?.showProgressionMarkers,
   );
-  const progressionBadgeSide =
-    activePresentationLayout?.progressionBadgeSide === "left" ? "left" : "right";
   const progressionMarkOverrides =
     activePresentationLayout?.progressionMarkOverrides || {};
   const touchFontSizeStep = activePresentationLayout?.fontSizeStep ?? 0;
+  const blockSpacingStep = activePresentationLayout?.blockSpacingStep ?? 0;
+  const blockSpacingPx = getPresentationBlockSpacingPx(blockSpacingStep);
+  const blockSpacingLabel = `${blockSpacingPx}px`;
   const activeLayoutLabel = isExpandedCifra
     ? "Expanded layout"
     : "Default layout";
@@ -673,13 +732,21 @@ function Presentation() {
     editOriginalLayoutsRef.current = toPresentationLayoutPayload(
       instrumentPresentationLayouts,
     );
+    logPresentationDebug("edit:start", {
+      identity: presentationLayoutIdentity,
+      activeLayoutVariant,
+      isExpandedCifra,
+      content: getPresentationContentDebugSummary(editableSongCifra),
+      layouts: getPresentationLayoutsDebugSummary(instrumentPresentationLayouts),
+      visibleBlocks: getVisibleBlocksDebugSummary(visibleContentBlocks),
+      columns: getProgressionColumnsDebugSummary(activeProgressionRenderColumns),
+    });
     setSaveError("");
     setIsEditing(true);
     setHasEditedCifraContent(false);
     setSelectedBlockKeys([]);
     setActiveProgressionMarkControl(null);
     setDraftCifra(editableSongCifra);
-    setActiveShowProgressionMarkers(true);
   };
 
   const openEditorToolBox = useCallback(() => {
@@ -735,6 +802,8 @@ function Presentation() {
   const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
+  const [liveCifraZoomPercent, setLiveCifraZoomPercent] = useState(120);
+  const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [guitarProViewerOpen, setGuitarProViewerOpen] = useState(false);
   const [selectedGuitarProFile, setSelectedGuitarProFile] = useState(null);
@@ -755,6 +824,13 @@ function Presentation() {
   );
   const presentationFontScale = touchFontSizeRem / 0.82;
   const touchFontSizeLabel = `${Math.round(presentationFontScale * 100)}%`;
+  const liveCifraZoomScale = clampLiveCifraZoomPercent(liveCifraZoomPercent) / 100;
+  const liveCifraZoomLabel = `${clampLiveCifraZoomPercent(liveCifraZoomPercent)}%`;
+  const adjustLiveCifraZoom = useCallback((delta) => {
+    setLiveCifraZoomPercent((current) =>
+      clampLiveCifraZoomPercent(current + delta),
+    );
+  }, []);
   const guitarProFiles = useMemo(
     () =>
       Array.isArray(songDataFetched?.guitarProFiles)
@@ -895,6 +971,7 @@ function Presentation() {
   const lastHydratedLayoutIdentityRef = useRef("");
   const skipNextLayoutPersistRef = useRef(false);
   const skipNextModePersistRef = useRef(false);
+  const lastLoggedColumnsSnapshotRef = useRef("");
 
   const updatePresentationLayoutVariant = useCallback(
     (variantKey, update) => {
@@ -932,6 +1009,13 @@ function Presentation() {
           songCifra: nextLayouts.default.songCifra,
         };
 
+        logPresentationDebug("layout:update-variant", {
+          identity: presentationLayoutIdentity,
+          variantKey,
+          current: getPresentationLayoutsDebugSummary(currentLayouts),
+          next: getPresentationLayoutsDebugSummary(nextLayouts),
+        });
+
         return {
           ...prev,
           [instrumentSelected]: nextInstrument,
@@ -939,7 +1023,7 @@ function Presentation() {
         };
       });
     },
-    [instrumentSelected],
+    [instrumentSelected, presentationLayoutIdentity],
   );
 
   const updateActivePresentationLayout = useCallback(
@@ -962,20 +1046,24 @@ function Presentation() {
     [updateActivePresentationLayout],
   );
 
-  const toggleActiveProgressionBadgeSide = useCallback(() => {
-    updateActivePresentationLayout((currentLayout) => ({
-      ...currentLayout,
-      progressionBadgeSide:
-        currentLayout?.progressionBadgeSide === "left" ? "right" : "left",
-    }));
-  }, [updateActivePresentationLayout]);
-
   const adjustActiveFontSizeStep = useCallback(
     (delta) => {
       updateActivePresentationLayout((currentLayout) => ({
         ...currentLayout,
         fontSizeStep: clampPresentationFontSizeStep(
           (currentLayout.fontSizeStep ?? 0) + delta,
+        ),
+      }));
+    },
+    [updateActivePresentationLayout],
+  );
+
+  const adjustActiveBlockSpacingStep = useCallback(
+    (delta) => {
+      updateActivePresentationLayout((currentLayout) => ({
+        ...currentLayout,
+        blockSpacingStep: clampPresentationBlockSpacingStep(
+          Number(currentLayout.blockSpacingStep ?? 0) + delta,
         ),
       }));
     },
@@ -1024,16 +1112,34 @@ function Presentation() {
     const nextCifra = collectEditedPresentationBlocks();
     const currentCifra =
       typeof draftCifra === "string" ? draftCifra : editableSongCifra || "";
+    const currentSummary = getPresentationContentDebugSummary(currentCifra);
+    const nextSummary = getPresentationContentDebugSummary(nextCifra);
 
     if (currentCifra.trim() && !String(nextCifra || "").trim()) {
       console.warn(
         "Edição ignorada: coleta do conteúdo retornou vazio para uma cifra existente.",
       );
+      logPresentationDebug("content:collect-edited:fallback-current", {
+        identity: presentationLayoutIdentity,
+        current: currentSummary,
+        collected: nextSummary,
+      });
       return currentCifra;
     }
 
+    logPresentationDebug("content:collect-edited", {
+      identity: presentationLayoutIdentity,
+      current: currentSummary,
+      collected: nextSummary,
+    });
+
     return nextCifra;
-  }, [collectEditedPresentationBlocks, draftCifra, editableSongCifra]);
+  }, [
+    collectEditedPresentationBlocks,
+    draftCifra,
+    editableSongCifra,
+    presentationLayoutIdentity,
+  ]);
 
   const collectEditedPresentationBlocksExcluding = useCallback(
     (excludedBlockKeys = []) => {
@@ -1251,33 +1357,14 @@ function Presentation() {
         ? collectSafeEditedPresentationBlocks()
         : draftCifra;
     const currentLayouts = buildInstrumentPresentationLayouts(currentInstrumentData);
-    const nextLayoutsWithSavedContent = {
-      ...currentLayouts,
-      [activeLayoutVariant]: normalizePresentationLayoutVariant(
-        {
-          ...currentLayouts[activeLayoutVariant],
-          songCifra: nextDraftCifra,
-        },
-        {
-          fallbackSongCifra: nextDraftCifra,
-          defaultTwoColumns: activeLayoutVariant === "expanded",
-        },
-      ),
-    };
-    const nextLayouts = {
-      default: {
-        ...nextLayoutsWithSavedContent.default,
-        showProgressionMarkers: false,
-      },
-      expanded: {
-        ...nextLayoutsWithSavedContent.expanded,
-        showProgressionMarkers: false,
-      },
-    };
-    const persistedLayouts = toPresentationLayoutPayload(nextLayouts);
+    const persistedLayouts = buildSavedPresentationLayouts(
+      currentLayouts,
+      activeLayoutVariant,
+      nextDraftCifra,
+    );
     const updatedBlock = {
       ...currentInstrumentData,
-      songCifra: nextLayouts.default.songCifra,
+      songCifra: persistedLayouts.default.songCifra,
       presentationLayouts: persistedLayouts,
     };
 
@@ -1287,10 +1374,39 @@ function Presentation() {
       updateIn: new Date().toISOString().split("T")[0],
     };
 
+    logPresentationDebug("save:before-request", {
+      identity: presentationLayoutIdentity,
+      activeLayoutVariant,
+      instrumentSelected,
+      hasEditedCifraContent,
+      hasEditedLayoutContent,
+      nextDraftCifra: getPresentationContentDebugSummary(nextDraftCifra),
+      currentLayouts: getPresentationLayoutsDebugSummary(currentLayouts),
+      persistedLayouts: getPresentationLayoutsDebugSummary(persistedLayouts),
+      visibleBlocks: getVisibleBlocksDebugSummary(visibleContentBlocks),
+      columns: getProgressionColumnsDebugSummary(activeProgressionRenderColumns),
+    });
+
     try {
       const saveResult = await updateSongEntry(nextSongData);
+      logPresentationDebug("save:response", {
+        identity: presentationLayoutIdentity,
+        queued: Boolean(saveResult?.queued),
+        hasSong: Boolean(saveResult?.song),
+        serverInstrumentLayouts: getPresentationLayoutsDebugSummary(
+          saveResult?.song?.[instrumentSelected]?.presentationLayouts,
+        ),
+        serverInstrumentSongCifra: getPresentationContentDebugSummary(
+          saveResult?.song?.[instrumentSelected]?.songCifra,
+        ),
+      });
 
       if (presentationLayoutStorageKey && typeof window !== "undefined") {
+        logPresentationDebug("save:localStorage-write", {
+          identity: presentationLayoutIdentity,
+          key: presentationLayoutStorageKey,
+          layouts: getPresentationLayoutsDebugSummary(persistedLayouts),
+        });
         window.localStorage.setItem(
           presentationLayoutStorageKey,
           JSON.stringify(persistedLayouts),
@@ -1304,6 +1420,17 @@ function Presentation() {
             ? saveResult.song
             : {};
 
+        logPresentationDebug("save:state-merge", {
+          identity: presentationLayoutIdentity,
+          previousLayouts: getPresentationLayoutsDebugSummary(
+            prev?.[instrumentSelected]?.presentationLayouts,
+          ),
+          nextLayouts: getPresentationLayoutsDebugSummary(persistedLayouts),
+          serverLayouts: getPresentationLayoutsDebugSummary(
+            serverSong?.[instrumentSelected]?.presentationLayouts,
+          ),
+        });
+
         return {
           ...(prev || {}),
           ...nextSongData,
@@ -1311,7 +1438,7 @@ function Presentation() {
           [instrumentSelected]: {
             ...(serverSong?.[instrumentSelected] || {}),
             ...updatedBlock,
-            songCifra: nextLayouts.default.songCifra,
+            songCifra: persistedLayouts.default.songCifra,
             presentationLayouts: persistedLayouts,
           },
         };
@@ -1344,8 +1471,10 @@ function Presentation() {
       (draftCifra || "");
   const shouldUseTwoColumns = isTwoColumns;
   const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
-  const shouldCompactHorizontalLiveFlow =
-    effectiveLiveMode && shouldUseHorizontalColumnFlow;
+  const shouldDropBlankLinesForHorizontalFlow =
+    shouldDropBlankLinesForPresentationFlow({
+      shouldUseHorizontalColumnFlow,
+    });
   const shouldApplyProgressionBlockDimensions =
     !effectiveLiveMode || isEditing;
   const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
@@ -1390,9 +1519,9 @@ function Presentation() {
     () =>
       buildProgressionBlocks(htmlBlocks, {
         hideTabs,
-        dropBlankLines: shouldCompactHorizontalLiveFlow,
+        dropBlankLines: shouldDropBlankLinesForHorizontalFlow,
       }),
-    [hideTabs, htmlBlocks, shouldCompactHorizontalLiveFlow],
+    [hideTabs, htmlBlocks, shouldDropBlankLinesForHorizontalFlow],
   );
 
   const progressionRenderGroups = useMemo(() => {
@@ -1548,6 +1677,43 @@ function Presentation() {
     progressionRenderColumns,
     progressionRenderGroups,
     shouldUseHorizontalColumnFlow,
+  ]);
+
+  useEffect(() => {
+    const columns = getProgressionColumnsDebugSummary(
+      activeProgressionRenderColumns,
+    );
+    const snapshot = JSON.stringify({
+      identity: presentationLayoutIdentity,
+      activeLayoutVariant,
+      isEditing,
+      showProgressionMarkers,
+      shouldUseHorizontalColumnFlow,
+      columns,
+    });
+
+    if (lastLoggedColumnsSnapshotRef.current === snapshot) return;
+    lastLoggedColumnsSnapshotRef.current = snapshot;
+
+    logPresentationDebug("columns:rendered", {
+      identity: presentationLayoutIdentity,
+      activeLayoutVariant,
+      isEditing,
+      showProgressionMarkers,
+      shouldUseHorizontalColumnFlow,
+      visibleBlockCount: visibleContentBlocks.length,
+      columns,
+      overrides: activePresentationLayout?.progressionMarkOverrides || {},
+    });
+  }, [
+    activeLayoutVariant,
+    activePresentationLayout,
+    activeProgressionRenderColumns,
+    isEditing,
+    presentationLayoutIdentity,
+    shouldUseHorizontalColumnFlow,
+    showProgressionMarkers,
+    visibleContentBlocks.length,
   ]);
 
   // console.log("songLyrics", songLyrics);
@@ -1709,6 +1875,12 @@ function Presentation() {
         localStorage.setItem("song", decodedSong);
         localStorage.setItem("artist", decodedArtist);
 
+        logPresentationDebug("fetch:start", {
+          artist: decodedArtist,
+          song: decodedSong,
+          requestedInstrument,
+        });
+
         const dataFromSong = await allDataFromOneSong(decodedArtist, decodedSong);
         const dataFromSongparsedResult = JSON.parse(dataFromSong);
         const hydratedSongData = { ...dataFromSongparsedResult };
@@ -1741,6 +1913,22 @@ function Presentation() {
           instrumentHasPresentationContent(hydratedSongData[requestedInstrument])
             ? requestedInstrument
             : firstAvailableInstrument;
+
+        logPresentationDebug("fetch:loaded", {
+          artist: decodedArtist,
+          song: decodedSong,
+          requestedInstrument,
+          selectedInstrument,
+          availableInstruments: PRESENTATION_INSTRUMENTS.filter(({ key }) =>
+            isInstrumentRegistered(hydratedSongData, key),
+          ).map(({ key }) => key),
+          selectedLayouts: getPresentationLayoutsDebugSummary(
+            hydratedSongData[selectedInstrument]?.presentationLayouts,
+          ),
+          selectedSongCifra: getPresentationContentDebugSummary(
+            hydratedSongData[selectedInstrument]?.songCifra,
+          ),
+        });
 
         setSongDataFetched(hydratedSongData);
         setEmbedLinks(
@@ -1918,26 +2106,36 @@ function Presentation() {
     );
     if (!blocks.length) return;
 
-    const columnOffsets = Array.from(
-      new Set(blocks.map((block) => Math.round(block.offsetLeft))),
-    ).sort((left, right) => left - right);
-    if (!columnOffsets.length) return;
+    const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
+    const activeIndex = blocks
+      .map((block, index) => ({
+        index,
+        distance: Math.abs(
+          block.offsetLeft + block.clientWidth / 2 - viewportCenter,
+        ),
+      }))
+      .sort((left, right) => left.distance - right.distance)[0]?.index ?? 0;
+    const targetIndex = getLiveColumnTargetIndex({
+      currentIndex: activeIndex,
+      direction,
+      columnCount: blocks.length,
+    });
+    const targetBlock = blocks[targetIndex];
+    if (!targetBlock) return;
 
-    const currentLeft = viewport.scrollLeft + 20;
-    const targetLeft =
-      direction > 0
-        ? columnOffsets.find((offset) => offset > currentLeft + 8) ??
-          columnOffsets[columnOffsets.length - 1]
-        : columnOffsets
-            .slice()
-            .reverse()
-            .find((offset) => offset < currentLeft - 8) ?? columnOffsets[0];
+    const centeredOffset =
+      effectiveLiveMode
+        ? targetBlock.offsetLeft -
+          (viewport.clientWidth - targetBlock.clientWidth) / 2
+        : targetBlock.offsetLeft - 20;
 
     viewport.scrollTo({
-      left: Math.max(0, targetLeft - 20),
+      left: Math.max(0, centeredOffset),
       behavior: "smooth",
     });
-  }, []);
+
+    setActiveLiveColumnKey(targetBlock.dataset.liveColumnKey || "");
+  }, [effectiveLiveMode]);
 
   useEffect(() => {
     const viewport = presentationContentRef.current;
@@ -1956,6 +2154,11 @@ function Presentation() {
 
       if (!delta) return;
       event.preventDefault();
+      if (effectiveLiveMode) {
+        scrollExpandedLayout(delta > 0 ? 1 : -1);
+        return;
+      }
+
       viewport.scrollLeft += delta;
     };
 
@@ -1963,7 +2166,109 @@ function Presentation() {
     return () => {
       viewport.removeEventListener("wheel", handleWheel);
     };
-  }, [isEditing, shouldUseHorizontalColumnFlow]);
+  }, [
+    effectiveLiveMode,
+    isEditing,
+    scrollExpandedLayout,
+    shouldUseHorizontalColumnFlow,
+  ]);
+
+  useEffect(() => {
+    const viewport = presentationContentRef.current;
+    if (!viewport || !effectiveLiveMode || !shouldUseHorizontalColumnFlow) {
+      setActiveLiveColumnKey("");
+      return undefined;
+    }
+
+    let frameId = 0;
+    let snapTimeoutId = 0;
+    let hasInitialCenter = false;
+    let isProgrammaticScroll = false;
+    const centerBlock = (block, behavior = "smooth") => {
+      if (!block) return;
+      isProgrammaticScroll = true;
+      viewport.scrollTo({
+        left: Math.max(
+          0,
+          block.offsetLeft - (viewport.clientWidth - block.clientWidth) / 2,
+        ),
+        behavior,
+      });
+      window.setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, behavior === "auto" ? 0 : 260);
+    };
+    const updateActiveColumn = () => {
+      const blocks = Array.from(
+        viewport.querySelectorAll(".presentation-render-block"),
+      );
+      if (!blocks.length) {
+        setActiveLiveColumnKey("");
+        return;
+      }
+
+      const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
+      const closestBlock = blocks
+        .map((block) => ({
+          block,
+          key: block.dataset.liveColumnKey || "",
+          distance: Math.abs(
+            block.offsetLeft + block.clientWidth / 2 - viewportCenter,
+          ),
+        }))
+        .sort((left, right) => left.distance - right.distance)[0];
+
+      setActiveLiveColumnKey((current) =>
+        closestBlock?.key && current !== closestBlock.key
+          ? closestBlock.key
+          : current,
+      );
+
+      if (!hasInitialCenter) {
+        hasInitialCenter = true;
+        centerBlock(closestBlock?.block, "auto");
+      }
+    };
+
+    const requestUpdate = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateActiveColumn);
+      window.clearTimeout(snapTimeoutId);
+
+      if (!isProgrammaticScroll) {
+        snapTimeoutId = window.setTimeout(() => {
+          const blocks = Array.from(
+            viewport.querySelectorAll(".presentation-render-block"),
+          );
+          const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
+          const closestBlock = blocks
+            .map((block) => ({
+              block,
+              distance: Math.abs(
+                block.offsetLeft + block.clientWidth / 2 - viewportCenter,
+              ),
+            }))
+            .sort((left, right) => left.distance - right.distance)[0]?.block;
+          centerBlock(closestBlock);
+        }, 160);
+      }
+    };
+
+    requestUpdate();
+    viewport.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(snapTimeoutId);
+      viewport.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+    };
+  }, [
+    activeProgressionRenderColumns,
+    effectiveLiveMode,
+    shouldUseHorizontalColumnFlow,
+  ]);
 
   useEffect(() => {
     if (!effectiveLiveMode) return undefined;
@@ -2113,9 +2418,21 @@ function Presentation() {
       const rawStoredLayouts = window.localStorage.getItem(
         presentationLayoutStorageKey,
       );
-      if (!rawStoredLayouts) return;
+      if (!rawStoredLayouts) {
+        logPresentationDebug("localStorage:hydrate:empty", {
+          identity: presentationLayoutIdentity,
+          key: presentationLayoutStorageKey,
+        });
+        return;
+      }
 
       const parsedStoredLayouts = JSON.parse(rawStoredLayouts);
+      logPresentationDebug("localStorage:hydrate:read", {
+        identity: presentationLayoutIdentity,
+        key: presentationLayoutStorageKey,
+        storedLayouts: getPresentationLayoutsDebugSummary(parsedStoredLayouts),
+      });
+
       setSongDataFetched((prev) => {
         if (!prev || !instrumentSelected) return prev;
 
@@ -2143,11 +2460,22 @@ function Presentation() {
           currentLayouts,
         );
         const nextSnapshot = getPresentationLayoutSettingsSnapshot(nextLayouts);
-
-        if (
+        const shouldSkipHydration =
           currentSnapshot === nextSnapshot &&
-          currentInstrument.songCifra === nextLayouts.default.songCifra
-        ) {
+          currentInstrument.songCifra === nextLayouts.default.songCifra;
+
+        logPresentationDebug("localStorage:hydrate:compare", {
+          identity: presentationLayoutIdentity,
+          key: presentationLayoutStorageKey,
+          skipped: shouldSkipHydration,
+          currentLayouts: getPresentationLayoutsDebugSummary(currentLayouts),
+          storedLayouts: getPresentationLayoutsDebugSummary(nextLayouts),
+          currentSongCifra: getPresentationContentDebugSummary(
+            currentInstrument.songCifra,
+          ),
+        });
+
+        if (shouldSkipHydration) {
           return prev;
         }
 
@@ -2172,17 +2500,43 @@ function Presentation() {
 
   useEffect(() => {
     if (!presentationLayoutStorageKey || typeof window === "undefined") return;
+    if (
+      isRouteSongLoading ||
+      !songDataFetched ||
+      !instrumentSelected ||
+      !currentInstrumentData ||
+      !hasPersistablePresentationLayouts(instrumentPresentationLayouts)
+    ) {
+      logPresentationDebug("localStorage:persist:skip", {
+        identity: presentationLayoutIdentity,
+        key: presentationLayoutStorageKey,
+        isRouteSongLoading,
+        hasSongDataFetched: Boolean(songDataFetched),
+        instrumentSelected,
+        hasCurrentInstrumentData: Boolean(currentInstrumentData),
+        isPersistable: hasPersistablePresentationLayouts(
+          instrumentPresentationLayouts,
+        ),
+      });
+      return;
+    }
     if (skipNextLayoutPersistRef.current) {
       skipNextLayoutPersistRef.current = false;
       return;
     }
 
     try {
+      const persistedLayouts = toPresentationLayoutPayload(
+        instrumentPresentationLayouts,
+      );
+      logPresentationDebug("localStorage:persist", {
+        identity: presentationLayoutIdentity,
+        key: presentationLayoutStorageKey,
+        layouts: getPresentationLayoutsDebugSummary(persistedLayouts),
+      });
       window.localStorage.setItem(
         presentationLayoutStorageKey,
-        JSON.stringify(
-          toPresentationLayoutPayload(instrumentPresentationLayouts),
-        ),
+        JSON.stringify(persistedLayouts),
       );
     } catch (error) {
       console.error(
@@ -2191,9 +2545,14 @@ function Presentation() {
       );
     }
   }, [
+    currentInstrumentData,
     instrumentPresentationLayouts,
+    instrumentSelected,
+    isRouteSongLoading,
+    presentationLayoutIdentity,
     presentationLayoutSettingsSnapshot,
     presentationLayoutStorageKey,
+    songDataFetched,
   ]);
 
   useEffect(() => {
@@ -2223,6 +2582,8 @@ function Presentation() {
   const enterLiveMode = async () => {
     const rootNode = liveModeRootRef.current;
     if (!rootNode) return;
+
+    setActiveShowProgressionMarkers(false);
 
     if (isTouchLayout) {
       if (typeof rootNode.requestFullscreen === "function") {
@@ -2624,6 +2985,14 @@ function Presentation() {
 
     if (!draggedGroup || !targetGroup) return;
 
+    logPresentationDebug("drag:drop-group", {
+      identity: presentationLayoutIdentity,
+      draggedGroupKey,
+      targetGroupKey,
+      draggedGroup: getProgressionColumnsDebugSummary([draggedGroup])[0],
+      targetGroup: getProgressionColumnsDebugSummary([targetGroup])[0],
+    });
+
     updateActivePresentationLayout((currentLayout) => {
       const currentOverrides = currentLayout.progressionMarkOverrides || {};
       const nextOverrides = { ...currentOverrides };
@@ -2649,12 +3018,30 @@ function Presentation() {
         };
       });
 
+      logPresentationDebug("drag:next-overrides", {
+        identity: presentationLayoutIdentity,
+        draggedGroupKey,
+        targetGroupKey,
+        targetPosition,
+        nextOrder,
+        changedOverrides: Object.fromEntries(
+          draggedGroup.blockKeys.map((blockKey) => [
+            blockKey,
+            nextOverrides[blockKey],
+          ]),
+        ),
+      });
+
       return {
         ...currentLayout,
         progressionMarkOverrides: nextOverrides,
       };
     });
-  }, [progressionRenderGroups, updateActivePresentationLayout]);
+  }, [
+    presentationLayoutIdentity,
+    progressionRenderGroups,
+    updateActivePresentationLayout,
+  ]);
 
   const handleDropProgressionGroupOnColumn = useCallback((event) => {
     if (!isEditing || !draggedProgressionGroupKeyRef.current) return;
@@ -2685,10 +3072,26 @@ function Presentation() {
         .sort((left, right) => left.distance - right.distance)[0]?.node;
 
     const targetGroupKey = targetNode?.dataset?.progressionGroupKey;
+    logPresentationDebug("drag:drop-on-column", {
+      identity: presentationLayoutIdentity,
+      draggedGroupKey: draggedProgressionGroupKeyRef.current,
+      pointerX,
+      targetGroupKey,
+      availableTargets: columnNodes.map((node) => {
+        const rect = node.getBoundingClientRect();
+        return {
+          groupKey: node.dataset?.progressionGroupKey,
+          label: node.dataset?.progressionColumnLabel,
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+        };
+      }),
+    });
     if (targetGroupKey) {
       handleDropProgressionGroup(targetGroupKey);
     }
-  }, [handleDropProgressionGroup, isEditing]);
+  }, [handleDropProgressionGroup, isEditing, presentationLayoutIdentity]);
 
   const toggleSelectedBlockKeys = useCallback((blockKeys = []) => {
     if (!blockKeys.length) return;
@@ -2830,7 +3233,6 @@ function Presentation() {
           handleDiscardDraft={handleDiscardDraft}
           startEditingCifra={startEditingCifra}
           onToggleMarksVisibility={toggleMarksVisibility}
-          progressionBadgeSide={progressionBadgeSide}
           transposeSteps={transposeSteps}
           setTransposeSteps={setTransposeSteps}
           displayKey={displayKey}
@@ -2839,6 +3241,9 @@ function Presentation() {
           touchFontSizeLabel={touchFontSizeLabel}
           decreaseTouchFontSize={() => adjustActiveFontSizeStep(-1)}
           increaseTouchFontSize={() => adjustActiveFontSizeStep(1)}
+          blockSpacingLabel={blockSpacingLabel}
+          decreaseBlockSpacing={() => adjustActiveBlockSpacingStep(-1)}
+          increaseBlockSpacing={() => adjustActiveBlockSpacingStep(1)}
           onVideoModalChange={setIsVideoModalOpen}
           linktoplay={touchVideoLink}
           setLinktoplay={setTouchVideoLink}
@@ -2852,7 +3257,6 @@ function Presentation() {
           onOpenInstrumentNotes={openInstrumentNotesWindow}
           isSavingNotes={isSavingNotes}
           onSelectInstrument={goToInstrument}
-          onChangeProgressionBadgeSide={toggleActiveProgressionBadgeSide}
           requestedPanel={toolBoxRequestedPanel}
           activeProgressionMarkSettings={activeProgressionMarkSettings}
           onDecreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(-20)}
@@ -3203,27 +3607,79 @@ function Presentation() {
                   <div
                     className={
                       isTouchLayout
-                        ? "mt-0.5 text-[0.82rem] font-bold leading-[0.92rem] text-white/80"
-                        : "truncate text-xl font-bold leading-tight text-white/80"
+                        ? "mt-0.5 text-[0.82rem] font-bold leading-[0.92rem] text-[goldenrod]"
+                        : "truncate text-xl font-bold leading-tight text-[goldenrod]"
                     }
                   >
                     {artistFromURL}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 font-black uppercase tracking-[0.1em] text-white ${
-                    isTouchLayout
-                      ? "px-2.5 py-1.5 text-[10px]"
-                      : "px-4 py-2 text-xs"
-                  }`}
-                  onClick={exitLiveMode}
-                >
-                  <IoClose
-                    className={isTouchLayout ? "h-3.5 w-3.5" : "h-4 w-4"}
-                  />
-                  Close
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="presentation-live-header-controls">
+                    <div
+                      className={`presentation-live-step-control ${
+                        isTouchLayout ? "presentation-live-step-control-touch" : ""
+                      }`}
+                      role="group"
+                      aria-label="Live cifra zoom"
+                    >
+                      <span className="presentation-live-step-label">Zoom</span>
+                      <button
+                        type="button"
+                        onClick={() => adjustLiveCifraZoom(-10)}
+                        aria-label="Decrease live cifra zoom"
+                      >
+                        -
+                      </button>
+                      <span>{liveCifraZoomLabel}</span>
+                      <button
+                        type="button"
+                        onClick={() => adjustLiveCifraZoom(10)}
+                        aria-label="Increase live cifra zoom"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div
+                      className={`presentation-live-step-control ${
+                        isTouchLayout ? "presentation-live-step-control-touch" : ""
+                      }`}
+                      role="group"
+                      aria-label="Live block spacing"
+                    >
+                      <span className="presentation-live-step-label">Spacing</span>
+                      <button
+                        type="button"
+                        onClick={() => adjustActiveBlockSpacingStep(-1)}
+                        aria-label="Decrease live block spacing"
+                      >
+                        -
+                      </button>
+                      <span>{blockSpacingLabel}</span>
+                      <button
+                        type="button"
+                        onClick={() => adjustActiveBlockSpacingStep(1)}
+                        aria-label="Increase live block spacing"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 font-black uppercase tracking-[0.1em] text-white ${
+                      isTouchLayout
+                        ? "px-2.5 py-1.5 text-[10px]"
+                        : "px-4 py-2 text-xs"
+                    }`}
+                    onClick={exitLiveMode}
+                  >
+                    <IoClose
+                      className={isTouchLayout ? "h-3.5 w-3.5" : "h-4 w-4"}
+                    />
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -3360,7 +3816,10 @@ function Presentation() {
               "--touch-presentation-font-scale": String(
                 presentationFontScale,
               ),
-              fontSize: isTouchLayout
+              "--presentation-live-cifra-zoom": String(liveCifraZoomScale),
+              fontSize: effectiveLiveMode
+                ? `${presentationFontScale * liveCifraZoomScale}rem`
+                : isTouchLayout
                 ? `${touchFontSizeRem}rem`
                 : `${presentationFontScale}rem`,
               lineHeight: 1.45,
@@ -3457,6 +3916,9 @@ function Presentation() {
                     : ""
                 }`}
                 key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}`}
+                style={{
+                  "--presentation-block-gap": `${blockSpacingPx}px`,
+                }}
                 contentEditable={isEditing}
                 suppressContentEditableWarning
                 onBeforeInput={
@@ -3549,6 +4011,11 @@ function Presentation() {
                     const contentBlockHtml = blocks
                       .map((entry) => entry.block)
                       .join("\n");
+                    const liveColumnState = getLiveColumnDisplayState({
+                      columnKey: groupKey,
+                      activeColumnKey: activeLiveColumnKey,
+                      columnIndex: visibleIndex,
+                    });
                     const originalBlockIndex = Math.min(
                       ...blocks.map((entry) =>
                         Number.isFinite(Number(entry.index))
@@ -3564,6 +4031,7 @@ function Presentation() {
                           isProgressionEligible ? "true" : undefined
                         }
                         data-progression-group-key={baseGroupKey || groupKey}
+                        data-live-column-key={groupKey}
                         data-progression-column-label={
                           showProgressionMarkers && isProgressionEligible
                             ? headerLabel
@@ -3580,6 +4048,10 @@ function Presentation() {
                         } ${
                           isBlockSelected
                             ? "presentation-progression-block-selected"
+                            : ""
+                        } ${
+                          effectiveLiveMode && shouldUseHorizontalColumnFlow
+                            ? liveColumnState.className
                             : ""
                         }`}
                         onMouseDownCapture={
@@ -3662,23 +4134,6 @@ function Presentation() {
                             : {}),
                         }}
                       >
-                        {showProgressionMarkers && isProgressionEligible ? (
-                          <div
-                            className={`presentation-progression-badge ${
-                              progressionBadgeSide === "left"
-                                ? "presentation-progression-badge-left"
-                                : "presentation-progression-badge-right"
-                            }`}
-                            contentEditable={false}
-                          >
-                            <span className="presentation-progression-badge-number">
-                              {displayPosition}
-                            </span>
-                            <span className="presentation-progression-badge-title">
-                              {displayTitle}
-                            </span>
-                          </div>
-                        ) : null}
                         {isEditing &&
                         isProgressionEligible &&
                         !isOverflowContinuation ? (
