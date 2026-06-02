@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import defaultProfileImageUrl from "../../assets/userPerfil.jpg";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import {
+  createInitialUserRecord,
+  signupAuthUser,
+  uploadProfileImage,
+} from "../../Tools/Controllers";
 
 const DEFAULT_SETLISTS = [
   "guitar01",
@@ -69,23 +72,6 @@ function UserRegistrationForm() {
   });
   const navigate = useNavigate();
 
-  const postJson = async (url, payload) => {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const error = new Error(data?.message || data?.error || `HTTP ${response.status}`);
-      error.response = { status: response.status, data };
-      throw error;
-    }
-
-    return data;
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -102,42 +88,21 @@ function UserRegistrationForm() {
     setLoading(true);
 
     try {
-      // 1️⃣ Criação na autenticação JWT
-      const signupResponse = await postJson(`${API_BASE_URL}/api/auth/signup`, {
+      const signupResponse = await signupAuthUser({
         email,
         password,
         fullName,
         username,
       });
 
-      // 2️⃣ Cadastro inicial de estrutura vazia com dados do usuário
       const userdata = createDefaultUserdata(email, username, fullName);
+      await createInitialUserRecord(userdata);
 
-      await postJson(`${API_BASE_URL}/api/signup`, {
-        databaseComing: "liveNloud_",
-        collectionComing: "data",
-        userdata,
-      });
-
-      // 3️⃣ Upload de imagem de perfil padrão
       const blob = await (await fetch(defaultProfileImageUrl)).blob();
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append(
-        "profileImage",
-        new File([blob], "default.jpeg", { type: "image/jpeg" })
+      await uploadProfileImage(
+        new File([blob], "default.jpeg", { type: "image/jpeg" }),
+        { email },
       );
-
-      const uploadResponse = await fetch(
-        `${API_BASE_URL}/api/uploadProfileImage`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      if (!uploadResponse.ok) {
-        throw new Error(`HTTP ${uploadResponse.status}`);
-      }
 
       const signupMessage =
         signupResponse?.approvalStatus === "pending"

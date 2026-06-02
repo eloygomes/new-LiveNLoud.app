@@ -15,7 +15,30 @@ import {
    Config & HTTP client
    ========================= */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const RAW_API_BASE = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+
+function resolveApiBase() {
+  if (RAW_API_BASE) {
+    if (/^https?:\/\//i.test(RAW_API_BASE)) {
+      return RAW_API_BASE.replace(/\/+$/, "");
+    }
+
+    if (typeof window !== "undefined") {
+      return new URL(RAW_API_BASE, window.location.origin).toString().replace(
+        /\/+$/,
+        "",
+      );
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    return window.location.origin.replace(/\/+$/, "");
+  }
+
+  return "http://localhost:3000";
+}
+
+const API_BASE = resolveApiBase();
 const SESSION_TIMESTAMP_KEY = "auth:sessionTimestamp";
 const OFFLINE_MODE_KEY = "offline:isOfflineMode";
 const OFFLINE_SYNC_QUEUE_KEY = "offline:syncQueue";
@@ -956,6 +979,40 @@ export async function login(userEmail, userPassword) {
   }
 }
 
+export async function signupAuthUser({ email, password, fullName, username }) {
+  const { data } = await fetchApi.post("/api/auth/signup", {
+    email,
+    password,
+    fullName,
+    username,
+  });
+
+  return data;
+}
+
+export async function createInitialUserRecord(userdata) {
+  const { data } = await fetchApi.post("/api/signup", {
+    databaseComing: "liveNloud_",
+    collectionComing: "data",
+    userdata,
+  });
+
+  return data;
+}
+
+export async function requestYouTubeAuthUrl({ returnTo = "/dashboard", token }) {
+  if (!token) {
+    throw new Error("Sem token/JWT no storage (token/accessToken/jwt)");
+  }
+
+  const { data } = await fetchApi.get("/api/youtube/auth/url", {
+    params: { returnTo },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return data?.url || "";
+}
+
 export async function tryOfflineLogin(userEmail = "") {
   if (typeof window === "undefined") return false;
 
@@ -1636,9 +1693,10 @@ export async function createNewSongOnServer({
    ========================= */
 
 export async function uploadProfileImage(file, opts = {}) {
-  const { onProgress } = opts;
+  const { email: emailOverride, onProgress } = opts;
   const email =
-    typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
+    emailOverride ||
+    (typeof window !== "undefined" ? localStorage.getItem("userEmail") : null);
 
   if (!email) {
     throw new Error("Usuário não autenticado (sem userEmail no localStorage).");
@@ -1651,15 +1709,11 @@ export async function uploadProfileImage(file, opts = {}) {
   formData.append("profileImage", file);
   formData.append("email", email);
 
-  const response = await fetchApi.post(
-    `${API_BASE}/api/uploadProfileImage`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-      },
+  const response = await fetchApi.post("/api/uploadProfileImage", formData, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
     },
-  );
+  });
   if (typeof onProgress === "function") onProgress(100);
   return response;
 }

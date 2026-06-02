@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import io from "socket.io-client";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { API_BASE } from "../../Tools/Controllers";
 
 function Tuner() {
   const [note, setNote] = useState("");
@@ -11,7 +10,7 @@ function Tuner() {
   useEffect(() => {
     if (isTuning) {
       // Establish WebSocket connection only when tuning starts
-      const newSocket = io(API_BASE_URL, {
+      const newSocket = io(API_BASE, {
         path: "/socket.io", // default path for socket.io
         transports: ["websocket"], // specify websocket transport
       });

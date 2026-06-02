@@ -1,5 +1,5 @@
 // src/Pages/Dashboard/youtubeAuth.jsx
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import { requestYouTubeAuthUrl } from "../../Tools/Controllers";
 
 // Single source of truth for JWT key lookup (login + export)
 export function pickJwtToken() {
@@ -46,22 +46,7 @@ export async function startYouTubeLogin(arg = "/dashboard") {
   if (!token)
     throw new Error("Sem token/JWT no storage (token/accessToken/jwt)");
 
-  const resp = await fetch(
-    `${API_BASE}/api/youtube/auth/url?returnTo=${encodeURIComponent(returnTo)}`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-
-  console.log("[YT AUTH] /api/youtube/auth/url response", {
-    ok: resp.ok,
-    status: resp.status,
-  });
-
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => "");
-    throw new Error(`[YT AUTH] ${resp.status} ${txt}`);
-  }
-
-  const { url } = await resp.json();
+  const url = await requestYouTubeAuthUrl({ returnTo, token });
 
   console.log("[YT AUTH] redirecting to Google", { url });
 
@@ -90,22 +75,7 @@ export async function startYouTubeLoginPopup(arg = "/dashboard") {
   if (!token)
     throw new Error("Sem token/JWT no storage (token/accessToken/jwt)");
 
-  const resp = await fetch(
-    `${API_BASE}/api/youtube/auth/url?returnTo=${encodeURIComponent(returnTo)}`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-
-  console.log("[YT AUTH] popup /api/youtube/auth/url response", {
-    ok: resp.ok,
-    status: resp.status,
-  });
-
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => "");
-    throw new Error(`[YT AUTH POPUP] ${resp.status} ${txt}`);
-  }
-
-  const { url } = await resp.json();
+  const url = await requestYouTubeAuthUrl({ returnTo, token });
   console.log("[YT AUTH] opening popup", { url });
 
   const w = 520;

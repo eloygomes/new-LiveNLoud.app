@@ -4,6 +4,14 @@
 /Server/Python/scrapper/ex
 Front/src/assets/auto-rotate-img.gif
 *.env
+!*.env.example
+!.env.example
+!.env*.example
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+!**/.env*.example
 /Server/liveNloud/.env
 /Server/liveNloud/node/.env
 node_modules/

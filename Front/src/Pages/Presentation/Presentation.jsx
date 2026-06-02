@@ -1,426 +1,70 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
-import {
-  FaAnglesLeft,
-  FaAnglesRight,
-  FaDownLeftAndUpRightToCenter,
-  FaFilePen,
-  FaGear,
-  FaGripLines,
-  FaSliders,
-  FaUpRightAndDownLeftFromCenter,
-} from "react-icons/fa6";
-import { IoClose } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
 import ToolBox from "./ToolBox";
-import {
-  allDataFromOneSong,
-  fetchUserSongs,
-  loadDashboardVisibleSongs,
-  loadSelectedSetlists,
-  updateLastPlayed,
-  updateInstrumentNotes,
-  updateSongEntry,
-} from "../../Tools/Controllers";
 import { useRef } from "react";
 import SnackBar from "../../Tools/SnackBar";
 import MobileSnackBar from "../../Tools/MobileSnackBar";
-import ToolBoxYT from "./ToolBoxYT";
-import DraggableComponent from "./DraggableComponent";
 
 import { processSongCifra } from "./ProcessSongCifra";
 import { inferDisplayKey, transposeCifra } from "./transposeCifra";
-import PresentationChordTooltip, {
-  findChordTooltipData,
-} from "./PresentationChordTooltip";
-import {
-  getRegisteredScrollController,
-  registerScrollViewport,
-  unregisterScrollViewport,
-} from "./presentationScrollController";
+import PresentationChordTooltip from "./PresentationChordTooltip";
 import ChordSheetJS from "chordsheetjs";
 import GuitarProViewerModal from "../../components/GuitarPro/GuitarProViewerModal";
-import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
 import {
   buildInstrumentPresentationLayouts,
-  buildSavedPresentationLayouts,
   clampLiveCifraZoomPercent,
-  clampPresentationFontSizeStep,
-  getLiveColumnDisplayState,
-  getLiveColumnTargetIndex,
   getPresentationBlockSpacingPx,
   getPresentationContentDebugSummary,
   getPresentationLayoutSettingsSnapshot,
   getPresentationLayoutsDebugSummary,
   getProgressionColumnsDebugSummary,
-  hasPersistablePresentationLayouts,
-  normalizePresentationLayoutVariant,
-  clampPresentationBlockSpacingStep,
   shouldDropBlankLinesForPresentationFlow,
-  toPresentationLayoutPayload,
 } from "./presentationLayoutHelpers";
-
-const PRESENTATION_DEBUG_PREFIX = "[PresentationDebug]";
-
-const shouldLogPresentationDebug = () => {
-  if (typeof window === "undefined") return false;
-
-  let storageValue = "";
-  try {
-    storageValue = window.localStorage?.getItem("presentation-debug") || "";
-  } catch {
-    storageValue = "";
-  }
-
-  if (storageValue === "off") return false;
-  if (storageValue === "on") return true;
-
-  return Boolean(import.meta.env.DEV || window.location?.hostname === "localhost");
-};
-
-const logPresentationDebug = (eventName, payload = {}) => {
-  if (!shouldLogPresentationDebug()) return;
-
-  try {
-    const label = `${PRESENTATION_DEBUG_PREFIX} ${eventName}`;
-    if (console.groupCollapsed) {
-      console.groupCollapsed(label);
-      console.log(payload);
-      console.groupEnd();
-      return;
-    }
-    console.log(label, payload);
-  } catch (error) {
-    console.log(`${PRESENTATION_DEBUG_PREFIX} log-error`, error);
-  }
-};
-
-const getVisibleBlocksDebugSummary = (blocks = []) =>
-  blocks.map((block, index) => ({
-    index,
-    blockKey: block.blockKey,
-    sourceIndex: block.index,
-    progressionIndex: block.progressionIndex,
-    progressionTitle: block.progressionTitle,
-    isProgressionEligible: Boolean(block.isProgressionEligible),
-    classes: block.classes,
-  }));
-
-const toolBoxBtnStatusChange = (status, setStatus) => {
-  setStatus(!status);
-};
-
-function ConfirmationModal({
-  open,
-  title,
-  message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-  onConfirm,
-  onCancel,
-}) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/35 px-4">
-      <div className="neuphormism-b w-full max-w-sm rounded-[18px] bg-[#ececec] p-4 text-black shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
-        <div className="mb-2 text-lg font-black tracking-tight">{title}</div>
-        <p className="text-sm font-bold leading-relaxed text-black/70">
-          {message}
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            className="neuphormism-b-btn rounded-[14px] px-4 py-3 text-sm font-black text-black"
-            onClick={onCancel}
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className="neuphormism-b-btn-red-cancel rounded-[14px] px-4 py-3 text-sm font-black text-black"
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const PRESENTATION_INSTRUMENTS = [
-  { key: "guitar01", label: "Guitar 1" },
-  { key: "guitar02", label: "Guitar 2" },
-  { key: "bass", label: "Bass" },
-  { key: "keys", label: "Keys" },
-  { key: "drums", label: "Drums" },
-  { key: "voice", label: "Voice" },
-];
-const PRESENTATION_INSTRUMENT_MAP = { keyboard: "keys", key: "keys" };
-
-const safeDecodeURIComponent = (value = "") => {
-  try {
-    return decodeURIComponent(value || "");
-  } catch {
-    return value || "";
-  }
-};
-
-const normalizePresentationInstrumentValue = (value = "") => {
-  const normalized = PRESENTATION_INSTRUMENT_MAP[value] || value || "keys";
-  return PRESENTATION_INSTRUMENTS.some(
-    (instrument) => instrument.key === normalized,
-  )
-    ? normalized
-    : "keys";
-};
-
-const PROGRESSION_MARKER_COLOR = "#d4a017";
-const PROGRESSION_COLUMN_HEADER_COLORS = [
-  "#3d7eff",
-  "#2a9d8f",
-  "#e76f51",
-  "#8a5cf6",
-  "#c44569",
-];
-
-const getProgressionMarkerTitle = (block = "", progressionIndex = null) => {
-  const sectionMatch = block.match(/\[([^\]]+)\]/);
-  if (sectionMatch?.[1]) return sectionMatch[1];
-  if (progressionIndex == null) return "";
-  return `Part ${progressionIndex}`;
-};
-
-const getColumnLabelFromIndex = (value = 1) => {
-  let index = Math.max(1, Number.parseInt(value, 10) || 1);
-  let label = "";
-
-  while (index > 0) {
-    index -= 1;
-    label = String.fromCharCode(65 + (index % 26)) + label;
-    index = Math.floor(index / 26);
-  }
-
-  return label;
-};
-
-const MAX_EXPANDED_COLUMN_LINE_UNITS = 32;
-const EMPTY_PRESENTATION_BLOCK_PLACEHOLDER = "\u200b";
-const ESTIMATED_PRESENTATION_LINE_HEIGHT_PX = 24;
-const ESTIMATED_PRESENTATION_BLOCK_VERTICAL_CHROME_PX = 56;
-const PROGRESSION_BLOCK_BOTTOM_GUTTER_PX = 8;
-const MIN_PROGRESSION_BLOCK_HEIGHT_PX = 80;
-const MAX_PROGRESSION_BLOCK_HEIGHT_PX = 1400;
-
-const getProgressionVisualColumnOverrideKey = (groupKey = "", chunkIndex = 0) =>
-  `visual-column::${groupKey || "progression"}::${chunkIndex + 1}`;
-
-const getMaxLineUnitsForProgressionHeight = (height) => {
-  const numericHeight = Number(height);
-  if (!Number.isFinite(numericHeight) || numericHeight <= 0) {
-    return MAX_EXPANDED_COLUMN_LINE_UNITS;
-  }
-
-  return Math.max(
-    1,
-    Math.floor(
-      (numericHeight - ESTIMATED_PRESENTATION_BLOCK_VERTICAL_CHROME_PX) /
-        ESTIMATED_PRESENTATION_LINE_HEIGHT_PX,
-    ),
-  );
-};
-
-const estimateHtmlLineUnits = (html = "") => {
-  const text = html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/pre>/gi, "\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ");
-
-  return Math.max(
-    1,
-    text
-      .split("\n")
-      .map((line) => line.trimEnd())
-      .filter((line) => line.length > 0).length,
-  );
-};
-
-const splitHtmlBlockByPreElements = (html = "") => {
-  const preMatches = Array.from(html.matchAll(/<pre\b[\s\S]*?<\/pre>/gi)).map(
-    (match) => match[0],
-  );
-
-  if (preMatches.length <= 1) {
-    return [html];
-  }
-
-  const wrapperMatch = html.match(/^<div\b([^>]*)>/i);
-  const wrapperAttributes = wrapperMatch?.[1] || "";
-
-  return preMatches.map(
-    (preHtml, index) =>
-      `<div${wrapperAttributes} data-column-fragment="${index + 1}">\n${preHtml}\n</div>`,
-  );
-};
-
-const splitBlocksIntoColumnChunks = (
-  blocks = [],
-  maxLineUnits = MAX_EXPANDED_COLUMN_LINE_UNITS,
-) => {
-  const chunks = [];
-  let currentChunk = [];
-  let currentLineUnits = 0;
-  const getMaxLineUnits =
-    typeof maxLineUnits === "function" ? maxLineUnits : () => maxLineUnits;
-
-  blocks.forEach((entry) => {
-    splitHtmlBlockByPreElements(entry.block).forEach((fragmentHtml, index) => {
-      const fragment = {
-        ...entry,
-        block:
-          index === 0 && fragmentHtml === entry.block
-            ? entry.block
-            : fragmentHtml,
-        blockKey:
-          index === 0
-            ? entry.blockKey
-            : `${entry.blockKey}-fragment-${index + 1}`,
-      };
-      const lineUnits = estimateHtmlLineUnits(fragment.block);
-      const currentMaxLineUnits = getMaxLineUnits(chunks.length);
-
-      if (
-        currentChunk.length &&
-        currentLineUnits + lineUnits > currentMaxLineUnits
-      ) {
-        chunks.push(currentChunk);
-        currentChunk = [];
-        currentLineUnits = 0;
-      }
-
-      currentChunk.push(fragment);
-      currentLineUnits += lineUnits;
-    });
-  });
-
-  if (currentChunk.length) {
-    chunks.push(currentChunk);
-  }
-
-  return chunks.length ? chunks : [blocks];
-};
-
-const buildProgressionBlocks = (
-  htmlBlocks,
-  { hideTabs = false, dropBlankLines = false } = {},
-) => {
-  let progressionCounter = 0;
-
-  return htmlBlocks.reduce((blocksToRender, block, index) => {
-    const classMatch = block.match(/class="([^"]*)"/);
-    const classes = classMatch ? classMatch[1].split(" ") : [];
-    const isBlankLineBlock =
-      classes.includes("presentation-blank-line") ||
-      block.includes('class="presentation-blank-line"');
-
-    const shouldHideTabBlock =
-      hideTabs &&
-      (classes.includes("presentation-combined-tab-chords") ||
-        classes.includes("presentation-tab") ||
-        classes.includes("presentation-tab-section"));
-
-    if (shouldHideTabBlock) {
-      return blocksToRender;
-    }
-
-    if (dropBlankLines && isBlankLineBlock) {
-      return blocksToRender;
-    }
-
-    const isProgressionEligible = !isBlankLineBlock;
-
-    const progressionIndex = isProgressionEligible ? ++progressionCounter : null;
-
-    blocksToRender.push({
-      block,
-      classes,
-      index,
-      blockKey: `block-${index}`,
-      isProgressionEligible,
-      progressionIndex,
-      progressionTitle: getProgressionMarkerTitle(block, progressionIndex),
-    });
-
-    return blocksToRender;
-  }, []);
-};
-
-const getPresentationLayoutsStorageKey = ({
-  artist = "",
-  song = "",
-  instrument = "",
-} = {}) =>
-  [
-    "presentation-layouts",
-    String(artist || "").trim().toLowerCase(),
-    String(song || "").trim().toLowerCase(),
-    String(instrument || "").trim().toLowerCase(),
-  ].join("::");
-
-const getPresentationLayoutModeStorageKey = ({
-  artist = "",
-  song = "",
-  instrument = "",
-} = {}) =>
-  [
-    "presentation-layout-mode",
-    String(artist || "").trim().toLowerCase(),
-    String(song || "").trim().toLowerCase(),
-    String(instrument || "").trim().toLowerCase(),
-  ].join("::");
-
-const instrumentHasPresentationContent = (instrumentData) => {
-  if (!instrumentData) return false;
-
-  const presentationLayouts = buildInstrumentPresentationLayouts(instrumentData);
-  if (
-    [presentationLayouts.default, presentationLayouts.expanded].some(
-      (layout) =>
-        typeof layout.songCifra === "string" &&
-        layout.songCifra.trim() !== "" &&
-        layout.songCifra !== "Loading...",
-    )
-  ) {
-    return true;
-  }
-
-  return ["songCifra", "songChords", "songTabs", "songLyrics"].some(
-    (field) => {
-      const value = instrumentData[field];
-      return (
-        typeof value === "string" &&
-        value.trim() !== "" &&
-        value !== "Loading..."
-      );
-    },
-  );
-};
-
-const isInstrumentRegistered = (songData, instrumentKey) =>
-  Boolean(
-    songData?.instruments?.[instrumentKey] ||
-      songData?.[instrumentKey]?.active === true ||
-      songData?.[instrumentKey]?.active === "true" ||
-      instrumentHasPresentationContent(songData?.[instrumentKey]),
-  );
+import ConfirmationModal from "./components/ConfirmationModal";
+import TouchVideoMenu from "./components/TouchVideoMenu";
+import PresentationHorizontalNav from "./components/PresentationHorizontalNav";
+import PresentationStatusState from "./components/PresentationStatusState";
+import PresentationLiveHeader from "./components/PresentationLiveHeader";
+import PresentationTopBar from "./components/PresentationTopBar";
+import PresentationColumns from "./components/PresentationColumns";
+import { PRESENTATION_INSTRUMENTS } from "./helpers/presentationConstants";
+import {
+  buildProgressionBlocks,
+  getPresentationLayoutModeStorageKey,
+  getPresentationLayoutsStorageKey,
+  getVisibleBlocksDebugSummary,
+  instrumentHasPresentationContent,
+  isInstrumentRegistered,
+  logPresentationDebug,
+  normalizePresentationInstrumentValue,
+  safeDecodeURIComponent,
+  toolBoxBtnStatusChange,
+} from "./helpers/presentationUtils";
+import { buildProgressionRenderModel } from "./helpers/progressionRenderModel";
+import { usePresentationCifraEditor } from "./hooks/usePresentationCifraEditor";
+import { usePresentationChordTooltip } from "./hooks/usePresentationChordTooltip";
+import { usePresentationInstrumentNotes } from "./hooks/usePresentationInstrumentNotes";
+import { usePresentationLayoutStorageSync } from "./hooks/usePresentationLayoutStorageSync";
+import { usePresentationLayoutUpdater } from "./hooks/usePresentationLayoutUpdater";
+import { usePresentationLiveMode } from "./hooks/usePresentationLiveMode";
+import { usePresentationMediaControls } from "./hooks/usePresentationMediaControls";
+import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
+import { usePresentationProgressionControls } from "./hooks/usePresentationProgressionControls";
+import { usePresentationRouteData } from "./hooks/usePresentationRouteData";
+import {
+  collectEditedPresentationBlocksFromNode,
+  moveEnterToNextEditableBlock,
+  removeEmptyEditableLine,
+} from "./helpers/editableCifraDom";
 
 function Presentation() {
   const navigate = useNavigate();
-  const { artist: routeArtist, song: routeSong, instrument: routeInstrument } =
-    useParams();
+  const {
+    artist: routeArtist,
+    song: routeSong,
+    instrument: routeInstrument,
+  } = useParams();
   const decodedRouteArtist = useMemo(
     () => safeDecodeURIComponent(routeArtist),
     [routeArtist],
@@ -452,11 +96,8 @@ function Presentation() {
 
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
-  const [draftCifra, setDraftCifra] = useState("");
   const [hasEditedCifraContent, setHasEditedCifraContent] = useState(false);
   const [hasEditedLayoutContent, setHasEditedLayoutContent] = useState(false);
-  const [isSavingCifra, setIsSavingCifra] = useState(false);
-  const [saveError, setSaveError] = useState("");
   const [selectedBlockKeys, setSelectedBlockKeys] = useState([]);
   const [activeProgressionMarkControl, setActiveProgressionMarkControl] =
     useState(null);
@@ -469,23 +110,20 @@ function Presentation() {
     title: "",
     message: "",
   });
-  const [activeChordTooltip, setActiveChordTooltip] = useState(null);
-  const [selectedChordVariations, setSelectedChordVariations] = useState({});
-  const [
-    selectedChordOccurrenceVariations,
-    setSelectedChordOccurrenceVariations,
-  ] = useState({});
   const presentationContentRef = useRef(null);
-  const tooltipHideTimeoutRef = useRef(null);
   const editOriginalCifraRef = useRef("");
   const editOriginalLayoutsRef = useRef(null);
-
-  const clearTooltipHideTimeout = useCallback(() => {
-    if (tooltipHideTimeoutRef.current) {
-      window.clearTimeout(tooltipHideTimeoutRef.current);
-      tooltipHideTimeoutRef.current = null;
-    }
-  }, []);
+  const {
+    tooltip: activeChordTooltip,
+    selectedVariationIndex: selectedChordVariationIndex,
+    applyChordVariation: handleApplyChordVariation,
+    handleTooltipEnter,
+    handleTooltipLeave,
+    hideTooltip,
+  } = usePresentationChordTooltip({
+    contentRef: presentationContentRef,
+    isEditing,
+  });
 
   useEffect(() => {
     const bodyOverflow = document.body.style.overflow;
@@ -571,24 +209,6 @@ function Presentation() {
   );
   const editableSongCifra = normalizedSongCifra;
 
-  useEffect(() => {
-    if (!isEditing) {
-      setDraftCifra(editableSongCifra);
-      setHasEditedCifraContent(false);
-    }
-  }, [editableSongCifra, isEditing]);
-
-  const previousActiveLayoutVariantRef = useRef(activeLayoutVariant);
-
-  useEffect(() => {
-    if (previousActiveLayoutVariantRef.current === activeLayoutVariant) return;
-
-    previousActiveLayoutVariantRef.current = activeLayoutVariant;
-    setDraftCifra(editableSongCifra);
-    setHasEditedCifraContent(false);
-    setSaveError("");
-  }, [activeLayoutVariant, editableSongCifra]);
-
   // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
   const contentSelected = useMemo(() => {
     const defaultContent =
@@ -614,15 +234,6 @@ function Presentation() {
     songTabs,
   ]);
 
-  const handleDataFromAPI = (data, instrumentSelected) => {
-    if (data && data[instrumentSelected]) {
-      return data[instrumentSelected];
-    } else {
-      console.log("Instrumento não encontrado ou data é undefined");
-      return null;
-    }
-  };
-
   const availableInstrumentOptions = useMemo(() => {
     if (!songDataFetched) return [];
 
@@ -635,184 +246,41 @@ function Presentation() {
 
   const isCurrentInstrumentUnavailable = Boolean(
     songDataFetched &&
-      instrumentSelected &&
-      (!isInstrumentRegistered(songDataFetched, instrumentSelected) ||
-        !instrumentHasPresentationContent(songDataFetched[instrumentSelected])),
+    instrumentSelected &&
+    (!isInstrumentRegistered(songDataFetched, instrumentSelected) ||
+      !instrumentHasPresentationContent(songDataFetched[instrumentSelected])),
   );
 
-  const normalizePresentationInstrument = useCallback((value = "") => {
-    return normalizePresentationInstrumentValue(value);
-  }, []);
+  const {
+    canOpenGuitarPro,
+    closeGuitarProViewer,
+    closeTouchVideo,
+    closeTouchVideoMenu,
+    guitarProViewerOpen,
+    isTouchVideoActive,
+    isTouchVideoMenuOpen,
+    isVideoModalOpen,
+    openGuitarProViewer,
+    openTouchVideoMenu,
+    resetMediaControls,
+    selectedGuitarProFile,
+    setIsTouchVideoActive,
+    setIsVideoModalOpen,
+    setTouchVideoLink,
+    touchVideoLink,
+  } = usePresentationMediaControls({
+    instrumentSelected,
+    songDataFetched,
+  });
 
-  const resetTransientPresentationState = useCallback(() => {
-    clearTooltipHideTimeout();
-    setActiveChordTooltip(null);
-    setToolBoxBtnStatus(false);
-    setNotesModalStatus(false);
-    setIsVideoModalOpen(false);
-    setIsTouchVideoActive(false);
-    setIsTouchVideoMenuOpen(false);
-    setGuitarProViewerOpen(false);
-    setSelectedGuitarProFile(null);
-    setIsEditing(false);
-    setSaveError("");
-    setHasEditedCifraContent(false);
-    setHasEditedLayoutContent(false);
-    editOriginalLayoutsRef.current = null;
-    presentationContentRef.current?.scrollTo?.({ top: 0, left: 0 });
-  }, [clearTooltipHideTimeout]);
-
-  const navigatePresentationPath = useCallback(
-    (path) => {
-      resetTransientPresentationState();
-
-      if (
-        document.fullscreenElement &&
-        typeof document.exitFullscreen === "function"
-      ) {
-        try {
-          document.exitFullscreen();
-        } catch (error) {
-          console.warn("Failed to exit fullscreen before navigation:", error);
-        }
-      }
-
-      if (window.location.pathname === path) {
-        setIsRouteSongLoading(false);
-        return;
-      }
-
-      navigate(path);
-    },
-    [navigate, resetTransientPresentationState],
-  );
-
-  useEffect(() => {
-    resetTransientPresentationState();
-  }, [presentationRouteKey, resetTransientPresentationState]);
-
-  const goToInstrument = useCallback(
-    (instrumentKey) => {
-      if (!instrumentKey) return;
-
-      const nextInstrument = normalizePresentationInstrumentValue(instrumentKey);
-      setIsRouteSongLoading(true);
-      setInstrumentSelected(nextInstrument);
-
-      navigatePresentationPath(
-        `/presentation/${encodeURIComponent(
-          decodedRouteArtist || artistFromURL || "",
-        )}/${encodeURIComponent(decodedRouteSong || songFromURL || "")}/${encodeURIComponent(
-          nextInstrument,
-        )}`,
-      );
-    },
-    [
-      artistFromURL,
-      decodedRouteArtist,
-      decodedRouteSong,
-      navigatePresentationPath,
-      songFromURL,
-    ],
-  );
-
-  const goToEditSong = useCallback(() => {
-    localStorage.setItem("song", songFromURL || "");
-    localStorage.setItem("artist", artistFromURL || "");
-
-    navigate(
-      `/editsong/${encodeURIComponent(
-        decodedRouteArtist || artistFromURL || "",
-      )}/${encodeURIComponent(decodedRouteSong || songFromURL || "")}`,
-    );
-  }, [artistFromURL, decodedRouteArtist, decodedRouteSong, navigate, songFromURL]);
-
-  const startEditingCifra = () => {
-    editOriginalCifraRef.current = editableSongCifra;
-    editOriginalLayoutsRef.current = toPresentationLayoutPayload(
-      instrumentPresentationLayouts,
-    );
-    logPresentationDebug("edit:start", {
-      identity: presentationLayoutIdentity,
-      activeLayoutVariant,
-      isExpandedCifra,
-      content: getPresentationContentDebugSummary(editableSongCifra),
-      layouts: getPresentationLayoutsDebugSummary(instrumentPresentationLayouts),
-      visibleBlocks: getVisibleBlocksDebugSummary(visibleContentBlocks),
-      columns: getProgressionColumnsDebugSummary(activeProgressionRenderColumns),
-    });
-    setSaveError("");
-    setIsEditing(true);
-    setHasEditedCifraContent(false);
-    setSelectedBlockKeys([]);
-    setActiveProgressionMarkControl(null);
-    setDraftCifra(editableSongCifra);
-  };
-
-  const openEditorToolBox = useCallback(() => {
-    if (!isEditing && editableSongCifra) {
-      startEditingCifra();
-    }
-    setToolBoxRequestedPanel({
-      id: "panel-editor",
-      requestId: Date.now(),
-    });
-    setToolBoxBtnStatus(true);
-  }, [editableSongCifra, isEditing]);
-
-  const handleDiscardDraft = () => {
-    const originalLayouts = editOriginalLayoutsRef.current;
-
-    if (originalLayouts && instrumentSelected) {
-      setSongDataFetched((prev) => {
-        if (!prev || !instrumentSelected) return prev;
-        const currentInstrument = prev[instrumentSelected] || {};
-
-        return {
-          ...prev,
-          [instrumentSelected]: {
-            ...currentInstrument,
-            songCifra:
-              originalLayouts.default?.songCifra ||
-              currentInstrument.songCifra ||
-              "",
-            presentationLayouts: originalLayouts,
-          },
-        };
-      });
-
-      if (presentationLayoutStorageKey && typeof window !== "undefined") {
-        window.localStorage.setItem(
-          presentationLayoutStorageKey,
-          JSON.stringify(originalLayouts),
-        );
-      }
-    }
-
-    setDraftCifra(editOriginalCifraRef.current || editableSongCifra);
-    setIsEditing(false);
-    setHasEditedCifraContent(false);
-    setHasEditedLayoutContent(false);
-    editOriginalLayoutsRef.current = null;
-    setSelectedBlockKeys([]);
-    setActiveProgressionMarkControl(null);
-    setSaveError("");
-  };
-
-  const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
   const [liveCifraZoomPercent, setLiveCifraZoomPercent] = useState(120);
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const [guitarProViewerOpen, setGuitarProViewerOpen] = useState(false);
-  const [selectedGuitarProFile, setSelectedGuitarProFile] = useState(null);
-  const [touchVideoLink, setTouchVideoLink] = useState("");
-  const [isTouchVideoActive, setIsTouchVideoActive] = useState(false);
-  const [isTouchVideoMenuOpen, setIsTouchVideoMenuOpen] = useState(false);
   const [notesModalStatus, setNotesModalStatus] = useState(false);
-  const [isSavingNotes, setIsSavingNotes] = useState(false);
-  const [resizingProgressionWidths, setResizingProgressionWidths] = useState({});
+  const [resizingProgressionWidths, setResizingProgressionWidths] = useState(
+    {},
+  );
   const liveModeRootRef = useRef(null);
   const draggedProgressionGroupKeyRef = useRef("");
   const isTouchLayout =
@@ -824,97 +292,14 @@ function Presentation() {
   );
   const presentationFontScale = touchFontSizeRem / 0.82;
   const touchFontSizeLabel = `${Math.round(presentationFontScale * 100)}%`;
-  const liveCifraZoomScale = clampLiveCifraZoomPercent(liveCifraZoomPercent) / 100;
+  const liveCifraZoomScale =
+    clampLiveCifraZoomPercent(liveCifraZoomPercent) / 100;
   const liveCifraZoomLabel = `${clampLiveCifraZoomPercent(liveCifraZoomPercent)}%`;
   const adjustLiveCifraZoom = useCallback((delta) => {
     setLiveCifraZoomPercent((current) =>
       clampLiveCifraZoomPercent(current + delta),
     );
   }, []);
-  const guitarProFiles = useMemo(
-    () =>
-      Array.isArray(songDataFetched?.guitarProFiles)
-        ? songDataFetched.guitarProFiles
-        : [],
-    [songDataFetched],
-  );
-  const hasGuitarProFiles = guitarProFiles.length > 0;
-  const canOpenGuitarPro = instrumentSelected !== "voice" && hasGuitarProFiles;
-
-  const openGuitarProViewer = useCallback(() => {
-    if (instrumentSelected === "voice" || !guitarProFiles.length) return;
-
-    let file = guitarProFiles[0];
-    if (guitarProFiles.length > 1) {
-      const optionsText = guitarProFiles
-        .map((entry, index) => `${index + 1}. ${entry.originalName}`)
-        .join("\n");
-      const selection = window.prompt(`Qual arquivo deseja abrir?\n${optionsText}`);
-      const selectedIndex = Number.parseInt(selection || "", 10) - 1;
-      file = guitarProFiles[selectedIndex];
-      if (!file) return;
-    }
-
-    setSelectedGuitarProFile(file);
-    setGuitarProViewerOpen(true);
-  }, [guitarProFiles, instrumentSelected]);
-
-  const currentSetlistSongIndex = useMemo(() => {
-    const normalizedArtist = (artistFromURL || decodedRouteArtist)
-      .trim()
-      .toLowerCase();
-    const normalizedSong = (songFromURL || decodedRouteSong)
-      .trim()
-      .toLowerCase();
-
-    if (!normalizedArtist || !normalizedSong) return -1;
-
-    return setlistSongs.findIndex(
-      (song) =>
-        (song.artist || "").trim().toLowerCase() === normalizedArtist &&
-        (song.song || "").trim().toLowerCase() === normalizedSong,
-    );
-  }, [artistFromURL, decodedRouteArtist, decodedRouteSong, setlistSongs, songFromURL]);
-
-  const previousSetlistSong =
-    currentSetlistSongIndex > 0
-      ? setlistSongs[currentSetlistSongIndex - 1]
-      : null;
-  const nextSetlistSong =
-    currentSetlistSongIndex >= 0 &&
-    currentSetlistSongIndex < setlistSongs.length - 1
-      ? setlistSongs[currentSetlistSongIndex + 1]
-      : null;
-
-  const goToSetlistSong = useCallback(
-    (song) => {
-      if (!song) return;
-
-      const nextArtist = String(song.artist || "").trim();
-      const nextSong = String(song.song || "").trim();
-      if (!nextArtist || !nextSong) return;
-
-      const nextInstrument = instrumentSelected || decodedRouteInstrument;
-      setIsRouteSongLoading(true);
-      setArtistFromURL(nextArtist);
-      setSongFromURL(nextSong);
-      setSongDataFetched(undefined);
-      setEmbedLinks([]);
-
-      navigatePresentationPath(
-        `/presentation/${encodeURIComponent(nextArtist)}/${encodeURIComponent(
-          nextSong,
-        )}/${encodeURIComponent(
-          nextInstrument,
-        )}`,
-      );
-    },
-    [
-      decodedRouteInstrument,
-      instrumentSelected,
-      navigatePresentationPath,
-    ],
-  );
 
   const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
     const length = String(value || "").trim().length;
@@ -930,19 +315,6 @@ function Presentation() {
     if (length > 20) return "text-[1.55rem] leading-[1.7rem]";
     if (length > 14) return "text-[1.7rem] leading-[1.85rem]";
     return "text-[1.85rem] leading-[1.95rem]";
-  }, []);
-
-  const focusLiveViewport = useCallback(() => {
-    const contentNode = presentationContentRef.current;
-    if (!contentNode) return;
-
-    try {
-      window.focus();
-    } catch {}
-
-    requestAnimationFrame(() => {
-      contentNode.focus({ preventScroll: true });
-    });
   }, []);
 
   const presentationLayoutIdentity = `${artistFromURL}::${songFromURL}::${instrumentSelected}`;
@@ -968,515 +340,43 @@ function Presentation() {
     () => getPresentationLayoutSettingsSnapshot(instrumentPresentationLayouts),
     [instrumentPresentationLayouts],
   );
-  const lastHydratedLayoutIdentityRef = useRef("");
-  const skipNextLayoutPersistRef = useRef(false);
-  const skipNextModePersistRef = useRef(false);
   const lastLoggedColumnsSnapshotRef = useRef("");
 
-  const updatePresentationLayoutVariant = useCallback(
-    (variantKey, update) => {
-      setHasEditedLayoutContent(true);
-      setSongDataFetched((prev) => {
-        if (!prev || !instrumentSelected) return prev;
-
-        const currentInstrument = prev[instrumentSelected] || {};
-        const currentLayouts = buildInstrumentPresentationLayouts(
-          currentInstrument,
-        );
-        const currentVariantLayout = currentLayouts[variantKey];
-        const nextVariantLayoutInput =
-          typeof update === "function"
-            ? update(currentVariantLayout, currentLayouts)
-            : {
-                ...currentVariantLayout,
-                ...(update || {}),
-              };
-        const nextVariantLayout = normalizePresentationLayoutVariant(
-          nextVariantLayoutInput,
-          {
-            fallbackSongCifra:
-              currentVariantLayout?.songCifra || currentInstrument.songCifra || "",
-            defaultTwoColumns: variantKey === "expanded",
-          },
-        );
-        const nextLayouts = {
-          ...currentLayouts,
-          [variantKey]: nextVariantLayout,
-        };
-        const nextInstrument = {
-          ...currentInstrument,
-          presentationLayouts: toPresentationLayoutPayload(nextLayouts),
-          songCifra: nextLayouts.default.songCifra,
-        };
-
-        logPresentationDebug("layout:update-variant", {
-          identity: presentationLayoutIdentity,
-          variantKey,
-          current: getPresentationLayoutsDebugSummary(currentLayouts),
-          next: getPresentationLayoutsDebugSummary(nextLayouts),
-        });
-
-        return {
-          ...prev,
-          [instrumentSelected]: nextInstrument,
-          updateIn: new Date().toISOString().split("T")[0],
-        };
-      });
-    },
-    [instrumentSelected, presentationLayoutIdentity],
-  );
-
-  const updateActivePresentationLayout = useCallback(
-    (update) => {
-      updatePresentationLayoutVariant(activeLayoutVariant, update);
-    },
-    [activeLayoutVariant, updatePresentationLayoutVariant],
-  );
-
-  const setActiveShowProgressionMarkers = useCallback(
-    (valueOrUpdater) => {
-      updateActivePresentationLayout((currentLayout) => ({
-        ...currentLayout,
-        showProgressionMarkers:
-          typeof valueOrUpdater === "function"
-            ? valueOrUpdater(currentLayout.showProgressionMarkers)
-            : Boolean(valueOrUpdater),
-      }));
-    },
-    [updateActivePresentationLayout],
-  );
-
-  const adjustActiveFontSizeStep = useCallback(
-    (delta) => {
-      updateActivePresentationLayout((currentLayout) => ({
-        ...currentLayout,
-        fontSizeStep: clampPresentationFontSizeStep(
-          (currentLayout.fontSizeStep ?? 0) + delta,
-        ),
-      }));
-    },
-    [updateActivePresentationLayout],
-  );
-
-  const adjustActiveBlockSpacingStep = useCallback(
-    (delta) => {
-      updateActivePresentationLayout((currentLayout) => ({
-        ...currentLayout,
-        blockSpacingStep: clampPresentationBlockSpacingStep(
-          Number(currentLayout.blockSpacingStep ?? 0) + delta,
-        ),
-      }));
-    },
-    [updateActivePresentationLayout],
-  );
-
-  const collectEditedPresentationBlocks = useCallback(() => {
-    const contentNode = presentationContentRef.current;
-    if (!contentNode) return draftCifra;
-
-    const contentBlocks = Array.from(
-      contentNode.querySelectorAll(".presentation-render-content-block"),
-    );
-    if (!contentBlocks.length) return draftCifra;
-
-    return contentBlocks
-      .map((block, domIndex) => {
-        const rawText = block.innerText.replace(/\u00a0/g, " ").trimEnd();
-        return {
-          domIndex,
-          index: Number.parseInt(block.dataset.originalBlockIndex, 10),
-          text:
-            rawText.trim() === ""
-              ? EMPTY_PRESENTATION_BLOCK_PLACEHOLDER
-              : rawText,
-        };
-      })
-      .sort((left, right) => {
-        const leftIndex = Number.isFinite(left.index) ? left.index : 0;
-        const rightIndex = Number.isFinite(right.index) ? right.index : 0;
-        if (leftIndex !== rightIndex) return leftIndex - rightIndex;
-        return left.domIndex - right.domIndex;
-      })
-      .map((block) => block.text)
-      .join("\n\n")
-      .trimEnd();
-  }, [draftCifra]);
-
-  const markCifraContentAsEdited = useCallback((event) => {
-    const inputType = event?.nativeEvent?.inputType || event?.inputType || "";
-    if (!inputType || inputType.startsWith("history")) return;
-    setHasEditedCifraContent(true);
-  }, []);
-
-  const collectSafeEditedPresentationBlocks = useCallback(() => {
-    const nextCifra = collectEditedPresentationBlocks();
-    const currentCifra =
-      typeof draftCifra === "string" ? draftCifra : editableSongCifra || "";
-    const currentSummary = getPresentationContentDebugSummary(currentCifra);
-    const nextSummary = getPresentationContentDebugSummary(nextCifra);
-
-    if (currentCifra.trim() && !String(nextCifra || "").trim()) {
-      console.warn(
-        "Edição ignorada: coleta do conteúdo retornou vazio para uma cifra existente.",
-      );
-      logPresentationDebug("content:collect-edited:fallback-current", {
-        identity: presentationLayoutIdentity,
-        current: currentSummary,
-        collected: nextSummary,
-      });
-      return currentCifra;
-    }
-
-    logPresentationDebug("content:collect-edited", {
-      identity: presentationLayoutIdentity,
-      current: currentSummary,
-      collected: nextSummary,
-    });
-
-    return nextCifra;
-  }, [
-    collectEditedPresentationBlocks,
-    draftCifra,
-    editableSongCifra,
+  usePresentationLayoutStorageSync({
+    currentInstrumentData,
+    instrumentPresentationLayouts,
+    instrumentSelected,
+    isExpandedCifra,
+    isRouteSongLoading,
     presentationLayoutIdentity,
-  ]);
+    presentationLayoutModeStorageKey,
+    presentationLayoutSettingsSnapshot,
+    presentationLayoutStorageKey,
+    setIsExpandedCifra,
+    setSongDataFetched,
+    songDataFetched,
+  });
 
-  const collectEditedPresentationBlocksExcluding = useCallback(
-    (excludedBlockKeys = []) => {
-      const excludedKeys = new Set(excludedBlockKeys);
-      const contentNode = presentationContentRef.current;
-      if (!contentNode) return draftCifra;
+  const {
+    adjustActiveBlockSpacingStep,
+    adjustActiveFontSizeStep,
+    setActiveShowProgressionMarkers,
+    updateActivePresentationLayout,
+  } = usePresentationLayoutUpdater({
+    activeLayoutVariant,
+    instrumentSelected,
+    presentationLayoutIdentity,
+    setHasEditedLayoutContent,
+    setSongDataFetched,
+  });
 
-      const contentBlocks = Array.from(
-        contentNode.querySelectorAll(".presentation-render-content-block"),
-      );
-      if (!contentBlocks.length) return draftCifra;
-
-      return contentBlocks
-        .filter((block) => {
-          const blockKeys = (block.dataset.blockKeys || block.dataset.blockKey || "")
-            .split(",")
-            .map((blockKey) => blockKey.trim())
-            .filter(Boolean);
-          return !blockKeys.some((blockKey) => excludedKeys.has(blockKey));
-        })
-        .map((block, domIndex) => {
-          const rawText = block.innerText.replace(/\u00a0/g, " ").trimEnd();
-          return {
-            domIndex,
-            index: Number.parseInt(block.dataset.originalBlockIndex, 10),
-            text:
-              rawText.trim() === ""
-                ? EMPTY_PRESENTATION_BLOCK_PLACEHOLDER
-                : rawText,
-          };
-        })
-        .sort((left, right) => {
-          const leftIndex = Number.isFinite(left.index) ? left.index : 0;
-          const rightIndex = Number.isFinite(right.index) ? right.index : 0;
-          if (leftIndex !== rightIndex) return leftIndex - rightIndex;
-          return left.domIndex - right.domIndex;
-        })
-        .map((block) => block.text)
-        .join("\n\n")
-        .trimEnd();
-    },
-    [draftCifra],
-  );
-
-  const removeEmptyEditableLine = useCallback((event) => {
-    if (event.key !== "Backspace" && event.key !== "Delete") return false;
-
-    const selection = window.getSelection?.();
-    if (!selection || selection.rangeCount === 0) return false;
-
-    const targetBlock = event.currentTarget;
-    const range = selection.getRangeAt(0);
-    const anchorNode = selection.anchorNode;
-    const anchorElement =
-      anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement;
-    if (!anchorElement || !targetBlock.contains(anchorElement)) return false;
-
-    const selectedText = selection.toString().replace(/\u00a0/g, " ");
-    const selectedEmptyElement =
-      !selection.isCollapsed &&
-      Array.from(
-        targetBlock.querySelectorAll(
-          ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div",
-        ),
-      ).find((node) => {
-        if (!selection.containsNode(node, true)) return false;
-        return (node.innerText || node.textContent || "").trim() === "";
-      });
-
-    const currentLineElement = anchorElement.closest(
-      ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div",
-    );
-    const currentLineText =
-      currentLineElement && currentLineElement !== targetBlock
-        ? currentLineElement.innerText || currentLineElement.textContent || ""
-        : "";
-
-    const lineToRemove =
-      selectedEmptyElement ||
-      (currentLineElement &&
-      currentLineElement !== targetBlock &&
-      currentLineText.trim() === ""
-        ? currentLineElement
-        : null);
-
-    if (lineToRemove && targetBlock.contains(lineToRemove)) {
-      event.preventDefault();
-      lineToRemove.remove();
-      targetBlock.focus();
-      return true;
-    }
-
-    if (!selection.isCollapsed && selectedText.trim() === "") {
-      event.preventDefault();
-      range.deleteContents();
-      targetBlock.focus();
-      return true;
-    }
-
-    return false;
-  }, []);
-
-  const focusEditableBlockStart = useCallback((contentBlock) => {
-    if (!contentBlock) return false;
-
-    const selection = window.getSelection?.();
-    if (!selection) return false;
-
-    const ownerDocument = contentBlock.ownerDocument || document;
-    const range = ownerDocument.createRange();
-    const textWalker = ownerDocument.createTreeWalker(
-      contentBlock,
-      window.NodeFilter?.SHOW_TEXT ?? 4,
-    );
-    let firstTextNode = textWalker.nextNode();
-
-    while (firstTextNode && firstTextNode.textContent === "") {
-      firstTextNode = textWalker.nextNode();
-    }
-
-    if (firstTextNode) {
-      range.setStart(firstTextNode, 0);
-    } else {
-      range.setStart(contentBlock, 0);
-    }
-
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    contentBlock
-      .closest(".presentation-content-flow")
-      ?.focus({ preventScroll: true });
-    contentBlock.scrollIntoView({ block: "nearest", inline: "nearest" });
-    return true;
-  }, []);
-
-  const moveEnterToNextEditableBlock = useCallback(
-    (event) => {
-      if (
-        event.key !== "Enter" ||
-        event.shiftKey ||
-        event.altKey ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.isComposing
-      ) {
-        return false;
-      }
-
-      const selection = window.getSelection?.();
-      if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) {
-        return false;
-      }
-
-      const targetBlock = event.currentTarget;
-      const range = selection.getRangeAt(0);
-      const anchorNode = selection.anchorNode;
-      const anchorElement =
-        anchorNode instanceof HTMLElement
-          ? anchorNode
-          : anchorNode?.parentElement;
-      const currentContentBlock = anchorElement?.closest(
-        ".presentation-render-content-block",
-      );
-
-      if (!currentContentBlock || !targetBlock.contains(currentContentBlock)) {
-        return false;
-      }
-
-      const trailingRange = range.cloneRange();
-      trailingRange.selectNodeContents(currentContentBlock);
-      try {
-        trailingRange.setStart(range.endContainer, range.endOffset);
-      } catch {
-        return false;
-      }
-
-      const trailingText = trailingRange
-        .toString()
-        .replace(/\u00a0/g, " ")
-        .replace(/\u200b/g, "")
-        .trim();
-
-      if (trailingText !== "") return false;
-
-      const contentBlocks = Array.from(
-        targetBlock.querySelectorAll(".presentation-render-content-block"),
-      );
-      const currentIndex = contentBlocks.indexOf(currentContentBlock);
-      const nextContentBlock = contentBlocks[currentIndex + 1];
-
-      if (!nextContentBlock) return false;
-
-      event.preventDefault();
-      focusEditableBlockStart(nextContentBlock);
-      return true;
-    },
-    [focusEditableBlockStart],
-  );
-
-  const handleSaveCifra = async () => {
-    if (!instrumentSelected || !songDataFetched) {
-      setSaveError("Sem dados da música carregados para salvar.");
-      pushSnackbarMessage(
-        "Erro",
-        "Sem dados da música carregados para salvar.",
-      );
-      return;
-    }
-    setIsSavingCifra(true);
-    setSaveError("");
-
-    const nextDraftCifra =
-      isEditing && hasEditedCifraContent
-        ? collectSafeEditedPresentationBlocks()
-        : draftCifra;
-    const currentLayouts = buildInstrumentPresentationLayouts(currentInstrumentData);
-    const persistedLayouts = buildSavedPresentationLayouts(
-      currentLayouts,
-      activeLayoutVariant,
-      nextDraftCifra,
-    );
-    const updatedBlock = {
-      ...currentInstrumentData,
-      songCifra: persistedLayouts.default.songCifra,
-      presentationLayouts: persistedLayouts,
-    };
-
-    const nextSongData = {
-      ...(songDataFetched || {}),
-      [instrumentSelected]: updatedBlock,
-      updateIn: new Date().toISOString().split("T")[0],
-    };
-
-    logPresentationDebug("save:before-request", {
-      identity: presentationLayoutIdentity,
-      activeLayoutVariant,
-      instrumentSelected,
-      hasEditedCifraContent,
-      hasEditedLayoutContent,
-      nextDraftCifra: getPresentationContentDebugSummary(nextDraftCifra),
-      currentLayouts: getPresentationLayoutsDebugSummary(currentLayouts),
-      persistedLayouts: getPresentationLayoutsDebugSummary(persistedLayouts),
-      visibleBlocks: getVisibleBlocksDebugSummary(visibleContentBlocks),
-      columns: getProgressionColumnsDebugSummary(activeProgressionRenderColumns),
-    });
-
-    try {
-      const saveResult = await updateSongEntry(nextSongData);
-      logPresentationDebug("save:response", {
-        identity: presentationLayoutIdentity,
-        queued: Boolean(saveResult?.queued),
-        hasSong: Boolean(saveResult?.song),
-        serverInstrumentLayouts: getPresentationLayoutsDebugSummary(
-          saveResult?.song?.[instrumentSelected]?.presentationLayouts,
-        ),
-        serverInstrumentSongCifra: getPresentationContentDebugSummary(
-          saveResult?.song?.[instrumentSelected]?.songCifra,
-        ),
-      });
-
-      if (presentationLayoutStorageKey && typeof window !== "undefined") {
-        logPresentationDebug("save:localStorage-write", {
-          identity: presentationLayoutIdentity,
-          key: presentationLayoutStorageKey,
-          layouts: getPresentationLayoutsDebugSummary(persistedLayouts),
-        });
-        window.localStorage.setItem(
-          presentationLayoutStorageKey,
-          JSON.stringify(persistedLayouts),
-        );
-      }
-
-      setDraftCifra(nextDraftCifra);
-      setSongDataFetched((prev) => {
-        const serverSong =
-          saveResult?.song && typeof saveResult.song === "object"
-            ? saveResult.song
-            : {};
-
-        logPresentationDebug("save:state-merge", {
-          identity: presentationLayoutIdentity,
-          previousLayouts: getPresentationLayoutsDebugSummary(
-            prev?.[instrumentSelected]?.presentationLayouts,
-          ),
-          nextLayouts: getPresentationLayoutsDebugSummary(persistedLayouts),
-          serverLayouts: getPresentationLayoutsDebugSummary(
-            serverSong?.[instrumentSelected]?.presentationLayouts,
-          ),
-        });
-
-        return {
-          ...(prev || {}),
-          ...nextSongData,
-          ...serverSong,
-          [instrumentSelected]: {
-            ...(serverSong?.[instrumentSelected] || {}),
-            ...updatedBlock,
-            songCifra: persistedLayouts.default.songCifra,
-            presentationLayouts: persistedLayouts,
-          },
-        };
-      });
-      setIsEditing(false);
-      setHasEditedCifraContent(false);
-      setHasEditedLayoutContent(false);
-      editOriginalLayoutsRef.current = null;
-      setSelectedBlockKeys([]);
-      setActiveProgressionMarkControl(null);
-      const timestamp = new Date().toLocaleTimeString();
-      setLastSaveTimestamp(timestamp);
-      pushSnackbarMessage("Salvo", `Último salvamento às ${timestamp}`);
-    } catch (error) {
-      setSaveError("Não foi possível salvar a cifra. Tente novamente.");
-      pushSnackbarMessage(
-        "Erro",
-        "Não foi possível salvar a cifra. Tente novamente.",
-      );
-      console.error("Erro ao salvar cifra:", error);
-    } finally {
-      setIsSavingCifra(false);
-    }
-  };
-
-  const hasDraftChanges =
-    isEditing ||
-    hasEditedLayoutContent ||
-    ((isEditing ? editOriginalCifraRef.current : editableSongCifra) || "") !==
-      (draftCifra || "");
   const shouldUseTwoColumns = isTwoColumns;
   const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
   const shouldDropBlankLinesForHorizontalFlow =
     shouldDropBlankLinesForPresentationFlow({
       shouldUseHorizontalColumnFlow,
     });
-  const shouldApplyProgressionBlockDimensions =
-    !effectiveLiveMode || isEditing;
+  const shouldApplyProgressionBlockDimensions = !effectiveLiveMode || isEditing;
   const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
   const renderContentSelected = contentSelected;
   const transposedContent = useMemo(
@@ -1524,160 +424,116 @@ function Presentation() {
     [hideTabs, htmlBlocks, shouldDropBlankLinesForHorizontalFlow],
   );
 
-  const progressionRenderGroups = useMemo(() => {
-    const groupedBlocks = new Map();
+  const progressionRenderModel = useMemo(
+    () =>
+      buildProgressionRenderModel({
+        visibleContentBlocks,
+        progressionMarkOverrides,
+        resizingProgressionWidths,
+        shouldUseHorizontalColumnFlow,
+      }),
+    [
+      progressionMarkOverrides,
+      resizingProgressionWidths,
+      shouldUseHorizontalColumnFlow,
+      visibleContentBlocks,
+    ],
+  );
+  const progressionRenderGroups = progressionRenderModel.groups;
+  const activeProgressionRenderColumns = progressionRenderModel.activeColumns;
 
-    visibleContentBlocks.forEach((entry, visibleIndex) => {
-      const blockKey = entry.blockKey || `block-${entry.index}`;
-      const override = progressionMarkOverrides[blockKey] || {};
-      const rawPosition = override.position ?? entry.progressionIndex;
-      const numericPosition =
-        Number.parseInt(rawPosition, 10) || entry.progressionIndex || visibleIndex + 1;
-      const groupKey = entry.isProgressionEligible
-        ? `progression-${numericPosition}`
-        : `raw-${entry.index}`;
-      const existingGroup = groupedBlocks.get(groupKey);
-      const fallbackTitle = entry.progressionTitle;
-      const width = Number.isFinite(Number(override.width))
-        ? Number(override.width)
-        : undefined;
-      const height = Number.isFinite(Number(override.height))
-        ? Number(override.height)
-        : undefined;
-      const renderOrder = Number.isFinite(Number(override.order))
-        ? Number(override.order)
-        : visibleIndex;
-      const groupedEntry = {
-        ...entry,
-        renderOrder,
-      };
+  const {
+    draftCifra,
+    handleDiscardDraft,
+    handleSaveCifra,
+    hasDraftChanges,
+    isSavingCifra,
+    markCifraContentAsEdited,
+    openEditorToolBox,
+    saveError,
+    setDraftCifra,
+    setSaveError,
+    startEditingCifra,
+  } = usePresentationCifraEditor({
+    activeLayoutVariant,
+    activeProgressionRenderColumns,
+    currentInstrumentData,
+    editableSongCifra,
+    editOriginalCifraRef,
+    editOriginalLayoutsRef,
+    hasEditedCifraContent,
+    hasEditedLayoutContent,
+    instrumentPresentationLayouts,
+    instrumentSelected,
+    isEditing,
+    isExpandedCifra,
+    presentationContentRef,
+    presentationLayoutIdentity,
+    presentationLayoutStorageKey,
+    pushSnackbarMessage,
+    setActiveProgressionMarkControl,
+    setHasEditedCifraContent,
+    setHasEditedLayoutContent,
+    setIsEditing,
+    setSelectedBlockKeys,
+    setSongDataFetched,
+    setToolBoxBtnStatus,
+    setToolBoxRequestedPanel,
+    songDataFetched,
+    visibleContentBlocks,
+  });
 
-      if (existingGroup) {
-        existingGroup.blocks.push(groupedEntry);
-        existingGroup.blockKeys.push(blockKey);
-        existingGroup.width = existingGroup.width ?? width;
-        existingGroup.height = existingGroup.height ?? height;
-        return;
-      }
-
-      groupedBlocks.set(groupKey, {
-        groupKey,
-        blockKeys: [blockKey],
-        blocks: [groupedEntry],
-        isProgressionEligible: entry.isProgressionEligible,
-        columnIndex: numericPosition,
-        displayPosition: numericPosition,
-        displayTitle: override.title ?? fallbackTitle,
-        firstVisibleIndex: visibleIndex,
-        width,
-        height,
+  const collectEditedPresentationBlocksExcluding = useCallback(
+    (excludedBlockKeys = []) => {
+      return collectEditedPresentationBlocksFromNode({
+        contentNode: presentationContentRef.current,
+        fallbackCifra: draftCifra,
+        excludedBlockKeys,
       });
-    });
+    },
+    [draftCifra],
+  );
 
-    return Array.from(groupedBlocks.values()).map((group) => ({
-      ...group,
-      blocks: group.blocks
-        .slice()
-        .sort(
-          (left, right) =>
-            (left.renderOrder ?? left.index) - (right.renderOrder ?? right.index),
-        ),
-    })).sort((left, right) => {
-      if (left.isProgressionEligible && right.isProgressionEligible) {
-        return left.columnIndex - right.columnIndex;
-      }
+  const resetTransientPresentationState = useCallback(() => {
+    hideTooltip();
+    setToolBoxBtnStatus(false);
+    setNotesModalStatus(false);
+    resetMediaControls();
+    setIsEditing(false);
+    setSaveError("");
+    setHasEditedCifraContent(false);
+    setHasEditedLayoutContent(false);
+    editOriginalLayoutsRef.current = null;
+    presentationContentRef.current?.scrollTo?.({ top: 0, left: 0 });
+  }, [hideTooltip, resetMediaControls, setSaveError]);
 
-      return left.firstVisibleIndex - right.firstVisibleIndex;
-    });
-  }, [progressionMarkOverrides, visibleContentBlocks]);
+  const {
+    goToEditSong,
+    goToInstrument,
+    goToSetlistSong,
+    nextSetlistSong,
+    previousSetlistSong,
+  } = usePresentationNavigation({
+    artistFromURL,
+    decodedRouteArtist,
+    decodedRouteInstrument,
+    decodedRouteSong,
+    instrumentSelected,
+    navigate,
+    resetTransientPresentationState,
+    setArtistFromURL,
+    setEmbedLinks,
+    setInstrumentSelected,
+    setIsRouteSongLoading,
+    setSongDataFetched,
+    setSongFromURL,
+    setlistSongs,
+    songFromURL,
+  });
 
-  const progressionRenderColumns = useMemo(() => {
-    let visualColumnIndex = 0;
-
-    return progressionRenderGroups.flatMap((group) => {
-      if (!group.isProgressionEligible) {
-        visualColumnIndex += 1;
-        return [
-          {
-            ...group,
-            visualColumnIndex,
-            visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
-          },
-        ];
-      }
-
-      const getChunkHeight = (chunkIndex) => {
-        const visualColumnOverrideKey = getProgressionVisualColumnOverrideKey(
-          group.groupKey,
-          chunkIndex,
-        );
-        return (
-          resizingProgressionWidths[visualColumnOverrideKey]?.height ??
-          progressionMarkOverrides[visualColumnOverrideKey]?.height ??
-          (chunkIndex === 0 ? group.height : undefined)
-        );
-      };
-      const chunks = splitBlocksIntoColumnChunks(
-        group.blocks,
-        (chunkIndex) =>
-          getMaxLineUnitsForProgressionHeight(getChunkHeight(chunkIndex)),
-      );
-
-      return chunks.map((blocksChunk, chunkIndex) => {
-        visualColumnIndex += 1;
-        const visualColumnOverrideKey = getProgressionVisualColumnOverrideKey(
-          group.groupKey,
-          chunkIndex,
-        );
-        const visualColumnOverride =
-          progressionMarkOverrides[visualColumnOverrideKey] || {};
-        return {
-          ...group,
-          baseGroupKey: group.groupKey,
-          visualColumnOverrideKey,
-          groupKey:
-            chunkIndex === 0
-              ? group.groupKey
-              : `${group.groupKey}-overflow-${chunkIndex + 1}`,
-          blocks: blocksChunk,
-          blockKeys: blocksChunk.map((block) => block.blockKey),
-          width:
-            resizingProgressionWidths[visualColumnOverrideKey]?.width ??
-            visualColumnOverride.width ??
-            group.width,
-          height:
-            resizingProgressionWidths[visualColumnOverrideKey]?.height ??
-            visualColumnOverride.height ??
-            (chunkIndex === 0 ? group.height : undefined),
-          isOverflowContinuation: chunkIndex > 0,
-          visualColumnIndex,
-          visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
-        };
-      });
-    });
-  }, [progressionMarkOverrides, progressionRenderGroups, resizingProgressionWidths]);
-
-  const activeProgressionRenderColumns = useMemo(() => {
-    if (shouldUseHorizontalColumnFlow) {
-      return progressionRenderColumns;
-    }
-
-    return progressionRenderGroups.map((group, index) => {
-      const visualColumnIndex =
-        Number.parseInt(group.displayPosition, 10) || index + 1;
-
-      return {
-        ...group,
-        baseGroupKey: group.groupKey,
-        visualColumnIndex,
-        visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
-      };
-    });
-  }, [
-    progressionRenderColumns,
-    progressionRenderGroups,
-    shouldUseHorizontalColumnFlow,
-  ]);
+  useEffect(() => {
+    resetTransientPresentationState();
+  }, [presentationRouteKey, resetTransientPresentationState]);
 
   useEffect(() => {
     const columns = getProgressionColumnsDebugSummary(
@@ -1728,1370 +584,92 @@ function Presentation() {
 
   // console.log("htmlBlocks", htmlBlocks);
 
-  const didPingRef = useRef(false);
-
-  const scheduleTooltipHide = useCallback(() => {
-    clearTooltipHideTimeout();
-    tooltipHideTimeoutRef.current = window.setTimeout(() => {
-      setActiveChordTooltip(null);
-      tooltipHideTimeoutRef.current = null;
-    }, 150);
-  }, [clearTooltipHideTimeout]);
-
-  const buildTooltipState = useCallback(
-    (chordElement, chordData) => {
-      const rect = chordElement.getBoundingClientRect();
-      const isExpanded =
-        activeChordTooltip?.data?.chordId === chordData.chordId;
-      const tooltipWidth = isExpanded ? 860 : 184;
-      const spacing = 14;
-      const safeLeft = Math.min(
-        Math.max(12, rect.left + rect.width / 2 - tooltipWidth / 2),
-        window.innerWidth - tooltipWidth - 12,
-      );
-
-      return {
-        chord: chordData.chordLabel,
-        data: chordData,
-        position: {
-          x: safeLeft,
-          y: rect.bottom + spacing,
-        },
-      };
-    },
-    [activeChordTooltip],
-  );
-
-  const updateChordTooltip = useCallback(
-    (target) => {
-      clearTooltipHideTimeout();
-
-      if (!(target instanceof HTMLElement)) {
-        setActiveChordTooltip(null);
-        return;
-      }
-
-      const chordElement = target.closest(".notespresentation[data-chord]");
-      if (!chordElement) {
-        setActiveChordTooltip(null);
-        return;
-      }
-
-      const rawChord = chordElement.getAttribute("data-chord") || "";
-      const chordId = chordElement.getAttribute("data-chord-id") || "";
-      const chordData = findChordTooltipData(rawChord);
-
-      if (!chordData) {
-        setActiveChordTooltip(null);
-        return;
-      }
-
-      const nextTooltipData = {
-        ...chordData,
-        chordId,
-      };
-
-      setActiveChordTooltip(buildTooltipState(chordElement, nextTooltipData));
-    },
-    [buildTooltipState, clearTooltipHideTimeout],
-  );
-
-  const handleApplyChordVariation = useCallback(
-    ({ chordLabel, chordId, variationIndex, applyToAll }) => {
-      if (applyToAll) {
-        setSelectedChordVariations((current) => ({
-          ...current,
-          [chordLabel]: variationIndex,
-        }));
-      } else {
-        setSelectedChordOccurrenceVariations((current) => ({
-          ...current,
-          [chordId]: variationIndex,
-        }));
-      }
-      clearTooltipHideTimeout();
-      setActiveChordTooltip(null);
-    },
-    [clearTooltipHideTimeout],
-  );
-
-  const getSelectedVariationIndex = useCallback(
-    (tooltipData) => {
-      if (!tooltipData) return 0;
-      if (
-        Object.prototype.hasOwnProperty.call(
-          selectedChordOccurrenceVariations,
-          tooltipData.chordId,
-        )
-      ) {
-        return selectedChordOccurrenceVariations[tooltipData.chordId];
-      }
-      return selectedChordVariations[tooltipData.chordLabel] ?? 0;
-    },
-    [selectedChordOccurrenceVariations, selectedChordVariations],
-  );
-
-  const handleTooltipEnter = useCallback(() => {
-    clearTooltipHideTimeout();
-  }, [clearTooltipHideTimeout]);
-
-  const handleTooltipLeave = useCallback(() => {
-    scheduleTooltipHide();
-  }, [scheduleTooltipHide]);
-
-  const handleCloseTooltip = useCallback(() => {
-    clearTooltipHideTimeout();
-    setActiveChordTooltip(null);
-  }, [clearTooltipHideTimeout]);
-
-  useEffect(() => {
-    if (!artistFromURL || !songFromURL || !instrumentSelected) return;
-
-    // evita chamada dupla no StrictMode (dev)
-    if (didPingRef.current) return;
-    didPingRef.current = true;
-
-    updateLastPlayed(songFromURL, artistFromURL, instrumentSelected).catch(
-      (e) => console.error("updateLastPlayed error:", e),
-    );
-  }, [artistFromURL, songFromURL, instrumentSelected]);
-
-  useEffect(() => {
-    let active = true;
-
-    const fetchData = async () => {
-      try {
-        didPingRef.current = false;
-        const decodedArtist = decodedRouteArtist;
-        const decodedSong = decodedRouteSong;
-        const requestedInstrument = decodedRouteInstrument;
-
-        setIsRouteSongLoading(true);
-        setInstrumentSelected(requestedInstrument);
-        setSongFromURL(decodedSong);
-        setArtistFromURL(decodedArtist);
-        setSongDataFetched(undefined);
-        setEmbedLinks([]);
-        localStorage.setItem("song", decodedSong);
-        localStorage.setItem("artist", decodedArtist);
-
-        logPresentationDebug("fetch:start", {
-          artist: decodedArtist,
-          song: decodedSong,
-          requestedInstrument,
-        });
-
-        const dataFromSong = await allDataFromOneSong(decodedArtist, decodedSong);
-        const dataFromSongparsedResult = JSON.parse(dataFromSong);
-        const hydratedSongData = { ...dataFromSongparsedResult };
-
-        if (!active) return;
-
-        PRESENTATION_INSTRUMENTS.forEach(({ key }) => {
-          const instrumentData = hydratedSongData[key];
-          if (!instrumentData) return;
-
-          const sanitizedLayouts = buildInstrumentPresentationLayouts(
-            instrumentData,
-          );
-
-          hydratedSongData[key] = {
-            ...instrumentData,
-            songCifra: sanitizedLayouts.default.songCifra || instrumentData.songCifra || "",
-            presentationLayouts: toPresentationLayoutPayload(sanitizedLayouts),
-          };
-        });
-
-        const firstAvailableInstrument =
-          PRESENTATION_INSTRUMENTS.find(
-            ({ key }) =>
-              isInstrumentRegistered(hydratedSongData, key) &&
-              instrumentHasPresentationContent(hydratedSongData[key]),
-          )?.key || requestedInstrument;
-        const selectedInstrument =
-          isInstrumentRegistered(hydratedSongData, requestedInstrument) &&
-          instrumentHasPresentationContent(hydratedSongData[requestedInstrument])
-            ? requestedInstrument
-            : firstAvailableInstrument;
-
-        logPresentationDebug("fetch:loaded", {
-          artist: decodedArtist,
-          song: decodedSong,
-          requestedInstrument,
-          selectedInstrument,
-          availableInstruments: PRESENTATION_INSTRUMENTS.filter(({ key }) =>
-            isInstrumentRegistered(hydratedSongData, key),
-          ).map(({ key }) => key),
-          selectedLayouts: getPresentationLayoutsDebugSummary(
-            hydratedSongData[selectedInstrument]?.presentationLayouts,
-          ),
-          selectedSongCifra: getPresentationContentDebugSummary(
-            hydratedSongData[selectedInstrument]?.songCifra,
-          ),
-        });
-
-        setSongDataFetched(hydratedSongData);
-        setEmbedLinks(
-          Array.isArray(hydratedSongData.embedVideos)
-            ? hydratedSongData.embedVideos
-            : [],
-        );
-        setInstrumentSelected(selectedInstrument);
-
-        if (selectedInstrument !== requestedInstrument) {
-          navigate(
-            `/presentation/${encodeURIComponent(
-              decodedArtist,
-            )}/${encodeURIComponent(decodedSong)}/${encodeURIComponent(
-              selectedInstrument,
-            )}`,
-            { replace: true },
-          );
-        }
-
-        handleDataFromAPI(hydratedSongData, selectedInstrument);
-      } catch (error) {
-        if (!active) return;
-        console.error("Error fetching song data:", error);
-        setSongDataFetched(null);
-        setEmbedLinks([]);
-        handleDataFromAPI(null, "");
-      } finally {
-        if (active) {
-          setIsRouteSongLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      active = false;
-    };
-  }, [
+  usePresentationRouteData({
     decodedRouteArtist,
     decodedRouteInstrument,
     decodedRouteSong,
+    instrumentSelected,
+    artistFromURL,
+    songFromURL,
     navigate,
-  ]);
+    setArtistFromURL,
+    setEmbedLinks,
+    setInstrumentSelected,
+    setIsRouteSongLoading,
+    setSetlistSongs,
+    setSongDataFetched,
+    setSongFromURL,
+  });
 
-  useEffect(() => {
-    const loadSetlistNavigation = async () => {
-      const currentArtist = decodedRouteArtist.trim().toLowerCase();
-      const currentSong = decodedRouteSong.trim().toLowerCase();
-      const dashboardVisibleSongs = loadDashboardVisibleSongs();
-
-      if (dashboardVisibleSongs.length && currentArtist && currentSong) {
-        const currentSongIsVisibleOnDashboard = dashboardVisibleSongs.some(
-          (song) =>
-            String(song.artist || "").trim().toLowerCase() === currentArtist &&
-            String(song.song || "").trim().toLowerCase() === currentSong,
-        );
-
-        if (currentSongIsVisibleOnDashboard) {
-          setSetlistSongs(dashboardVisibleSongs);
-          return;
-        }
-      }
-
-      const selectedSetlists = loadSelectedSetlists().map((setlist) =>
-        setlist.trim().toLowerCase(),
-      );
-
-      const { songs } = await fetchUserSongs();
-      if (!selectedSetlists.length) {
-        setSetlistSongs(songs);
-        return;
-      }
-
-      const filteredSongs = songs.filter((song) => {
-        const songSetlists = (song.setlist || []).map((setlist) =>
-          setlist.trim().toLowerCase(),
-        );
-
-        return selectedSetlists.some((setlist) =>
-          songSetlists.includes(setlist),
-        );
-      });
-
-      setSetlistSongs(filteredSongs);
-    };
-
-    loadSetlistNavigation();
-  }, [decodedRouteArtist, decodedRouteSong]);
-
-  useEffect(() => {
-    const contentNode = presentationContentRef.current;
-    if (!contentNode || isEditing) return undefined;
-
-    const handleMouseEnter = (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (target.closest(".notespresentation[data-chord]")) {
-        updateChordTooltip(target);
-      }
-    };
-
-    const handleMouseOut = (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      if (!target.closest(".notespresentation[data-chord]")) return;
-
-      const nextTarget = event.relatedTarget;
-      if (
-        nextTarget instanceof HTMLElement &&
-        (nextTarget.closest(".notespresentation[data-chord]") ||
-          nextTarget.closest(".presentation-chord-tooltip"))
-      ) {
-        return;
-      }
-      scheduleTooltipHide();
-    };
-
-    contentNode.addEventListener("mouseover", handleMouseEnter);
-    contentNode.addEventListener("mouseout", handleMouseOut);
-
-    return () => {
-      contentNode.removeEventListener("mouseover", handleMouseEnter);
-      contentNode.removeEventListener("mouseout", handleMouseOut);
-    };
-  }, [isEditing, scheduleTooltipHide, updateChordTooltip]);
-
-  useEffect(() => {
-    if (isEditing) {
-      setActiveChordTooltip(null);
-      clearTooltipHideTimeout();
-    }
-  }, [clearTooltipHideTimeout, isEditing]);
-
-  useEffect(
-    () => () => {
-      clearTooltipHideTimeout();
-    },
-    [clearTooltipHideTimeout],
-  );
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const fullscreenActive = document.fullscreenElement != null;
-      setIsLiveMode(fullscreenActive);
-      if (fullscreenActive) {
-        setIsPseudoLiveMode(false);
-        focusLiveViewport();
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, [focusLiveViewport]);
-
-  useEffect(() => {
-    const viewport = presentationContentRef.current;
-    if (!viewport) return undefined;
-
-    registerScrollViewport(viewport);
-    return () => {
-      unregisterScrollViewport(viewport);
-    };
-  }, [effectiveLiveMode, hideChords, selectContenttoShow, isEditing]);
-
-  const scrollExpandedLayout = useCallback((direction) => {
-    const viewport = presentationContentRef.current;
-    if (!viewport) return;
-
-    const blocks = Array.from(
-      viewport.querySelectorAll(".presentation-render-block"),
-    );
-    if (!blocks.length) return;
-
-    const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
-    const activeIndex = blocks
-      .map((block, index) => ({
-        index,
-        distance: Math.abs(
-          block.offsetLeft + block.clientWidth / 2 - viewportCenter,
-        ),
-      }))
-      .sort((left, right) => left.distance - right.distance)[0]?.index ?? 0;
-    const targetIndex = getLiveColumnTargetIndex({
-      currentIndex: activeIndex,
-      direction,
-      columnCount: blocks.length,
-    });
-    const targetBlock = blocks[targetIndex];
-    if (!targetBlock) return;
-
-    const centeredOffset =
-      effectiveLiveMode
-        ? targetBlock.offsetLeft -
-          (viewport.clientWidth - targetBlock.clientWidth) / 2
-        : targetBlock.offsetLeft - 20;
-
-    viewport.scrollTo({
-      left: Math.max(0, centeredOffset),
-      behavior: "smooth",
-    });
-
-    setActiveLiveColumnKey(targetBlock.dataset.liveColumnKey || "");
-  }, [effectiveLiveMode]);
-
-  useEffect(() => {
-    const viewport = presentationContentRef.current;
-    if (
-      !viewport ||
-      !shouldUseHorizontalColumnFlow ||
-      isEditing
-    ) {
-      return undefined;
-    }
-
-    const handleWheel = (event) => {
-      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
-        ? event.deltaX
-        : event.deltaY;
-
-      if (!delta) return;
-      event.preventDefault();
-      if (effectiveLiveMode) {
-        scrollExpandedLayout(delta > 0 ? 1 : -1);
-        return;
-      }
-
-      viewport.scrollLeft += delta;
-    };
-
-    viewport.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      viewport.removeEventListener("wheel", handleWheel);
-    };
-  }, [
-    effectiveLiveMode,
-    isEditing,
+  const {
+    enterLiveMode,
+    exitLiveMode,
+    focusLiveViewport,
     scrollExpandedLayout,
-    shouldUseHorizontalColumnFlow,
-  ]);
-
-  useEffect(() => {
-    const viewport = presentationContentRef.current;
-    if (!viewport || !effectiveLiveMode || !shouldUseHorizontalColumnFlow) {
-      setActiveLiveColumnKey("");
-      return undefined;
-    }
-
-    let frameId = 0;
-    let snapTimeoutId = 0;
-    let hasInitialCenter = false;
-    let isProgrammaticScroll = false;
-    const centerBlock = (block, behavior = "smooth") => {
-      if (!block) return;
-      isProgrammaticScroll = true;
-      viewport.scrollTo({
-        left: Math.max(
-          0,
-          block.offsetLeft - (viewport.clientWidth - block.clientWidth) / 2,
-        ),
-        behavior,
-      });
-      window.setTimeout(() => {
-        isProgrammaticScroll = false;
-      }, behavior === "auto" ? 0 : 260);
-    };
-    const updateActiveColumn = () => {
-      const blocks = Array.from(
-        viewport.querySelectorAll(".presentation-render-block"),
-      );
-      if (!blocks.length) {
-        setActiveLiveColumnKey("");
-        return;
-      }
-
-      const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
-      const closestBlock = blocks
-        .map((block) => ({
-          block,
-          key: block.dataset.liveColumnKey || "",
-          distance: Math.abs(
-            block.offsetLeft + block.clientWidth / 2 - viewportCenter,
-          ),
-        }))
-        .sort((left, right) => left.distance - right.distance)[0];
-
-      setActiveLiveColumnKey((current) =>
-        closestBlock?.key && current !== closestBlock.key
-          ? closestBlock.key
-          : current,
-      );
-
-      if (!hasInitialCenter) {
-        hasInitialCenter = true;
-        centerBlock(closestBlock?.block, "auto");
-      }
-    };
-
-    const requestUpdate = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(updateActiveColumn);
-      window.clearTimeout(snapTimeoutId);
-
-      if (!isProgrammaticScroll) {
-        snapTimeoutId = window.setTimeout(() => {
-          const blocks = Array.from(
-            viewport.querySelectorAll(".presentation-render-block"),
-          );
-          const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
-          const closestBlock = blocks
-            .map((block) => ({
-              block,
-              distance: Math.abs(
-                block.offsetLeft + block.clientWidth / 2 - viewportCenter,
-              ),
-            }))
-            .sort((left, right) => left.distance - right.distance)[0]?.block;
-          centerBlock(closestBlock);
-        }, 160);
-      }
-    };
-
-    requestUpdate();
-    viewport.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.clearTimeout(snapTimeoutId);
-      viewport.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-    };
-  }, [
+  } = usePresentationLiveMode({
     activeProgressionRenderColumns,
+    closeTouchVideo,
     effectiveLiveMode,
+    hideChords,
+    hideTooltip,
+    isEditing,
+    isTouchLayout,
+    liveModeRootRef,
+    presentationContentRef,
+    pushSnackbarMessage,
+    selectContenttoShow,
+    setActiveLiveColumnKey,
+    setActiveShowProgressionMarkers,
+    setIsLiveMode,
+    setIsPseudoLiveMode,
     shouldUseHorizontalColumnFlow,
-  ]);
-
-  useEffect(() => {
-    if (!effectiveLiveMode) return undefined;
-
-    focusLiveViewport();
-
-    const handleWindowFocus = () => {
-      focusLiveViewport();
-    };
-
-    window.addEventListener("focus", handleWindowFocus);
-    return () => {
-      window.removeEventListener("focus", handleWindowFocus);
-    };
-  }, [focusLiveViewport, effectiveLiveMode]);
-
-  useEffect(() => {
-    if (!effectiveLiveMode) return undefined;
-
-    const handleLiveNavigation = (event) => {
-      const contentNode = presentationContentRef.current;
-      if (!contentNode) return;
-
-      const scrollController = getRegisteredScrollController();
-
-      if (scrollController && event.key === " ") {
-        event.preventDefault();
-        scrollController.toggleAutoScroll();
-        return;
-      }
-
-      if (scrollController && event.key === "Escape") {
-        event.preventDefault();
-        scrollController.stopAutoScroll();
-        return;
-      }
-
-      if (scrollController && event.key === "ArrowLeft") {
-        event.preventDefault();
-        scrollController.adjustSpeed(-1);
-        return;
-      }
-
-      if (scrollController && event.key === "ArrowRight") {
-        event.preventDefault();
-        scrollController.adjustSpeed(1);
-        return;
-      }
-
-      let delta = 0;
-      if (scrollController && event.key === "ArrowDown") {
-        event.preventDefault();
-        scrollController.handleVerticalAction("down");
-        return;
-      }
-      if (scrollController && event.key === "ArrowUp") {
-        event.preventDefault();
-        scrollController.handleVerticalAction("up");
-        return;
-      }
-      if (event.key === "PageDown")
-        delta = Math.max(320, window.innerHeight * 0.85);
-      if (event.key === "PageUp")
-        delta = -Math.max(320, window.innerHeight * 0.85);
-      if (event.key === "Home") {
-        event.preventDefault();
-        if (scrollController) {
-          scrollController.scrollViewportTo(0);
-          return;
-        }
-        contentNode.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-      if (event.key === "End") {
-        event.preventDefault();
-        if (scrollController) {
-          scrollController.scrollViewportTo(contentNode.scrollHeight);
-          return;
-        }
-        contentNode.scrollTo({
-          top: contentNode.scrollHeight,
-          behavior: "smooth",
-        });
-        return;
-      }
-
-      if (!delta) return;
-      event.preventDefault();
-      contentNode.scrollBy({ top: delta, behavior: "smooth" });
-    };
-
-    window.addEventListener("keydown", handleLiveNavigation);
-    return () => {
-      window.removeEventListener("keydown", handleLiveNavigation);
-    };
-  }, [effectiveLiveMode]);
-
-  useEffect(() => {
-    if (!isTouchLayout) return undefined;
-
-    window.dispatchEvent(
-      new CustomEvent("mobile-ui-visibility-change", {
-        detail: { hidden: effectiveLiveMode },
-      }),
-    );
-
-    return () => {
-      window.dispatchEvent(
-        new CustomEvent("mobile-ui-visibility-change", {
-          detail: { hidden: false },
-        }),
-      );
-    };
-  }, [effectiveLiveMode, isTouchLayout]);
-
-  useEffect(() => {
-    if (!presentationLayoutModeStorageKey || typeof window === "undefined") {
-      return;
-    }
-
-    skipNextModePersistRef.current = true;
-    const storedLayoutMode = window.localStorage.getItem(
-      presentationLayoutModeStorageKey,
-    );
-    setIsExpandedCifra(storedLayoutMode === "expanded");
-  }, [presentationLayoutModeStorageKey]);
-
-  useEffect(() => {
-    if (
-      !presentationLayoutIdentity ||
-      !presentationLayoutStorageKey ||
-      !songDataFetched
-    ) {
-      return;
-    }
-
-    if (lastHydratedLayoutIdentityRef.current === presentationLayoutIdentity) {
-      return;
-    }
-
-    lastHydratedLayoutIdentityRef.current = presentationLayoutIdentity;
-    skipNextLayoutPersistRef.current = true;
-
-    if (typeof window === "undefined") return;
-
-    try {
-      const rawStoredLayouts = window.localStorage.getItem(
-        presentationLayoutStorageKey,
-      );
-      if (!rawStoredLayouts) {
-        logPresentationDebug("localStorage:hydrate:empty", {
-          identity: presentationLayoutIdentity,
-          key: presentationLayoutStorageKey,
-        });
-        return;
-      }
-
-      const parsedStoredLayouts = JSON.parse(rawStoredLayouts);
-      logPresentationDebug("localStorage:hydrate:read", {
-        identity: presentationLayoutIdentity,
-        key: presentationLayoutStorageKey,
-        storedLayouts: getPresentationLayoutsDebugSummary(parsedStoredLayouts),
-      });
-
-      setSongDataFetched((prev) => {
-        if (!prev || !instrumentSelected) return prev;
-
-        const currentInstrument = prev[instrumentSelected] || {};
-        const currentLayouts = buildInstrumentPresentationLayouts(
-          currentInstrument,
-        );
-        const nextLayouts = {
-          default: normalizePresentationLayoutVariant(
-            parsedStoredLayouts?.default,
-            {
-              fallbackSongCifra: currentLayouts.default.songCifra,
-              defaultTwoColumns: false,
-            },
-          ),
-          expanded: normalizePresentationLayoutVariant(
-            parsedStoredLayouts?.expanded,
-            {
-              fallbackSongCifra: currentLayouts.expanded.songCifra,
-              defaultTwoColumns: true,
-            },
-          ),
-        };
-        const currentSnapshot = getPresentationLayoutSettingsSnapshot(
-          currentLayouts,
-        );
-        const nextSnapshot = getPresentationLayoutSettingsSnapshot(nextLayouts);
-        const shouldSkipHydration =
-          currentSnapshot === nextSnapshot &&
-          currentInstrument.songCifra === nextLayouts.default.songCifra;
-
-        logPresentationDebug("localStorage:hydrate:compare", {
-          identity: presentationLayoutIdentity,
-          key: presentationLayoutStorageKey,
-          skipped: shouldSkipHydration,
-          currentLayouts: getPresentationLayoutsDebugSummary(currentLayouts),
-          storedLayouts: getPresentationLayoutsDebugSummary(nextLayouts),
-          currentSongCifra: getPresentationContentDebugSummary(
-            currentInstrument.songCifra,
-          ),
-        });
-
-        if (shouldSkipHydration) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          [instrumentSelected]: {
-            ...currentInstrument,
-            songCifra: nextLayouts.default.songCifra,
-            presentationLayouts: toPresentationLayoutPayload(nextLayouts),
-          },
-        };
-      });
-    } catch (error) {
-      console.error("Erro ao hidratar layouts da presentation:", error);
-    }
-  }, [
-    instrumentSelected,
-    presentationLayoutIdentity,
-    presentationLayoutStorageKey,
-    songDataFetched,
-  ]);
-
-  useEffect(() => {
-    if (!presentationLayoutStorageKey || typeof window === "undefined") return;
-    if (
-      isRouteSongLoading ||
-      !songDataFetched ||
-      !instrumentSelected ||
-      !currentInstrumentData ||
-      !hasPersistablePresentationLayouts(instrumentPresentationLayouts)
-    ) {
-      logPresentationDebug("localStorage:persist:skip", {
-        identity: presentationLayoutIdentity,
-        key: presentationLayoutStorageKey,
-        isRouteSongLoading,
-        hasSongDataFetched: Boolean(songDataFetched),
-        instrumentSelected,
-        hasCurrentInstrumentData: Boolean(currentInstrumentData),
-        isPersistable: hasPersistablePresentationLayouts(
-          instrumentPresentationLayouts,
-        ),
-      });
-      return;
-    }
-    if (skipNextLayoutPersistRef.current) {
-      skipNextLayoutPersistRef.current = false;
-      return;
-    }
-
-    try {
-      const persistedLayouts = toPresentationLayoutPayload(
-        instrumentPresentationLayouts,
-      );
-      logPresentationDebug("localStorage:persist", {
-        identity: presentationLayoutIdentity,
-        key: presentationLayoutStorageKey,
-        layouts: getPresentationLayoutsDebugSummary(persistedLayouts),
-      });
-      window.localStorage.setItem(
-        presentationLayoutStorageKey,
-        JSON.stringify(persistedLayouts),
-      );
-    } catch (error) {
-      console.error(
-        "Erro ao persistir layouts da presentation no navegador:",
-        error,
-      );
-    }
-  }, [
-    currentInstrumentData,
-    instrumentPresentationLayouts,
-    instrumentSelected,
-    isRouteSongLoading,
-    presentationLayoutIdentity,
-    presentationLayoutSettingsSnapshot,
-    presentationLayoutStorageKey,
-    songDataFetched,
-  ]);
-
-  useEffect(() => {
-    if (!presentationLayoutModeStorageKey || typeof window === "undefined") {
-      return;
-    }
-    if (skipNextModePersistRef.current) {
-      skipNextModePersistRef.current = false;
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(
-        presentationLayoutModeStorageKey,
-        isExpandedCifra ? "expanded" : "default",
-      );
-    } catch (error) {
-      console.error("Erro ao persistir modo da presentation:", error);
-    }
-  }, [isExpandedCifra, presentationLayoutModeStorageKey]);
+  });
 
   // Função para alternar a visibilidade das tabs
   const toggleTabsVisibility = () => {
     setHideTabs(!hideTabs);
   };
 
-  const enterLiveMode = async () => {
-    const rootNode = liveModeRootRef.current;
-    if (!rootNode) return;
-
-    setActiveShowProgressionMarkers(false);
-
-    if (isTouchLayout) {
-      if (typeof rootNode.requestFullscreen === "function") {
-        try {
-          await rootNode.requestFullscreen();
-          setIsLiveMode(true);
-          setIsPseudoLiveMode(false);
-          focusLiveViewport();
-          return;
-        } catch (error) {
-          console.warn("Fallback para pseudo LIVE mode:", error);
-        }
-      }
-
-      setIsPseudoLiveMode(true);
-      focusLiveViewport();
-      return;
-    }
-
-    try {
-      await rootNode.requestFullscreen();
-      setIsLiveMode(true);
-      focusLiveViewport();
-    } catch (error) {
-      console.error("Não foi possível entrar no modo LIVE:", error);
-      pushSnackbarMessage(
-        "Erro",
-        "Não foi possível abrir o modo LIVE em tela cheia.",
-      );
-    }
-  };
-
-  const exitLiveMode = async () => {
-    if (
-      document.fullscreenElement &&
-      typeof document.exitFullscreen === "function"
-    ) {
-      try {
-        await document.exitFullscreen();
-      } catch (error) {
-        console.error("Não foi possível sair do modo LIVE:", error);
-      }
-    }
-
-    setIsPseudoLiveMode(false);
-    setIsLiveMode(false);
-  };
-
-  const closeTouchVideo = useCallback(() => {
-    setTouchVideoLink("");
-    setIsTouchVideoActive(false);
-    setIsVideoModalOpen(false);
-    setIsTouchVideoMenuOpen(false);
-  }, []);
-
-  useEffect(() => {
-    const handleForcedCleanup = async () => {
-      clearTooltipHideTimeout();
-      setActiveChordTooltip(null);
-      setIsPseudoLiveMode(false);
-      setIsLiveMode(false);
-      closeTouchVideo();
-
-      if (
-        document.fullscreenElement &&
-        typeof document.exitFullscreen === "function"
-      ) {
-        try {
-          await document.exitFullscreen();
-        } catch (error) {
-          console.warn("Failed to exit fullscreen during presentation cleanup:", error);
-        }
-      }
-    };
-
-    window.addEventListener("presentation-force-cleanup", handleForcedCleanup);
-    return () => {
-      window.removeEventListener(
-        "presentation-force-cleanup",
-        handleForcedCleanup,
-      );
-    };
-  }, [clearTooltipHideTimeout, closeTouchVideo]);
-
-  const instrumentNotes = currentInstrumentData?.notes || "";
-
-  const handleInstrumentNotesChange = useCallback(
-    (plainText) => {
-      setSongDataFetched((prev) => {
-        if (!prev || !instrumentSelected) return prev;
-        return {
-          ...prev,
-          [instrumentSelected]: {
-            ...(prev[instrumentSelected] || {}),
-            notes: String(plainText || ""),
-          },
-        };
-      });
-    },
-    [instrumentSelected],
-  );
-
-  const handleSaveInstrumentNotes = useCallback(
-    async (plainText) => {
-      if (!artistFromURL || !songFromURL || !instrumentSelected) {
-        pushSnackbarMessage("Erro", "Sem dados da música para salvar notas.");
-        return;
-      }
-
-      try {
-        setIsSavingNotes(true);
-        const result = await updateInstrumentNotes({
-          artist: artistFromURL,
-          song: songFromURL,
-          instrument: instrumentSelected,
-          notes: plainText,
-        });
-        if (result?.song) {
-          setSongDataFetched((prev) => {
-            if (!prev || !instrumentSelected) return result.song;
-
-            const previousInstrument = prev[instrumentSelected] || {};
-            const nextInstrument = result.song?.[instrumentSelected] || {};
-
-            return {
-              ...prev,
-              ...result.song,
-              [instrumentSelected]: {
-                ...nextInstrument,
-                presentationLayouts:
-                  nextInstrument.presentationLayouts ||
-                  previousInstrument.presentationLayouts,
-                songCifra:
-                  nextInstrument.songCifra || previousInstrument.songCifra,
-              },
-            };
-          });
-        } else {
-          handleInstrumentNotesChange(plainText);
-        }
-        pushSnackbarMessage("Salvo", "Notas salvas com sucesso.");
-      } catch (error) {
-        console.error("Erro ao salvar notas:", error);
-        pushSnackbarMessage("Erro", "Não foi possível salvar as notas.");
-      } finally {
-        setIsSavingNotes(false);
-      }
-    },
-    [
-      artistFromURL,
-      handleInstrumentNotesChange,
-      instrumentSelected,
-      pushSnackbarMessage,
-      songFromURL,
-    ],
-  );
-
-  const openInstrumentNotesWindow = useCallback(() => {
-    setNotesModalStatus(true);
-    pushSnackbarMessage("Notes", "Notas abertas para este instrumento.");
-  }, [pushSnackbarMessage]);
+  const {
+    handleInstrumentNotesChange,
+    handleSaveInstrumentNotes,
+    instrumentNotes,
+    isSavingNotes,
+    openInstrumentNotesWindow,
+  } = usePresentationInstrumentNotes({
+    artistFromURL,
+    currentInstrumentData,
+    instrumentSelected,
+    pushSnackbarMessage,
+    setNotesModalStatus,
+    setSongDataFetched,
+    songFromURL,
+  });
 
   const toggleMarksVisibility = useCallback(() => {
     setActiveShowProgressionMarkers((current) => !current);
   }, [setActiveShowProgressionMarkers]);
 
-  const handleChangeMarkWidth = useCallback((blockKeys, width) => {
-    const normalizedWidth = Math.max(260, Math.min(1200, Math.round(width)));
-
-    updateActivePresentationLayout((currentLayout) => {
-      const currentOverrides = currentLayout.progressionMarkOverrides || {};
-      const nextOverrides = { ...currentOverrides };
-
-      blockKeys.forEach((blockKey) => {
-        nextOverrides[blockKey] = {
-          ...(currentOverrides[blockKey] || {}),
-          width: normalizedWidth,
-        };
-      });
-
-      return {
-        ...currentLayout,
-        progressionMarkOverrides: nextOverrides,
-      };
-    });
-  }, [updateActivePresentationLayout]);
-
-  const handleChangeMarkHeight = useCallback((blockKeys, height) => {
-    const normalizedHeight = Math.max(
-      MIN_PROGRESSION_BLOCK_HEIGHT_PX,
-      Math.min(MAX_PROGRESSION_BLOCK_HEIGHT_PX, Math.round(height)),
-    );
-
-    updateActivePresentationLayout((currentLayout) => {
-      const currentOverrides = currentLayout.progressionMarkOverrides || {};
-      const nextOverrides = { ...currentOverrides };
-
-      blockKeys.forEach((blockKey) => {
-        nextOverrides[blockKey] = {
-          ...(currentOverrides[blockKey] || {}),
-          height: normalizedHeight,
-        };
-      });
-
-      return {
-        ...currentLayout,
-        progressionMarkOverrides: nextOverrides,
-      };
-    });
-  }, [updateActivePresentationLayout]);
-
-  const handleStartProgressionResize = useCallback((event, group) => {
-    if (!group?.blockKeys?.length) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    const blockNode = event.currentTarget.closest(".presentation-render-block");
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const blockRect = blockNode?.getBoundingClientRect();
-    const startWidth = blockRect?.width || group.width || 620;
-    const startHeight = blockRect?.height || group.height || 180;
-    const axis = event.currentTarget.dataset.resizeAxis || "width";
-    const resizingKey =
-      group.visualColumnOverrideKey || group.baseGroupKey || group.groupKey;
-    const heightOverrideKeys = group.visualColumnOverrideKey
-      ? [group.visualColumnOverrideKey]
-      : group.blockKeys;
-    const widthOverrideKeys = group.visualColumnOverrideKey
-      ? [group.visualColumnOverrideKey]
-      : group.blockKeys;
-    const viewportRect = presentationContentRef.current?.getBoundingClientRect();
-    const visibleBottomLimit =
-      Math.max(
-        viewportRect?.bottom || window.innerHeight,
-        window.innerHeight,
-      ) - PROGRESSION_BLOCK_BOTTOM_GUTTER_PX;
-    const maxHeightFromViewport = Math.max(
-      MIN_PROGRESSION_BLOCK_HEIGHT_PX,
-      Math.round(visibleBottomLimit - (blockRect?.top || 0)),
-    );
-    const maxAllowedHeight = Math.min(
-      MAX_PROGRESSION_BLOCK_HEIGHT_PX,
-      maxHeightFromViewport,
-    );
-    const clampHeight = (value) =>
-      Math.max(
-        MIN_PROGRESSION_BLOCK_HEIGHT_PX,
-        Math.min(maxAllowedHeight, Math.round(value)),
-      );
-
-    const handleMouseMove = (moveEvent) => {
-      const nextWidth = Math.max(
-        260,
-        Math.min(1200, startWidth + moveEvent.clientX - startX),
-      );
-      const nextHeight = clampHeight(startHeight + moveEvent.clientY - startY);
-
-      setResizingProgressionWidths((current) => ({
-        ...current,
-        [resizingKey]:
-          axis === "height"
-            ? { ...(current[resizingKey] || {}), height: nextHeight }
-            : { ...(current[resizingKey] || {}), width: nextWidth },
-      }));
-    };
-
-    const handleMouseUp = (upEvent) => {
-      const nextWidth = Math.max(
-        260,
-        Math.min(1200, startWidth + upEvent.clientX - startX),
-      );
-      const nextHeight = clampHeight(startHeight + upEvent.clientY - startY);
-
-      if (axis === "height") {
-        handleChangeMarkHeight(heightOverrideKeys, nextHeight);
-      } else {
-        handleChangeMarkWidth(widthOverrideKeys, nextWidth);
-      }
-      setResizingProgressionWidths((current) => {
-        const next = { ...current };
-        delete next[resizingKey];
-        return next;
-      });
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  }, [handleChangeMarkHeight, handleChangeMarkWidth]);
-
-  const activeProgressionMarkSettings = useMemo(() => {
-    if (!activeProgressionMarkControl) {
-      return {
-        active: false,
-        label: "",
-        width: 0,
-        height: 0,
-      };
-    }
-
-    const targetColumn = activeProgressionRenderColumns.find((column) => {
-      if (
-        activeProgressionMarkControl.visualColumnOverrideKey &&
-        column.visualColumnOverrideKey ===
-          activeProgressionMarkControl.visualColumnOverrideKey
-      ) {
-        return true;
-      }
-      return column.groupKey === activeProgressionMarkControl.groupKey;
-    });
-    const overrideKey =
-      activeProgressionMarkControl.visualColumnOverrideKey ||
-      targetColumn?.visualColumnOverrideKey ||
-      activeProgressionMarkControl.groupKey;
-    const overrides = progressionMarkOverrides[overrideKey] || {};
-    const resizing = resizingProgressionWidths[overrideKey] || {};
-
-    return {
-      active: Boolean(targetColumn),
-      label:
-        targetColumn?.visualColumnLabel ||
-        activeProgressionMarkControl.label ||
-        "",
-      overrideKey,
-      blockKeys:
-        targetColumn?.blockKeys ||
-        activeProgressionMarkControl.blockKeys ||
-        [],
-      width: Math.round(
-        resizing.width ??
-          overrides.width ??
-          targetColumn?.width ??
-          activeProgressionMarkControl.width ??
-          620,
-      ),
-      height: Math.round(
-        resizing.height ??
-          overrides.height ??
-          targetColumn?.height ??
-          activeProgressionMarkControl.height ??
-          260,
-      ),
-    };
-  }, [
+  const {
+    activeProgressionMarkSettings,
+    adjustActiveProgressionMarkHeight,
+    adjustActiveProgressionMarkWidth,
+    handleDropProgressionGroup,
+    handleDropProgressionGroupOnColumn,
+    handleStartProgressionResize,
+  } = usePresentationProgressionControls({
     activeProgressionMarkControl,
     activeProgressionRenderColumns,
-    progressionMarkOverrides,
-    resizingProgressionWidths,
-  ]);
-
-  const adjustActiveProgressionMarkWidth = useCallback(
-    (delta) => {
-      if (!activeProgressionMarkSettings.active) return;
-      const nextWidth = Math.max(
-        260,
-        Math.min(1200, activeProgressionMarkSettings.width + delta),
-      );
-      handleChangeMarkWidth([activeProgressionMarkSettings.overrideKey], nextWidth);
-    },
-    [activeProgressionMarkSettings, handleChangeMarkWidth],
-  );
-
-  const adjustActiveProgressionMarkHeight = useCallback(
-    (delta) => {
-      if (!activeProgressionMarkSettings.active) return;
-      const nextHeight = Math.max(
-        MIN_PROGRESSION_BLOCK_HEIGHT_PX,
-        Math.min(
-          MAX_PROGRESSION_BLOCK_HEIGHT_PX,
-          activeProgressionMarkSettings.height + delta,
-        ),
-      );
-      handleChangeMarkHeight(
-        [activeProgressionMarkSettings.overrideKey],
-        nextHeight,
-      );
-    },
-    [activeProgressionMarkSettings, handleChangeMarkHeight],
-  );
-
-  const handleDropProgressionGroup = useCallback((targetGroupKey) => {
-    const draggedGroupKey = draggedProgressionGroupKeyRef.current;
-    draggedProgressionGroupKeyRef.current = "";
-
-    if (!draggedGroupKey || draggedGroupKey === targetGroupKey) return;
-
-    const orderedGroups = progressionRenderGroups.filter(
-      (group) => group.isProgressionEligible,
-    );
-    const draggedGroup = orderedGroups.find(
-      (group) => group.groupKey === draggedGroupKey,
-    );
-    const targetGroup = orderedGroups.find(
-      (group) => group.groupKey === targetGroupKey,
-    );
-
-    if (!draggedGroup || !targetGroup) return;
-
-    logPresentationDebug("drag:drop-group", {
-      identity: presentationLayoutIdentity,
-      draggedGroupKey,
-      targetGroupKey,
-      draggedGroup: getProgressionColumnsDebugSummary([draggedGroup])[0],
-      targetGroup: getProgressionColumnsDebugSummary([targetGroup])[0],
-    });
-
-    updateActivePresentationLayout((currentLayout) => {
-      const currentOverrides = currentLayout.progressionMarkOverrides || {};
-      const nextOverrides = { ...currentOverrides };
-      const targetPosition =
-        Number.parseInt(targetGroup.columnIndex, 10) ||
-        Number.parseInt(targetGroup.displayPosition, 10) ||
-        1;
-      const nextOrder =
-        Math.max(
-          ...targetGroup.blocks.map((block) =>
-            Number.isFinite(Number(block.renderOrder))
-              ? Number(block.renderOrder)
-              : Number(block.index) || 0,
-          ),
-          0,
-        ) + 1;
-
-      draggedGroup.blockKeys.forEach((blockKey, blockIndex) => {
-        nextOverrides[blockKey] = {
-          ...(currentOverrides[blockKey] || {}),
-          position: targetPosition,
-          order: nextOrder + blockIndex,
-        };
-      });
-
-      logPresentationDebug("drag:next-overrides", {
-        identity: presentationLayoutIdentity,
-        draggedGroupKey,
-        targetGroupKey,
-        targetPosition,
-        nextOrder,
-        changedOverrides: Object.fromEntries(
-          draggedGroup.blockKeys.map((blockKey) => [
-            blockKey,
-            nextOverrides[blockKey],
-          ]),
-        ),
-      });
-
-      return {
-        ...currentLayout,
-        progressionMarkOverrides: nextOverrides,
-      };
-    });
-  }, [
+    draggedProgressionGroupKeyRef,
+    isEditing,
+    presentationContentRef,
     presentationLayoutIdentity,
+    progressionMarkOverrides,
     progressionRenderGroups,
+    resizingProgressionWidths,
+    setResizingProgressionWidths,
     updateActivePresentationLayout,
-  ]);
-
-  const handleDropProgressionGroupOnColumn = useCallback((event) => {
-    if (!isEditing || !draggedProgressionGroupKeyRef.current) return;
-
-    const columnNodes = Array.from(
-      event.currentTarget.querySelectorAll(
-        "[data-progression-drop-target='true']",
-      ),
-    );
-    if (!columnNodes.length) return;
-
-    event.preventDefault();
-
-    const pointerX = event.clientX;
-    const targetNode =
-      columnNodes.find((node) => {
-        const rect = node.getBoundingClientRect();
-        return pointerX >= rect.left && pointerX <= rect.right;
-      }) ||
-      columnNodes
-        .map((node) => {
-          const rect = node.getBoundingClientRect();
-          return {
-            node,
-            distance: Math.abs(pointerX - (rect.left + rect.width / 2)),
-          };
-        })
-        .sort((left, right) => left.distance - right.distance)[0]?.node;
-
-    const targetGroupKey = targetNode?.dataset?.progressionGroupKey;
-    logPresentationDebug("drag:drop-on-column", {
-      identity: presentationLayoutIdentity,
-      draggedGroupKey: draggedProgressionGroupKeyRef.current,
-      pointerX,
-      targetGroupKey,
-      availableTargets: columnNodes.map((node) => {
-        const rect = node.getBoundingClientRect();
-        return {
-          groupKey: node.dataset?.progressionGroupKey,
-          label: node.dataset?.progressionColumnLabel,
-          left: Math.round(rect.left),
-          right: Math.round(rect.right),
-          width: Math.round(rect.width),
-        };
-      }),
-    });
-    if (targetGroupKey) {
-      handleDropProgressionGroup(targetGroupKey);
-    }
-  }, [handleDropProgressionGroup, isEditing, presentationLayoutIdentity]);
+  });
 
   const toggleSelectedBlockKeys = useCallback((blockKeys = []) => {
     if (!blockKeys.length) return;
@@ -3196,9 +774,7 @@ function Presentation() {
       tabIndex={effectiveLiveMode ? -1 : undefined}
       className={`flex min-h-0 justify-center ${
         effectiveLiveMode ? "h-[100dvh]" : "h-full"
-      } ${
-        effectiveLiveMode ? "presentation-live-shell" : ""
-      } ${
+      } ${effectiveLiveMode ? "presentation-live-shell" : ""} ${
         isPseudoLiveMode ? "overflow-hidden" : ""
       }`}
       onMouseDown={effectiveLiveMode ? focusLiveViewport : undefined}
@@ -3259,7 +835,9 @@ function Presentation() {
           onSelectInstrument={goToInstrument}
           requestedPanel={toolBoxRequestedPanel}
           activeProgressionMarkSettings={activeProgressionMarkSettings}
-          onDecreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(-20)}
+          onDecreaseActiveMarkWidth={() =>
+            adjustActiveProgressionMarkWidth(-20)
+          }
           onIncreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(20)}
           onDecreaseActiveMarkHeight={() =>
             adjustActiveProgressionMarkHeight(-20)
@@ -3293,499 +871,63 @@ function Presentation() {
               : "w-11/12 2xl:w-9/12 mx-auto"
           }`}
         >
-          {!effectiveLiveMode && (
-            <div
-              className={`relative my-5 flex shrink-0 justify-between neuphormism-b ${
-                isTouchLayout
-                  ? "items-stretch gap-3 px-4 py-3"
-                  : "min-h-[7.25rem] flex-row items-center px-10 pb-4 pt-8"
-              }`}
-            >
-              {!isTouchLayout ? (
-                <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
-                  <span>Presentation</span>
-                  <span>{activeLayoutLabel}</span>
-                </div>
-              ) : null}
-              <div
-                className={`flex min-w-0 flex-1 flex-col ${
-                  isTouchLayout ? "pr-1" : ""
-                }`}
-              >
-                {isTouchLayout && isTouchVideoActive ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
-                          Video Active
-                        </div>
-                        <div className="truncate text-[1rem] font-bold leading-[1.15rem] text-black/70">
-                          {songFromURL} • {artistFromURL}
-                        </div>
-                      </div>
-                    </div>
-                    <ToolBoxYT
-                      linktoplay={touchVideoLink}
-                      setVideoModalStatus={setIsTouchVideoActive}
-                      setLinktoplay={setTouchVideoLink}
-                      isTouchLayout
-                      onVideoModalChange={setIsVideoModalOpen}
-                      renderInline
-                      iframeHeight={208}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <h1
-                      className={`font-bold text-black ${
-                        isTouchLayout
-                          ? `${getMobileTitleSizeClass(songFromURL, "song")} truncate`
-                          : "text-[2.45rem] leading-[1.02]"
-                      }`}
-                      title={songFromURL}
-                    >
-                      {songFromURL}
-                    </h1>
-                    <h1
-                      className={`font-bold text-black ${
-                        isTouchLayout
-                          ? `${getMobileTitleSizeClass(artistFromURL, "artist")} truncate`
-                          : "text-[2rem] leading-[1.02]"
-                      }`}
-                      title={artistFromURL}
-                    >
-                      {artistFromURL}
-                    </h1>
-                  </>
-                )}
-                {isTouchLayout ? (
-                  <div className="mt-8 flex items-stretch gap-1.5 opacity-80">
-                    <button
-                      type="button"
-                      disabled={!previousSetlistSong}
-                      className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
-                      onClick={() => goToSetlistSong(previousSetlistSong)}
-                      aria-label="Previous song in selected setlist"
-                    >
-                      &lt;&lt;
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!nextSetlistSong}
-                      className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
-                      onClick={() => goToSetlistSong(nextSetlistSong)}
-                      aria-label="Next song in selected setlist"
-                    >
-                      &gt;&gt;
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              <div
-                className={`flex flex-col ${
-                  isTouchLayout
-                    ? "shrink-0 items-stretch justify-start gap-2"
-                    : "items-stretch gap-3 pt-2"
-                }`}
-              >
-                <div
-                  className={
-                    isTouchLayout
-                      ? "flex h-full flex-col items-stretch justify-between gap-3"
-                      : "flex flex-col gap-2"
-                  }
-                >
-                  <div
-                    className={
-                      isTouchLayout
-                        ? "hidden"
-                        : "order-2 mt-3 grid grid-cols-2 gap-2 opacity-80"
-                    }
-                  >
-                  <button
-                    type="button"
-                    disabled={!previousSetlistSong}
-                    className={`neuphormism-b-btn font-black text-black disabled:cursor-not-allowed disabled:opacity-35 ${
-                      isTouchLayout
-                        ? "px-2 py-1 text-[11px]"
-                        : "px-3 py-1.5 text-xs"
-                    }`}
-                    onClick={() => goToSetlistSong(previousSetlistSong)}
-                    aria-label="Previous song in selected setlist"
-                  >
-                    &lt;&lt;
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!nextSetlistSong}
-                    className={`neuphormism-b-btn font-black text-black disabled:cursor-not-allowed disabled:opacity-35 ${
-                      isTouchLayout
-                        ? "px-2 py-1 text-[11px]"
-                        : "px-3 py-1.5 text-xs"
-                    }`}
-                    onClick={() => goToSetlistSong(nextSetlistSong)}
-                    aria-label="Next song in selected setlist"
-                  >
-                    &gt;&gt;
-                  </button>
-                  </div>
-                  <div
-                    className={
-                      isTouchLayout
-                        ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
-                        : "order-1 flex flex-col items-stretch gap-2"
-                    }
-                  >
-                    <div
-                      className={
-                        isTouchLayout
-                          ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
-                          : "flex flex-row items-stretch gap-3"
-                      }
-                    >
-                      <button
-                        type="button"
-                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                          isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                        }`}
-                        onClick={openEditorToolBox}
-                        aria-label="Open cifra editor"
-                        title="Open cifra editor"
-                      >
-                        <FaFilePen
-                          className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                        />
-                        <span className="sr-only">Editor</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                          toolBoxBtnStatus ||
-                          isEditing ||
-                          (isTouchLayout &&
-                            !toolBoxBtnStatus &&
-                            (isVideoModalOpen || isTouchVideoActive))
-                            ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
-                            : ""
-                        } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
-                        onClick={() => {
-                          if (isTouchLayout && isTouchVideoActive) {
-                            setIsTouchVideoMenuOpen(true);
-                            return;
-                          }
-                          toolBoxBtnStatusChange(
-                            toolBoxBtnStatus,
-                            setToolBoxBtnStatus,
-                          );
-                        }}
-                        aria-label="Options"
-                        title="Open presentation options"
-                      >
-                        <FaGear
-                          className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"}
-                        />
-                        <span className="sr-only">Options</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                          isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                        }`}
-                        onClick={() => setIsExpandedCifra((value) => !value)}
-                        aria-label={
-                          isExpandedCifra
-                            ? "Disable expanded layout"
-                            : "Enable expanded layout"
-                        }
-                        title={
-                          isExpandedCifra
-                            ? "Disable expanded layout"
-                            : "Enable expanded layout"
-                        }
-                      >
-                        {isExpandedCifra ? (
-                          <FaDownLeftAndUpRightToCenter
-                            className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                          />
-                        ) : (
-                          <FaUpRightAndDownLeftFromCenter
-                            className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                          />
-                        )}
-                        <span className="sr-only">Expanded layout</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
-                          isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                        }`}
-                        onClick={goToEditSong}
-                        aria-label="Song settings"
-                        title="Open song settings"
-                      >
-                        <FaSliders
-                          className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"}
-                        />
-                        <span className="sr-only">Song Settings</span>
-                      </button>
-                      {instrumentSelected !== "voice" ? (
-                        <button
-                          type="button"
-                          className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black ${
-                            canOpenGuitarPro
-                              ? "text-black"
-                              : "cursor-not-allowed text-gray-400 opacity-60"
-                          } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
-                          onClick={openGuitarProViewer}
-                          disabled={!canOpenGuitarPro}
-                          aria-label="Open Guitar Pro viewer"
-                          title={
-                            canOpenGuitarPro
-                              ? "Open Guitar Pro viewer"
-                              : "No Guitar Pro file available"
-                          }
-                        >
-                          <GuitarProIcon active={canOpenGuitarPro} />
-                          <span className="sr-only">Guitar Pro</span>
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
-                          isTouchLayout
-                            ? "h-10 w-16 px-3 text-xs tracking-[0.08em]"
-                            : "min-w-[6.5rem] px-6 py-3 text-base"
-                        }`}
-                        onClick={enterLiveMode}
-                      >
-                        LIVE
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                {isTouchLayout ? (
-                  <style>{`
-                    @keyframes mobile-gear-blink {
-                      0%, 100% {
-                        background: #efefef;
-                        color: #111;
-                        box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-                      }
-                      50% {
-                        background: goldenrod;
-                        color: #111;
-                        box-shadow: 0 10px 20px rgba(218,165,32,0.34);
-                      }
-                    }
-                  `}</style>
-                ) : null}
-              </div>
-            </div>
-          )}
-          {effectiveLiveMode ? (
-            <div
-              className={
-                isTouchLayout ? "px-3 pb-1 pt-2" : "px-8 pb-2 pt-6"
-              }
-            >
-              <div className="flex items-start justify-between gap-3 border-b border-white/10 bg-black pb-3">
-                <div className="min-w-0">
-                  {isTouchLayout ? (
-                    <div className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
-                      # sustenido live
-                    </div>
-                  ) : null}
-                  <div
-                    className={
-                      isTouchLayout
-                        ? "mt-1 text-[1.02rem] font-black leading-[1.05rem] text-white"
-                        : "truncate text-3xl font-bold leading-tight text-white"
-                    }
-                  >
-                    {songFromURL}
-                  </div>
-                  <div
-                    className={
-                      isTouchLayout
-                        ? "mt-0.5 text-[0.82rem] font-bold leading-[0.92rem] text-[goldenrod]"
-                        : "truncate text-xl font-bold leading-tight text-[goldenrod]"
-                    }
-                  >
-                    {artistFromURL}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <div className="presentation-live-header-controls">
-                    <div
-                      className={`presentation-live-step-control ${
-                        isTouchLayout ? "presentation-live-step-control-touch" : ""
-                      }`}
-                      role="group"
-                      aria-label="Live cifra zoom"
-                    >
-                      <span className="presentation-live-step-label">Zoom</span>
-                      <button
-                        type="button"
-                        onClick={() => adjustLiveCifraZoom(-10)}
-                        aria-label="Decrease live cifra zoom"
-                      >
-                        -
-                      </button>
-                      <span>{liveCifraZoomLabel}</span>
-                      <button
-                        type="button"
-                        onClick={() => adjustLiveCifraZoom(10)}
-                        aria-label="Increase live cifra zoom"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div
-                      className={`presentation-live-step-control ${
-                        isTouchLayout ? "presentation-live-step-control-touch" : ""
-                      }`}
-                      role="group"
-                      aria-label="Live block spacing"
-                    >
-                      <span className="presentation-live-step-label">Spacing</span>
-                      <button
-                        type="button"
-                        onClick={() => adjustActiveBlockSpacingStep(-1)}
-                        aria-label="Decrease live block spacing"
-                      >
-                        -
-                      </button>
-                      <span>{blockSpacingLabel}</span>
-                      <button
-                        type="button"
-                        onClick={() => adjustActiveBlockSpacingStep(1)}
-                        aria-label="Increase live block spacing"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 font-black uppercase tracking-[0.1em] text-white ${
-                      isTouchLayout
-                        ? "px-2.5 py-1.5 text-[10px]"
-                        : "px-4 py-2 text-xs"
-                    }`}
-                    onClick={exitLiveMode}
-                  >
-                    <IoClose
-                      className={isTouchLayout ? "h-3.5 w-3.5" : "h-4 w-4"}
-                    />
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <PresentationTopBar
+            visible={!effectiveLiveMode}
+            isTouchLayout={isTouchLayout}
+            isTouchVideoActive={isTouchVideoActive}
+            touchVideoLink={touchVideoLink}
+            songFromURL={songFromURL}
+            artistFromURL={artistFromURL}
+            activeLayoutLabel={activeLayoutLabel}
+            previousSetlistSong={previousSetlistSong}
+            nextSetlistSong={nextSetlistSong}
+            getMobileTitleSizeClass={getMobileTitleSizeClass}
+            toolBoxBtnStatus={toolBoxBtnStatus}
+            isEditing={isEditing}
+            isVideoModalOpen={isVideoModalOpen}
+            openEditorToolBox={openEditorToolBox}
+            onToggleToolBox={() =>
+              toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
+            }
+            onOpenTouchVideoMenu={openTouchVideoMenu}
+            isExpandedCifra={isExpandedCifra}
+            onToggleExpanded={() => setIsExpandedCifra((value) => !value)}
+            onGoToEditSong={goToEditSong}
+            instrumentSelected={instrumentSelected}
+            canOpenGuitarPro={canOpenGuitarPro}
+            onOpenGuitarProViewer={openGuitarProViewer}
+            onEnterLiveMode={enterLiveMode}
+            onGoToSetlistSong={goToSetlistSong}
+            onTouchVideoLinkChange={setTouchVideoLink}
+            onTouchVideoActiveChange={setIsTouchVideoActive}
+            onVideoModalChange={setIsVideoModalOpen}
+          />
+          <PresentationLiveHeader
+            effectiveLiveMode={effectiveLiveMode}
+            isTouchLayout={isTouchLayout}
+            songFromURL={songFromURL}
+            artistFromURL={artistFromURL}
+            liveCifraZoomLabel={liveCifraZoomLabel}
+            blockSpacingLabel={blockSpacingLabel}
+            onDecreaseZoom={() => adjustLiveCifraZoom(-10)}
+            onIncreaseZoom={() => adjustLiveCifraZoom(10)}
+            onDecreaseSpacing={() => adjustActiveBlockSpacingStep(-1)}
+            onIncreaseSpacing={() => adjustActiveBlockSpacingStep(1)}
+            onExit={exitLiveMode}
+          />
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
-          {isTouchLayout && isTouchVideoActive && isTouchVideoMenuOpen ? (
-            <div className="fixed inset-0 z-[120] bg-black/30">
-              <button
-                type="button"
-                className="absolute inset-0 h-full w-full cursor-default"
-                onClick={() => setIsTouchVideoMenuOpen(false)}
-                aria-label="Close video options"
-              />
-              <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="text-[1.4rem] font-black tracking-tight text-black">
-                    Video
-                  </div>
-                  <button
-                    type="button"
-                    className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
-                    onClick={() => setIsTouchVideoMenuOpen(false)}
-                    aria-label="Close video options"
-                  >
-                    <IoClose className="h-5 w-5" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="w-full rounded-[16px] bg-white px-4 py-4 text-left text-base font-black text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
-                  onClick={closeTouchVideo}
-                >
-                  Close video
-                </button>
-              </div>
-            </div>
-          ) : null}
+          <TouchVideoMenu
+            open={isTouchLayout && isTouchVideoActive && isTouchVideoMenuOpen}
+            onClose={closeTouchVideoMenu}
+            onCloseVideo={closeTouchVideo}
+          />
 
-          {shouldUseHorizontalColumnFlow ? (
-            <div className="presentation-horizontal-nav-dock">
-              <DraggableComponent
-                handle=".drag-handle"
-                defaultPosition={{ x: 0, y: 0 }}
-              >
-                <div
-                  className={`presentation-horizontal-nav-group ${
-                    effectiveLiveMode ? "" : "neuphormism-b"
-                  }`}
-                  role="group"
-                  aria-label="Expanded layout navigation"
-                >
-                  <div className="presentation-horizontal-nav-buttons">
-                    <button
-                      type="button"
-                      className={`presentation-horizontal-nav ${
-                        effectiveLiveMode
-                          ? ""
-                          : "neuphormism-b-btn font-black text-black"
-                      }`}
-                      onClick={() => scrollExpandedLayout(-1)}
-                      aria-label="Navigate left through expanded cifra"
-                    >
-                      {effectiveLiveMode ? (
-                        <>
-                          <FaAnglesLeft aria-hidden="true" />
-                          <span className="sr-only">Previous columns</span>
-                        </>
-                      ) : (
-                        "<<"
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      className={`presentation-horizontal-nav ${
-                        effectiveLiveMode
-                          ? ""
-                          : "neuphormism-b-btn font-black text-black"
-                      }`}
-                      onClick={() => scrollExpandedLayout(1)}
-                      aria-label="Navigate right through expanded cifra"
-                    >
-                      {effectiveLiveMode ? (
-                        <>
-                          <FaAnglesRight aria-hidden="true" />
-                          <span className="sr-only">Next columns</span>
-                        </>
-                      ) : (
-                        ">>"
-                      )}
-                    </button>
-                  </div>
-                  <div
-                    className="drag-handle presentation-horizontal-drag-handle"
-                    aria-label="Move navigation controls"
-                    title="Move navigation controls"
-                  >
-                    {effectiveLiveMode ? (
-                      <FaGripLines aria-hidden="true" />
-                    ) : (
-                      "Click and hold to drag"
-                    )}
-                  </div>
-                </div>
-              </DraggableComponent>
-            </div>
-          ) : null}
+          <PresentationHorizontalNav
+            open={shouldUseHorizontalColumnFlow}
+            effectiveLiveMode={effectiveLiveMode}
+            onNavigate={scrollExpandedLayout}
+          />
 
           <div
             ref={presentationContentRef}
@@ -3813,15 +955,13 @@ function Presentation() {
                 : ""
             }`}
             style={{
-              "--touch-presentation-font-scale": String(
-                presentationFontScale,
-              ),
+              "--touch-presentation-font-scale": String(presentationFontScale),
               "--presentation-live-cifra-zoom": String(liveCifraZoomScale),
               fontSize: effectiveLiveMode
                 ? `${presentationFontScale * liveCifraZoomScale}rem`
                 : isTouchLayout
-                ? `${touchFontSizeRem}rem`
-                : `${presentationFontScale}rem`,
+                  ? `${touchFontSizeRem}rem`
+                  : `${presentationFontScale}rem`,
               lineHeight: 1.45,
             }}
             onDoubleClick={
@@ -3832,80 +972,16 @@ function Presentation() {
                 : undefined
             }
           >
-            {isRouteSongLoading ? (
-              <div
-                className={`flex min-h-[18rem] flex-col items-center justify-center px-4 text-center ${
-                  effectiveLiveMode ? "text-white" : "text-black"
-                }`}
-              >
-                <div
-                  className={`text-xs font-black uppercase tracking-[0.18em] ${
-                    effectiveLiveMode ? "text-[goldenrod]" : "text-[#a27b13]"
-                  }`}
-                >
-                  Loading song
-                </div>
-                <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
-                  {songFromURL || "Loading..."}
-                </h2>
-                <p
-                  className={`mt-2 text-sm font-bold ${
-                    effectiveLiveMode ? "text-white/70" : "text-black/60"
-                  }`}
-                >
-                  {artistFromURL || "Preparing presentation"}
-                </p>
-              </div>
-            ) : isCurrentInstrumentUnavailable ? (
-              <div
-                className={`flex min-h-[18rem] flex-col items-center justify-center px-4 text-center ${
-                  effectiveLiveMode ? "text-white" : "text-black"
-                }`}
-              >
-                <div className="max-w-xl">
-                  <div
-                    className={`text-xs font-black uppercase tracking-[0.18em] ${
-                      effectiveLiveMode ? "text-[goldenrod]" : "text-[#a27b13]"
-                    }`}
-                  >
-                    Instrumento indisponível
-                  </div>
-                  <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
-                    Esta música ainda não tem cifra para {instrumentSelected}.
-                  </h2>
-                  <p
-                    className={`mt-3 text-sm font-bold sm:text-base ${
-                      effectiveLiveMode ? "text-white/70" : "text-black/60"
-                    }`}
-                  >
-                    Abra um dos instrumentos cadastrados com cifra para esta
-                    música.
-                  </p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-3">
-                    {availableInstrumentOptions.length ? (
-                      availableInstrumentOptions.map((instrument) => (
-                        <button
-                          key={instrument.key}
-                          type="button"
-                          className="neuphormism-b-btn-gold px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black"
-                          onClick={() => goToInstrument(instrument.key)}
-                        >
-                          {instrument.label}
-                        </button>
-                      ))
-                    ) : (
-                      <div
-                        className={`text-sm font-bold ${
-                          effectiveLiveMode ? "text-white/60" : "text-black/50"
-                        }`}
-                      >
-                        Nenhum instrumento cadastrado com cifra foi encontrado
-                        para esta música.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+            {isRouteSongLoading || isCurrentInstrumentUnavailable ? (
+              <PresentationStatusState
+                mode={isRouteSongLoading ? "loading" : "unavailable"}
+                effectiveLiveMode={effectiveLiveMode}
+                songFromURL={songFromURL}
+                artistFromURL={artistFromURL}
+                instrumentSelected={instrumentSelected}
+                availableInstrumentOptions={availableInstrumentOptions}
+                onSelectInstrument={goToInstrument}
+              />
             ) : (
               <div
                 className={`presentation-content-flow ${
@@ -3921,18 +997,12 @@ function Presentation() {
                 }}
                 contentEditable={isEditing}
                 suppressContentEditableWarning
-                onBeforeInput={
-                  isEditing ? markCifraContentAsEdited : undefined
-                }
+                onBeforeInput={isEditing ? markCifraContentAsEdited : undefined}
                 onPaste={
-                  isEditing
-                    ? () => setHasEditedCifraContent(true)
-                    : undefined
+                  isEditing ? () => setHasEditedCifraContent(true) : undefined
                 }
                 onCut={
-                  isEditing
-                    ? () => setHasEditedCifraContent(true)
-                    : undefined
+                  isEditing ? () => setHasEditedCifraContent(true) : undefined
                 }
                 onKeyDown={
                   isEditing
@@ -3954,327 +1024,50 @@ function Presentation() {
                       }
                     : undefined
                 }
-                onDrop={isEditing ? handleDropProgressionGroupOnColumn : undefined}
+                onDrop={
+                  isEditing ? handleDropProgressionGroupOnColumn : undefined
+                }
               >
-                {activeProgressionRenderColumns.map(
-                  (
-                    {
-                      groupKey,
-                      baseGroupKey,
-                      blockKeys,
-                      blocks,
-                      isProgressionEligible,
-                      displayPosition,
-                      displayTitle,
-                      width,
-                      height,
-                      visualColumnOverrideKey,
-                      isOverflowContinuation,
-                      visualColumnIndex,
-                      visualColumnLabel,
-                    },
-                    visibleIndex,
-                    visibleGroups,
-                  ) => {
-                    const numericDisplayPosition =
-                      Number.parseInt(visualColumnIndex, 10) ||
-                      Number.parseInt(displayPosition, 10) ||
-                      visibleIndex + 1;
-                    const progressionColor = isProgressionEligible
-                      ? PROGRESSION_MARKER_COLOR
-                      : undefined;
-                    const progressionHeaderColor =
-                      isProgressionEligible
-                        ? PROGRESSION_COLUMN_HEADER_COLORS[
-                            ((numericDisplayPosition -
-                              1) %
-                              PROGRESSION_COLUMN_HEADER_COLORS.length)
-                          ]
-                        : undefined;
-                    const widthResizingDimensions =
-                      resizingProgressionWidths[
-                        visualColumnOverrideKey || groupKey
-                      ] || {};
-                    const heightResizingDimensions =
-                      resizingProgressionWidths[
-                        visualColumnOverrideKey || groupKey
-                      ] || {};
-                    const displayWidth = widthResizingDimensions.width ?? width;
-                    const displayHeight =
-                      heightResizingDimensions.height ?? height;
-                    const headerLabel =
-                      visualColumnLabel ||
-                      getColumnLabelFromIndex(numericDisplayPosition);
-                    const isBlockSelected = blockKeys.some((blockKey) =>
-                      selectedBlockKeys.includes(blockKey),
-                    );
-                    const contentBlockHtml = blocks
-                      .map((entry) => entry.block)
-                      .join("\n");
-                    const liveColumnState = getLiveColumnDisplayState({
-                      columnKey: groupKey,
-                      activeColumnKey: activeLiveColumnKey,
-                      columnIndex: visibleIndex,
-                    });
-                    const originalBlockIndex = Math.min(
-                      ...blocks.map((entry) =>
-                        Number.isFinite(Number(entry.index))
-                          ? Number(entry.index)
-                          : visibleIndex,
-                      ),
-                    );
-
-                    return (
-                      <div
-                        key={groupKey}
-                        data-progression-drop-target={
-                          isProgressionEligible ? "true" : undefined
-                        }
-                        data-progression-group-key={baseGroupKey || groupKey}
-                        data-live-column-key={groupKey}
-                        data-progression-column-label={
-                          showProgressionMarkers && isProgressionEligible
-                            ? headerLabel
-                            : undefined
-                        }
-                        className={`presentation-render-block ${
-                          selectContenttoShow === "tabs"
-                            ? "presentation-tab-filter-block"
-                            : ""
-                        } ${
-                          showProgressionMarkers && isProgressionEligible
-                            ? "presentation-progression-block"
-                            : ""
-                        } ${
-                          isBlockSelected
-                            ? "presentation-progression-block-selected"
-                            : ""
-                        } ${
-                          effectiveLiveMode && shouldUseHorizontalColumnFlow
-                            ? liveColumnState.className
-                            : ""
-                        }`}
-                        onMouseDownCapture={
-                          isEditing && isProgressionEligible
-                            ? (event) => {
-                                const currentRect =
-                                  event.currentTarget.getBoundingClientRect();
-                                setActiveProgressionMarkControl({
-                                  groupKey,
-                                  visualColumnOverrideKey,
-                                  blockKeys,
-                                  label: headerLabel,
-                                  width:
-                                    displayWidth ||
-                                    Math.round(currentRect.width),
-                                  height:
-                                    displayHeight ||
-                                    Math.round(currentRect.height),
-                                });
-                              }
-                            : undefined
-                        }
-                        draggable={isEditing && isProgressionEligible}
-                        onDragStart={
-                          isEditing &&
-                          isProgressionEligible &&
-                          !isOverflowContinuation
-                            ? (event) => {
-                                draggedProgressionGroupKeyRef.current =
-                                  baseGroupKey || groupKey;
-                                event.dataTransfer.effectAllowed = "move";
-                              }
-                            : undefined
-                        }
-                        onDragOver={
-                          isEditing && isProgressionEligible
-                            ? (event) => {
-                                event.preventDefault();
-                                event.dataTransfer.dropEffect = "move";
-                              }
-                            : undefined
-                        }
-                        onDrop={
-                          isEditing &&
-                          isProgressionEligible &&
-                          !isOverflowContinuation
-                            ? (event) => {
-                                event.preventDefault();
-                                handleDropProgressionGroup(
-                                  baseGroupKey || groupKey,
-                                );
-                              }
-                            : undefined
-                        }
-                        style={{
-                          ...(!effectiveLiveMode &&
-                          visibleIndex === visibleGroups.length - 1 &&
-                          !shouldUseHorizontalColumnFlow
-                            ? { paddingBottom: 200 }
-                            : {}),
-                          ...(showProgressionMarkers &&
-                          isProgressionEligible &&
-                          progressionColor
-                            ? {
-                                "--progression-color": progressionColor,
-                                "--progression-header-color":
-                                  progressionHeaderColor,
-                              }
-                            : {}),
-                          ...(shouldApplyProgressionBlockDimensions &&
-                          displayWidth
-                            ? { width: `${displayWidth}px` }
-                            : {}),
-                          ...(shouldApplyProgressionBlockDimensions &&
-                          displayHeight
-                            ? {
-                                height: `${displayHeight}px`,
-                                minHeight: `${displayHeight}px`,
-                              }
-                            : {}),
-                        }}
-                      >
-                        {isEditing &&
-                        isProgressionEligible &&
-                        !isOverflowContinuation ? (
-                          <>
-                            <button
-                              type="button"
-                              className="presentation-progression-select-handle"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                toggleSelectedBlockKeys(blockKeys);
-                              }}
-                              contentEditable={false}
-                              aria-label={
-                                isBlockSelected
-                                  ? "Unselect progression block"
-                                  : "Select progression block"
-                              }
-                            >
-                              {isBlockSelected ? "✓" : "○"}
-                            </button>
-                            {isBlockSelected ? (
-                              <button
-                                type="button"
-                                className="presentation-progression-delete-handle"
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  handleDeleteSelectedBlocks(blockKeys);
-                                }}
-                                contentEditable={false}
-                                aria-label="Delete selected progression block"
-                              >
-                                ×
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              className="presentation-progression-drag-handle"
-                              draggable
-                              onDragStart={(event) => {
-                                draggedProgressionGroupKeyRef.current =
-                                  baseGroupKey || groupKey;
-                                event.dataTransfer.effectAllowed = "move";
-                              }}
-                              contentEditable={false}
-                              aria-label="Reorder progression block"
-                            >
-                              ::
-                            </button>
-                            <button
-                              type="button"
-                              className="presentation-progression-resize-handle"
-                              data-resize-axis="width"
-                              onMouseDown={(event) =>
-                                handleStartProgressionResize(event, {
-                                  groupKey,
-                                  baseGroupKey,
-                                  visualColumnOverrideKey,
-                                  blockKeys,
-                                  width,
-                                  height,
-                                })
-                              }
-                              contentEditable={false}
-                              aria-label="Resize progression block"
-                            >
-                              ↔
-                            </button>
-                            <button
-                              type="button"
-                              className="presentation-progression-height-handle"
-                              data-resize-axis="height"
-                              onMouseDown={(event) =>
-                                handleStartProgressionResize(event, {
-                                  groupKey,
-                                  baseGroupKey,
-                                  visualColumnOverrideKey,
-                                  blockKeys,
-                                  width,
-                                  height,
-                                })
-                              }
-                              contentEditable={false}
-                              aria-label="Resize progression block height"
-                            >
-                              ↕
-                            </button>
-                            <button
-                              type="button"
-                              className="presentation-progression-height-top-handle"
-                              data-resize-axis="height"
-                              onMouseDown={(event) =>
-                                handleStartProgressionResize(event, {
-                                  groupKey,
-                                  baseGroupKey,
-                                  visualColumnOverrideKey,
-                                  blockKeys,
-                                  width,
-                                  height,
-                                })
-                              }
-                              contentEditable={false}
-                              aria-label="Resize progression block height"
-                            >
-                              ↕
-                            </button>
-                          </>
-                        ) : null}
-                        <div
-                          className="presentation-render-content-block"
-                          data-block-keys={blockKeys.join(",")}
-                          data-original-block-index={originalBlockIndex}
-                          dangerouslySetInnerHTML={{
-                            __html: contentBlockHtml,
-                          }}
-                        />
-                      </div>
-                    );
-                  },
-                )}
+                <PresentationColumns
+                  columns={activeProgressionRenderColumns}
+                  selectContenttoShow={selectContenttoShow}
+                  showProgressionMarkers={showProgressionMarkers}
+                  effectiveLiveMode={effectiveLiveMode}
+                  shouldUseHorizontalColumnFlow={shouldUseHorizontalColumnFlow}
+                  shouldApplyProgressionBlockDimensions={
+                    shouldApplyProgressionBlockDimensions
+                  }
+                  resizingProgressionWidths={resizingProgressionWidths}
+                  selectedBlockKeys={selectedBlockKeys}
+                  isEditing={isEditing}
+                  draggedProgressionGroupKeyRef={draggedProgressionGroupKeyRef}
+                  onSetActiveProgressionMarkControl={
+                    setActiveProgressionMarkControl
+                  }
+                  onHandleDropProgressionGroup={handleDropProgressionGroup}
+                  onToggleSelectedBlockKeys={toggleSelectedBlockKeys}
+                  onHandleDeleteSelectedBlocks={handleDeleteSelectedBlocks}
+                  onHandleStartProgressionResize={handleStartProgressionResize}
+                  activeLiveColumnKey={activeLiveColumnKey}
+                />
               </div>
             )}
           </div>
           {!isEditing && (
             <PresentationChordTooltip
               tooltip={activeChordTooltip}
-              selectedVariationIndex={getSelectedVariationIndex(
-                activeChordTooltip?.data,
-              )}
+              selectedVariationIndex={selectedChordVariationIndex}
               onApplyVariation={handleApplyChordVariation}
               onTooltipEnter={handleTooltipEnter}
               onTooltipLeave={handleTooltipLeave}
-              onClose={handleCloseTooltip}
+              onClose={hideTooltip}
             />
           )}
         </div>
       </div>
       <GuitarProViewerModal
         open={guitarProViewerOpen}
-        onClose={() => setGuitarProViewerOpen(false)}
+        onClose={closeGuitarProViewer}
         file={selectedGuitarProFile}
         songTitle={songFromURL}
         artistName={artistFromURL}

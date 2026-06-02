@@ -18,6 +18,7 @@ import {
   updatePassword,
   updateUserName,
   logoutUser,
+  uploadProfileImage,
 } from "../../Tools/Controllers";
 import PasswordResetModal from "./PasswordResetModal";
 import UsernameEditModal from "./UsernameEditModal";
@@ -207,31 +208,21 @@ function UserProfile() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("profileImage", selectedFile);
-
     // Obter o email do usuário do localStorage ou de outra fonte de autenticação
     const userEmail = localStorage.getItem("userEmail");
     if (!userEmail) {
       throw new Error("Email do usuário não encontrado.");
     }
 
-    // Adicionar o email ao FormData
-    formData.append("email", userEmail);
-
     try {
       setUploading(true);
       setUploadError("");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/uploadProfileImage`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await uploadProfileImage(selectedFile, {
+        email: userEmail,
+      });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         alert("Imagem enviada com sucesso!");
 
         // Atualizar o estado para notificar o UserProfileAvatar
