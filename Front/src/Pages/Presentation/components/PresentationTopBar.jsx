@@ -48,7 +48,7 @@ function PresentationTopBar({
       }`}
     >
       {!isTouchLayout ? (
-        <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+        <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
           <span>Presentation</span>
           <span>{activeLayoutLabel}</span>
         </div>
@@ -58,7 +58,7 @@ function PresentationTopBar({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+                <div className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
                   Video Active
                 </div>
                 <div className="truncate text-[1rem] font-bold leading-[1.15rem] text-black/70">
@@ -105,7 +105,7 @@ function PresentationTopBar({
             <button
               type="button"
               disabled={!previousSetlistSong}
-              className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
+              className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
               onClick={() => onGoToSetlistSong(previousSetlistSong)}
               aria-label="Previous song in selected setlist"
             >
@@ -114,7 +114,7 @@ function PresentationTopBar({
             <button
               type="button"
               disabled={!nextSetlistSong}
-              className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
+              className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
               onClick={() => onGoToSetlistSong(nextSetlistSong)}
               aria-label="Next song in selected setlist"
             >
@@ -147,7 +147,7 @@ function PresentationTopBar({
             <button
               type="button"
               disabled={!previousSetlistSong}
-              className="neuphormism-b-btn px-3 py-1.5 text-xs font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
+              className="neuphormism-b-btn px-3 py-1.5 text-xs font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
               onClick={() => onGoToSetlistSong(previousSetlistSong)}
               aria-label="Previous song in selected setlist"
             >
@@ -156,7 +156,7 @@ function PresentationTopBar({
             <button
               type="button"
               disabled={!nextSetlistSong}
-              className="neuphormism-b-btn px-3 py-1.5 text-xs font-black text-black disabled:cursor-not-allowed disabled:opacity-35"
+              className="neuphormism-b-btn px-3 py-1.5 text-xs font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
               onClick={() => onGoToSetlistSong(nextSetlistSong)}
               aria-label="Next song in selected setlist"
             >
@@ -179,7 +179,7 @@ function PresentationTopBar({
             >
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
                   isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
                 }`}
                 onClick={openEditorToolBox}
@@ -191,7 +191,7 @@ function PresentationTopBar({
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
                   toolBoxBtnStatus ||
                   isEditing ||
                   (isTouchLayout &&
@@ -209,7 +209,7 @@ function PresentationTopBar({
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
                   isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
                 }`}
                 onClick={onToggleExpanded}
@@ -225,7 +225,7 @@ function PresentationTopBar({
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black text-black ${
+                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
                   isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
                 }`}
                 onClick={onGoToEditSong}
@@ -238,7 +238,7 @@ function PresentationTopBar({
               {instrumentSelected !== "voice" ? (
                 <button
                   type="button"
-                  className={`flex items-center justify-center gap-2 neuphormism-b-btn font-black ${
+                  className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold ${
                     canOpenGuitarPro
                       ? "text-black"
                       : "cursor-not-allowed text-gray-400 opacity-60"
@@ -258,7 +258,7 @@ function PresentationTopBar({
               ) : null}
               <button
                 type="button"
-                className={`neuphormism-b-btn-gold flex items-center justify-center font-black text-black ${
+                className={`neuphormism-b-btn-gold flex items-center justify-center font-bold text-black ${
                   isTouchLayout
                     ? "h-10 w-16 px-3 text-xs tracking-[0.08em]"
                     : "min-w-[6.5rem] px-6 py-3 text-base"

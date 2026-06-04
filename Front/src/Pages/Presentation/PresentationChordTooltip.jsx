@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import ChordShapeData from "../ChordLibrary/ChordShapeData.json";
 import { PersonalChordLibrary } from "../ChordLibrary/PersonalChordLibrary";
 
@@ -430,7 +431,7 @@ export default function PresentationChordTooltip({
     onClose?.();
   };
 
-  return (
+  const tooltipNode = (
     <div
       className={`presentation-chord-tooltip ${isExpanded ? "is-expanded" : ""}`}
       style={style}
@@ -504,4 +505,8 @@ export default function PresentationChordTooltip({
       )}
     </div>
   );
+
+  if (typeof document === "undefined") return tooltipNode;
+
+  return createPortal(tooltipNode, document.body);
 }

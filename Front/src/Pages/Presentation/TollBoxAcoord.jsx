@@ -74,12 +74,6 @@ export default function TollBoxAcoord({
   isSavingNotes = false,
   onSelectInstrument = () => {},
   requestedPanel,
-  activeProgressionMarkSettings,
-  onDecreaseActiveMarkWidth,
-  onIncreaseActiveMarkWidth,
-  onDecreaseActiveMarkHeight,
-  onIncreaseActiveMarkHeight,
-  onRequestDeleteActiveMark,
 }) {
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
@@ -160,12 +154,6 @@ export default function TollBoxAcoord({
       onDecreaseBlockSpacing={decreaseBlockSpacing}
       onIncreaseBlockSpacing={increaseBlockSpacing}
       showProgressionMarkers={showProgressionMarkers}
-      activeProgressionMarkSettings={activeProgressionMarkSettings}
-      onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
-      onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
-      onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
-      onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
-      onRequestDeleteActiveMark={onRequestDeleteActiveMark}
     />
   );
 
@@ -183,7 +171,7 @@ export default function TollBoxAcoord({
             const isActive = instLinkPageStatus[key];
             const isSelected = key === instrumentSelected;
             const sharedClass = isTouchLayout
-              ? "rounded-[14px] px-3 py-3 text-sm font-black"
+              ? "rounded-[14px] px-3 py-3 text-sm font-bold"
               : "w-1/2 p-2 m-2 text-sm";
             return isActive ? (
               <button
@@ -259,7 +247,7 @@ export default function TollBoxAcoord({
                 type="button"
                 className={
                   isSelected
-                    ? "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-left text-sm font-black text-black"
+                    ? "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-left text-sm font-bold text-black"
                     : isTouchLayout
                       ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
                       : "neuphormism-b-se w-full rounded-[14px] px-3 py-3 text-left text-sm font-bold text-black"
@@ -280,20 +268,20 @@ export default function TollBoxAcoord({
   const renderTransposeContent = () => (
     <div className={isTouchLayout ? "space-y-3" : " space-y-3"}>
       <div className="py-3 text-black">
-        <div className="text-center text-[0.7rem] font-black uppercase tracking-[0.14em] text-black/55">
+        <div className="text-center text-[0.7rem] font-bold uppercase tracking-[0.14em] text-black/55">
           Tom
         </div>
         <div className="mt-3 flex flex-col items-center justify-center gap-2">
           <button
             type="button"
-            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-black text-black"
+            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-bold text-black"
             onClick={() => setTransposeSteps?.((value) => value + 1)}
             aria-label="Transpose up"
           >
             +
           </button>
           <div className="min-w-0 py-3 text-center">
-            <div className="text-[2rem] font-black leading-none">
+            <div className="text-[2rem] font-bold leading-none">
               {displayKey}
             </div>
             <div className="mt-1 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-black/55">
@@ -304,7 +292,7 @@ export default function TollBoxAcoord({
           </div>
           <button
             type="button"
-            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-black text-black"
+            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-bold text-black"
             onClick={() => setTransposeSteps?.((value) => value - 1)}
             aria-label="Transpose down"
           >
@@ -318,12 +306,12 @@ export default function TollBoxAcoord({
   const renderLayoutContent = () => (
     <div className={isTouchLayout ? "space-y-3" : "space-y-3"}>
       <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
-        <div className="text-sm font-black text-black">
+        <div className="text-sm font-bold text-black">
           Progression marks
         </div>
         <button
           type="button"
-          className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-black uppercase tracking-[0.08em] ${
+          className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-bold uppercase tracking-[0.08em] ${
             showProgressionMarkers
               ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
               : isTouchLayout
@@ -340,13 +328,13 @@ export default function TollBoxAcoord({
 
   const renderFontSizeContent = () => (
     <div className="rounded-[18px] px-1 py-3">
-      <div className=" flex h-9 w-full pb-8 pt-3  min-w-0 flex-1 items-center justify-center rounded-[14px] px-2 text-center text-[0.95rem] font-black leading-none tracking-tight text-black">
+      <div className=" flex h-9 w-full pb-8 pt-3  min-w-0 flex-1 items-center justify-center rounded-[14px] px-2 text-center text-[0.95rem] font-bold leading-none tracking-tight text-black">
         {touchFontSizeLabel}
       </div>
       <div className="flex items-center justify-between gap-1">
         <button
           type="button"
-          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-black leading-none text-black active:scale-[0.98]"
+          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-bold leading-none text-black active:scale-[0.98]"
           onClick={decreaseTouchFontSize}
           aria-label="Decrease font size"
         >
@@ -355,7 +343,7 @@ export default function TollBoxAcoord({
 
         <button
           type="button"
-          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-black leading-none text-black active:scale-[0.98]"
+          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-bold leading-none text-black active:scale-[0.98]"
           onClick={increaseTouchFontSize}
           aria-label="Increase font size"
         >
@@ -461,7 +449,7 @@ export default function TollBoxAcoord({
         className={
           isTouchLayout
             ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
-            : "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-center text-sm font-black text-black"
+            : "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-center text-sm font-bold text-black"
         }
         onClick={() => {
           if (isTouchLayout) {
@@ -581,7 +569,7 @@ export default function TollBoxAcoord({
     if (activeSection) {
       return (
         <div className="space-y-4">
-          <div className="mb-1 text-[1.5rem] font-black tracking-tight text-black">
+          <div className="mb-1 text-[1.5rem] font-bold tracking-tight text-black">
             {activeSection.label}
           </div>
           {activeSection.content}
@@ -600,7 +588,7 @@ export default function TollBoxAcoord({
             <div key={section.id}>
               <button
                 type="button"
-                className={`neuphormism-b-btn flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-lg font-black text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] ${
+                className={`neuphormism-b-btn flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-lg font-bold text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] ${
                   shouldBlinkEditor
                     ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite] bg-[#ececec]"
                     : "bg-[#ececec]"
@@ -632,7 +620,7 @@ export default function TollBoxAcoord({
         <div className="neuphormism-b rounded-lg p-2">
           <button
             type="button"
-            className="neuphormism-b-btn mb-3 flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-black text-black"
+            className="neuphormism-b-btn mb-3 flex w-full items-center gap-2 rounded-[14px] px-3 py-2 text-left text-sm font-bold text-black"
             onClick={() => setActiveDesktopPanel(null)}
           >
             <IoChevronBack className="h-4 w-4" />

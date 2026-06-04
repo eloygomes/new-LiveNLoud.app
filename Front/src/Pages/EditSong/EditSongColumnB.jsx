@@ -160,13 +160,13 @@
 //           onClick={() => setTouchInstrumentsOpen((current) => !current)}
 //         >
 //           <div className="text-left">
-//             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+//             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
 //               Song Workspace
 //             </p>
-//             <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Input Links</h2>
+//             <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">Input Links</h2>
 //           </div>
 //           <div className="flex items-center gap-3">
-//             <span className="text-xs font-black uppercase tracking-[0.08em] text-gray-500">
+//             <span className="text-xs font-bold uppercase tracking-[0.08em] text-gray-500">
 //               {addedCount}/6 Added
 //             </span>
 //             <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
@@ -190,9 +190,9 @@
 //                     <div className="flex h-9 w-9 items-center justify-center rounded-full neuphormism-b-avatar text-black">
 //                       <Icon className="text-[14px]" />
 //                     </div>
-//                     <span className="text-xs font-black uppercase text-gray-500">{short}</span>
+//                     <span className="text-xs font-bold uppercase text-gray-500">{short}</span>
 //                   </div>
-//                   <div className="mt-4 text-[1.15rem] font-black text-black">{label}</div>
+//                   <div className="mt-4 text-[1.15rem] font-bold text-black">{label}</div>
 //                   <div className={`mt-1 text-xs font-bold ${instrumentLink ? "text-[#2f6f3e]" : "text-gray-500"}`}>
 //                     {instrumentLink ? "Link added" : "No URL yet"}
 //                   </div>
@@ -216,7 +216,7 @@
 //             <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
 //               <div className="mb-4 flex items-start justify-between">
 //                 <div>
-//                   <div className="text-[2rem] font-black tracking-tight text-black">
+//                   <div className="text-[2rem] font-bold tracking-tight text-black">
 //                     {instrumentCards.find((item) => item.key === activeInstrument)?.label}
 //                   </div>
 //                   <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
@@ -249,10 +249,10 @@
 //   return (
 //     <div className="flex flex-row p-5 my-5 neuphormism-b rounded-[30px]">
 //       <div className="flex flex-col w-full">
-//         <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+//         <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
 //           Song Workspace
 //         </p>
-//         <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Input Links</h1>
+//         <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">Input Links</h1>
 //         <EditSongInputLinkBox
 //           instrumentName="guitar01"
 //           link={guitar01}
@@ -358,6 +358,7 @@
 
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   FaChevronDown,
   FaChevronUp,
@@ -632,7 +633,7 @@ function EditSongColumnBMobile(props) {
         <SectionHeader />
 
         <div className="flex items-center gap-3">
-          <span className="text-xs font-black uppercase tracking-[0.08em] text-gray-500">
+          <span className="text-xs font-bold uppercase tracking-[0.08em] text-gray-500">
             {addedCount}/6 Added
           </span>
 
@@ -673,11 +674,11 @@ function EditSongColumnBMobile(props) {
 function SectionHeader() {
   return (
     <div className="text-left">
-      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
         Input Links
       </p>
 
-      {/* <TitleTag className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+      {/* <TitleTag className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
         Input Links
       </TitleTag> */}
     </div>
@@ -714,15 +715,15 @@ function InstrumentCard({ card, isOpen, onClick }) {
               aria-label="Notes registered"
             />
           ) : null}
-          <span className={`text-sm font-black ${hasLink ? "text-black" : "text-gray-400"}`}>
+          <span className={`text-sm font-bold ${hasLink ? "text-black" : "text-gray-400"}`}>
             {Number(progress || 0)}%
           </span>
         </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">
-        <div className={`text-[1.05rem] font-black ${hasLink ? "text-black" : "text-gray-400"}`}>{label}</div>
-        <div className={`shrink-0 text-xs font-black ${hasLink ? "text-[goldenrod]" : "text-gray-500"}`}>
+        <div className={`text-[1.05rem] font-bold ${hasLink ? "text-black" : "text-gray-400"}`}>{label}</div>
+        <div className={`shrink-0 text-xs font-bold ${hasLink ? "text-[goldenrod]" : "text-gray-500"}`}>
           {hasLink ? "Link added" : "No URL yet"}
         </div>
       </div>
@@ -734,8 +735,8 @@ function InstrumentCard({ card, isOpen, onClick }) {
 }
 
 function InstrumentModal({ config, props, onClose }) {
-  return (
-    <div className="fixed inset-0 z-[110] bg-black/25">
+  return createPortal(
+    <div className="fixed inset-0 z-[13000] bg-black/35">
       <button
         type="button"
         className="absolute inset-0 h-full w-full cursor-default"
@@ -743,18 +744,18 @@ function InstrumentModal({ config, props, onClose }) {
         aria-label="Close instrument modal"
       />
 
-      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[86vh] md:w-[min(1120px,94vw)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[28px] md:px-5">
-        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-gray-300" />
-        <div className="mb-4 flex items-start justify-between">
+      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-6 pt-4 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[86vh] md:w-[min(1120px,94vw)] md:origin-center md:-translate-x-1/2 md:-translate-y-1/2 md:scale-[0.8] md:overflow-visible md:rounded-[28px] md:px-5">
+        <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-gray-300" />
+        <div className="mb-3 flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
               Instrument details
             </p>
-            <div className="mt-2 text-[clamp(1.8rem,8vw,2.4rem)] font-black tracking-tight text-black">
+            <div className="mt-1 text-[clamp(1.7rem,8vw,2.25rem)] font-bold tracking-tight text-black">
               {config.label}
             </div>
 
-            <div className="mt-2 max-w-[22rem] text-base font-medium leading-6 text-gray-500">
+            <div className="mt-1 whitespace-nowrap text-base font-medium leading-6 text-gray-500">
               Insert the URL that will be scraped for this instrument.
             </div>
           </div>
@@ -768,7 +769,7 @@ function InstrumentModal({ config, props, onClose }) {
           </button>
         </div>
 
-        <div className="rounded-[20px] neuphormism-b-se p-4 [&_.neuphormism-b-btn]:!m-0 [&_.neuphormism-b-btn]:!rounded-[16px] [&_.neuphormism-b-btn]:!bg-transparent [&_.neuphormism-b-btn]:!p-0 [&_.neuphormism-b-btn]:!shadow-none">
+        <div className="rounded-[20px] neuphormism-b-se p-3 [&_.neuphormism-b-btn]:!m-0 [&_.neuphormism-b-btn]:!rounded-[16px] [&_.neuphormism-b-btn]:!bg-transparent [&_.neuphormism-b-btn]:!p-0 [&_.neuphormism-b-btn]:!shadow-none">
           <InstrumentInputBox
             config={config}
             props={props}
@@ -776,7 +777,8 @@ function InstrumentModal({ config, props, onClose }) {
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

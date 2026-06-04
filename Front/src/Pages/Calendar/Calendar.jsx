@@ -220,7 +220,7 @@ function InviteResponseModal({
         {event ? (
           <div className="mt-6 space-y-4">
             <div className="rounded-2xl bg-white px-5 py-4">
-              <div className="text-xl font-extrabold">{event.title}</div>
+              <div className="text-xl font-bold">{event.title}</div>
               <div className="text-sm text-gray-500 mt-2">
                 Created by @{event.ownerUsername}
               </div>
@@ -597,7 +597,7 @@ export default function Calendar() {
       className={`flex justify-center ${
         isTouchLayout
           ? "min-h-screen bg-[#f0f0f0] pb-28 pt-3"
-          : "h-[calc(100vh-4rem)] overflow-hidden bg-[#f0f0f0]"
+          : "h-[calc((100vh/var(--desktop-app-zoom))-4rem)] overflow-hidden bg-[#f0f0f0]"
       }`}
     >
       <InviteResponseModal
@@ -624,12 +624,12 @@ export default function Calendar() {
         defaultDate={newEventDate}
       />
 
-      <div className="mx-auto w-full max-w-none">
+      <div className="mx-auto h-full w-full max-w-none">
         <div
           className={`${
             isTouchLayout
               ? "w-full px-3 pb-4"
-              : "w-full px-6 pb-4"
+              : "flex h-full min-h-0 w-full flex-col px-6 pb-4"
           }`}
         >
           <div
@@ -650,10 +650,10 @@ export default function Calendar() {
             ) : null}
             {isTouchLayout ? (
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                   Calendar
                 </p>
-                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
                   Plan The Session
                 </h1>
               </div>
@@ -710,7 +710,7 @@ export default function Calendar() {
             className={`grid grid-cols-1 gap-5 items-stretch ${
               isTouchLayout
                 ? ""
-                : "xl:grid-cols-[minmax(0,1.65fr),360px] h-[calc(100vh-260px)] min-h-0"
+                : "min-h-0 flex-1 xl:grid-cols-[minmax(0,1.65fr),360px]"
             }`}
           >
             <div className="neuphormism-b p-5 min-h-0 flex flex-col">
@@ -750,7 +750,9 @@ export default function Calendar() {
                   </div>
                   <div
                     className={`grid grid-cols-7 grid-rows-6 ${
-                      isTouchLayout ? "gap-1.5" : "gap-3"
+                      isTouchLayout
+                        ? "gap-1.5"
+                        : "min-h-0 flex-1 gap-3"
                     }`}
                   >
                     {monthDays.map((day) => {
@@ -777,7 +779,7 @@ export default function Calendar() {
                           className={`text-left transition overflow-hidden ${
                             isTouchLayout
                               ? "h-[54px] min-h-[54px] rounded-[14px] p-1.5"
-                              : "h-[96px] min-h-[96px] rounded-3xl p-3"
+                              : "h-full min-h-0 rounded-3xl p-3"
                           } ${
                             isSelected
                               ? "bg-black text-white"
@@ -838,7 +840,7 @@ export default function Calendar() {
 
               {viewMode === "week" ? (
                 <div className="overflow-auto flex-1 min-h-0">
-                  <div className="grid grid-cols-7 gap-3 min-w-[840px] h-full min-h-[calc(100vh-360px)]">
+                  <div className="grid h-full min-h-0 min-w-[840px] grid-cols-7 gap-3">
                     {weekDays.map((day) => {
                       const key = formatDayKey(day);
                       const dayEvents = (eventsByDay[key] || []).sort(

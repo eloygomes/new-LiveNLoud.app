@@ -278,7 +278,7 @@ export default function ToolBoxTunerMini() {
           style={{ left: `${indicatorLeft}%` }}
         />
       </div>
-      <div className="mt-1 flex justify-between text-[8px] font-black uppercase tracking-[0.12em] text-[#697180]">
+      <div className="mt-1 flex justify-between text-[8px] font-bold uppercase tracking-[0.12em] text-[#697180]">
         <span>Flat</span>
         <span>{Math.round(cents)}c</span>
         <span>Sharp</span>
@@ -295,10 +295,10 @@ export default function ToolBoxTunerMini() {
             className="rounded-[18px] px-2 py-3 text-center neuphormism-b"
             onClick={() => setIsPreviewOpen(true)}
           >
-            <div className="text-[2.4rem] font-black leading-none tracking-[-0.08em] text-black">
+            <div className="text-[2.4rem] font-bold leading-none tracking-[-0.08em] text-black">
               {noteLabel}
             </div>
-            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#697180]">
+            <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#697180]">
               {tunerStatus} · {tuneMessage}
             </div>
           </button>
@@ -340,7 +340,7 @@ export default function ToolBoxTunerMini() {
                 <button
                   key={`${string.name}-${index}`}
                   type="button"
-                  className={`rounded-[10px] px-1 py-1 text-[10px] font-black ${
+                  className={`rounded-[10px] px-1 py-1 text-[10px] font-bold ${
                     isSelected
                       ? "neuphormism-b-btn-gold text-black"
                       : "neuphormism-b-btn text-black"
@@ -379,7 +379,7 @@ export default function ToolBoxTunerMini() {
 
           <button
             type="button"
-            className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] ${
+            className={`rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] ${
               isTuning
                 ? "bg-black text-[goldenrod] shadow-[0_8px_16px_rgba(0,0,0,0.16)]"
                 : "neuphormism-b-btn-gold text-black"
@@ -412,10 +412,10 @@ export default function ToolBoxTunerMini() {
                 </button>
               </div>
               <div className="flex flex-col items-center justify-center gap-4 bg-[#f7f7f7] p-6">
-                <div className="text-7xl font-black leading-none tracking-[-0.08em] text-black">
+                <div className="text-7xl font-bold leading-none tracking-[-0.08em] text-black">
                   {noteLabel}
                 </div>
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
                   {tunerStatus} · {tuneMessage}
                 </div>
                 <div className="w-full">{renderMeter("h-6")}</div>

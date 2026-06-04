@@ -10,6 +10,7 @@ import {
   login as loginApi,
   tryOfflineLogin,
 } from "../../Tools/Controllers";
+import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
 
 const REMEMBERED_EMAIL_KEY = "auth:rememberedEmail";
 const STAY_CONNECTED_KEY = "auth:stayConnected";
@@ -73,11 +74,11 @@ function Login() {
       await fetchCurrentUserProfile();
 
       if (stayConnected) {
-        localStorage.setItem(REMEMBERED_EMAIL_KEY, userEmail.trim());
-        localStorage.setItem(STAY_CONNECTED_KEY, "true");
+        setLocalStorageItemSafe(REMEMBERED_EMAIL_KEY, userEmail.trim());
+        setLocalStorageItemSafe(STAY_CONNECTED_KEY, "true");
       } else {
         localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-        localStorage.setItem(STAY_CONNECTED_KEY, "false");
+        setLocalStorageItemSafe(STAY_CONNECTED_KEY, "false");
       }
 
       navigate("/");

@@ -69,7 +69,7 @@ export default function ToolsHub() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[1.05rem] font-black leading-tight">
+                  <div className="text-[1.05rem] font-bold leading-tight">
                     {label}
                   </div>
                   <div className="neuphormism-b-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] text-gray-600">

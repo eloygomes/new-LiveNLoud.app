@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import {
   buildInstrumentPresentationLayouts,
   getPresentationContentDebugSummary,
@@ -9,6 +9,13 @@ import {
   toPresentationLayoutPayload,
 } from "../presentationLayoutHelpers";
 import { logPresentationDebug } from "../helpers/presentationUtils";
+import {
+  setLocalStorageItemSafe,
+  setLocalStorageJsonSafe,
+} from "../../../Tools/storageSafe";
+
+const useBrowserLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function usePresentationLayoutStorageSync({
   currentInstrumentData,
@@ -28,7 +35,7 @@ export function usePresentationLayoutStorageSync({
   const skipNextLayoutPersistRef = useRef(false);
   const skipNextModePersistRef = useRef(false);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     if (!presentationLayoutModeStorageKey || typeof window === "undefined") {
       return;
     }
@@ -40,7 +47,7 @@ export function usePresentationLayoutStorageSync({
     setIsExpandedCifra(storedLayoutMode === "expanded");
   }, [presentationLayoutModeStorageKey, setIsExpandedCifra]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     if (
       !presentationLayoutIdentity ||
       !presentationLayoutStorageKey ||
@@ -175,10 +182,7 @@ export function usePresentationLayoutStorageSync({
         key: presentationLayoutStorageKey,
         layouts: getPresentationLayoutsDebugSummary(persistedLayouts),
       });
-      window.localStorage.setItem(
-        presentationLayoutStorageKey,
-        JSON.stringify(persistedLayouts),
-      );
+      setLocalStorageJsonSafe(presentationLayoutStorageKey, persistedLayouts);
     } catch (error) {
       console.error(
         "Erro ao persistir layouts da presentation no navegador:",
@@ -206,7 +210,7 @@ export function usePresentationLayoutStorageSync({
     }
 
     try {
-      window.localStorage.setItem(
+      setLocalStorageItemSafe(
         presentationLayoutModeStorageKey,
         isExpandedCifra ? "expanded" : "default",
       );

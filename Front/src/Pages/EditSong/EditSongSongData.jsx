@@ -23,7 +23,7 @@ function EditSongSongData({
             <div className="text-[11px] font-bold uppercase text-gray-500">
               Done
             </div>
-            <div className="text-xl font-black text-black">
+            <div className="text-xl font-bold text-black">
               {Number(geralPercentage || 0)}%
             </div>
           </div>
@@ -96,17 +96,17 @@ function EditSongSongData({
     <div className="my-5 h-[calc(100%-2.5rem)] rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex h-full w-full flex-col">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Song data
           </p>
-          {/* <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+          {/* <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
             Song Data
           </h1> */}
         </div>
 
         <div className="mt-5 grid gap-4">
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Song
             </span>
             <div className="mt-2 text-xl font-bold text-black">
@@ -114,7 +114,7 @@ function EditSongSongData({
             </div>
           </div>
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Artist
             </span>
             <div className="mt-2 text-xl font-bold text-black">
@@ -125,7 +125,7 @@ function EditSongSongData({
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Capo
             </p>
             <div className="mt-2 text-sm font-bold text-black">
@@ -133,7 +133,7 @@ function EditSongSongData({
             </div>
           </div>
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Tom
             </p>
             <div className="mt-2 text-sm font-bold text-black">
@@ -141,7 +141,7 @@ function EditSongSongData({
             </div>
           </div>
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Tuning
             </p>
             <div className="mt-2 text-sm font-bold text-black">
@@ -152,13 +152,13 @@ function EditSongSongData({
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Added
             </p>
             <div className="mt-2 text-sm font-bold text-black">{addedDate}</div>
           </div>
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Last play
             </p>
             <div className="mt-2 text-sm font-bold text-black">
@@ -167,10 +167,10 @@ function EditSongSongData({
           </div>
         </div>
         <div className="mt-auto flex items-center justify-between rounded-[22px] neuphormism-b-se px-4 py-3">
-          <span className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
             Progress of the song
           </span>
-          <span className="text-2xl font-black text-black">
+          <span className="text-2xl font-bold text-black">
             {Number(geralPercentage || 0)}%
           </span>
         </div>

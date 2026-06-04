@@ -9,6 +9,7 @@ import {
   updateUsername,
   updatePassword,
 } from "@/Tools/Controllers";
+import { setLocalStorageItemSafe } from "@/Tools/storageSafe";
 
 /* ===========================================================
    Reusable Modal Base
@@ -87,7 +88,7 @@ function UsernameModal({ isOpen, onClose, onSaved, currentUsername }) {
       // >>> ajuste aqui se o seu controller tiver assinatura diferente
       // await updateUsername({ email, username: trimmed });
       await updateUsername(trimmed);
-      localStorage.setItem("username", trimmed);
+      setLocalStorageItemSafe("username", trimmed);
       setOk("Nickname atualizado com sucesso!");
       onSaved?.(trimmed);
     } catch (e) {
@@ -349,7 +350,7 @@ export default function UserInfo() {
 
       if (resp.status === 200) {
         const ts = Date.now();
-        localStorage.setItem("avatarUpdatedAt", String(ts));
+        setLocalStorageItemSafe("avatarUpdatedAt", String(ts));
         setImageUpdated((n) => n + 1);
         setStatusMsg("Upload concluído!");
         setSelectedFile(null);

@@ -209,10 +209,10 @@ export default function RootLayouts() {
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="cursor-pointer" onClick={handleHomeNavigation}>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                     {mobileHeaderCopy.eyebrow}
                   </p>
-                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                  <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
                     {mobileHeaderCopy.title}
                   </h1>
                 </div>

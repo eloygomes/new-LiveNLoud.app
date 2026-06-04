@@ -51,8 +51,11 @@ const emptyPageContext = {
 const state = {
   pageContext: { ...emptyPageContext },
   selectedInstrument: "guitar01",
+  instrumentTouched: false,
+  saveMode: "single",
   availableSetlists: [],
   selectedSetlists: [],
+  managedInstrumentTags: [],
   detectedInstrumentLinks: {},
   selectedInstrumentLinks: {},
 };
@@ -71,7 +74,6 @@ const elements = {
   rememberSessionInput: document.getElementById("rememberSessionInput"),
   userBadge: document.getElementById("userBadge"),
   compatibilityNotice: document.getElementById("compatibilityNotice"),
-  copyLinkButton: document.getElementById("copyLinkButton"),
   copyLinkButtonProxy: document.getElementById("copyLinkButtonProxy"),
   linkValue: document.getElementById("linkValue"),
   instrumentSelect: document.getElementById("instrumentSelect"),
@@ -91,6 +93,8 @@ const elements = {
   discardButton: document.getElementById("discardButton"),
   logoutButton: document.getElementById("logoutButton"),
   finalMessage: document.getElementById("finalMessage"),
+  saveModeInputs: Array.from(document.querySelectorAll("input[name='saveMode']")),
+  instrumentLinksField: document.querySelector(".instrument-links-field"),
 };
 
 const DEBUG_PREFIX = "[#Sustenido Extension]";
@@ -372,7 +376,9 @@ function setDetectedInstrumentLinks(pageContext) {
     }),
     {},
   );
+  syncInstrumentSetlistTags();
   renderInstrumentLinkSuggestions();
+  renderSetlistTags();
 }
 
 function toggleDetectedInstrumentLink(instrumentName, checked) {
@@ -380,9 +386,21 @@ function toggleDetectedInstrumentLink(instrumentName, checked) {
     ...state.selectedInstrumentLinks,
     [instrumentName]: checked,
   };
+  syncInstrumentSetlistTags();
+  renderSetlistTags();
 }
 
 function getConfirmedInstrumentLinks() {
+  if (state.saveMode !== "all") {
+    const instrumentName = getSelectedInstrument();
+    const detectedLink = cleanText(state.detectedInstrumentLinks[instrumentName]);
+    const pageLink = cleanText(state.pageContext.link);
+
+    return {
+      [instrumentName]: detectedLink || pageLink,
+    };
+  }
+
   return Object.entries(state.detectedInstrumentLinks).reduce(
     (accumulator, [instrumentName, link]) => {
       if (state.selectedInstrumentLinks[instrumentName] && cleanText(link)) {
@@ -403,6 +421,10 @@ function getConfirmedInstrumentSetlistTags() {
 function renderInstrumentLinkSuggestions() {
   if (!elements.instrumentLinkSuggestions) return;
 
+  const showSuggestions = state.saveMode === "all";
+  elements.instrumentLinksField?.classList.toggle("hidden", !showSuggestions);
+  if (!showSuggestions) return;
+
   elements.instrumentLinkSuggestions.innerHTML = "";
 
   const entries = Object.entries(state.detectedInstrumentLinks).filter(
@@ -419,7 +441,7 @@ function renderInstrumentLinkSuggestions() {
 
   entries.forEach(([instrumentName, link]) => {
     const label = document.createElement("label");
-    label.className = "checkbox-field instrument-link-suggestion";
+    label.className = "instrument-link-suggestion";
     label.title = link;
 
     const checkbox = document.createElement("input");
@@ -432,8 +454,13 @@ function renderInstrumentLinkSuggestions() {
     const content = document.createElement("strong");
     content.textContent = getInstrumentDisplayName(instrumentName);
 
+    const href = document.createElement("span");
+    href.textContent = link;
+
     label.appendChild(checkbox);
+    label.appendChild(document.createElement("i"));
     label.appendChild(content);
+    label.appendChild(href);
     elements.instrumentLinkSuggestions.appendChild(label);
   });
 }
@@ -477,9 +504,13 @@ function detectInstrumentFromLink(pageContext) {
 }
 
 function syncInstrumentUi(pageContext) {
-  state.selectedInstrument = detectInstrumentFromLink(pageContext);
+  const detectedInstrument = detectInstrumentFromLink(pageContext);
+  if (!state.instrumentTouched || shouldForceVoice(pageContext)) {
+    state.selectedInstrument = detectedInstrument;
+  }
   elements.instrumentSelect.value = state.selectedInstrument;
   elements.instrumentSelect.disabled = false;
+  syncInstrumentSetlistTags();
 }
 
 function setCompatibleLayout(isCompatible) {
@@ -503,6 +534,36 @@ function getSelectedInstrument() {
   return (
     elements.instrumentSelect.value || state.selectedInstrument || "guitar01"
   );
+}
+
+function getActiveInstrumentNames() {
+  if (state.saveMode !== "all") {
+    return [getSelectedInstrument()];
+  }
+
+  return Object.keys(getConfirmedInstrumentLinks());
+}
+
+function syncInstrumentSetlistTags() {
+  const instrumentTags = getActiveInstrumentNames()
+    .map((instrumentName) => getInstrumentSetlistTag(instrumentName))
+    .filter(Boolean);
+
+  const managedTags = new Set(state.managedInstrumentTags);
+  state.selectedSetlists = Array.from(
+    new Set([
+      ...state.selectedSetlists.filter((tag) => !managedTags.has(tag)),
+      ...instrumentTags,
+    ]),
+  );
+  state.managedInstrumentTags = Array.from(new Set(instrumentTags));
+}
+
+function setSaveMode(mode) {
+  state.saveMode = mode === "all" ? "all" : "single";
+  syncInstrumentSetlistTags();
+  renderInstrumentLinkSuggestions();
+  renderSetlistTags();
 }
 
 function getEmptyInstrumentsMap() {
@@ -1095,6 +1156,7 @@ function buildSongPayload(
   const mergedTuning = cleanText(scrapedDoc?.tuning || pageContext.tuning);
   const embedVideos = parseVideoLinks(elements.videosInput.value);
   const progress = getProgressValue();
+  const isAllInstrumentsMode = state.saveMode === "all";
   const today = new Date().toISOString().split("T")[0];
   const selectedInstrumentScrapedDoc =
     scrapedDocsByInstrument[instrumentName] || scrapedDoc || null;
@@ -1104,7 +1166,7 @@ function buildSongPayload(
     capo: mergedCapo,
     lastPlay: "",
     link: mergedLink,
-    progress,
+    progress: isAllInstrumentsMode ? 0 : progress,
     songCifra: selectedInstrumentScrapedDoc?.songCifra || "",
     songTabs: selectedInstrumentScrapedDoc?.songTabs || "",
     songChords: selectedInstrumentScrapedDoc?.songChords || "",
@@ -1146,7 +1208,11 @@ function buildSongPayload(
         capo: cleanText(linkedScrapedDoc?.capo || mergedCapo),
         lastPlay: "",
         link: cleanText(linkedScrapedDoc?.link || link),
-        progress: linkedInstrument === instrumentName ? progress : 0,
+        progress: isAllInstrumentsMode
+          ? 0
+          : linkedInstrument === instrumentName
+            ? progress
+            : 0,
         songCifra: linkedScrapedDoc?.songCifra || "",
         songTabs: linkedScrapedDoc?.songTabs || "",
         songChords: linkedScrapedDoc?.songChords || "",
@@ -1179,7 +1245,7 @@ function buildSongPayload(
       tom: mergedTom,
       tuning: mergedTuning,
       instrumentName,
-      progressBar: 0,
+      progressBar: isAllInstrumentsMode ? progress : 0,
       instruments,
       guitar01: instrumentBlocks.guitar01,
       guitar02: instrumentBlocks.guitar02,
@@ -1244,6 +1310,12 @@ async function loadSongView(session) {
   setStatus("Carregando página...");
   hideFinalMessage();
   state.selectedSetlists = [];
+  state.managedInstrumentTags = [];
+  state.instrumentTouched = false;
+  state.saveMode = "single";
+  elements.saveModeInputs.forEach((input) => {
+    input.checked = input.value === state.saveMode;
+  });
   resetInstrumentLinkSuggestions();
 
   const [pageData, setlists] = await Promise.all([
@@ -1307,32 +1379,42 @@ elements.instrumentSelect.addEventListener("change", () => {
   if (shouldForceVoice(state.pageContext)) {
     elements.instrumentSelect.value = "voice";
     state.selectedInstrument = "voice";
+    state.instrumentTouched = false;
+    syncInstrumentSetlistTags();
+    renderSetlistTags();
     return;
   }
   state.selectedInstrument = getSelectedInstrument();
+  state.instrumentTouched = true;
+  syncInstrumentSetlistTags();
+  renderSetlistTags();
 });
 
-if (elements.copyLinkButton) {
-  elements.copyLinkButton.addEventListener("click", async () => {
-    const link = cleanText(state.pageContext.link);
-    if (!link) return;
-
-    try {
-      await navigator.clipboard.writeText(link);
-      setNotice("Link copiado.");
-      setNoticeState("success");
-    } catch (error) {
-      debugError("Copy link failed", error);
-      setNotice("Nao foi possivel copiar o link.");
-      setNoticeState("error");
+elements.saveModeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    if (input.checked) {
+      setSaveMode(input.value);
     }
   });
+});
+
+async function copySourceLink() {
+  const link = cleanText(state.pageContext.link);
+  if (!link) return;
+
+  try {
+    await navigator.clipboard.writeText(link);
+    setNotice("Link copiado.");
+    setNoticeState("success");
+  } catch (error) {
+    debugError("Copy link failed", error);
+    setNotice("Nao foi possivel copiar o link.");
+    setNoticeState("error");
+  }
 }
 
 if (elements.copyLinkButtonProxy) {
-  elements.copyLinkButtonProxy.addEventListener("click", () => {
-    elements.copyLinkButton?.click();
-  });
+  elements.copyLinkButtonProxy.addEventListener("click", copySourceLink);
 }
 
 elements.saveButton.addEventListener("click", async () => {

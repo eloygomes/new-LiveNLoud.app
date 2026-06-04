@@ -8,6 +8,10 @@ import {
   normalizeOfflineSongs,
   toggleSongOfflineState,
 } from "./offlineStore";
+import {
+  setLocalStorageItemSafe,
+  setLocalStorageJsonSafe,
+} from "./storageSafe";
 
 // Controllers.js
 
@@ -187,7 +191,7 @@ async function refreshAccessToken() {
   }
 
   if (typeof window !== "undefined") {
-    localStorage.setItem("token", data.accessToken);
+    setLocalStorageItemSafe("token", data.accessToken);
   }
 
   return data.accessToken;
@@ -304,9 +308,9 @@ function findCachedSong(artist = "", title = "") {
 const syncStoredUserProfile = (profile = {}) => {
   if (typeof window === "undefined") return;
 
-  if (profile.email) localStorage.setItem("userEmail", profile.email);
+  if (profile.email) setLocalStorageItemSafe("userEmail", profile.email);
   if (profile.usernameDisplay || profile.username) {
-    localStorage.setItem(
+    setLocalStorageItemSafe(
       "username",
       profile.usernameDisplay || profile.username,
     );
@@ -326,10 +330,7 @@ function readCachedOfflineSongs() {
 
 function writeCachedOfflineSongs(songs = []) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(
-    OFFLINE_SONGS_KEY,
-    JSON.stringify(normalizeOfflineSongs(songs)),
-  );
+  setLocalStorageJsonSafe(OFFLINE_SONGS_KEY, normalizeOfflineSongs(songs));
 }
 
 function readOfflineSyncQueue() {
@@ -347,7 +348,7 @@ function readOfflineSyncQueue() {
 
 function writeOfflineSyncQueue(queue = []) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(OFFLINE_SYNC_QUEUE_KEY, JSON.stringify(queue));
+  setLocalStorageJsonSafe(OFFLINE_SYNC_QUEUE_KEY, queue);
 }
 
 function pruneLocalOnlyOfflineMutations(queue = []) {
@@ -358,12 +359,15 @@ function pruneLocalOnlyOfflineMutations(queue = []) {
 
 function setOfflineModeEnabled(enabled) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(OFFLINE_MODE_KEY, enabled ? "true" : "false");
+  setLocalStorageItemSafe(OFFLINE_MODE_KEY, enabled ? "true" : "false");
 }
 
 function setOfflineContentEnabled(enabled) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(OFFLINE_CONTENT_ENABLED_KEY, enabled ? "true" : "false");
+  setLocalStorageItemSafe(
+    OFFLINE_CONTENT_ENABLED_KEY,
+    enabled ? "true" : "false",
+  );
 }
 
 function isOfflineContentEnabled() {
@@ -373,7 +377,7 @@ function isOfflineContentEnabled() {
 
 function setOfflineReauthRequired(required) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(
+  setLocalStorageItemSafe(
     OFFLINE_REAUTH_REQUIRED_KEY,
     required ? "true" : "false",
   );
@@ -954,13 +958,13 @@ export async function login(userEmail, userPassword) {
 
     const { accessToken, refreshToken } = data;
 
-    localStorage.setItem("token", accessToken);
-    localStorage.setItem("userEmail", userEmail);
-    localStorage.setItem(SESSION_TIMESTAMP_KEY, new Date().toISOString());
-    localStorage.setItem(OFFLINE_MODE_KEY, "false");
-    localStorage.setItem(OFFLINE_REAUTH_REQUIRED_KEY, "false");
+    setLocalStorageItemSafe("token", accessToken);
+    setLocalStorageItemSafe("userEmail", userEmail);
+    setLocalStorageItemSafe(SESSION_TIMESTAMP_KEY, new Date().toISOString());
+    setLocalStorageItemSafe(OFFLINE_MODE_KEY, "false");
+    setLocalStorageItemSafe(OFFLINE_REAUTH_REQUIRED_KEY, "false");
     if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
+      setLocalStorageItemSafe("refreshToken", refreshToken);
     }
 
     const persistedQueue = pruneLocalOnlyOfflineMutations(
@@ -1032,9 +1036,9 @@ export async function tryOfflineLogin(userEmail = "") {
     return false;
   }
 
-  localStorage.setItem("userEmail", normalizedEmail);
-  localStorage.setItem(OFFLINE_MODE_KEY, "true");
-  localStorage.setItem(OFFLINE_REAUTH_REQUIRED_KEY, "false");
+  setLocalStorageItemSafe("userEmail", normalizedEmail);
+  setLocalStorageItemSafe(OFFLINE_MODE_KEY, "true");
+  setLocalStorageItemSafe(OFFLINE_REAUTH_REQUIRED_KEY, "false");
   return true;
 }
 
@@ -1304,11 +1308,7 @@ export function loadSelectedSetlists() {
 }
 
 export function saveSelectedSetlists(arr) {
-  try {
-    localStorage.setItem(SETLISTS_LS_KEY, JSON.stringify(arr || []));
-  } catch {
-    // intentionally empty: safe to ignore errors here
-  }
+  setLocalStorageJsonSafe(SETLISTS_LS_KEY, arr || []);
 }
 
 export const DASHBOARD_VISIBLE_SONGS_LS_KEY = "dashboardVisibleSongs";
@@ -1333,10 +1333,7 @@ export function saveDashboardVisibleSongs(songs) {
       ? songs.map(normalizeDashboardVisibleSong).filter(Boolean)
       : [];
 
-    localStorage.setItem(
-      DASHBOARD_VISIBLE_SONGS_LS_KEY,
-      JSON.stringify(visibleSongs),
-    );
+    setLocalStorageJsonSafe(DASHBOARD_VISIBLE_SONGS_LS_KEY, visibleSongs);
   } catch {
     // intentionally empty: safe to ignore errors here
   }

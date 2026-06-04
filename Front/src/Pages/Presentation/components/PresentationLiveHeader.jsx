@@ -20,14 +20,14 @@ function PresentationLiveHeader({
       <div className="flex items-start justify-between gap-3 border-b border-white/10 bg-black pb-3">
         <div className="min-w-0">
           {isTouchLayout ? (
-            <div className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
+            <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
               # sustenido live
             </div>
           ) : null}
           <div
             className={
               isTouchLayout
-                ? "mt-1 text-[1.02rem] font-black leading-[1.05rem] text-white"
+                ? "mt-1 text-[1.02rem] font-bold leading-[1.05rem] text-white"
                 : "truncate text-3xl font-bold leading-tight text-white"
             }
           >
@@ -96,7 +96,7 @@ function PresentationLiveHeader({
           </div>
           <button
             type="button"
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 font-black uppercase tracking-[0.1em] text-white ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/8 font-bold uppercase tracking-[0.1em] text-white ${
               isTouchLayout ? "px-2.5 py-1.5 text-[10px]" : "px-4 py-2 text-xs"
             }`}
             onClick={onExit}

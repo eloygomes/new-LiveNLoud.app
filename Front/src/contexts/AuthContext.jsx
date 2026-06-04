@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { setLocalStorageItemSafe } from "../Tools/storageSafe";
 
 const AuthContext = createContext();
 
@@ -17,8 +18,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (token, email) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("userEmail", email);
+    setLocalStorageItemSafe("token", token);
+    setLocalStorageItemSafe("userEmail", email);
     setToken(token);
     setUserEmail(email);
   };

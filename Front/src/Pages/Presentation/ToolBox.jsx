@@ -55,12 +55,6 @@ function ToolBox({
   isSavingNotes = false,
   onSelectInstrument,
   requestedPanel,
-  activeProgressionMarkSettings,
-  onDecreaseActiveMarkWidth,
-  onIncreaseActiveMarkWidth,
-  onDecreaseActiveMarkHeight,
-  onIncreaseActiveMarkHeight,
-  onRequestDeleteActiveMark,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -73,9 +67,16 @@ function ToolBox({
     return null;
   }
 
-  const closeTouchToolBox = () => {
+  const closeToolBoxAndDiscardEditor = () => {
+    if (isEditing) {
+      handleDiscardDraft();
+    }
     setActiveTouchPanel(null);
     toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus);
+  };
+
+  const closeTouchToolBox = () => {
+    closeToolBoxAndDiscardEditor();
   };
 
   const handleTouchHeaderClose = () => {
@@ -154,7 +155,7 @@ function ToolBox({
           />
           <div className=" absolute inset-x-0 bottom-0 rounded-t-[18px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
-              <h1 className="text-[2rem] font-black tracking-tight text-black">
+              <h1 className="text-[2rem] font-bold tracking-tight text-black">
                 ToolBox
               </h1>
               <button
@@ -212,12 +213,6 @@ function ToolBox({
               isSavingNotes={isSavingNotes}
               onSelectInstrument={onSelectInstrument}
               requestedPanel={requestedPanel}
-              activeProgressionMarkSettings={activeProgressionMarkSettings}
-              onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
-              onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
-              onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
-              onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
-              onRequestDeleteActiveMark={onRequestDeleteActiveMark}
             />
           </div>
         </div>
@@ -238,13 +233,8 @@ function ToolBox({
               <div className="border-b-2 border-gray-300 w-full flex flex-row justify-between py-2 drag-handle cursor-move select-none">
                 <h1 className="text-sm font-bold">ToolBox</h1>
                 <button
-                  className="text-2xl font-semibold hover:font-black"
-                  onClick={() =>
-                    toolBoxBtnStatusChange(
-                      toolBoxBtnStatus,
-                      setToolBoxBtnStatus,
-                    )
-                  }
+                  className="text-2xl font-semibold hover:font-bold"
+                  onClick={closeToolBoxAndDiscardEditor}
                   aria-label="Close toolbox"
                   type="button"
                 >
@@ -286,7 +276,7 @@ function ToolBox({
                 decreaseBlockSpacing={decreaseBlockSpacing}
                 increaseBlockSpacing={increaseBlockSpacing}
                 closeToolBox={() =>
-                  toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
+                  closeToolBoxAndDiscardEditor()
                 }
                 setNotesModalStatus={setNotesModalStatus}
                 onOpenInstrumentNotes={onOpenInstrumentNotes}
@@ -296,12 +286,6 @@ function ToolBox({
                 isSavingNotes={isSavingNotes}
                 onSelectInstrument={onSelectInstrument}
                 requestedPanel={requestedPanel}
-                activeProgressionMarkSettings={activeProgressionMarkSettings}
-                onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
-                onIncreaseActiveMarkWidth={onIncreaseActiveMarkWidth}
-                onDecreaseActiveMarkHeight={onDecreaseActiveMarkHeight}
-                onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
-                onRequestDeleteActiveMark={onRequestDeleteActiveMark}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

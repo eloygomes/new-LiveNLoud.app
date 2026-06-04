@@ -1,22 +1,50 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findChordTooltipData } from "../PresentationChordTooltip";
 
+function getChordAnchorRect(chordElement) {
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(chordElement);
+    const rangeRect = range.getBoundingClientRect();
+    range.detach();
+
+    if (rangeRect.width > 0 && rangeRect.height > 0) {
+      return rangeRect;
+    }
+  } catch {}
+
+  return chordElement.getBoundingClientRect();
+}
+
 function buildTooltipState({ chordElement, chordData, activeChordTooltip }) {
-  const rect = chordElement.getBoundingClientRect();
+  const rect = getChordAnchorRect(chordElement);
   const isExpanded = activeChordTooltip?.data?.chordId === chordData.chordId;
   const tooltipWidth = isExpanded ? 860 : 184;
+  const tooltipHeight = isExpanded ? 360 : 260;
   const spacing = 14;
   const safeLeft = Math.min(
     Math.max(12, rect.left + rect.width / 2 - tooltipWidth / 2),
     window.innerWidth - tooltipWidth - 12,
   );
+  const preferredTop = rect.bottom + spacing;
+  const fallbackTop = rect.top - tooltipHeight - spacing;
+  const topCandidate =
+    preferredTop + tooltipHeight > window.innerHeight - 12
+      ? fallbackTop
+      : preferredTop;
+  const maxTop = Math.max(12, window.innerHeight - tooltipHeight - 12);
+  const safeTop = Math.min(
+    Math.max(12, topCandidate),
+    maxTop,
+  );
 
   return {
     chord: chordData.chordLabel,
     data: chordData,
+    anchorElement: chordElement,
     position: {
       x: safeLeft,
-      y: rect.bottom + spacing,
+      y: safeTop,
     },
   };
 }
@@ -88,6 +116,22 @@ export function usePresentationChordTooltip({ contentRef, isEditing }) {
     [clearTooltipHideTimeout],
   );
 
+  const updateTooltipPosition = useCallback(() => {
+    setTooltip((currentTooltip) => {
+      const chordElement = currentTooltip?.anchorElement;
+      const chordData = currentTooltip?.data;
+      if (!(chordElement instanceof HTMLElement) || !chordData) {
+        return currentTooltip;
+      }
+
+      return buildTooltipState({
+        chordElement,
+        chordData,
+        activeChordTooltip: currentTooltip,
+      });
+    });
+  }, []);
+
   const applyChordVariation = useCallback(
     ({ chordLabel, chordId, variationIndex, applyToAll }) => {
       if (applyToAll) {
@@ -158,6 +202,20 @@ export function usePresentationChordTooltip({ contentRef, isEditing }) {
       contentNode.removeEventListener("mouseout", handleMouseOut);
     };
   }, [contentRef, isEditing, scheduleTooltipHide, updateTooltip]);
+
+  useEffect(() => {
+    if (!tooltip?.data) return undefined;
+
+    const handleViewportChange = () => updateTooltipPosition();
+
+    window.addEventListener("scroll", handleViewportChange, true);
+    window.addEventListener("resize", handleViewportChange);
+
+    return () => {
+      window.removeEventListener("scroll", handleViewportChange, true);
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }, [tooltip?.data, updateTooltipPosition]);
 
   useEffect(() => {
     if (isEditing) {

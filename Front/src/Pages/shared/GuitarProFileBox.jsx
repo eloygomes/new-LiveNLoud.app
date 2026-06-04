@@ -112,7 +112,7 @@ export default function GuitarProFileBox({
     <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Guitar Pro
           </p>
           <p className="mt-1 text-sm font-medium text-gray-500">
@@ -130,7 +130,7 @@ export default function GuitarProFileBox({
       </div>
 
       <div className="mt-4 rounded-[16px] neuphormism-b-se px-4 py-3">
-        <div className="truncate text-sm font-black text-black">
+        <div className="truncate text-sm font-bold text-black">
           {hasGuitarProFiles
             ? guitarProFiles[0]?.originalName || "Guitar Pro file"
             : "No file registered"}
@@ -138,7 +138,7 @@ export default function GuitarProFileBox({
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black">
+        <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black">
           <FaPlus />
           <span>Add</span>
           <input
@@ -152,7 +152,7 @@ export default function GuitarProFileBox({
           type="button"
           onClick={handleDelete}
           disabled={!hasGuitarProFiles}
-          className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+          className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
         >
           <FaMinus />
           <span>Remove</span>
@@ -161,7 +161,7 @@ export default function GuitarProFileBox({
           type="button"
           onClick={handleView}
           disabled={!hasGuitarProFiles}
-          className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+          className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
         >
           <FaRegFileAlt />
           <span>View</span>

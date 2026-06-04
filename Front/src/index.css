@@ -431,7 +431,8 @@ main{
 .presentation-two-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--presentation-block-gap, 1.5rem) 2rem;
+  row-gap: 1.5rem;
+  column-gap: var(--presentation-block-gap, 2rem);
   align-content: start;
 }
 
@@ -442,7 +443,7 @@ main{
 .presentation-content-flow:not(.presentation-horizontal-columns):not(.presentation-two-columns)
   .presentation-render-block
   + .presentation-render-block {
-  margin-top: var(--presentation-block-gap, 1.5rem);
+  margin-top: 1.5rem;
 }
 
 .presentation-render-block {
@@ -460,13 +461,11 @@ main{
   width: 100%;
   max-width: none !important;
   position: relative;
-  scroll-behavior: smooth;
 }
 
 .presentation-expanded-cifra-horizontal {
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-behavior: smooth;
 }
 
 .presentation-expanded-cifra-vertical {
@@ -482,11 +481,12 @@ main{
   height: 100%;
   width: max-content;
   min-width: max-content;
-  gap: var(--presentation-block-gap, 2rem);
+  column-gap: var(--presentation-block-gap, 2rem);
+  row-gap: 0;
   padding-bottom: 6rem;
 }
 
-.presentation-horizontal-columns .presentation-render-block {
+.presentation-horizontal-columns .presentation-column {
   width: min(42vw, 42rem);
   flex: 0 0 auto;
 }
@@ -638,7 +638,7 @@ main{
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .presentation-live-step-control button {
@@ -647,7 +647,7 @@ main{
   background: transparent;
   color: #f5d47a;
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -683,7 +683,8 @@ main{
   --presentation-live-column-width: clamp(38rem, 46vw, 62rem);
   width: max-content;
   min-width: 100%;
-  gap: var(--presentation-block-gap, clamp(1.25rem, 2.4vw, 3rem));
+  column-gap: var(--presentation-block-gap, 2rem);
+  row-gap: 0;
   padding:
     clamp(0.75rem, 1.4vw, 1.5rem)
     clamp(1rem, 2.4vw, 3rem)
@@ -695,19 +696,15 @@ main{
     max(clamp(1rem, 2.4vw, 3rem), calc((100vw - var(--presentation-live-column-width)) / 2));
 }
 
-.presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns .presentation-render-block {
+.presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns .presentation-column {
   width: var(--presentation-live-column-width);
   min-width: min(var(--presentation-live-column-width), calc(100vw - 2rem));
   max-width: 64rem;
 }
 
-.presentation-live-content.presentation-expanded-cifra-horizontal .presentation-render-block {
+.presentation-live-content.presentation-expanded-cifra-horizontal .presentation-column {
   opacity: 0.22;
   filter: grayscale(1);
-  transition:
-    opacity 180ms ease,
-    filter 180ms ease,
-    transform 180ms ease;
 }
 
 .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-live-column-active {
@@ -715,7 +712,16 @@ main{
   filter: none;
 }
 
+.presentation-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .presentation-progression-block {
+  display: flex;
+  flex-direction: column;
+  height: var(--presentation-column-height, min(68vh, 760px));
   outline: 2px dashed var(--progression-color, #d4a017);
   outline-offset: -2px;
   border-radius: 10px;
@@ -724,32 +730,34 @@ main{
   box-shadow: inset 0 0 0 1px
     color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
   pointer-events: auto;
-  cursor: ew-resize;
-  transition: box-shadow 160ms ease, transform 160ms ease;
 }
 
-.presentation-progression-block > div:last-child {
+.presentation-column-body {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.presentation-progression-block .presentation-column-body {
   pointer-events: auto;
+  overflow: hidden;
 }
 
-.presentation-progression-block::before {
-  content: attr(data-progression-column-label);
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -1.45rem;
-  z-index: 3;
+.presentation-column-header {
+  flex: 0 0 auto;
   display: inline-flex;
   width: 100%;
   height: 0.95rem;
   align-items: center;
   justify-content: center;
-  margin: 0;
+  margin: 0 0 0.75rem;
   border-radius: 2px;
   background: var(--progression-header-color, #3d7eff);
   color: #fff;
   font-size: 0.62rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.18em;
   line-height: 1;
   opacity: 1;
@@ -758,142 +766,18 @@ main{
   user-select: none;
 }
 
-.presentation-progression-drag-handle,
-.presentation-progression-resize-handle,
-.presentation-progression-height-handle,
-.presentation-progression-height-top-handle,
-.presentation-progression-select-handle,
-.presentation-progression-delete-handle {
-  position: absolute;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: none;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--progression-color, #d4a017);
-  box-shadow: 3px 3px 8px rgba(190, 190, 190, 0.55),
-    -3px -3px 8px rgba(255, 255, 255, 0.9);
-  font-size: 0.88rem;
-  font-weight: 900;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity 160ms ease, transform 160ms ease;
-  pointer-events: auto;
+.presentation-render-content-block {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: auto;
 }
 
-.presentation-progression-drag-handle {
-  top: 50%;
-  left: -0.9rem;
-  transform: translateY(-50%);
-  cursor: grab;
-}
-
-.presentation-progression-drag-handle:active {
-  cursor: grabbing;
-}
-
-.presentation-progression-resize-handle {
-  top: 50%;
-  right: -0.9rem;
-  transform: translateY(-50%);
-  cursor: ew-resize;
-}
-
-.presentation-progression-height-handle {
-  bottom: -0.9rem;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: ns-resize;
-}
-
-.presentation-progression-height-top-handle {
-  top: 3rem;
-  right: -0.9rem;
-  cursor: ns-resize;
-}
-
-.presentation-progression-select-handle {
-  top: 0.65rem;
-  left: -0.9rem;
-  cursor: pointer;
-}
-
-.presentation-progression-delete-handle {
-  top: -0.9rem;
-  right: -0.9rem;
-  background: #f8d1d1;
-  color: #9b1c1c;
-  cursor: pointer;
-}
-
-.presentation-progression-block:hover .presentation-progression-drag-handle,
-.presentation-progression-block:hover .presentation-progression-resize-handle,
-.presentation-progression-block:hover .presentation-progression-height-handle,
-.presentation-progression-block:hover .presentation-progression-height-top-handle,
-.presentation-progression-block:hover .presentation-progression-select-handle,
-.presentation-progression-block:hover .presentation-progression-delete-handle,
-.presentation-progression-drag-handle:focus,
-.presentation-progression-resize-handle:focus,
-.presentation-progression-height-handle:focus,
-.presentation-progression-height-top-handle:focus,
-.presentation-progression-select-handle:focus,
-.presentation-progression-delete-handle:focus,
-.presentation-progression-block-selected .presentation-progression-select-handle,
-.presentation-progression-block-selected .presentation-progression-height-top-handle,
-.presentation-progression-block-selected .presentation-progression-delete-handle {
-  opacity: 1;
-}
-
-.presentation-progression-block:hover,
-.presentation-progression-block:active,
-.presentation-progression-block-selected {
+.presentation-progression-block:hover {
   box-shadow: inset 0 0 0 1px
       color-mix(in srgb, var(--progression-color, #d4a017) 18%, transparent),
     0 10px 24px color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
-}
-
-.presentation-progression-block-selected {
-  outline-width: 5px;
-  outline-offset: -5px;
-  background:
-    linear-gradient(
-      0deg,
-      color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent),
-      color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent)
-    ),
-    transparent;
-  box-shadow:
-    inset 0 0 0 3px color-mix(in srgb, var(--progression-color, #d4a017) 52%, transparent),
-    0 0 0 4px rgba(255, 255, 255, 0.94),
-    0 14px 34px color-mix(in srgb, var(--progression-color, #d4a017) 34%, transparent),
-    0 6px 18px rgba(0, 0, 0, 0.2);
-}
-
-.presentation-progression-column-header {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -1.45rem;
-  z-index: 3;
-  display: inline-flex;
-  width: 100%;
-  height: 0.95rem;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  border-radius: 2px;
-  background: var(--progression-color, #d4a017);
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  line-height: 1;
-  pointer-events: none;
-  text-transform: uppercase;
 }
 
 .presentation-content-flow[contenteditable="true"] {
@@ -968,7 +852,7 @@ main{
     padding-bottom: 0;
   }
 
-  .presentation-horizontal-columns .presentation-render-block {
+  .presentation-horizontal-columns .presentation-column {
     width: 100%;
   }
 
@@ -979,7 +863,7 @@ main{
     padding: 0 0 5rem;
   }
 
-  .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns .presentation-render-block {
+  .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns .presentation-column {
     width: 100%;
     min-width: 0;
     max-width: 100%;

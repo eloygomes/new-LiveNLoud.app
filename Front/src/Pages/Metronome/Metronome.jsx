@@ -262,9 +262,9 @@ function Metronome() {
     "neuphormism-b-btn flex min-h-[22px] items-center justify-center rounded-[18px] px-4 text-sm font-bold uppercase tracking-[0.14em] text-black active:scale-[0.98]";
   const touchActionButtonClass =
     "neuphormism-b-btn flex min-h-[72px] min-w-0 items-center justify-center rounded-[18px] px-4 text-base font-bold uppercase tracking-[0.14em] text-black active:scale-[0.98]";
-  const desktopSmallButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"}x items-center justify-center rounded-[18px] px-3 text-[1.05rem] font-black uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
-  const desktopTAPButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[.9rem] font-black uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
-  const desktopMINUSPLUSButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[1.05rem] font-black uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
+  const desktopSmallButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[1.05rem] font-bold uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
+  const desktopTAPButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[.9rem] font-bold uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
+  const desktopMINUSPLUSButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[1.05rem] font-bold uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
 
   const renderSlider = ({
     iconStart,
@@ -280,7 +280,7 @@ function Metronome() {
     vertical = false,
   }) => (
     <div
-      className={`neuphormism-b rounded-[24px] ${vertical ? "flex h-full min-h-[340px] flex-col items-center justify-between px-3 py-5" : "px-4 py-4"}`}
+      className={`neuphormism-b rounded-[24px] ${vertical ? "flex h-full min-h-0 flex-col items-center justify-between overflow-hidden px-3 py-5" : "px-4 py-4"}`}
     >
       {label === "Tempo" && (
         <div
@@ -331,11 +331,11 @@ function Metronome() {
       )}
 
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">
+        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500">
           {label}
         </span>
         {label === "Tempo" && (
-          <span className="text-sm font-black text-black">
+          <span className="text-sm font-bold text-black">
             {label === "Volume"
               ? `${Math.round(value * 100)}%`
               : `${value} BPM`}
@@ -343,7 +343,7 @@ function Metronome() {
         )}
       </div>
       <div
-        className={`flex ${vertical ? "flex-1 flex-col items-center justify-center gap-4" : "items-center gap-3"}`}
+        className={`flex ${vertical ? "min-h-0 flex-1 flex-col items-center justify-center gap-4" : "items-center gap-3"}`}
       >
         {!hideButtons ? (
           <div
@@ -370,7 +370,7 @@ function Metronome() {
           step={step}
           value={value}
           onChange={onChange}
-          className={`range-golden appearance-none bg-transparent ${thin ? "range-golden-thin" : ""} ${vertical ? "range-golden-vertical !h-[250px] w-5" : "w-full"}`}
+          className={`range-golden appearance-none bg-transparent ${thin ? "range-golden-thin" : ""} ${vertical ? "range-golden-vertical !h-full min-h-0 w-5" : "w-full"}`}
         />
         {!hideButtons ? (
           <div
@@ -394,7 +394,7 @@ function Metronome() {
         ) : null}
       </div>
       {label === "Volume" && (
-        <span className="text-sm font-black text-black">
+        <span className="text-sm font-bold text-black">
           {label === "Volume" ? `${Math.round(value * 100)}%` : `${value} BPM`}
         </span>
       )}
@@ -407,16 +407,16 @@ function Metronome() {
         <div className="mx-auto flex max-w-5xl flex-col gap-3">
           <section className="neuphormism-b rounded-[28px] px-5 py-4">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                 Metronome
               </p>
-              <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+              <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
                 Keep The Pulse
               </h1>
             </div>
 
             <div className="mt-4 flex flex-col gap-3 rounded-[24px] neuphormism-b px-4 py-3">
-              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 ">
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 ">
                 Timer{" "}
               </span>
               <div className="flex items-center gap-3">
@@ -448,7 +448,7 @@ function Metronome() {
                   >
                     -10
                   </button>
-                  <p className="w-[94px] shrink-0 text-center text-[1.8rem] font-black leading-none tracking-[-0.05em] text-black">
+                  <p className="w-[94px] shrink-0 text-center text-[1.8rem] font-bold leading-none tracking-[-0.05em] text-black">
                     {formatTime(displayedTimer)}
                   </p>
                   <button
@@ -467,10 +467,10 @@ function Metronome() {
                 isOn ? "bg-black text-white" : "bg-white text-black"
               }`}
             >
-              <div className="text-[5.4rem] font-black leading-[0.9] tracking-[-0.08em]">
+              <div className="text-[5.4rem] font-bold leading-[0.9] tracking-[-0.08em]">
                 {bpm}
               </div>
-              <div className="mt-1 text-sm font-black uppercase tracking-[0.3em] text-[goldenrod]">
+              <div className="mt-1 text-sm font-bold uppercase tracking-[0.3em] text-[goldenrod]">
                 BPM
               </div>
             </div>
@@ -521,9 +521,9 @@ function Metronome() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] px-4 pb-8 pt-4 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">
-      <div className="mx-auto w-full max-w-none">
-        <div className="w-full pb-10 lg:pb-0">
+    <div className="bg-[#f0f0f0] px-4 pb-8 pt-4 lg:h-[calc((100vh/var(--desktop-app-zoom))-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-5">
+      <div className="mx-auto flex h-full w-full max-w-none flex-col">
+        <div className="flex min-h-0 w-full flex-1 flex-col pb-10 lg:pb-0">
           <div className="mb-5 flex items-center gap-6 neuphormism-b p-5">
             <div>
               <h1 className="text-4xl font-bold">METRONOME</h1>
@@ -535,11 +535,11 @@ function Metronome() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
-            <section className="neuphormism-b flex flex-col rounded p-6">
-              <div className="flex h-full flex-col">
-                <div className="flex h-full flex-col gap-6">
-                  <div className="neuphormism-b rounded px-5 py-1">
+          <div className="grid h-full min-h-0 flex-1 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
+            <section className="neuphormism-b flex h-full min-h-0 flex-col rounded p-6">
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="flex min-h-0 flex-1 flex-col gap-6">
+                  <div className="flex-shrink-0 rounded neuphormism-b px-5 py-1">
                     <div className=" flex flex-row justify-between gap-6">
                       <div className="flex flex-row justify-between ">
                         <button
@@ -585,8 +585,8 @@ function Metronome() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex min-h-[360px] flex-1 flex-row gap-6">
-                    <div className="h-full w-[17.5%]">
+                  <div className="grid min-h-0 flex-1 grid-cols-[12%_minmax(0,1fr)_18%] gap-6">
+                    <div className="h-full min-h-0">
                       {renderSlider({
                         iconStart: <FaVolumeMute size={14} />,
                         iconEnd: <FaVolumeUp size={14} />,
@@ -611,22 +611,22 @@ function Metronome() {
                       })}
                     </div>
                     <div
-                      className={`h-full flex-1 gap-3 rounded-[30px] px-8 py-16 text-center transition-colors ${
+                      className={`h-full min-h-0 gap-3 rounded-[30px] px-8 py-16 text-center transition-colors ${
                         isOn
                           ? "neuphormism-d-bg-black text-white"
                           : "neuphormism-d text-black"
                       }`}
                     >
                       <div className="flex h-full flex-col items-center justify-center">
-                        <div className="text-[8.7rem] font-black leading-[0.84] tracking-[-0.09em]">
+                        <div className="text-[8.7rem] font-bold leading-[0.84] tracking-[-0.09em]">
                           {bpm}
                         </div>
-                        <div className="mt-2 text-lg font-black uppercase tracking-[0.3em] text-gray-500">
+                        <div className="mt-2 text-lg font-bold uppercase tracking-[0.3em] text-gray-500">
                           BPM
                         </div>
                       </div>
                     </div>
-                    <div className="flex h-full w-[17.5%] flex-col justify-between gap-6">
+                    <div className="flex h-full min-h-0 min-w-[150px] flex-col justify-between gap-6">
                       <button
                         type="button"
                         className={`${bpmButtonClass} h-full flex-1 min-w-[150px] py-6 ${
@@ -659,23 +659,25 @@ function Metronome() {
                     </div>
                   </div>
 
-                  {renderSlider({
-                    iconStart: <FaMinus size={12} />,
-                    iconEnd: <FaPlus size={12} />,
-                    label: "Tempo",
-                    min: BPM_MIN,
-                    max: BPM_MAX,
-                    step: 1,
-                    value: bpm,
-                    onChange: (e) => setBpm(Number(e.target.value)),
-                  })}
+                  <div className="flex-shrink-0">
+                    {renderSlider({
+                      iconStart: <FaMinus size={12} />,
+                      iconEnd: <FaPlus size={12} />,
+                      label: "Tempo",
+                      min: BPM_MIN,
+                      max: BPM_MAX,
+                      step: 1,
+                      value: bpm,
+                      onChange: (e) => setBpm(Number(e.target.value)),
+                    })}
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-5"></div>
               </div>
             </section>
 
-            <section className="flex h-[min(72vh,820px)] min-h-0 flex-col lg:h-[calc(100vh-12rem)]">
+            <section className="flex h-full min-h-0 flex-col">
               <Stopwatch />
             </section>
           </div>

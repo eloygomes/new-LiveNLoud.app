@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ToolBox from "./ToolBox";
@@ -6,57 +5,61 @@ import { useRef } from "react";
 import SnackBar from "../../Tools/SnackBar";
 import MobileSnackBar from "../../Tools/MobileSnackBar";
 
-import { processSongCifra } from "./ProcessSongCifra";
-import { inferDisplayKey, transposeCifra } from "./transposeCifra";
 import PresentationChordTooltip from "./PresentationChordTooltip";
 import ChordSheetJS from "chordsheetjs";
 import GuitarProViewerModal from "../../components/GuitarPro/GuitarProViewerModal";
 import {
-  buildInstrumentPresentationLayouts,
-  clampLiveCifraZoomPercent,
-  getPresentationBlockSpacingPx,
   getPresentationContentDebugSummary,
   getPresentationLayoutSettingsSnapshot,
   getPresentationLayoutsDebugSummary,
   getProgressionColumnsDebugSummary,
-  shouldDropBlankLinesForPresentationFlow,
 } from "./presentationLayoutHelpers";
-import ConfirmationModal from "./components/ConfirmationModal";
 import TouchVideoMenu from "./components/TouchVideoMenu";
 import PresentationHorizontalNav from "./components/PresentationHorizontalNav";
 import PresentationStatusState from "./components/PresentationStatusState";
 import PresentationLiveHeader from "./components/PresentationLiveHeader";
 import PresentationTopBar from "./components/PresentationTopBar";
 import PresentationColumns from "./components/PresentationColumns";
-import { PRESENTATION_INSTRUMENTS } from "./helpers/presentationConstants";
+import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 import {
-  buildProgressionBlocks,
+  getMobileTitleSizeClass,
   getPresentationLayoutModeStorageKey,
   getPresentationLayoutsStorageKey,
-  getVisibleBlocksDebugSummary,
-  instrumentHasPresentationContent,
-  isInstrumentRegistered,
   logPresentationDebug,
   normalizePresentationInstrumentValue,
   safeDecodeURIComponent,
   toolBoxBtnStatusChange,
 } from "./helpers/presentationUtils";
-import { buildProgressionRenderModel } from "./helpers/progressionRenderModel";
 import { usePresentationCifraEditor } from "./hooks/usePresentationCifraEditor";
 import { usePresentationChordTooltip } from "./hooks/usePresentationChordTooltip";
+import { usePresentationInstrumentAvailability } from "./hooks/usePresentationInstrumentAvailability";
 import { usePresentationInstrumentNotes } from "./hooks/usePresentationInstrumentNotes";
 import { usePresentationLayoutStorageSync } from "./hooks/usePresentationLayoutStorageSync";
 import { usePresentationLayoutUpdater } from "./hooks/usePresentationLayoutUpdater";
 import { usePresentationLiveMode } from "./hooks/usePresentationLiveMode";
 import { usePresentationMediaControls } from "./hooks/usePresentationMediaControls";
 import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
-import { usePresentationProgressionControls } from "./hooks/usePresentationProgressionControls";
+import { usePresentationRenderModel } from "./hooks/usePresentationRenderModel";
 import { usePresentationRouteData } from "./hooks/usePresentationRouteData";
+import { usePresentationSongData } from "./hooks/usePresentationSongData";
+import { usePresentationVisualScale } from "./hooks/usePresentationVisualScale";
 import {
-  collectEditedPresentationBlocksFromNode,
   moveEnterToNextEditableBlock,
+  moveToAdjacentEditableBlock,
   removeEmptyEditableLine,
 } from "./helpers/editableCifraDom";
+
+function getInitialExpandedCifraState({ artist, song, instrument }) {
+  if (typeof window === "undefined") return false;
+
+  const storageKey = getPresentationLayoutModeStorageKey({
+    artist,
+    song,
+    instrument,
+  });
+
+  return window.localStorage.getItem(storageKey) === "expanded";
+}
 
 function Presentation() {
   const navigate = useNavigate();
@@ -82,27 +85,30 @@ function Presentation() {
   );
   const presentationRouteKey = `${decodedRouteArtist}::${decodedRouteSong}::${decodedRouteInstrument}`;
   const [toolBoxBtnStatus, setToolBoxBtnStatus] = useState(false);
-  const [artistFromURL, setArtistFromURL] = useState("");
-  const [songFromURL, setSongFromURL] = useState("");
+  const [artistFromURL, setArtistFromURL] = useState(decodedRouteArtist);
+  const [songFromURL, setSongFromURL] = useState(decodedRouteSong);
   const [songDataFetched, setSongDataFetched] = useState();
-  const [instrumentSelected, setInstrumentSelected] = useState("keys");
+  const [instrumentSelected, setInstrumentSelected] =
+    useState(decodedRouteInstrument);
   const [embedLinks, setEmbedLinks] = useState([]);
 
   const [hideTabs, setHideTabs] = useState(false); // Estado para controlar a visibilidade das tabs
   const [hideChords, setHideChords] = useState(false); // Estado para controlar a visibilidade dos acordes
 
   const [transposeSteps, setTransposeSteps] = useState(0);
-  const [isExpandedCifra, setIsExpandedCifra] = useState(false);
+  const [isExpandedCifra, setIsExpandedCifra] = useState(() =>
+    getInitialExpandedCifraState({
+      artist: decodedRouteArtist,
+      song: decodedRouteSong,
+      instrument: decodedRouteInstrument,
+    }),
+  );
 
   const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
   const [hasEditedCifraContent, setHasEditedCifraContent] = useState(false);
   const [hasEditedLayoutContent, setHasEditedLayoutContent] = useState(false);
-  const [selectedBlockKeys, setSelectedBlockKeys] = useState([]);
-  const [activeProgressionMarkControl, setActiveProgressionMarkControl] =
-    useState(null);
   const [toolBoxRequestedPanel, setToolBoxRequestedPanel] = useState(null);
-  const [confirmationModal, setConfirmationModal] = useState(null);
   const [setlistSongs, setSetlistSongs] = useState([]);
   const [isRouteSongLoading, setIsRouteSongLoading] = useState(false);
   const [showSnackBar, setShowSnackBar] = useState(false);
@@ -159,6 +165,9 @@ function Presentation() {
     (value = "") => {
       if (!value || typeof value !== "string") return "";
       const sanitizedValue = value.replace(/\u00a0/g, " ");
+      if (sanitizedValue.includes(PRESENTATION_COLUMN_BREAK_MARKER)) {
+        return sanitizedValue;
+      }
       try {
         if (!chordHelpers.parser || !chordHelpers.formatter) {
           return sanitizedValue;
@@ -173,83 +182,46 @@ function Presentation() {
     [chordHelpers],
   );
 
-  const currentInstrumentData = useMemo(() => {
-    if (!songDataFetched || !instrumentSelected) return {};
-    return songDataFetched[instrumentSelected] || {};
-  }, [songDataFetched, instrumentSelected]);
-
-  const activeLayoutVariant = isExpandedCifra ? "expanded" : "default";
-  const instrumentPresentationLayouts = useMemo(
-    () => buildInstrumentPresentationLayouts(currentInstrumentData),
-    [currentInstrumentData],
-  );
-  const activePresentationLayout =
-    instrumentPresentationLayouts[activeLayoutVariant];
-  const songCifraData = activePresentationLayout?.songCifra || "";
-  const songLyrics = currentInstrumentData?.songLyrics || "";
-  const songChords = currentInstrumentData?.songChords || "";
-  const songTabs = currentInstrumentData?.songTabs || "";
-  const isTwoColumns = isExpandedCifra;
-  const showProgressionMarkers = Boolean(
-    activePresentationLayout?.showProgressionMarkers,
-  );
-  const progressionMarkOverrides =
-    activePresentationLayout?.progressionMarkOverrides || {};
-  const touchFontSizeStep = activePresentationLayout?.fontSizeStep ?? 0;
-  const blockSpacingStep = activePresentationLayout?.blockSpacingStep ?? 0;
-  const blockSpacingPx = getPresentationBlockSpacingPx(blockSpacingStep);
-  const blockSpacingLabel = `${blockSpacingPx}px`;
-  const activeLayoutLabel = isExpandedCifra
-    ? "Expanded layout"
-    : "Default layout";
-
-  const normalizedSongCifra = useMemo(
-    () => normalizeCifra(songCifraData),
-    [songCifraData, normalizeCifra],
-  );
-  const editableSongCifra = normalizedSongCifra;
-
-  // Conteúdo que deve ser mostrado de acordo com a seleção do usuário
-  const contentSelected = useMemo(() => {
-    const defaultContent =
-      normalizedSongCifra || songChords || songTabs || songLyrics || "";
-
-    switch (selectContenttoShow) {
-      case "tabs":
-        return songTabs;
-      case "chords":
-        return songChords;
-      case "lyrics":
-        return songLyrics;
-      case "full":
-        return defaultContent;
-      default:
-        return defaultContent;
-    }
-  }, [
+  const {
+    activeLayoutLabel,
+    activeLayoutVariant,
+    activePresentationLayout,
+    blockSpacingStep,
+    contentSelected,
+    currentInstrumentData,
+    editableSongCifra,
+    instrumentPresentationLayouts,
+    isTwoColumns,
+    progressionMarkOverrides,
+    showProgressionMarkers,
+    songCifraData,
+    touchFontSizeStep,
+  } = usePresentationSongData({
+    instrumentSelected,
+    isExpandedCifra,
+    normalizeCifra,
     selectContenttoShow,
-    normalizedSongCifra,
-    songLyrics,
-    songChords,
-    songTabs,
-  ]);
+    songDataFetched,
+  });
+  const {
+    adjustLiveCifraZoom,
+    blockSpacingLabel,
+    blockSpacingPx,
+    liveCifraZoomLabel,
+    liveCifraZoomScale,
+    presentationFontScale,
+    touchFontSizeLabel,
+    touchFontSizeRem,
+  } = usePresentationVisualScale({
+    blockSpacingStep,
+    touchFontSizeStep,
+  });
 
-  const availableInstrumentOptions = useMemo(() => {
-    if (!songDataFetched) return [];
-
-    return PRESENTATION_INSTRUMENTS.filter(
-      (instrument) =>
-        isInstrumentRegistered(songDataFetched, instrument.key) &&
-        instrumentHasPresentationContent(songDataFetched[instrument.key]),
-    );
-  }, [songDataFetched]);
-
-  const isCurrentInstrumentUnavailable = Boolean(
-    songDataFetched &&
-    instrumentSelected &&
-    (!isInstrumentRegistered(songDataFetched, instrumentSelected) ||
-      !instrumentHasPresentationContent(songDataFetched[instrumentSelected])),
-  );
+  const { availableInstrumentOptions, isCurrentInstrumentUnavailable } =
+    usePresentationInstrumentAvailability({
+      instrumentSelected,
+      songDataFetched,
+    });
 
   const {
     canOpenGuitarPro,
@@ -275,47 +247,12 @@ function Presentation() {
 
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
-  const [liveCifraZoomPercent, setLiveCifraZoomPercent] = useState(120);
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [notesModalStatus, setNotesModalStatus] = useState(false);
-  const [resizingProgressionWidths, setResizingProgressionWidths] = useState(
-    {},
-  );
   const liveModeRootRef = useRef(null);
-  const draggedProgressionGroupKeyRef = useRef("");
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth < 768;
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
-  const touchFontSizeRem = useMemo(
-    () => Math.max(0.58, Math.min(1.18, 0.82 + touchFontSizeStep * 0.08)),
-    [touchFontSizeStep],
-  );
-  const presentationFontScale = touchFontSizeRem / 0.82;
-  const touchFontSizeLabel = `${Math.round(presentationFontScale * 100)}%`;
-  const liveCifraZoomScale =
-    clampLiveCifraZoomPercent(liveCifraZoomPercent) / 100;
-  const liveCifraZoomLabel = `${clampLiveCifraZoomPercent(liveCifraZoomPercent)}%`;
-  const adjustLiveCifraZoom = useCallback((delta) => {
-    setLiveCifraZoomPercent((current) =>
-      clampLiveCifraZoomPercent(current + delta),
-    );
-  }, []);
-
-  const getMobileTitleSizeClass = useCallback((value = "", type = "song") => {
-    const length = String(value || "").trim().length;
-
-    if (type === "song") {
-      if (length > 30) return "text-[1.8rem] leading-[1.95rem]";
-      if (length > 22) return "text-[2rem] leading-[2.1rem]";
-      if (length > 14) return "text-[2.2rem] leading-[2.3rem]";
-      return "text-[2.4rem] leading-[2.45rem]";
-    }
-
-    if (length > 28) return "text-[1.4rem] leading-[1.55rem]";
-    if (length > 20) return "text-[1.55rem] leading-[1.7rem]";
-    if (length > 14) return "text-[1.7rem] leading-[1.85rem]";
-    return "text-[1.85rem] leading-[1.95rem]";
-  }, []);
 
   const presentationLayoutIdentity = `${artistFromURL}::${songFromURL}::${instrumentSelected}`;
   const presentationLayoutStorageKey = useMemo(
@@ -361,7 +298,6 @@ function Presentation() {
     adjustActiveBlockSpacingStep,
     adjustActiveFontSizeStep,
     setActiveShowProgressionMarkers,
-    updateActivePresentationLayout,
   } = usePresentationLayoutUpdater({
     activeLayoutVariant,
     instrumentSelected,
@@ -370,80 +306,23 @@ function Presentation() {
     setSongDataFetched,
   });
 
-  const shouldUseTwoColumns = isTwoColumns;
-  const shouldUseHorizontalColumnFlow = isExpandedCifra && shouldUseTwoColumns;
-  const shouldDropBlankLinesForHorizontalFlow =
-    shouldDropBlankLinesForPresentationFlow({
-      shouldUseHorizontalColumnFlow,
-    });
-  const shouldApplyProgressionBlockDimensions = !effectiveLiveMode || isEditing;
-  const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
-  const renderContentSelected = contentSelected;
-  const transposedContent = useMemo(
-    () => transposeCifra(renderContentSelected, transposeSteps),
-    [renderContentSelected, transposeSteps],
-  );
-  const displayKey = useMemo(
-    () => inferDisplayKey(transposedContent || renderContentSelected),
-    [renderContentSelected, transposedContent],
-  );
-
-  // Processar o songCifraData usando o algoritmo fornecido
-  // console.log("htmlBlocks", htmlBlocks);
-
-  // const { htmlBlocks } = processSongCifra(songCifraData);
-  // const { htmlBlocks } = processSongCifra(songChords);
-  // const { htmlBlocks } = processSongCifra(songLyrics);
-  // const { htmlBlocks } = processSongCifra(songTabs);
-
-  // const { htmlBlocks } = processSongCifra(contentSelected);
-  const isParsableString =
-    typeof transposedContent === "string" &&
-    transposedContent.trim() !== "" &&
-    transposedContent !== "Loading...";
-
-  const htmlBlocks = useMemo(() => {
-    if (!isParsableString) {
-      return [];
-    }
-
-    try {
-      return processSongCifra(transposedContent).htmlBlocks || [];
-    } catch (e) {
-      console.warn("processSongCifra falhou, usando fallback vazio:", e);
-      return [];
-    }
-  }, [isParsableString, transposedContent]);
-
-  const visibleContentBlocks = useMemo(
-    () =>
-      buildProgressionBlocks(htmlBlocks, {
-        hideTabs,
-        dropBlankLines: shouldDropBlankLinesForHorizontalFlow,
-      }),
-    [hideTabs, htmlBlocks, shouldDropBlankLinesForHorizontalFlow],
-  );
-
-  const progressionRenderModel = useMemo(
-    () =>
-      buildProgressionRenderModel({
-        visibleContentBlocks,
-        progressionMarkOverrides,
-        resizingProgressionWidths,
-        shouldUseHorizontalColumnFlow,
-      }),
-    [
-      progressionMarkOverrides,
-      resizingProgressionWidths,
-      shouldUseHorizontalColumnFlow,
-      visibleContentBlocks,
-    ],
-  );
-  const progressionRenderGroups = progressionRenderModel.groups;
-  const activeProgressionRenderColumns = progressionRenderModel.activeColumns;
+  const {
+    activeProgressionRenderColumns,
+    displayKey,
+    shouldUseExpandedVerticalFlow,
+    shouldUseHorizontalColumnFlow,
+    shouldUseTwoColumns,
+    visibleContentBlocks,
+  } = usePresentationRenderModel({
+    contentSelected,
+    hideTabs,
+    isExpandedCifra,
+    isTwoColumns,
+    progressionMarkOverrides,
+    transposeSteps,
+  });
 
   const {
-    draftCifra,
     handleDiscardDraft,
     handleSaveCifra,
     hasDraftChanges,
@@ -451,7 +330,6 @@ function Presentation() {
     markCifraContentAsEdited,
     openEditorToolBox,
     saveError,
-    setDraftCifra,
     setSaveError,
     startEditingCifra,
   } = usePresentationCifraEditor({
@@ -471,28 +349,15 @@ function Presentation() {
     presentationLayoutIdentity,
     presentationLayoutStorageKey,
     pushSnackbarMessage,
-    setActiveProgressionMarkControl,
     setHasEditedCifraContent,
     setHasEditedLayoutContent,
     setIsEditing,
-    setSelectedBlockKeys,
     setSongDataFetched,
     setToolBoxBtnStatus,
     setToolBoxRequestedPanel,
     songDataFetched,
     visibleContentBlocks,
   });
-
-  const collectEditedPresentationBlocksExcluding = useCallback(
-    (excludedBlockKeys = []) => {
-      return collectEditedPresentationBlocksFromNode({
-        contentNode: presentationContentRef.current,
-        fallbackCifra: draftCifra,
-        excludedBlockKeys,
-      });
-    },
-    [draftCifra],
-  );
 
   const resetTransientPresentationState = useCallback(() => {
     hideTooltip();
@@ -572,18 +437,6 @@ function Presentation() {
     visibleContentBlocks.length,
   ]);
 
-  // console.log("songLyrics", songLyrics);
-  // console.log("songChords", songChords);
-  // console.log("songTabs", songTabs);
-
-  // console.log("htmlBlocks", htmlBlocks);
-  // console.log("htmlBlocks", typeof htmlBlocks); // objeto
-
-  // console.log("songCifraData", songCifraData);
-  // console.log("songCifraData", typeof songCifraData); // string
-
-  // console.log("htmlBlocks", htmlBlocks);
-
   usePresentationRouteData({
     decodedRouteArtist,
     decodedRouteInstrument,
@@ -649,124 +502,6 @@ function Presentation() {
   const toggleMarksVisibility = useCallback(() => {
     setActiveShowProgressionMarkers((current) => !current);
   }, [setActiveShowProgressionMarkers]);
-
-  const {
-    activeProgressionMarkSettings,
-    adjustActiveProgressionMarkHeight,
-    adjustActiveProgressionMarkWidth,
-    handleDropProgressionGroup,
-    handleDropProgressionGroupOnColumn,
-    handleStartProgressionResize,
-  } = usePresentationProgressionControls({
-    activeProgressionMarkControl,
-    activeProgressionRenderColumns,
-    draggedProgressionGroupKeyRef,
-    isEditing,
-    presentationContentRef,
-    presentationLayoutIdentity,
-    progressionMarkOverrides,
-    progressionRenderGroups,
-    resizingProgressionWidths,
-    setResizingProgressionWidths,
-    updateActivePresentationLayout,
-  });
-
-  const toggleSelectedBlockKeys = useCallback((blockKeys = []) => {
-    if (!blockKeys.length) return;
-
-    setSelectedBlockKeys((current) => {
-      const currentSet = new Set(current);
-      const allSelected = blockKeys.every((blockKey) =>
-        currentSet.has(blockKey),
-      );
-
-      if (allSelected) {
-        blockKeys.forEach((blockKey) => currentSet.delete(blockKey));
-      } else {
-        blockKeys.forEach((blockKey) => currentSet.add(blockKey));
-      }
-
-      return Array.from(currentSet);
-    });
-  }, []);
-
-  const handleDeleteSelectedBlocks = useCallback(
-    (blockKeysToDelete = selectedBlockKeys) => {
-      const uniqueBlockKeys = Array.from(new Set(blockKeysToDelete)).filter(
-        Boolean,
-      );
-      if (!uniqueBlockKeys.length) return;
-
-      const nextDraftCifra =
-        collectEditedPresentationBlocksExcluding(uniqueBlockKeys);
-      const deletedBlockKeySet = new Set(uniqueBlockKeys);
-
-      updateActivePresentationLayout((currentLayout) => {
-        const currentOverrides = currentLayout.progressionMarkOverrides || {};
-        const nextOverrides = Object.fromEntries(
-          Object.entries(currentOverrides).filter(
-            ([blockKey]) => !deletedBlockKeySet.has(blockKey),
-          ),
-        );
-
-        return {
-          ...currentLayout,
-          songCifra: nextDraftCifra,
-          progressionMarkOverrides: nextOverrides,
-        };
-      });
-
-      setDraftCifra(nextDraftCifra);
-      setHasEditedCifraContent(false);
-      setSelectedBlockKeys([]);
-      setActiveProgressionMarkControl(null);
-    },
-    [
-      collectEditedPresentationBlocksExcluding,
-      selectedBlockKeys,
-      updateActivePresentationLayout,
-    ],
-  );
-
-  const requestDeleteActiveProgressionMark = useCallback(() => {
-    const blockKeys = activeProgressionMarkSettings?.blockKeys || [];
-    if (!isEditing || !blockKeys.length) return;
-
-    setConfirmationModal({
-      title: "Delete block",
-      message:
-        "This will remove the selected block from the current cifra. This action cannot be undone after saving.",
-      confirmLabel: "Delete",
-      cancelLabel: "Cancel",
-      onConfirm: () => {
-        handleDeleteSelectedBlocks(blockKeys);
-        setConfirmationModal(null);
-      },
-    });
-  }, [activeProgressionMarkSettings, handleDeleteSelectedBlocks, isEditing]);
-
-  useEffect(() => {
-    if (!isEditing || !selectedBlockKeys.length) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.key !== "Delete" && event.key !== "Backspace") return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        target.closest(".presentation-render-content-block")
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      handleDeleteSelectedBlocks();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [handleDeleteSelectedBlocks, isEditing, selectedBlockKeys.length]);
 
   return (
     <div
@@ -834,29 +569,8 @@ function Presentation() {
           isSavingNotes={isSavingNotes}
           onSelectInstrument={goToInstrument}
           requestedPanel={toolBoxRequestedPanel}
-          activeProgressionMarkSettings={activeProgressionMarkSettings}
-          onDecreaseActiveMarkWidth={() =>
-            adjustActiveProgressionMarkWidth(-20)
-          }
-          onIncreaseActiveMarkWidth={() => adjustActiveProgressionMarkWidth(20)}
-          onDecreaseActiveMarkHeight={() =>
-            adjustActiveProgressionMarkHeight(-20)
-          }
-          onIncreaseActiveMarkHeight={() =>
-            adjustActiveProgressionMarkHeight(20)
-          }
-          onRequestDeleteActiveMark={requestDeleteActiveProgressionMark}
         />
       )}
-      <ConfirmationModal
-        open={Boolean(confirmationModal)}
-        title={confirmationModal?.title}
-        message={confirmationModal?.message}
-        confirmLabel={confirmationModal?.confirmLabel}
-        cancelLabel={confirmationModal?.cancelLabel}
-        onConfirm={confirmationModal?.onConfirm}
-        onCancel={() => setConfirmationModal(null)}
-      />
       <div
         className={`container mx-auto h-full min-h-0 ${
           effectiveLiveMode || isExpandedCifra ? "max-w-none px-0" : ""
@@ -935,6 +649,7 @@ function Presentation() {
             title={
               !effectiveLiveMode &&
               !isEditing &&
+              !activeChordTooltip &&
               ["default", "full"].includes(selectContenttoShow)
                 ? "Double-click to edit"
                 : undefined
@@ -1007,6 +722,10 @@ function Presentation() {
                 onKeyDown={
                   isEditing
                     ? (event) => {
+                        if (moveToAdjacentEditableBlock(event)) {
+                          setHasEditedCifraContent(true);
+                          return;
+                        }
                         if (moveEnterToNextEditableBlock(event)) {
                           return;
                         }
@@ -1016,17 +735,6 @@ function Presentation() {
                       }
                     : undefined
                 }
-                onDragOver={
-                  isEditing
-                    ? (event) => {
-                        event.preventDefault();
-                        event.dataTransfer.dropEffect = "move";
-                      }
-                    : undefined
-                }
-                onDrop={
-                  isEditing ? handleDropProgressionGroupOnColumn : undefined
-                }
               >
                 <PresentationColumns
                   columns={activeProgressionRenderColumns}
@@ -1034,20 +742,7 @@ function Presentation() {
                   showProgressionMarkers={showProgressionMarkers}
                   effectiveLiveMode={effectiveLiveMode}
                   shouldUseHorizontalColumnFlow={shouldUseHorizontalColumnFlow}
-                  shouldApplyProgressionBlockDimensions={
-                    shouldApplyProgressionBlockDimensions
-                  }
-                  resizingProgressionWidths={resizingProgressionWidths}
-                  selectedBlockKeys={selectedBlockKeys}
-                  isEditing={isEditing}
-                  draggedProgressionGroupKeyRef={draggedProgressionGroupKeyRef}
-                  onSetActiveProgressionMarkControl={
-                    setActiveProgressionMarkControl
-                  }
-                  onHandleDropProgressionGroup={handleDropProgressionGroup}
-                  onToggleSelectedBlockKeys={toggleSelectedBlockKeys}
-                  onHandleDeleteSelectedBlocks={handleDeleteSelectedBlocks}
-                  onHandleStartProgressionResize={handleStartProgressionResize}
+                  selectedBlockKeys={[]}
                   activeLiveColumnKey={activeLiveColumnKey}
                 />
               </div>

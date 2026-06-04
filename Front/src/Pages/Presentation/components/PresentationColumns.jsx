@@ -1,6 +1,4 @@
-import {
-  getColumnLabelFromIndex,
-} from "../helpers/presentationUtils";
+import { getColumnLabelFromIndex } from "../helpers/presentationUtils";
 import {
   PROGRESSION_COLUMN_HEADER_COLORS,
   PROGRESSION_MARKER_COLOR,
@@ -13,16 +11,7 @@ function PresentationColumns({
   showProgressionMarkers,
   effectiveLiveMode,
   shouldUseHorizontalColumnFlow,
-  shouldApplyProgressionBlockDimensions,
-  resizingProgressionWidths,
   selectedBlockKeys,
-  isEditing,
-  draggedProgressionGroupKeyRef,
-  onSetActiveProgressionMarkControl,
-  onHandleDropProgressionGroup,
-  onToggleSelectedBlockKeys,
-  onHandleDeleteSelectedBlocks,
-  onHandleStartProgressionResize,
   activeLiveColumnKey,
 }) {
   return columns.map(
@@ -34,10 +23,6 @@ function PresentationColumns({
         blocks,
         isProgressionEligible,
         displayPosition,
-        width,
-        height,
-        visualColumnOverrideKey,
-        isOverflowContinuation,
         visualColumnIndex,
         visualColumnLabel,
       },
@@ -57,10 +42,6 @@ function PresentationColumns({
               PROGRESSION_COLUMN_HEADER_COLORS.length
           ]
         : undefined;
-      const resizeKey = visualColumnOverrideKey || groupKey;
-      const resizeDimensions = resizingProgressionWidths[resizeKey] || {};
-      const displayWidth = resizeDimensions.width ?? width;
-      const displayHeight = resizeDimensions.height ?? height;
       const headerLabel =
         visualColumnLabel || getColumnLabelFromIndex(numericDisplayPosition);
       const isBlockSelected = blockKeys.some((blockKey) =>
@@ -74,72 +55,28 @@ function PresentationColumns({
       });
       const originalBlockIndex = Math.min(
         ...blocks.map((entry) =>
-          Number.isFinite(Number(entry.index)) ? Number(entry.index) : visibleIndex,
+          Number.isFinite(Number(entry.index))
+            ? Number(entry.index)
+            : visibleIndex,
         ),
       );
 
       return (
         <div
           key={groupKey}
-          data-progression-drop-target={isProgressionEligible ? "true" : undefined}
-          data-progression-group-key={baseGroupKey || groupKey}
-          data-live-column-key={groupKey}
-          data-progression-column-label={
-            showProgressionMarkers && isProgressionEligible ? headerLabel : undefined
-          }
-          className={`presentation-render-block ${
+          className={`presentation-column ${
             selectContenttoShow === "tabs" ? "presentation-tab-filter-block" : ""
           } ${
             showProgressionMarkers && isProgressionEligible
-              ? "presentation-progression-block"
+              ? "presentation-progression-column"
               : ""
           } ${
-            isBlockSelected ? "presentation-progression-block-selected" : ""
+            isBlockSelected ? "presentation-progression-column-selected" : ""
           } ${
             effectiveLiveMode && shouldUseHorizontalColumnFlow
               ? liveColumnState.className
               : ""
           }`}
-          onMouseDownCapture={
-            isEditing && isProgressionEligible
-              ? (event) => {
-                  const currentRect = event.currentTarget.getBoundingClientRect();
-                  onSetActiveProgressionMarkControl({
-                    groupKey,
-                    visualColumnOverrideKey,
-                    blockKeys,
-                    label: headerLabel,
-                    width: displayWidth || Math.round(currentRect.width),
-                    height: displayHeight || Math.round(currentRect.height),
-                  });
-                }
-              : undefined
-          }
-          draggable={isEditing && isProgressionEligible}
-          onDragStart={
-            isEditing && isProgressionEligible && !isOverflowContinuation
-              ? (event) => {
-                  draggedProgressionGroupKeyRef.current = baseGroupKey || groupKey;
-                  event.dataTransfer.effectAllowed = "move";
-                }
-              : undefined
-          }
-          onDragOver={
-            isEditing && isProgressionEligible
-              ? (event) => {
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                }
-              : undefined
-          }
-          onDrop={
-            isEditing && isProgressionEligible && !isOverflowContinuation
-              ? (event) => {
-                  event.preventDefault();
-                  onHandleDropProgressionGroup(baseGroupKey || groupKey);
-                }
-              : undefined
-          }
           style={{
             ...(!effectiveLiveMode &&
             visibleIndex === visibleGroups.length - 1 &&
@@ -152,129 +89,36 @@ function PresentationColumns({
                   "--progression-header-color": progressionHeaderColor,
                 }
               : {}),
-            ...(shouldApplyProgressionBlockDimensions && displayWidth
-              ? { width: `${displayWidth}px` }
-              : {}),
-            ...(shouldApplyProgressionBlockDimensions && displayHeight
-              ? {
-                  height: `${displayHeight}px`,
-                  minHeight: `${displayHeight}px`,
-                }
-              : {}),
           }}
         >
-          {isEditing && isProgressionEligible && !isOverflowContinuation ? (
-            <>
-              <button
-                type="button"
-                className="presentation-progression-select-handle"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onToggleSelectedBlockKeys(blockKeys);
-                }}
-                contentEditable={false}
-                aria-label={
-                  isBlockSelected
-                    ? "Unselect progression block"
-                    : "Select progression block"
-                }
-              >
-                {isBlockSelected ? "✓" : "○"}
-              </button>
-              {isBlockSelected ? (
-                <button
-                  type="button"
-                  className="presentation-progression-delete-handle"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onHandleDeleteSelectedBlocks(blockKeys);
-                  }}
-                  contentEditable={false}
-                  aria-label="Delete selected progression block"
-                >
-                  ×
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="presentation-progression-drag-handle"
-                draggable
-                onDragStart={(event) => {
-                  draggedProgressionGroupKeyRef.current = baseGroupKey || groupKey;
-                  event.dataTransfer.effectAllowed = "move";
-                }}
-                contentEditable={false}
-                aria-label="Reorder progression block"
-              >
-                ::
-              </button>
-              <button
-                type="button"
-                className="presentation-progression-resize-handle"
-                data-resize-axis="width"
-                onMouseDown={(event) =>
-                  onHandleStartProgressionResize(event, {
-                    groupKey,
-                    baseGroupKey,
-                    visualColumnOverrideKey,
-                    blockKeys,
-                    width,
-                    height,
-                  })
-                }
-                contentEditable={false}
-                aria-label="Resize progression block"
-              >
-                ↔
-              </button>
-              <button
-                type="button"
-                className="presentation-progression-height-handle"
-                data-resize-axis="height"
-                onMouseDown={(event) =>
-                  onHandleStartProgressionResize(event, {
-                    groupKey,
-                    baseGroupKey,
-                    visualColumnOverrideKey,
-                    blockKeys,
-                    width,
-                    height,
-                  })
-                }
-                contentEditable={false}
-                aria-label="Resize progression block height"
-              >
-                ↕
-              </button>
-              <button
-                type="button"
-                className="presentation-progression-height-top-handle"
-                data-resize-axis="height"
-                onMouseDown={(event) =>
-                  onHandleStartProgressionResize(event, {
-                    groupKey,
-                    baseGroupKey,
-                    visualColumnOverrideKey,
-                    blockKeys,
-                    width,
-                    height,
-                  })
-                }
-                contentEditable={false}
-                aria-label="Resize progression block height"
-              >
-                ↕
-              </button>
-            </>
+          {showProgressionMarkers && isProgressionEligible ? (
+            <div className="presentation-column-header" contentEditable={false}>
+              {headerLabel}
+            </div>
           ) : null}
           <div
-            className="presentation-render-content-block"
-            data-block-keys={blockKeys.join(",")}
-            data-original-block-index={originalBlockIndex}
-            dangerouslySetInnerHTML={{ __html: contentBlockHtml }}
-          />
+            data-progression-drop-target={
+              isProgressionEligible ? "true" : undefined
+            }
+            data-progression-group-key={baseGroupKey || groupKey}
+            data-live-column-key={groupKey}
+            className={`presentation-render-block ${
+              showProgressionMarkers && isProgressionEligible
+                ? "presentation-progression-block"
+                : ""
+            } ${
+              isBlockSelected ? "presentation-progression-block-selected" : ""
+            }`}
+          >
+            <div className="presentation-column-body">
+              <div
+                className="presentation-render-content-block"
+                data-block-keys={blockKeys.join(",")}
+                data-original-block-index={originalBlockIndex}
+                dangerouslySetInnerHTML={{ __html: contentBlockHtml }}
+              />
+            </div>
+          </div>
         </div>
       );
     },

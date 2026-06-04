@@ -22,7 +22,7 @@ body {
   min-width: 390px;
   background: var(--bg);
   color: var(--ink);
-  font: 14px/1.35 "Avenir Next", "Segoe UI", Arial, sans-serif;
+  font: 13px/1.35 "Avenir Next", "Segoe UI", Arial, sans-serif;
 }
 
 .app-shell {
@@ -68,7 +68,7 @@ select,
   background: #fff;
   color: #000;
   font-size: 31px;
-  font-weight: 950;
+  font-weight: 700;
   font-style: italic;
   box-shadow:
     7px 7px 16px rgba(0, 0, 0, 0.16),
@@ -92,7 +92,7 @@ h1,
 h2 {
   margin: 0;
   line-height: 1;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -160,7 +160,7 @@ h2 {
   background: #fff;
   color: #000;
   font-size: 44px;
-  font-weight: 950;
+  font-weight: 700;
   box-shadow:
     inset 3px 3px 7px rgba(0, 0, 0, 0.08),
     inset -3px -3px 7px rgba(255, 255, 255, 0.9);
@@ -206,16 +206,18 @@ h2 {
 }
 
 .summary-card h2 {
-  max-width: 270px;
-  font-size: 25px;
-  line-height: 1.05;
+  max-width: 100%;
+  font-size: 20px;
+  line-height: 1.08;
+  font-weight: 700;
 }
 
 .summary-artist {
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   color: var(--muted);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .icon-button {
@@ -224,7 +226,7 @@ h2 {
   height: 42px;
   color: var(--ink);
   font-size: 18px;
-  font-weight: 950;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -263,25 +265,81 @@ h2 {
 .details-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .mini-card {
-  min-height: 72px;
-  padding: 12px;
+  min-height: 54px;
+  padding: 9px 10px;
   display: grid;
   align-content: center;
-  gap: 5px;
+  gap: 4px;
 }
 
-.mini-card strong {
-  font-size: .9em;
+.mini-card h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.1;
 }
 
 .field {
   display: grid;
   gap: 8px;
+}
+
+.save-mode-toggle {
+  position: relative;
+  margin: 16px 0 0;
+  padding: 4px;
+  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  border-radius: 8px;
+  background: #dedede;
+  box-shadow:
+    inset 4px 4px 9px rgba(0, 0, 0, 0.1),
+    inset -4px -4px 9px rgba(255, 255, 255, 0.86);
+}
+
+.save-mode-toggle legend {
+  position: absolute;
+  top: -17px;
+  left: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.save-mode-toggle label {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.save-mode-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.save-mode-toggle label:has(input:checked) {
+  background: var(--accent);
+  color: var(--ink);
+  box-shadow:
+    5px 5px 10px rgba(0, 0, 0, 0.14),
+    -5px -5px 10px rgba(255, 255, 255, 0.75);
 }
 
 .setlist-tags {
@@ -317,6 +375,82 @@ h2 {
 .setlist-tag.is-active {
   background: var(--accent);
   color: var(--ink);
+}
+
+.instrument-link-suggestions {
+  display: grid;
+  gap: 8px;
+}
+
+.instrument-link-suggestion {
+  min-width: 0;
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  column-gap: 9px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow:
+    5px 5px 10px var(--shadow-dark),
+    -5px -5px 10px var(--shadow-light);
+}
+
+.instrument-link-suggestion input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.instrument-link-suggestion i {
+  width: 18px;
+  height: 18px;
+  display: block;
+  border-radius: 5px;
+  background: #f5f5f5;
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.15),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.9);
+}
+
+.instrument-link-suggestion input:checked + i {
+  background: var(--accent);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.14),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.45);
+}
+
+.instrument-link-suggestion input:checked + i::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  margin: 5px 0 0 4px;
+  display: block;
+  border-left: 2px solid #111;
+  border-bottom: 2px solid #111;
+  transform: rotate(-45deg);
+}
+
+.instrument-link-suggestion strong {
+  min-width: 0;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.instrument-link-suggestion span {
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .setlist-tags-empty {
@@ -415,7 +549,7 @@ input[type="range"] {
   background: #f4ead1;
   color: #7b5a04;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
   box-shadow:
     inset 4px 4px 9px rgba(0, 0, 0, 0.08),
     inset -4px -4px 9px rgba(255, 255, 255, 0.8);

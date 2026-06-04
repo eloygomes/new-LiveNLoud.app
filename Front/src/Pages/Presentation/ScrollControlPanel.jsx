@@ -288,10 +288,10 @@ export default function ScrollControlPanel({ isTouchLayout = false }) {
         <section className="neuphormism-b rounded-[22px] bg-[#ececec] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[0.72rem] font-black uppercase tracking-[0.2em] text-gray-500">
+              <div className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-gray-500">
                 Auto scroll
               </div>
-              <div className="mt-1 text-2xl font-black leading-none">
+              <div className="mt-1 text-2xl font-bold leading-none">
                 {state.autoScrollActive ? "Running" : "Stopped"}
               </div>
             </div>
@@ -319,14 +319,14 @@ export default function ScrollControlPanel({ isTouchLayout = false }) {
         <section className="neuphormism-b rounded-[22px] bg-[#ececec] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[0.72rem] font-black uppercase tracking-[0.2em] text-gray-500">
+              <div className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-gray-500">
                 Speed
               </div>
-              <div className="mt-1 text-xl font-black capitalize leading-none">
+              <div className="mt-1 text-xl font-bold capitalize leading-none">
                 {speedLabel}
               </div>
             </div>
-            <div className="rounded-full bg-white px-3 py-1.5 text-sm font-black text-gray-600 shadow-[0_6px_14px_rgba(0,0,0,0.07)]">
+            <div className="rounded-full bg-white px-3 py-1.5 text-sm font-bold text-gray-600 shadow-[0_6px_14px_rgba(0,0,0,0.07)]">
               {state.speed}/{maxSpeed}
             </div>
           </div>

@@ -221,7 +221,7 @@ function buildFingering(variation) {
 function SelectField({ label, value, options, onChange }) {
   return (
     <label className="flex min-w-0 flex-col gap-1">
-      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#697180]">
+      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#697180]">
         {label}
       </span>
       <select
@@ -315,10 +315,10 @@ export default function ToolBoxChordLibraryMini({ onOpenPreview }) {
         </div>
 
         <div className="rounded-[18px] px-2 py-2 text-center neuphormism-b">
-          <div className="truncate text-lg font-black leading-none text-black">
+          <div className="truncate text-lg font-bold leading-none text-black">
             {chordLabel}
           </div>
-          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#697180]">
+          <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#697180]">
             {variations.length
               ? `${safeVariationIndex + 1}/${variations.length}`
               : "0/0"}
@@ -343,7 +343,7 @@ export default function ToolBoxChordLibraryMini({ onOpenPreview }) {
 
         <button
           type="button"
-          className={`rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] ${
+          className={`rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] ${
             variations.length > 1
               ? "neuphormism-b-btn-gold text-black"
               : "neuphormism-b-btn text-[#697180]"

@@ -2,10 +2,10 @@ export const clampPresentationFontSizeStep = (value = 0) =>
   Math.max(-3, Math.min(4, Number.isFinite(value) ? value : 0));
 
 export const clampPresentationBlockSpacingStep = (value = 0) =>
-  Math.max(-2, Math.min(6, Number.isFinite(value) ? value : 0));
+  Math.max(-4, Number.isFinite(value) ? value : 0);
 
 export const getPresentationBlockSpacingPx = (value = 0) =>
-  32 + clampPresentationBlockSpacingStep(Number(value)) * 8;
+  Math.max(0, 32 + clampPresentationBlockSpacingStep(Number(value)) * 8);
 
 export const hasUsablePresentationCifra = (value) =>
   typeof value === "string" &&
@@ -257,7 +257,10 @@ export const hasPersistablePresentationLayouts = (layouts = {}) => {
 
 export const shouldDropBlankLinesForPresentationFlow = ({
   shouldUseHorizontalColumnFlow = false,
-} = {}) => Boolean(shouldUseHorizontalColumnFlow);
+} = {}) => {
+  void shouldUseHorizontalColumnFlow;
+  return false;
+};
 
 export const clampLiveCifraZoomPercent = (value = 120) => {
   const numericValue = Number(value);

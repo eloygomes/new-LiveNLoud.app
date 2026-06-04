@@ -11,7 +11,7 @@ function GeralProgressBar({ geralPercentage, compact = false }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p
-            className={`font-black uppercase tracking-[0.24em] text-[goldenrod] ${
+            className={`font-bold uppercase tracking-[0.24em] text-[goldenrod] ${
               compact ? "pb-2 text-[10px]" : "pb-5 text-[11px]"
             }`}
           >
@@ -27,7 +27,7 @@ function GeralProgressBar({ geralPercentage, compact = false }) {
           </p>
         </div>
         <h1
-          className={`rounded-full font-black text-black ${
+          className={`rounded-full font-bold text-black ${
             compact ? "px-2 py-1 text-3xl" : "px-4 py-2 text-2xl"
           }`}
         >

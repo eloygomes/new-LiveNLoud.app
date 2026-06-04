@@ -16,12 +16,6 @@ const baseProps = {
   onDecreaseBlockSpacing: vi.fn(),
   onIncreaseBlockSpacing: vi.fn(),
   showProgressionMarkers: false,
-  activeProgressionMarkSettings: { active: false },
-  onDecreaseActiveMarkWidth: vi.fn(),
-  onIncreaseActiveMarkWidth: vi.fn(),
-  onDecreaseActiveMarkHeight: vi.fn(),
-  onIncreaseActiveMarkHeight: vi.fn(),
-  onRequestDeleteActiveMark: vi.fn(),
 };
 
 describe("ToolBoxEditControls", () => {
@@ -72,38 +66,23 @@ describe("ToolBoxEditControls", () => {
     expect(screen.queryByText("Mark editor")).not.toBeInTheDocument();
   });
 
-  it("shows selected mark dimensions only while editing a selected mark", () => {
-    const onIncreaseActiveMarkHeight = vi.fn();
-    const onDecreaseActiveMarkWidth = vi.fn();
-    const onRequestDeleteActiveMark = vi.fn();
-
+  it("does not render selected mark resize controls while editing", () => {
     render(
       <ToolBoxEditControls
         {...baseProps}
         isEditing
-        activeProgressionMarkSettings={{
-          active: true,
-          label: "C",
-          width: 642,
-          height: 718,
-        }}
-        onIncreaseActiveMarkHeight={onIncreaseActiveMarkHeight}
-        onDecreaseActiveMarkWidth={onDecreaseActiveMarkWidth}
-        onRequestDeleteActiveMark={onRequestDeleteActiveMark}
       />,
     );
 
-    expect(screen.getByText("Selected mark")).toBeInTheDocument();
-    expect(screen.getByText("C")).toBeInTheDocument();
-    expect(screen.getByText("642px")).toBeInTheDocument();
-    expect(screen.getByText("718px")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText("Increase selected mark height"));
-    fireEvent.click(screen.getByLabelText("Decrease selected mark width"));
-    fireEvent.click(screen.getByRole("button", { name: "Delete block" }));
-
-    expect(onIncreaseActiveMarkHeight).toHaveBeenCalledTimes(1);
-    expect(onDecreaseActiveMarkWidth).toHaveBeenCalledTimes(1);
-    expect(onRequestDeleteActiveMark).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Selected mark")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Increase selected mark height"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Decrease selected mark width"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Delete block" }),
+    ).not.toBeInTheDocument();
   });
 });

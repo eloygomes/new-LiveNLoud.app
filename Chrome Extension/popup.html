@@ -63,7 +63,6 @@
               <h2 id="songValue"></h2>
               <p id="artistValue" class="summary-artist"></p>
             </div>
-            <button id="copyLinkButton" class="icon-button" type="button" aria-label="Copy source link">↗</button>
           </section>
 
           <section class="neumorphism form-card">
@@ -89,6 +88,18 @@
                 <h4 id="tunerValue"></h4>
               </div>
             </div>
+
+            <fieldset class="save-mode-toggle">
+              <legend>Save mode</legend>
+              <label>
+                <input type="radio" name="saveMode" value="single" checked />
+                <span>Current instrument</span>
+              </label>
+              <label>
+                <input type="radio" name="saveMode" value="all" />
+                <span>All instruments</span>
+              </label>
+            </fieldset>
 
             <label class="field instrument-field">
               <span>Instrument</span>

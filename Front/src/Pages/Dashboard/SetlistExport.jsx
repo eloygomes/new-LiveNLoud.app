@@ -10,7 +10,7 @@ function SetlistExport({
   return (
     <section className="neuphormism-b p-4">
       <div>
-        <h1 className="text-sm font-black uppercase">Export</h1>
+        <h1 className="text-sm font-bold uppercase">Export</h1>
         <p className="mt-1 text-[11px] font-semibold text-gray-500">
           Download the visible songs as TXT or JSON.
         </p>
@@ -21,7 +21,7 @@ function SetlistExport({
           type="button"
           onClick={handleExportText}
           disabled={!visibleSongs.length}
-          className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform ${
+          className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-bold transition-transform ${
             visibleSongs.length
               ? "hover:bg-[goldenrod] hover:text-black active:scale-95"
               : "cursor-not-allowed opacity-50"
@@ -33,7 +33,7 @@ function SetlistExport({
           type="button"
           onClick={handleExportJson}
           disabled={!visibleSongs.length}
-          className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform ${
+          className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-bold transition-transform ${
             visibleSongs.length
               ? "hover:bg-[goldenrod] hover:text-black active:scale-95"
               : "cursor-not-allowed opacity-50"

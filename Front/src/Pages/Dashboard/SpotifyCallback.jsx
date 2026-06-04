@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { exchangeCodeForToken } from "./spotifyAuth";
 import { FaSpotify } from "react-icons/fa";
 import { formatDisplayDate } from "../../Tools/dateFormat";
+import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
 
 export default function SpotifyCallback() {
   const [status, setStatus] = useState("Autenticando...");
@@ -134,14 +135,14 @@ export default function SpotifyCallback() {
         const tokenData = await exchangeCodeForToken(code, state);
 
         // guarda tokens (DEV)
-        localStorage.setItem("spotify_access_token", tokenData.access_token);
+        setLocalStorageItemSafe("spotify_access_token", tokenData.access_token);
         if (tokenData.refresh_token) {
-          localStorage.setItem(
+          setLocalStorageItemSafe(
             "spotify_refresh_token",
             tokenData.refresh_token
           );
         }
-        localStorage.setItem(
+        setLocalStorageItemSafe(
           "spotify_expires_at",
           String(Date.now() + tokenData.expires_in * 1000)
         );
@@ -171,9 +172,9 @@ export default function SpotifyCallback() {
           name: playlistName,
         });
 
-        localStorage.setItem("spotify_last_playlist_id", playlist.id);
+        setLocalStorageItemSafe("spotify_last_playlist_id", playlist.id);
         if (playlist?.external_urls?.spotify) {
-          localStorage.setItem(
+          setLocalStorageItemSafe(
             "spotify_last_playlist_url",
             playlist.external_urls.spotify
           );

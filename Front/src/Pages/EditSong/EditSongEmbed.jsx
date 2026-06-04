@@ -126,19 +126,19 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
 
   return (
     <div className="my-5 flex flex-col rounded-[30px] neuphormism-b p-5">
-      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
         Videos
       </p>
 
       {selectedVideo && (
         <div className="mb-4 rounded-[18px] neuphormism-b-se p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
               Preview
             </span>
             <button
               type="button"
-              className="rounded-[10px] px-3 py-1 text-xs font-black neuphormism-b-btn"
+              className="rounded-[10px] px-3 py-1 text-xs font-bold neuphormism-b-btn"
               onClick={() => setSelectedVideo(null)}
             >
               Close
@@ -176,7 +176,7 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
         />
         <button
           type="button"
-          className="neuphormism-b-btn flex h-9 min-w-[4.5rem] items-center justify-center rounded-[12px] px-3 text-xs font-black uppercase text-black"
+          className="neuphormism-b-btn flex h-9 min-w-[4.5rem] items-center justify-center rounded-[12px] px-3 text-xs font-bold uppercase text-black"
           onClick={handleAddVideo}
         >
           Add
@@ -195,7 +195,7 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
                 <button
                   type="button"
                   onClick={() => handleDeleteVideo(url)}
-                  className="neuphormism-b-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-xs font-black text-red-700"
+                  className="neuphormism-b-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-xs font-bold text-red-700"
                   aria-label="Delete video"
                 >
                   X
@@ -204,7 +204,7 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
               <button
                 type="button"
                 onClick={() => handlePlayClick(url)}
-                className="rounded-[12px] px-3 py-2 text-xs font-black uppercase text-black neuphormism-b-btn"
+                className="rounded-[12px] px-3 py-2 text-xs font-bold uppercase text-black neuphormism-b-btn"
               >
                 PLAY
               </button>

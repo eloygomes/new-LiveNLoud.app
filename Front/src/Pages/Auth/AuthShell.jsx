@@ -18,7 +18,7 @@ export default function AuthShell({
               <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                 # sustenido
               </div>
-              <h1 className="mt-1 text-2xl font-black uppercase tracking-tight sm:text-3xl">
+              <h1 className="mt-1 text-2xl font-bold uppercase tracking-tight sm:text-3xl">
                 {title}
               </h1>
             </div>
@@ -38,7 +38,7 @@ export default function AuthShell({
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-500">
                   # sustenido
                 </p>
-                <h2 className="mt-4 text-3xl font-black uppercase leading-none sm:text-4xl">
+                <h2 className="mt-4 text-3xl font-bold uppercase leading-none sm:text-4xl">
                   {panelTitle}
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-6 text-gray-600">
@@ -60,7 +60,7 @@ export default function AuthShell({
                       <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
                         Live workflow
                       </div>
-                      <div className="mt-2 text-base font-black uppercase leading-tight">
+                      <div className="mt-2 text-base font-bold uppercase leading-tight">
                         Charts, calendar and collaborators in one practice desk.
                       </div>
                     </div>
@@ -104,7 +104,7 @@ export default function AuthShell({
               <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
                 Account access
               </div>
-              <div className="mt-3 text-2xl font-black uppercase sm:text-3xl">
+              <div className="mt-3 text-2xl font-bold uppercase sm:text-3xl">
                 {subtitle}
               </div>
               <div className="mt-2 text-sm leading-6 text-gray-600">

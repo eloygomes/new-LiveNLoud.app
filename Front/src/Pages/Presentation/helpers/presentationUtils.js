@@ -159,6 +159,15 @@ export const splitBlocksIntoColumnChunks = (
     typeof maxLineUnits === "function" ? maxLineUnits : () => maxLineUnits;
 
   blocks.forEach((entry) => {
+    if (entry.isColumnBreak) {
+      if (currentChunk.length) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+        currentLineUnits = 0;
+      }
+      return;
+    }
+
     splitHtmlBlockByPreElements(entry.block).forEach((fragmentHtml, index) => {
       const fragment = {
         ...entry,
@@ -207,6 +216,9 @@ export const buildProgressionBlocks = (
     const isBlankLineBlock =
       classes.includes("presentation-blank-line") ||
       block.includes('class="presentation-blank-line"');
+    const isColumnBreakBlock =
+      classes.includes("presentation-column-break") ||
+      block.includes('data-column-break="true"');
 
     const shouldHideTabBlock =
       hideTabs &&
@@ -215,6 +227,20 @@ export const buildProgressionBlocks = (
         classes.includes("presentation-tab-section"));
 
     if (shouldHideTabBlock) {
+      return blocksToRender;
+    }
+
+    if (isColumnBreakBlock) {
+      blocksToRender.push({
+        block,
+        classes,
+        index,
+        blockKey: `column-break-${index}`,
+        isColumnBreak: true,
+        isProgressionEligible: false,
+        progressionIndex: null,
+        progressionTitle: "",
+      });
       return blocksToRender;
     }
 
@@ -295,3 +321,19 @@ export const isInstrumentRegistered = (songData, instrumentKey) =>
       songData?.[instrumentKey]?.active === "true" ||
       instrumentHasPresentationContent(songData?.[instrumentKey]),
   );
+
+export const getMobileTitleSizeClass = (value = "", type = "song") => {
+  const length = String(value || "").trim().length;
+
+  if (type === "song") {
+    if (length > 30) return "text-[1.8rem] leading-[1.95rem]";
+    if (length > 22) return "text-[2rem] leading-[2.1rem]";
+    if (length > 14) return "text-[2.2rem] leading-[2.3rem]";
+    return "text-[2.4rem] leading-[2.45rem]";
+  }
+
+  if (length > 28) return "text-[1.4rem] leading-[1.55rem]";
+  if (length > 20) return "text-[1.55rem] leading-[1.7rem]";
+  if (length > 14) return "text-[1.7rem] leading-[1.85rem]";
+  return "text-[1.85rem] leading-[1.95rem]";
+};

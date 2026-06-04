@@ -2,6 +2,7 @@ import {
   buildInstrumentPresentationLayouts,
   buildSavedPresentationLayouts,
 } from "../presentationLayoutHelpers";
+import { setLocalStorageJsonSafe } from "../../../Tools/storageSafe";
 
 export function buildCifraSavePayload({
   activeLayoutVariant,
@@ -91,5 +92,5 @@ export function persistPresentationLayoutsToStorage({
 }) {
   if (!storageKey || typeof window === "undefined" || !layouts) return;
 
-  window.localStorage.setItem(storageKey, JSON.stringify(layouts));
+  setLocalStorageJsonSafe(storageKey, layouts);
 }

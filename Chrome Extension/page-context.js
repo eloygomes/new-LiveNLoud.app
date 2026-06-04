@@ -1,6 +1,18 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
 const DEBUG_PREFIX = "[#Sustenido Extension]";
+const EXTENSION_READY_EVENT = "livenloud:quick-add-extension-ready";
+
+window.__LIVENLOUD_QUICK_ADD_EXTENSION__ = {
+  installed: true,
+  name: "#Sustenido Quick Add",
+};
+
+window.dispatchEvent(
+  new CustomEvent(EXTENSION_READY_EVENT, {
+    detail: window.__LIVENLOUD_QUICK_ADD_EXTENSION__,
+  }),
+);
 const NOT_AVAILABLE = "N/A";
 const SUPPORTED_HOSTS = [
   {

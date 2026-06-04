@@ -33,7 +33,7 @@ function MobileSnackBar({ snackbarMessage }) {
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-[goldenrod]" />
           <div className="min-w-0">
-            <p className="text-sm font-black text-black">
+            <p className="text-sm font-bold text-black">
               {snackbarMessage.title}
             </p>
             <p className="mt-0.5 text-sm font-medium text-gray-600">

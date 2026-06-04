@@ -245,9 +245,9 @@ function UserRegistrationForm() {
           <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[goldenrod]/15 text-[goldenrod]">
-                <span className="text-xl font-black">!</span>
+                <span className="text-xl font-bold">!</span>
               </div>
-              <h3 className="text-xl font-black text-black">{signupModal.title}</h3>
+              <h3 className="text-xl font-bold text-black">{signupModal.title}</h3>
             </div>
             <p className="whitespace-pre-line text-sm leading-6 text-gray-600">
               {signupModal.message}

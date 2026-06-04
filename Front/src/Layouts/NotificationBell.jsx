@@ -44,7 +44,7 @@ function SetlistShareModal({
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black uppercase">Import setlist?</h2>
+            <h2 className="text-xl font-bold uppercase">Import setlist?</h2>
             <p className="mt-1 text-sm font-semibold text-gray-600">
               Add the shared songs to your library with the received setlist
               name.
@@ -75,7 +75,7 @@ function SetlistShareModal({
         {share ? (
           <div className="mt-5 space-y-4">
             <div className="rounded-lg bg-white/70 p-3">
-              <p className="text-[11px] font-black uppercase text-gray-500">
+              <p className="text-[11px] font-bold uppercase text-gray-500">
                 From
               </p>
               <p className="mt-1 text-sm font-bold text-gray-800">
@@ -87,14 +87,14 @@ function SetlistShareModal({
             </div>
 
             <div className="rounded-lg bg-white/70 p-3">
-              <p className="text-[11px] font-black uppercase text-gray-500">
+              <p className="text-[11px] font-bold uppercase text-gray-500">
                 Setlists
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {setlistNames.map((setlist) => (
                   <span
                     key={setlist}
-                    className="rounded-full bg-[goldenrod] px-3 py-1 text-[11px] font-black text-black"
+                    className="rounded-full bg-[goldenrod] px-3 py-1 text-[11px] font-bold text-black"
                   >
                     {setlist}
                   </span>
@@ -103,7 +103,7 @@ function SetlistShareModal({
             </div>
 
             <div className="rounded-lg bg-white/70 p-3">
-              <p className="text-[11px] font-black uppercase text-gray-500">
+              <p className="text-[11px] font-bold uppercase text-gray-500">
                 Songs
               </p>
               <p className="mt-1 text-sm font-bold text-gray-800">
@@ -127,7 +127,7 @@ function SetlistShareModal({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  className="rounded-lg border border-red-500 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-500 hover:text-white"
+                  className="rounded-lg border border-red-500 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-500 hover:text-white"
                   disabled={responding}
                   onClick={() => onRespond("declined")}
                 >
@@ -135,7 +135,7 @@ function SetlistShareModal({
                 </button>
                 <button
                   type="button"
-                  className="rounded-lg bg-[goldenrod] px-4 py-3 text-sm font-black text-black disabled:opacity-60"
+                  className="rounded-lg bg-[goldenrod] px-4 py-3 text-sm font-bold text-black disabled:opacity-60"
                   disabled={responding}
                   onClick={() => onRespond("accepted")}
                 >
@@ -435,7 +435,7 @@ export default function NotificationBell() {
                 <h3
                   className={
                     isTouchLayout
-                      ? "text-[2rem] font-black tracking-tight text-black"
+                      ? "text-[2rem] font-bold tracking-tight text-black"
                       : "text-sm font-bold uppercase"
                   }
                 >
@@ -452,7 +452,7 @@ export default function NotificationBell() {
                   type="button"
                   className={
                     isTouchLayout
-                      ? "rounded-[14px] bg-white px-3 py-2 text-[11px] font-black uppercase text-[goldenrod] shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                      ? "rounded-[14px] bg-white px-3 py-2 text-[11px] font-bold uppercase text-[goldenrod] shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
                       : "text-[11px] font-bold uppercase text-[goldenrod]"
                   }
                   onClick={handleMarkAll}

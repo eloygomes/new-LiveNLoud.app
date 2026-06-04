@@ -20,13 +20,13 @@ function PresentationStatusState({
         }`}
       >
         <div
-          className={`text-xs font-black uppercase tracking-[0.18em] ${
+          className={`text-xs font-bold uppercase tracking-[0.18em] ${
             effectiveLiveMode ? "text-[goldenrod]" : "text-[#a27b13]"
           }`}
         >
           Loading song
         </div>
-        <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
+        <h2 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl">
           {songFromURL || "Loading..."}
         </h2>
         <p
@@ -48,13 +48,13 @@ function PresentationStatusState({
     >
       <div className="max-w-xl">
         <div
-          className={`text-xs font-black uppercase tracking-[0.18em] ${
+          className={`text-xs font-bold uppercase tracking-[0.18em] ${
             effectiveLiveMode ? "text-[goldenrod]" : "text-[#a27b13]"
           }`}
         >
           Instrumento indisponível
         </div>
-        <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
+        <h2 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl">
           Esta música ainda não tem cifra para {instrumentSelected}.
         </h2>
         <p
@@ -70,7 +70,7 @@ function PresentationStatusState({
               <button
                 key={instrument.key}
                 type="button"
-                className="neuphormism-b-btn-gold px-5 py-3 text-sm font-black uppercase tracking-[0.08em] text-black"
+                className="neuphormism-b-btn-gold px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-black"
                 onClick={() => onSelectInstrument(instrument.key)}
               >
                 {instrument.label}

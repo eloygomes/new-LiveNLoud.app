@@ -127,10 +127,10 @@ function NewSong() {
             <div className="px-1 py-2">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                     Plus
                   </p>
-                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                  <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
                     Add New Song
                   </h1>
                   <p className="mt-2 text-sm font-medium text-gray-500">
@@ -139,13 +139,13 @@ function NewSong() {
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <button
-                    className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-black"
+                    className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-bold"
                     onClick={pageActions?.onDelete}
                   >
                     Delete
                   </button>
                   <button
-                    className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-black disabled:opacity-50"
+                    className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-bold disabled:opacity-50"
                     onClick={pageActions?.onSave}
                     disabled={!pageActions?.canSave}
                   >
@@ -259,7 +259,7 @@ function NewSong() {
           <div className="mx-auto w-full max-w-none">
             <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row items-center justify-between gap-4">
               <div>
-                <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black md:text-[2.6rem]">
+                <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black md:text-[2.6rem]">
                   New Song
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
@@ -269,13 +269,13 @@ function NewSong() {
               </div>
               <div className="flex shrink-0 justify-end gap-3">
                 <button
-                  className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-black"
+                  className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-bold"
                   onClick={pageActions?.onDelete}
                 >
                   Delete
                 </button>
                 <button
-                  className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-black disabled:opacity-50"
+                  className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-bold disabled:opacity-50"
                   onClick={pageActions?.onSave}
                   disabled={!pageActions?.canSave}
                 >

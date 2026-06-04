@@ -20,6 +20,7 @@ import {
   isInstrumentRegistered,
   logPresentationDebug,
 } from "../helpers/presentationUtils";
+import { setLocalStorageItemSafe } from "../../../Tools/storageSafe";
 
 function hydrateSongPresentationData(rawSongData = {}) {
   const hydratedSongData = { ...rawSongData };
@@ -131,8 +132,8 @@ export function usePresentationRouteData({
         setArtistFromURL(decodedRouteArtist);
         setSongDataFetched(undefined);
         setEmbedLinks([]);
-        localStorage.setItem("song", decodedRouteSong);
-        localStorage.setItem("artist", decodedRouteArtist);
+        setLocalStorageItemSafe("song", decodedRouteSong);
+        setLocalStorageItemSafe("artist", decodedRouteArtist);
 
         logPresentationDebug("fetch:start", {
           artist: decodedRouteArtist,

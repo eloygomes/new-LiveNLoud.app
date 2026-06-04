@@ -286,7 +286,7 @@ export default function ToolBoxYT({
             </div>
           </div>
           <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-10">
-            <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+            <div className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
               YouTube
             </div>
             <div className="mt-1 text-sm font-bold text-white">

@@ -369,12 +369,12 @@ export default function PlaylistExport({ visibleSongs = [] }) {
       <div className="flex flex-col">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-sm font-black uppercase">Playlists</h1>
+            <h1 className="text-sm font-bold uppercase">Playlists</h1>
             <p className="mt-1 text-[11px] font-semibold text-gray-500">
               Create a playlist with the visible songs.
             </p>
           </div>
-          <div className="rounded-full bg-black/5 px-3 py-1 text-[11px] font-black text-gray-600">
+          <div className="rounded-full bg-black/5 px-3 py-1 text-[11px] font-bold text-gray-600">
             {visibleSongs?.length || 0} songs
           </div>
         </div>
@@ -390,7 +390,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("spotify")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform
+                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-bold transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-black opacity-60"
@@ -405,7 +405,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("youtube")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-black transition-transform
+                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-bold transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-black opacity-60"

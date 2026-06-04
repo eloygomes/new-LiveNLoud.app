@@ -35,11 +35,9 @@ export function usePresentationCifraEditor({
   presentationLayoutIdentity,
   presentationLayoutStorageKey,
   pushSnackbarMessage,
-  setActiveProgressionMarkControl,
   setHasEditedCifraContent,
   setHasEditedLayoutContent,
   setIsEditing,
-  setSelectedBlockKeys,
   setSongDataFetched,
   setToolBoxBtnStatus,
   setToolBoxRequestedPanel,
@@ -96,8 +94,6 @@ export function usePresentationCifraEditor({
     setSaveError("");
     setIsEditing(true);
     updateEditedCifraContent(false);
-    setSelectedBlockKeys([]);
-    setActiveProgressionMarkControl(null);
     setDraftCifra(editableSongCifra);
   }, [
     activeLayoutVariant,
@@ -108,9 +104,7 @@ export function usePresentationCifraEditor({
     instrumentPresentationLayouts,
     isExpandedCifra,
     presentationLayoutIdentity,
-    setActiveProgressionMarkControl,
     setIsEditing,
-    setSelectedBlockKeys,
     updateEditedCifraContent,
     visibleContentBlocks,
   ]);
@@ -155,8 +149,6 @@ export function usePresentationCifraEditor({
     updateEditedCifraContent(false);
     setHasEditedLayoutContent(false);
     editOriginalLayoutsRef.current = null;
-    setSelectedBlockKeys([]);
-    setActiveProgressionMarkControl(null);
     setSaveError("");
   }, [
     editableSongCifra,
@@ -164,10 +156,8 @@ export function usePresentationCifraEditor({
     editOriginalLayoutsRef,
     instrumentSelected,
     presentationLayoutStorageKey,
-    setActiveProgressionMarkControl,
     setHasEditedLayoutContent,
     setIsEditing,
-    setSelectedBlockKeys,
     setSongDataFetched,
     updateEditedCifraContent,
   ]);
@@ -176,8 +166,9 @@ export function usePresentationCifraEditor({
     return collectEditedPresentationBlocksFromNode({
       contentNode: presentationContentRef.current,
       fallbackCifra: draftCifra,
+      preserveColumnBreaks: isExpandedCifra,
     });
-  }, [draftCifra, presentationContentRef]);
+  }, [draftCifra, isExpandedCifra, presentationContentRef]);
 
   const markCifraContentAsEdited = useCallback(
     (event) => {
@@ -236,7 +227,7 @@ export function usePresentationCifraEditor({
     const nextDraftCifra =
       isEditing && hasEditedCifraContent
         ? collectSafeEditedPresentationBlocks()
-        : draftCifra;
+        : editableSongCifra || draftCifra;
     const { currentLayouts, nextSongData, persistedLayouts, updatedBlock } =
       buildCifraSavePayload({
         activeLayoutVariant,
@@ -313,8 +304,6 @@ export function usePresentationCifraEditor({
       updateEditedCifraContent(false);
       setHasEditedLayoutContent(false);
       editOriginalLayoutsRef.current = null;
-      setSelectedBlockKeys([]);
-      setActiveProgressionMarkControl(null);
       const timestamp = new Date().toLocaleTimeString();
       setLastSaveTimestamp(timestamp);
       pushSnackbarMessage("Salvo", `Último salvamento às ${timestamp}`);
@@ -334,6 +323,7 @@ export function usePresentationCifraEditor({
     collectSafeEditedPresentationBlocks,
     currentInstrumentData,
     draftCifra,
+    editableSongCifra,
     editOriginalLayoutsRef,
     hasEditedCifraContent,
     hasEditedLayoutContent,
@@ -342,10 +332,8 @@ export function usePresentationCifraEditor({
     presentationLayoutIdentity,
     presentationLayoutStorageKey,
     pushSnackbarMessage,
-    setActiveProgressionMarkControl,
     setHasEditedLayoutContent,
     setIsEditing,
-    setSelectedBlockKeys,
     setSongDataFetched,
     songDataFetched,
     updateEditedCifraContent,

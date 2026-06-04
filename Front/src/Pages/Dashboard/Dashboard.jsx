@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import DashList2 from "./DashList2";
 import FloatingActionButtons from "./FloatingActionButtons";
 import SoftVersion from "./SoftVersion";
+import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
 
 function Dashboard() {
   const [isMobile, setIsMobile] = useState("");
@@ -15,11 +16,11 @@ function Dashboard() {
   const { searchTerm = "" } = useOutletContext() || {};
 
   useEffect(() => {
-    localStorage.setItem("cifraFROMDB", "");
-    localStorage.setItem("fromWHERE", "");
+    setLocalStorageItemSafe("cifraFROMDB", "");
+    setLocalStorageItemSafe("fromWHERE", "");
 
-    localStorage.setItem("artist", "");
-    localStorage.setItem("song", "");
+    setLocalStorageItemSafe("artist", "");
+    setLocalStorageItemSafe("song", "");
 
     const handleResize = () => {
       if (window.innerWidth <= 426) {

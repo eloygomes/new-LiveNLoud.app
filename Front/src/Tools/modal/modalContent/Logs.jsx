@@ -77,7 +77,7 @@ export default function Logs() {
               <div className="text-[11px] font-bold uppercase text-gray-500">
                 {item.label}
               </div>
-              <div className="text-lg font-extrabold mt-3 break-words">
+              <div className="text-lg font-bold mt-3 break-words">
                 {item.value}
               </div>
             </div>

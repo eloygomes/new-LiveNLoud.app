@@ -384,19 +384,19 @@ describe("presentationLayoutHelpers", () => {
   });
 
   it("normalizes block spacing settings", () => {
-    expect(clampPresentationBlockSpacingStep(-9)).toBe(-2);
-    expect(clampPresentationBlockSpacingStep(99)).toBe(6);
-    expect(getPresentationBlockSpacingPx(-2)).toBe(16);
+    expect(clampPresentationBlockSpacingStep(-9)).toBe(-4);
+    expect(clampPresentationBlockSpacingStep(99)).toBe(99);
+    expect(getPresentationBlockSpacingPx(-9)).toBe(0);
     expect(getPresentationBlockSpacingPx(0)).toBe(32);
     expect(getPresentationBlockSpacingPx(3)).toBe(56);
   });
 
-  it("drops blank blocks for horizontal presentation flow", () => {
+  it("preserves blank blocks for horizontal presentation flow", () => {
     expect(
       shouldDropBlankLinesForPresentationFlow({
         shouldUseHorizontalColumnFlow: true,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       shouldDropBlankLinesForPresentationFlow({
         shouldUseHorizontalColumnFlow: false,

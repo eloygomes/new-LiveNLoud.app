@@ -9,6 +9,10 @@ import {
   saveSelectedSetlists,
   syncOfflineQueue,
 } from "../../Tools/Controllers";
+import {
+  setLocalStorageItemSafe,
+  setLocalStorageJsonSafe,
+} from "../../Tools/storageSafe";
 
 const DEFAULT_VISIBLE_COLUMNS = ["progression", "guitarPro", "notes", "instruments"];
 const TABLET_COLUMNS_LIMIT = 3;
@@ -154,8 +158,8 @@ function DashList2({ searchTerm = "" }) {
       totalSongs: songs.length,
     });
 
-    localStorage.setItem("fullName", fullName);
-    localStorage.setItem("username", username);
+    setLocalStorageItemSafe("fullName", fullName);
+    setLocalStorageItemSafe("username", username);
   }, []);
 
   // Carrega as músicas da API
@@ -233,7 +237,7 @@ function DashList2({ searchTerm = "" }) {
       if (selectableCount <= TABLET_COLUMNS_LIMIT) return current;
 
       const next = normalizeVisibleColumns(current, TABLET_COLUMNS_LIMIT);
-      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
+      setLocalStorageJsonSafe("dashboardVisibleColumns", next);
       return next;
     });
   }, [isTabletColumnLimited]);
@@ -316,7 +320,7 @@ function DashList2({ searchTerm = "" }) {
         return current;
       }
 
-      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(next));
+      setLocalStorageJsonSafe("dashboardVisibleColumns", next);
       return next;
     });
   };
@@ -336,7 +340,7 @@ function DashList2({ searchTerm = "" }) {
       const [movedColumn] = next.splice(currentIndex, 1);
       next.splice(nextIndex, 0, movedColumn);
       const normalizedNext = normalizeVisibleColumns(next);
-      localStorage.setItem("dashboardVisibleColumns", JSON.stringify(normalizedNext));
+      setLocalStorageJsonSafe("dashboardVisibleColumns", normalizedNext);
       return normalizedNext;
     });
   };

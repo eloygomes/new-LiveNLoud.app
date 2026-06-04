@@ -1,6 +1,5 @@
 import {
   getColumnLabelFromIndex,
-  getMaxLineUnitsForProgressionHeight,
   getProgressionVisualColumnOverrideKey,
   splitBlocksIntoColumnChunks,
 } from "./presentationUtils";
@@ -24,12 +23,6 @@ export function buildProgressionRenderGroups({
       : `raw-${entry.index}`;
     const existingGroup = groupedBlocks.get(groupKey);
     const fallbackTitle = entry.progressionTitle;
-    const width = Number.isFinite(Number(override.width))
-      ? Number(override.width)
-      : undefined;
-    const height = Number.isFinite(Number(override.height))
-      ? Number(override.height)
-      : undefined;
     const renderOrder = Number.isFinite(Number(override.order))
       ? Number(override.order)
       : visibleIndex;
@@ -41,8 +34,6 @@ export function buildProgressionRenderGroups({
     if (existingGroup) {
       existingGroup.blocks.push(groupedEntry);
       existingGroup.blockKeys.push(blockKey);
-      existingGroup.width = existingGroup.width ?? width;
-      existingGroup.height = existingGroup.height ?? height;
       return;
     }
 
@@ -55,8 +46,6 @@ export function buildProgressionRenderGroups({
       displayPosition: numericPosition,
       displayTitle: override.title ?? fallbackTitle,
       firstVisibleIndex: visibleIndex,
-      width,
-      height,
     });
   });
 
@@ -83,7 +72,6 @@ export function buildProgressionRenderGroups({
 export function buildProgressionRenderColumns({
   progressionRenderGroups = [],
   progressionMarkOverrides = {},
-  resizingProgressionWidths = {},
 }) {
   let visualColumnIndex = 0;
 
@@ -99,20 +87,7 @@ export function buildProgressionRenderColumns({
       ];
     }
 
-    const getChunkHeight = (chunkIndex) => {
-      const visualColumnOverrideKey = getProgressionVisualColumnOverrideKey(
-        group.groupKey,
-        chunkIndex,
-      );
-      return (
-        resizingProgressionWidths[visualColumnOverrideKey]?.height ??
-        progressionMarkOverrides[visualColumnOverrideKey]?.height ??
-        (chunkIndex === 0 ? group.height : undefined)
-      );
-    };
-    const chunks = splitBlocksIntoColumnChunks(group.blocks, (chunkIndex) =>
-      getMaxLineUnitsForProgressionHeight(getChunkHeight(chunkIndex)),
-    );
+    const chunks = splitBlocksIntoColumnChunks(group.blocks);
 
     return chunks.map((blocksChunk, chunkIndex) => {
       visualColumnIndex += 1;
@@ -120,8 +95,7 @@ export function buildProgressionRenderColumns({
         group.groupKey,
         chunkIndex,
       );
-      const visualColumnOverride =
-        progressionMarkOverrides[visualColumnOverrideKey] || {};
+      void progressionMarkOverrides;
 
       return {
         ...group,
@@ -133,14 +107,6 @@ export function buildProgressionRenderColumns({
             : `${group.groupKey}-overflow-${chunkIndex + 1}`,
         blocks: blocksChunk,
         blockKeys: blocksChunk.map((block) => block.blockKey),
-        width:
-          resizingProgressionWidths[visualColumnOverrideKey]?.width ??
-          visualColumnOverride.width ??
-          group.width,
-        height:
-          resizingProgressionWidths[visualColumnOverrideKey]?.height ??
-          visualColumnOverride.height ??
-          (chunkIndex === 0 ? group.height : undefined),
         isOverflowContinuation: chunkIndex > 0,
         visualColumnIndex,
         visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
@@ -150,12 +116,39 @@ export function buildProgressionRenderColumns({
 }
 
 export function getActiveProgressionRenderColumns({
+  visibleContentBlocks = [],
   progressionRenderGroups = [],
-  progressionRenderColumns = [],
   shouldUseHorizontalColumnFlow = false,
 }) {
   if (shouldUseHorizontalColumnFlow) {
-    return progressionRenderColumns;
+    return splitBlocksIntoColumnChunks(visibleContentBlocks)
+      .filter((blocksChunk) =>
+        blocksChunk.some(
+          (block) =>
+            String(block.block || "")
+              .replace(/<[^>]+>/g, "")
+              .replace(/\u200b/g, "")
+              .trim() !== "",
+        ),
+      )
+      .map((blocksChunk, index) => {
+        const visualColumnIndex = index + 1;
+        const columnKey = `continuous-column-${visualColumnIndex}`;
+
+        return {
+          groupKey: columnKey,
+          baseGroupKey: columnKey,
+          blockKeys: blocksChunk.map((block) => block.blockKey),
+          blocks: blocksChunk,
+          isProgressionEligible: blocksChunk.some(
+            (block) => block.isProgressionEligible,
+          ),
+          displayPosition: visualColumnIndex,
+          firstVisibleIndex: blocksChunk[0]?.index ?? index,
+          visualColumnIndex,
+          visualColumnLabel: getColumnLabelFromIndex(visualColumnIndex),
+        };
+      });
   }
 
   return progressionRenderGroups.map((group, index) => {
@@ -174,7 +167,6 @@ export function getActiveProgressionRenderColumns({
 export function buildProgressionRenderModel({
   visibleContentBlocks = [],
   progressionMarkOverrides = {},
-  resizingProgressionWidths = {},
   shouldUseHorizontalColumnFlow = false,
 }) {
   const groups = buildProgressionRenderGroups({
@@ -184,11 +176,10 @@ export function buildProgressionRenderModel({
   const columns = buildProgressionRenderColumns({
     progressionRenderGroups: groups,
     progressionMarkOverrides,
-    resizingProgressionWidths,
   });
   const activeColumns = getActiveProgressionRenderColumns({
+    visibleContentBlocks,
     progressionRenderGroups: groups,
-    progressionRenderColumns: columns,
     shouldUseHorizontalColumnFlow,
   });
 

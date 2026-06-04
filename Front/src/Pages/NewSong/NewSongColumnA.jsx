@@ -517,6 +517,25 @@ function NewSongColumnA({
   const canSaveSong =
     Object.values(scrapeStatus || {}).some(Boolean) || hasInstrumentLinks;
 
+  useEffect(() => {
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const lists = await getAllUserSetlists();
+        if (isMounted) {
+          setSetListOptions(lists);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar setlists:", err);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Adicione este useEffect (fora do outro useEffect grandão)
   useEffect(() => {
     // garanta Number() pra impedir concatenação de strings
@@ -606,16 +625,6 @@ function NewSongColumnA({
         console.warn("Failed to parse dataFromUrl:", err);
       }
     }
-
-    // Carrega as opções de setlist
-    (async () => {
-      try {
-        const lists = await getAllUserSetlists();
-        setSetListOptions(lists);
-      } catch (err) {
-        console.error("Erro ao buscar setlists:", err);
-      }
-    })();
 
     const handlePercentage = () => {
       console.log("progBarG01", progBarG01);
@@ -892,7 +901,7 @@ function NewSongColumnA({
           onClick={onToggleSongData}
         >
           <div className="text-left">
-            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
               Song Data
             </h2>
           </div>
@@ -949,10 +958,10 @@ function NewSongColumnA({
           }
         >
           <div className="text-left">
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
               Song Workspace
             </p>
-            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
               Media & Setlist
             </h2>
           </div>
@@ -978,7 +987,7 @@ function NewSongColumnA({
                     <FaVideo className="text-sm" />
                   </div>
                   <div className="text-left">
-                    <div className="text-lg font-black text-black">Videos</div>
+                    <div className="text-lg font-bold text-black">Videos</div>
                     <div className="text-xs font-bold text-[#2f6f3e]">
                       {embedLink.length} videos added
                     </div>
@@ -1003,7 +1012,7 @@ function NewSongColumnA({
                     <FaListUl className="text-sm" />
                   </div>
                   <div className="text-left">
-                    <div className="text-lg font-black text-black">Setlist</div>
+                    <div className="text-lg font-bold text-black">Setlist</div>
                     <div className="text-xs font-bold text-[#2f6f3e]">
                       {setlist.length} setlists selected
                     </div>
@@ -1031,7 +1040,7 @@ function NewSongColumnA({
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <div className="text-[2rem] font-black tracking-tight text-black">
+                <div className="text-[2rem] font-bold tracking-tight text-black">
                   Videos
                 </div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
@@ -1067,7 +1076,7 @@ function NewSongColumnA({
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <div className="text-[2rem] font-black tracking-tight text-black">
+                <div className="text-[2rem] font-bold tracking-tight text-black">
                   Setlist
                 </div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">

@@ -170,7 +170,7 @@ export default function Tags({
           <div
             className={isTouchLayout ? "flex flex-col" : "w-1/2 flex flex-col"}
           >
-            <h1 className="text-sm font-black uppercase">Tags / Setlists</h1>
+            <h1 className="text-sm font-bold uppercase">Tags / Setlists</h1>
             {!isTouchLayout ? (
               <>
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
@@ -193,7 +193,7 @@ export default function Tags({
             <div className={isTouchLayout ? "hidden" : "w-1/2"}></div>
             <button
               type="button"
-              className={`rounded-md px-2 py-2 text-sm font-black uppercase transition-colors ${
+              className={`rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "tags"
@@ -206,7 +206,7 @@ export default function Tags({
             </button>
             <button
               type="button"
-              className={`rounded-md px-2 py-2 text-sm font-black uppercase transition-colors ${
+              className={`rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "export"
@@ -224,7 +224,7 @@ export default function Tags({
           <div className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-[11px] font-black uppercase text-gray-600">
+                <h2 className="text-[11px] font-bold uppercase text-gray-600">
                   Filter tags
                 </h2>
                 {!isTouchLayout ? (
@@ -281,7 +281,7 @@ export default function Tags({
               />
               <button
                 type="button"
-                className="rounded-lg px-6 py-2 text-sm font-black uppercase neuphormism-b-btn-gold"
+                className="rounded-lg px-6 py-2 text-sm font-bold uppercase neuphormism-b-btn-gold"
                 onClick={addNewTag}
               >
                 +
@@ -381,7 +381,7 @@ export default function Tags({
           >
             {/* <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="text-[11px] font-black uppercase text-gray-600">
+                <h2 className="text-[11px] font-bold uppercase text-gray-600">
                   Export selected setlists
                 </h2>
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
@@ -392,7 +392,7 @@ export default function Tags({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="neuphormism-b-btn flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black text-[#9ca3af] transition-transform hover:bg-[goldenrod] hover:text-black active:scale-95"
+                  className="neuphormism-b-btn flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-[#9ca3af] transition-transform hover:bg-[goldenrod] hover:text-black active:scale-95"
                 >
                   <FiUpload />
                   Import
@@ -400,7 +400,7 @@ export default function Tags({
                 <button
                   type="button"
                   disabled={!exportableSetlists.length}
-                  className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black transition-transform ${
+                  className={`neuphormism-b-btn flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-transform ${
                     exportableSetlists.length
                       ? "text-[#9ca3af] hover:bg-[goldenrod] hover:text-black active:scale-95"
                       : "cursor-not-allowed opacity-50"
@@ -412,7 +412,7 @@ export default function Tags({
               </div>
             </div> */}
 
-            <h2 className="text-[11px] font-black uppercase text-gray-600">
+            <h2 className="text-[11px] font-bold uppercase text-gray-600">
               Share setlists
             </h2>
             <div className="mt-3 flex max-h-20 min-h-9 flex-wrap gap-2 overflow-y-auto rounded-lg border border-black/5 bg-white/50 p-2">
@@ -460,7 +460,7 @@ export default function Tags({
                           setShareError("");
                         }}
                       >
-                        <span className="font-black text-gray-800">
+                        <span className="font-bold text-gray-800">
                           {friend.counterpartEmail}
                         </span>
                         {friend.counterpartFullName ||
@@ -479,7 +479,7 @@ export default function Tags({
                 type="button"
                 disabled={!canSend}
                 onClick={handleShareSetlists}
-                className={`flex min-w-11 items-center justify-center rounded-lg px-3 text-sm font-black transition-transform ${
+                className={`flex min-w-11 items-center justify-center rounded-lg px-3 text-sm font-bold transition-transform ${
                   canSend
                     ? "bg-[goldenrod] text-black active:scale-95"
                     : "cursor-not-allowed bg-gray-400 text-white"
@@ -503,7 +503,7 @@ export default function Tags({
 
             {!isTouchLayout ? (
               <>
-                <p className="mt-3 text-[11px] font-black uppercase text-gray-600">
+                <p className="mt-3 text-[11px] font-bold uppercase text-gray-600">
                   Imported
                 </p>
                 <div className="mt-1 min-h-8 rounded-lg border border-black/5 bg-white/50 p-2">

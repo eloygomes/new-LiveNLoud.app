@@ -139,7 +139,7 @@ const YouTubePopupDone = () => {
           boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
         }}
       >
-        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
           ✅ YouTube conectado
         </div>
 

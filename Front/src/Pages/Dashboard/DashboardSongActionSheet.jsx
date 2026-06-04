@@ -38,12 +38,12 @@ export default function DashboardSongActionSheet({
         <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-[#c8c8c8]" />
 
         <div className="rounded-[22px] bg-[#e8e8e8] p-4 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
-          <div className="text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+          <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-[goldenrod]">
             # sustenido
           </div>
           <div className="mt-2 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[1.7rem] font-black uppercase leading-none text-black">
+              <div className="text-[1.7rem] font-bold uppercase leading-none text-black">
                 {selectedSong.song || "N/A"}
               </div>
               <div className="mt-2 truncate text-[14px] font-bold text-[#626878]">
@@ -64,14 +64,14 @@ export default function DashboardSongActionSheet({
         <div className="mt-3 rounded-[20px] bg-[#f7f7f7] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[goldenrod]">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
                 Progression
               </div>
-              <div className="mt-1 text-[15px] font-black text-black">
+              <div className="mt-1 text-[15px] font-bold text-black">
                 Practice progress
               </div>
             </div>
-            <div className="rounded-full bg-black px-3 py-1.5 text-[12px] font-black text-white">
+            <div className="rounded-full bg-black px-3 py-1.5 text-[12px] font-bold text-white">
               {selectedSong.progressBar || 0}%
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function DashboardSongActionSheet({
         </div>
 
         <div className="mt-3 px-1">
-          <div className="mt-10 text-[10px] font-black uppercase tracking-[0.2em] text-[goldenrod]">
+          <div className="mt-10 text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
             Open presentation
           </div>
           <div className="mt-1 text-[12px] font-bold text-[#626878]">
@@ -112,7 +112,7 @@ export default function DashboardSongActionSheet({
               >
                 {renderInstrumentIcon(instrument, isEnabled)}
                 <div>
-                  <div className="text-[12px] font-black uppercase leading-none">
+                  <div className="text-[12px] font-bold uppercase leading-none">
                     {instrument.modalLabel}
                   </div>
                   <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em]">
@@ -127,20 +127,20 @@ export default function DashboardSongActionSheet({
         <div className="mt-4 flex gap-3">
           <button
             type="button"
-            className="flex-1 rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#a27b13]"
+            className="flex-1 rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#a27b13]"
             onClick={() => onToggleOffline?.(selectedSong)}
           >
             {selectedSong.offlineEnabled ? "Online only" : "Works offline"}
           </button>
           <button
             type="button"
-            className="flex-1 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.28)]"
+            className="flex-1 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.28)]"
             onClick={() => onEditSong(selectedSong)}
           >
             Edit song
           </button>
         </div>
-        <div className="mt-3 flex items-center justify-center rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-[#a27b13]">
+        <div className="mt-3 flex items-center justify-center rounded-[16px] border border-[goldenrod] bg-[#f5f5f5] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#a27b13]">
           {availableInstrumentCount} instruments
         </div>
       </div>

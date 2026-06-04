@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { normalizePresentationInstrumentValue } from "../helpers/presentationUtils";
+import { setLocalStorageItemSafe } from "../../../Tools/storageSafe";
 
 export function usePresentationNavigation({
   artistFromURL,
@@ -72,8 +73,8 @@ export function usePresentationNavigation({
   );
 
   const goToEditSong = useCallback(() => {
-    localStorage.setItem("song", songFromURL || "");
-    localStorage.setItem("artist", artistFromURL || "");
+    setLocalStorageItemSafe("song", songFromURL || "");
+    setLocalStorageItemSafe("artist", artistFromURL || "");
 
     navigate(
       `/editsong/${encodeURIComponent(

@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { getRegisteredScrollViewport } from "../Pages/Presentation/presentationScrollController";
+import { setLocalStorageJsonSafe } from "../Tools/storageSafe";
 
 /* ============================ Constantes ============================ */
 const MIDI_SERVICE = "03b80e5a-ede8-4b33-a751-6ce34ec4c700";
@@ -40,7 +41,7 @@ const loadJSON = (k, def) => {
   }
 };
 const saveJSON = (k, v) => {
-  if (hasWindow) localStorage.setItem(k, JSON.stringify(v));
+  if (hasWindow) setLocalStorageJsonSafe(k, v);
 };
 const now = () => new Date().toLocaleTimeString();
 

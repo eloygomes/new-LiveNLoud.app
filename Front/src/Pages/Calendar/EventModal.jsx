@@ -187,7 +187,7 @@ export default function EventModal({
             type="text"
             value={title}
             onChange={(eventValue) => setTitle(eventValue.target.value)}
-            className="w-full rounded-2xl border border-gray-300 bg-white px-5 py-4 text-xl font-extrabold tracking-[0.02em] outline-none"
+            className="w-full rounded-2xl border border-gray-300 bg-white px-5 py-4 text-xl font-bold tracking-[0.02em] outline-none"
             placeholder="Event title"
             required
             disabled={!canEdit}

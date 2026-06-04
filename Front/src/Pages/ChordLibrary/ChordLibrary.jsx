@@ -260,7 +260,7 @@ function ChoiceChip({ label, selected, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-[2.8rem] rounded px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] transition sm:min-w-[3.25rem] sm:px-4 sm:text-xs ${
+      className={`min-w-[2.8rem] rounded px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition sm:min-w-[3.25rem] sm:px-4 sm:text-xs ${
         selected
           ? "bg-[goldenrod] text-black shadow-[0_10px_18px_rgba(217,173,38,0.24)]"
           : "bg-[#efefef] text-[#697180] shadow-[3px_3px_8px_rgba(190,190,190,0.55),-3px_-3px_8px_rgba(255,255,255,0.9)] hover:text-black"
@@ -276,10 +276,10 @@ function SelectorSection({ title, value, options, onSelect }) {
     <section className="rounded-[22px] bg-[#efefef] p-4 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] neuphormism-b">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-black">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-black">
             {title}
           </p>
-          <p className="mt-1 text-sm font-extrabold text-[#697180]">{value}</p>
+          <p className="mt-1 text-sm font-bold text-[#697180]">{value}</p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -299,10 +299,10 @@ function SelectorSection({ title, value, options, onSelect }) {
 function SelectionBadge({ label, value }) {
   return (
     <div className="min-w-0 rounded bg-[#efefef] px-3 py-3 text-center shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] neuphormism-b sm:px-4 lg:min-w-[88px]">
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#697180] sm:text-[11px] sm:tracking-[0.2em]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#697180] sm:text-[11px] sm:tracking-[0.2em]">
         {label}
       </p>
-      <p className="mt-2 break-words text-xs font-black text-black sm:text-sm">
+      <p className="mt-2 break-words text-xs font-bold text-black sm:text-sm">
         {value}
       </p>
     </div>
@@ -312,13 +312,13 @@ function SelectionBadge({ label, value }) {
 function MobileSelectField({ label, value, options, onChange }) {
   return (
     <label className="flex min-w-0 flex-1 flex-col gap-2">
-      <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#697180]">
+      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#697180]">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded bg-[#efefef] px-3 py-3 text-sm font-black text-black shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] outline-none"
+        className="w-full rounded bg-[#efefef] px-3 py-3 text-sm font-bold text-black shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] outline-none"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -389,10 +389,10 @@ function ChordLibrary() {
             <div>
               {isTouchLayout ? (
                 <>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                     Chord Library
                   </p>
-                  <h1 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">
+                  <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
                     Shape The Harmony
                   </h1>
                 </>
@@ -409,7 +409,7 @@ function ChordLibrary() {
 
           <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-stretch">
           <section className="order-2 hidden rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-5 xl:order-1 xl:block neuphormism-b">
-            <p className="text-lg font-black uppercase text-black">
+            <p className="text-lg font-bold uppercase text-black">
               Build chord
             </p>
             <div className="mt-4 grid gap-3 lg:hidden">
@@ -473,10 +473,10 @@ function ChordLibrary() {
               <div className="hidden rounded px-4 py-4 shadow-[6px_6px_14px_rgba(190,190,190,0.55),-6px_-6px_14px_rgba(255,255,255,0.9)] sm:px-5 xl:block">
                 <div className="min-w-0">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.32em] text-[goldenrod]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[goldenrod]">
                       Voicing
                     </p>
-                    <h2 className="mt-2 break-words text-3xl font-black leading-none text-black sm:text-[2.35rem]">
+                    <h2 className="mt-2 break-words text-3xl font-bold leading-none text-black sm:text-[2.35rem]">
                       {chordLabel}
                     </h2>
                   </div>
@@ -485,7 +485,7 @@ function ChordLibrary() {
 
               <div className="hidden flex-col gap-3 bg-[#efefef] px-3 py-4 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] sm:px-4 lg:flex lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
                 <div className="flex justify-center md:justify-start">
-                  <span className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)] neuphormism-b">
+                  <span className="rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)] neuphormism-b">
                     {variations.length
                       ? `${safeVariationIndex + 1}/${variations.length}`
                       : "0/0"}
@@ -500,7 +500,7 @@ function ChordLibrary() {
               </div>
 
               <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] xl:hidden neuphormism-b">
-                <p className="text-lg font-black uppercase text-black">
+                <p className="text-lg font-bold uppercase text-black">
                   Build chord
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3">
@@ -553,13 +553,13 @@ function ChordLibrary() {
                   </div>
                 ) : null}
               </div>
-              <h2 className="pb-10 pt-6 text-center text-3xl font-black leading-none text-black xl:hidden">
+              <h2 className="pb-10 pt-6 text-center text-3xl font-bold leading-none text-black xl:hidden">
                 {chordLabel}
               </h2>
             </div>
 
             <button
-              className={`mt-4 w-full rounded px-4 py-3 text-[12px] font-black uppercase tracking-[0.16em] transition ${
+              className={`mt-4 w-full rounded px-4 py-3 text-[12px] font-bold uppercase tracking-[0.16em] transition ${
                 variations.length > 1
                   ? "bg-[goldenrod] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
                   : "bg-[#d8d8d8] text-[#7f8794]"

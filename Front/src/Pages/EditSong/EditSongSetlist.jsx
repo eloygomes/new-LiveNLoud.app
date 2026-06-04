@@ -113,7 +113,7 @@
 //     <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
 //       <div className="flex items-center justify-between gap-3">
 //         <div>
-//           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+//           <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
 //             Setlist
 //           </p>
 
@@ -155,7 +155,7 @@
 //       <div className="mt-5">
 //         <label
 //           htmlFor="newSetlistName"
-//           className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
+//           className="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500"
 //         >
 //           Criar um novo setlist:
 //         </label>
@@ -185,7 +185,7 @@
 //       </div>
 
 //       <div className="mt-5">
-//         <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+//         <h1 className="px-0 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
 //           Setlists disponíveis
 //         </h1>
 //         <div className="w-full pr-2">
@@ -469,7 +469,7 @@ function EditSongSetlistWeb({
     <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
             Setlist
           </p>
         </div>
@@ -478,7 +478,7 @@ function EditSongSetlistWeb({
           <button
             type="button"
             onClick={() => setIsCreating((current) => !current)}
-            className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
+            className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
           >
             +
           </button>
@@ -486,7 +486,7 @@ function EditSongSetlistWeb({
             <button
               type="button"
               onClick={startEditing}
-              className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
+              className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
             >
               Edit
             </button>
@@ -495,7 +495,7 @@ function EditSongSetlistWeb({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn"
+                className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
               >
                 Cancel
               </button>
@@ -503,7 +503,7 @@ function EditSongSetlistWeb({
               <button
                 type="button"
                 onClick={saveChanges}
-                className="rounded-[14px] px-4 py-2 text-sm font-black transition-colors neuphormism-b-btn disabled:opacity-60"
+                className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn disabled:opacity-60"
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -517,7 +517,7 @@ function EditSongSetlistWeb({
       <div className="mt-5">
         <label
           htmlFor="newSetlistName"
-          className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
+          className="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500"
         >
           Create a new setlist:
         </label>
@@ -535,7 +535,7 @@ function EditSongSetlistWeb({
 
           <button
             type="button"
-            className="rounded-[12px] px-3 py-2 text-sm font-black neuphormism-b-btn"
+            className="rounded-[12px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
             onClick={addNewTag}
           >
             +
@@ -545,7 +545,7 @@ function EditSongSetlistWeb({
       ) : null}
 
       <div className="mt-5">
-        <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+        <h1 className="px-0 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
           Available setlists
         </h1>
 
@@ -748,7 +748,7 @@ function EditSongSetlistMobile({
     <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
             Setlist
           </p>
         </div>
@@ -796,7 +796,7 @@ function EditSongSetlistMobile({
       <div className="mt-5">
         <label
           htmlFor="newSetlistNameMobile"
-          className="mb-2 block text-[11px] font-black uppercase tracking-[0.18em] text-gray-500"
+          className="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500"
         >
           Create a new setlist:
         </label>
@@ -824,7 +824,7 @@ function EditSongSetlistMobile({
       ) : null}
 
       <div className="mt-5">
-        <h1 className="px-0 text-[11px] font-black uppercase tracking-[0.18em] text-gray-500">
+        <h1 className="px-0 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
           Available setlists
         </h1>
 

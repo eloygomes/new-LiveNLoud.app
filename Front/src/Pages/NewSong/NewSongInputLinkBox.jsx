@@ -1,13 +1,17 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  FaChrome,
+  FaDownload,
   FaExternalLinkAlt,
   FaMinus,
   FaPaste,
+  FaPuzzlePiece,
   FaPlus,
   FaPlay,
   FaRegFileAlt,
   FaRegStickyNote,
+  FaTimes,
   FaTrashAlt,
 } from "react-icons/fa";
 import {
@@ -17,6 +21,10 @@ import {
   uploadGuitarProFile,
   updateInstrumentNotes,
 } from "../../Tools/Controllers";
+import {
+  setLocalStorageItemSafe,
+  setLocalStorageJsonSafe,
+} from "../../Tools/storageSafe";
 import SongInstrumentNotes from "../SongInstrumentNotes";
 import { lockPageScroll } from "../../Tools/scrollLock";
 import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
@@ -28,6 +36,9 @@ import {
 import { classifyInstrumentLink } from "../shared/instrumentLinkClassifier";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
+const QUICK_ADD_EXTENSION_READY_EVENT = "livenloud:quick-add-extension-ready";
+const QUICK_ADD_EXTENSION_DOWNLOAD_URL =
+  "https://api.live.eloygomes.com/downloads/sustenido-quick-add.zip";
 
 /** Normaliza a resposta do scrape em um doc utilizável */
 function normalizeScrapeDoc(scraped, instrumentName) {
@@ -163,6 +174,10 @@ function NewSongInputLinkBox({
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesSaving, setNotesSaving] = useState(false);
+  const [extensionInstalled, setExtensionInstalled] = useState(() =>
+    Boolean(window.__LIVENLOUD_QUICK_ADD_EXTENSION__?.installed),
+  );
+  const [extensionInfoOpen, setExtensionInfoOpen] = useState(false);
   const inFlightRef = useRef(false);
   const blurTimer = useRef(null);
   const isLocked = Boolean(instrument?.trim());
@@ -341,7 +356,10 @@ function NewSongInputLinkBox({
     }
   };
 
-  const saveNotes = async (plainText) => {
+  const saveNotes = async (
+    plainText,
+    { closeModal = true, notifySuccess = true } = {},
+  ) => {
     const artist = (artistName || localStorage.getItem("artist") || "").trim();
     const song = (songName || localStorage.getItem("song") || "").trim();
 
@@ -359,8 +377,12 @@ function NewSongInputLinkBox({
         notes: plainText,
       });
       onNotesChange?.(plainText);
-      notify("Success", "Notas salvas com sucesso!");
-      setNotesOpen(false);
+      if (notifySuccess) {
+        notify("Success", "Notas salvas com sucesso!");
+      }
+      if (closeModal) {
+        setNotesOpen(false);
+      }
     } catch (error) {
       console.error("Error updating instrument notes:", error);
       notify("Error", "Não foi possível salvar as notas.");
@@ -382,12 +404,12 @@ function NewSongInputLinkBox({
     (link) => {
       const { artist, song } = parseArtistSongFromUrl(link);
       if (artist) {
-        localStorage.setItem("artist", artist);
+        setLocalStorageItemSafe("artist", artist);
         setArtistName?.(artist);
         setArtistScrapado?.(artist);
       }
       if (song) {
-        localStorage.setItem("song", song);
+        setLocalStorageItemSafe("song", song);
         setSongName?.(song);
         setSongScrapado?.(song);
       }
@@ -479,8 +501,8 @@ function NewSongInputLinkBox({
           console.log(`[${effectiveInstrumentName}] já existe no DB`, existsRes.data);
           setCifraExiste?.(true);
           setCifraFROMDB?.(existsRes.data);
-          localStorage.setItem("cifraFROMDB", JSON.stringify(existsRes.data));
-          localStorage.setItem("fromWHERE", "DB");
+          setLocalStorageJsonSafe("cifraFROMDB", existsRes.data);
+          setLocalStorageItemSafe("fromWHERE", "DB");
 
           if (!artistName && existsRes.data?.artist)
             setArtistName?.(existsRes.data.artist);
@@ -521,27 +543,27 @@ function NewSongInputLinkBox({
         console.log("✅ parsed:", parsed);
         if (parsed?.doc) {
           setCifraFROMDB?.(parsed.doc);
-          localStorage.setItem("cifraFROMDB", JSON.stringify(parsed.doc));
-          localStorage.setItem("fromWHERE", "URL");
+          setLocalStorageJsonSafe("cifraFROMDB", parsed.doc);
+          setLocalStorageItemSafe("fromWHERE", "URL");
           if (parsed.artist) {
-            localStorage.setItem("artist", parsed.artist);
+            setLocalStorageItemSafe("artist", parsed.artist);
             setArtistName?.(parsed.artist);
             setArtistScrapado?.(parsed.artist);
           }
           if (parsed.song) {
-            localStorage.setItem("song", parsed.song);
+            setLocalStorageItemSafe("song", parsed.song);
             setSongName?.(parsed.song);
             setSongScrapado?.(parsed.song);
           }
           if (parsed.link && parsed.link !== link) setInstrument?.(parsed.link);
         } else if (parsed) {
           if (parsed.artist) {
-            localStorage.setItem("artist", parsed.artist);
+            setLocalStorageItemSafe("artist", parsed.artist);
             setArtistName?.(parsed.artist);
             setArtistScrapado?.(parsed.artist);
           }
           if (parsed.song) {
-            localStorage.setItem("song", parsed.song);
+            setLocalStorageItemSafe("song", parsed.song);
             setSongName?.(parsed.song);
             setSongScrapado?.(parsed.song);
           }
@@ -576,8 +598,8 @@ function NewSongInputLinkBox({
 
         if (found) {
           setCifraFROMDB?.(found);
-          localStorage.setItem("cifraFROMDB", JSON.stringify(found));
-          localStorage.setItem("fromWHERE", "DB");
+          setLocalStorageJsonSafe("cifraFROMDB", found);
+          setLocalStorageItemSafe("fromWHERE", "DB");
           if (!artistName && found?.artist) setArtistName?.(found.artist);
           if (!songName && found?.song) setSongName?.(found.song);
         } else {
@@ -692,9 +714,30 @@ function NewSongInputLinkBox({
 
   const rangeProgress = `${Number(progress || 0)}%`;
 
+  useEffect(() => {
+    const markExtensionInstalled = () => {
+      setExtensionInstalled(true);
+    };
+
+    if (window.__LIVENLOUD_QUICK_ADD_EXTENSION__?.installed) {
+      markExtensionInstalled();
+    }
+
+    window.addEventListener(
+      QUICK_ADD_EXTENSION_READY_EVENT,
+      markExtensionInstalled,
+    );
+    return () => {
+      window.removeEventListener(
+        QUICK_ADD_EXTENSION_READY_EVENT,
+        markExtensionInstalled,
+      );
+    };
+  }, []);
+
   return (
     <div
-      className={`${modalLayout ? "grid gap-4 md:grid-cols-2" : "flex w-full flex-col"} ${
+      className={`${modalLayout ? "grid gap-y-5 gap-x-3 md:grid-cols-[1.45fr_0.55fr]" : "flex w-full flex-col"} ${
         expandedControls
           ? "mt-0 rounded-[18px] bg-transparent px-0 py-0"
           : `mt-0 neuphormism-b px-5 py-4 ${
@@ -703,102 +746,113 @@ function NewSongInputLinkBox({
       }`}
     >
       {/* Header */}
-      <div
-        className={`flex justify-between ${modalLayout ? "md:col-span-2" : ""} ${
-          expandedControls ? "mb-3 items-center" : ""
-        }`}
-      >
-        <span
-          className={`font-bold ${
-            expandedControls ? "text-[1.05rem] text-black" : "text-sm"
+      {!modalLayout ? (
+        <div
+          className={`flex justify-between ${
+            expandedControls ? "mb-3 items-center" : ""
           }`}
         >
-          {instrumentName[0].toUpperCase() + instrumentName.slice(1)}
-        </span>
-        {!expandedControls ? (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label={
-                hasLink
-                  ? `Open ${instrumentName} notes`
-                  : `${instrumentName} notes disabled until link is added`
-              }
-              title={hasLink ? "Notes" : "Add a link before notes"}
-              disabled={!hasLink}
-              onClick={openNotes}
-              className={`rounded-sm p-1 transition ${
-                hasLink
-                  ? "text-gray-700 hover:bg-gray-200 hover:text-black"
-                  : "cursor-not-allowed text-gray-300 opacity-60"
-              }`}
-            >
-              <FaRegStickyNote aria-hidden="true" className="text-base" />
-            </button>
-            <button
-              type="button"
-              aria-label={
-                hasLink
-                  ? `Open ${instrumentName} presentation`
-                  : `${instrumentName} presentation disabled until link is added`
-              }
-              title={hasLink ? "Play presentation" : "No link added"}
-              disabled={!hasLink}
-              onClick={openPresentation}
-              className={`rounded-sm p-1 transition ${
-                hasLink
-                  ? "text-gray-700 hover:bg-gray-200 hover:text-black"
-                  : "cursor-not-allowed text-gray-300 opacity-60"
-              }`}
-            >
-              <FaPlay aria-hidden="true" className="text-base" />
-            </button>
-            <button
-              type="button"
-              aria-label={
-                hasLink
-                  ? `Open ${instrumentName} link in a new tab`
-                  : `${instrumentName} link not added`
-              }
-              title={hasLink ? "Open link" : "No link added"}
-              disabled={!hasLink}
-              onClick={openInstrumentLink}
-              className={`rounded-sm p-1 transition ${
-                hasLink
-                  ? "text-gray-700 hover:bg-gray-200 hover:text-black"
-                  : "cursor-not-allowed text-gray-300 opacity-60"
-              }`}
-            >
-              <FaRegFileAlt aria-hidden="true" className="text-base" />
-            </button>
-          </div>
-        ) : null}
-      </div>
+          <span className="text-sm font-bold">
+            {instrumentName[0].toUpperCase() + instrumentName.slice(1)}
+          </span>
+          {!expandedControls ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={
+                  hasLink
+                    ? `Open ${instrumentName} notes`
+                    : `${instrumentName} notes disabled until link is added`
+                }
+                title={hasLink ? "Notes" : "Add a link before notes"}
+                disabled={!hasLink}
+                onClick={openNotes}
+                className={`rounded-sm p-1 transition ${
+                  hasLink
+                    ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+                    : "cursor-not-allowed text-gray-300 opacity-60"
+                }`}
+              >
+                <FaRegStickyNote aria-hidden="true" className="text-base" />
+              </button>
+              <button
+                type="button"
+                aria-label={
+                  hasLink
+                    ? `Open ${instrumentName} presentation`
+                    : `${instrumentName} presentation disabled until link is added`
+                }
+                title={hasLink ? "Play presentation" : "No link added"}
+                disabled={!hasLink}
+                onClick={openPresentation}
+                className={`rounded-sm p-1 transition ${
+                  hasLink
+                    ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+                    : "cursor-not-allowed text-gray-300 opacity-60"
+                }`}
+              >
+                <FaPlay aria-hidden="true" className="text-base" />
+              </button>
+              <button
+                type="button"
+                aria-label={
+                  hasLink
+                    ? `Open ${instrumentName} link in a new tab`
+                    : `${instrumentName} link not added`
+                }
+                title={hasLink ? "Open link" : "No link added"}
+                disabled={!hasLink}
+                onClick={openInstrumentLink}
+                className={`rounded-sm p-1 transition ${
+                  hasLink
+                    ? "text-gray-700 hover:bg-gray-200 hover:text-black"
+                    : "cursor-not-allowed text-gray-300 opacity-60"
+                }`}
+              >
+                <FaRegFileAlt aria-hidden="true" className="text-base" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
-      {/* Link input */}
-      {expandedControls && !hasLink ? (
+      {modalLayout && !extensionInstalled ? (
         <button
           type="button"
-          className="mb-3 flex w-full items-center justify-center gap-2 rounded-[14px] neuphormism-b-btn px-3 py-3 text-sm font-black text-black"
-          onClick={pasteLinkFromClipboard}
+          className="md:col-span-2 flex w-full items-center justify-between gap-3 rounded-[16px] bg-[goldenrod] px-4 py-2.5 text-left text-black shadow-[6px_6px_14px_rgba(0,0,0,0.14),-6px_-6px_14px_rgba(255,255,255,0.78)] transition hover:brightness-[0.98] active:scale-[0.99]"
+          onClick={() => setExtensionInfoOpen(true)}
         >
-          <FaPaste aria-hidden="true" />
-          Paste link from clipboard
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white/70 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]">
+              <FaChrome aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[11px] font-bold uppercase tracking-[0.2em]">
+                Chrome Extension
+              </span>
+              <span className="mt-1 block text-sm font-bold leading-5">
+                Add songs faster from Cifra Club, Letras and Ultimate Guitar.
+              </span>
+            </span>
+          </span>
+          <span className="shrink-0 text-xs font-bold uppercase tracking-[0.14em]">
+            Learn more
+          </span>
         </button>
       ) : null}
 
-      <div className={`relative ${expandedControls ? "mt-1" : "mt-2"} ${modalLayout ? "md:col-span-1" : ""}`}>
+      <div className={`relative ${expandedControls ? "mt-0" : "mt-2"} ${modalLayout ? "md:col-span-1" : ""}`}>
         {modalLayout ? (
-          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Link source
           </p>
         ) : null}
         <input
           type="text"
           placeholder="Insert your link here"
-          className={`w-full border border-gray-300 bg-white pr-11 text-black outline-none focus:border-[goldenrod] ${
+          className={`w-full border border-[goldenrod]/35 bg-white pr-11 text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
             expandedControls
-              ? "h-12 rounded-[14px] px-3 text-base font-medium"
+              ? "h-14 rounded-[16px] px-4 text-base font-bold"
               : "h-6 rounded-sm p-1 text-sm"
           } ${isLocked ? "cursor-default" : ""}`}
           value={instrument}
@@ -831,25 +885,20 @@ function NewSongInputLinkBox({
         )}
       </div>
 
+      {/* Link input */}
+      {expandedControls && !hasLink ? (
+        <button
+          type="button"
+          className="flex h-12 w-full items-center justify-center gap-2 self-end rounded-[12px] neuphormism-b-btn px-3 text-xs font-bold text-black"
+          onClick={pasteLinkFromClipboard}
+        >
+          <FaPaste aria-hidden="true" />
+          Paste from clipboard
+        </button>
+      ) : null}
+
       {expandedControls ? (
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <button
-            type="button"
-            aria-label={
-              hasLink
-                ? `Open ${instrumentName} notes`
-                : `${instrumentName} notes disabled until link is added`
-            }
-            title={hasLink ? "Notes" : "Add a link before notes"}
-            disabled={!hasLink}
-            onClick={openNotes}
-            className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-black ${
-              hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
-            }`}
-          >
-            <FaRegStickyNote aria-hidden="true" className="text-base" />
-            <span>Notes</span>
-          </button>
+        <div className="md:col-span-2 mt-0 grid grid-cols-2 gap-3">
           <button
             type="button"
             aria-label={
@@ -860,12 +909,17 @@ function NewSongInputLinkBox({
             title={hasLink ? "Play presentation" : "No link added"}
             disabled={!hasLink}
             onClick={openPresentation}
-            className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-[14px] px-2 py-3 text-sm font-black ${
+            className={`neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold ${
               hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
             }`}
           >
-            <FaPlay aria-hidden="true" className="text-base" />
-            <span>Play</span>
+            <FaPlay aria-hidden="true" className="shrink-0 text-base" />
+            <span>
+              <span className="block">Play</span>
+              <span className="mt-1 block text-xs font-medium text-gray-500">
+                Open this instrument in presentation mode.
+              </span>
+            </span>
           </button>
           <button
             type="button"
@@ -877,42 +931,59 @@ function NewSongInputLinkBox({
             title={hasLink ? "Open link" : "No link added"}
             disabled={!hasLink}
             onClick={openInstrumentLink}
-            className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-black ${
+            className={`neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold ${
               hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
             }`}
           >
-            <FaExternalLinkAlt aria-hidden="true" className="text-base" />
-            <span>Open Link</span>
+            <FaExternalLinkAlt aria-hidden="true" className="shrink-0 text-base" />
+            <span>
+              <span className="block">Open Link</span>
+              <span className="mt-1 block text-xs font-medium text-gray-500">
+                Visit the original source in a new tab.
+              </span>
+            </span>
           </button>
         </div>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between rounded-[16px] neuphormism-b-se px-3 py-3">
-        <button
-          type="button"
-          className={iconButtonClass}
-          onClick={() => setProgress(Math.max(0, Number(progress || 0) - 5))}
-          onBlur={() => {
-            if (instrument?.trim()) handleSubmit();
-          }}
-          aria-label={`Decrease ${instrumentName} progress`}
-        >
-          <FaMinus />
-        </button>
-        <div className="min-w-[5rem] text-center text-2xl font-black text-black">
-          {rangeProgress}
+      <div className="md:col-span-2 mt-0 rounded-[16px] neuphormism-b-se px-4 py-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-[24rem]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+              Progression
+            </p>
+            <p className="mt-1 text-sm font-medium leading-5 text-gray-500">
+              Set how ready this instrument is for rehearsal or live use.
+            </p>
+          </div>
+          <div className="flex min-w-[18rem] items-center justify-between gap-3">
+          <button
+            type="button"
+            className={iconButtonClass}
+            onClick={() => setProgress(Math.max(0, Number(progress || 0) - 5))}
+            onBlur={() => {
+              if (instrument?.trim()) handleSubmit();
+            }}
+            aria-label={`Decrease ${instrumentName} progress`}
+          >
+            <FaMinus />
+          </button>
+          <div className="min-w-[5rem] text-center text-2xl font-bold text-black">
+            {rangeProgress}
+          </div>
+          <button
+            type="button"
+            className={iconButtonClass}
+            onClick={() => setProgress(Math.min(100, Number(progress || 0) + 5))}
+            onBlur={() => {
+              if (instrument?.trim()) handleSubmit();
+            }}
+            aria-label={`Increase ${instrumentName} progress`}
+          >
+            <FaPlus />
+          </button>
+          </div>
         </div>
-        <button
-          type="button"
-          className={iconButtonClass}
-          onClick={() => setProgress(Math.min(100, Number(progress || 0) + 5))}
-          onBlur={() => {
-            if (instrument?.trim()) handleSubmit();
-          }}
-          aria-label={`Increase ${instrumentName} progress`}
-        >
-          <FaPlus />
-        </button>
       </div>
       {shouldShowGuitarProRow ? (
         <div className="mt-3 rounded-[16px] neuphormism-b-se px-4 py-4">
@@ -930,12 +1001,12 @@ function NewSongInputLinkBox({
               Guitar Pro {hasGuitarProFiles ? `(${guitarProFiles.length})` : ""}
             </span>
             </div>
-            <span className="text-xs font-black uppercase tracking-[0.14em] text-gray-500">
+            <span className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
               File
             </span>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black">
+            <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black">
               <FaPlus />
               <span>Add GP</span>
               <input
@@ -949,7 +1020,7 @@ function NewSongInputLinkBox({
               type="button"
               onClick={handleGuitarProDelete}
               disabled={!hasGuitarProFiles}
-              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
             >
               <FaMinus />
               <span>Remove</span>
@@ -958,7 +1029,7 @@ function NewSongInputLinkBox({
               type="button"
               onClick={openGuitarProFile}
               disabled={!hasGuitarProFiles}
-              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-black text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+              className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
             >
               <FaRegFileAlt />
               <span>View</span>
@@ -967,24 +1038,22 @@ function NewSongInputLinkBox({
         </div>
       ) : null}
       {modalLayout ? (
-        <div className="rounded-[16px] neuphormism-b-se px-4 py-4 md:row-span-3">
-          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+        <div className="rounded-[16px] neuphormism-b-se px-4 py-3 md:col-span-2">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Notes
           </p>
           <textarea
-            className="min-h-[190px] w-full resize-none rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
+            className="min-h-[148px] w-full resize-y rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
             value={notes}
             onChange={(event) => onNotesChange?.(event.target.value)}
+            onBlur={() =>
+              saveNotes(notes, { closeModal: false, notifySuccess: false })
+            }
             placeholder="Write instrument notes here"
           />
-          <button
-            type="button"
-            className="mt-3 w-full rounded-[14px] px-4 py-3 text-sm font-black neuphormism-b-btn"
-            onClick={() => saveNotes(notes)}
-            disabled={!hasLink || notesSaving}
-          >
-            Save notes
-          </button>
+          <p className="mt-2 text-xs font-medium text-gray-500">
+            {notesSaving ? "Saving notes..." : "Notes save automatically when you leave this field."}
+          </p>
         </div>
       ) : null}
       {notesOpen ? (
@@ -1005,6 +1074,69 @@ function NewSongInputLinkBox({
               onClose={() => setNotesOpen(false)}
               isSaving={notesSaving}
             />
+          </div>
+        </div>
+      ) : null}
+      {extensionInfoOpen ? (
+        <div className="fixed inset-0 z-[130] bg-black/35">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full cursor-default"
+            onClick={() => setExtensionInfoOpen(false)}
+            aria-label="Close Chrome Extension information"
+          />
+          <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-[24px] bg-[#f2f2f2] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+                  Quick Add
+                </p>
+                <h2 className="mt-2 text-[2rem] font-bold leading-none text-black">
+                  Chrome Extension
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                onClick={() => setExtensionInfoOpen(false)}
+                aria-label="Close Chrome Extension information"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="rounded-[18px] neuphormism-b-se p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.22)]">
+                  <FaPuzzlePiece aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold leading-6 text-gray-700">
+                    The #Sustenido Quick Add extension lets you save the song
+                    currently open in your browser directly into your library.
+                    Open a supported song page, click the extension icon, choose
+                    the instrument or all detected instruments, set progress,
+                    tags and videos, then add it without coming back to this
+                    form.
+                  </p>
+                  <p className="mt-3 text-sm font-medium leading-6 text-gray-500">
+                    It works with Cifra Club, Letras and Ultimate Guitar. For
+                    now the extension is distributed by direct download; later
+                    it will be available in the Chrome Web Store.
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href={QUICK_ADD_EXTENSION_DOWNLOAD_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[goldenrod] px-4 py-3 text-sm font-bold uppercase tracking-[0.16em] text-black shadow-[6px_6px_14px_rgba(0,0,0,0.14),-6px_-6px_14px_rgba(255,255,255,0.78)]"
+              >
+                <FaDownload aria-hidden="true" />
+                Download extension
+              </a>
+            </div>
           </div>
         </div>
       ) : null}

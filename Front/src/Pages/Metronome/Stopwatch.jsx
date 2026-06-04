@@ -117,7 +117,7 @@ const Stopwatch = () => {
         {!laps.length && (
           <div className="flex min-h-0 flex-1 items-center justify-center rounded-[22px] neuphormism-d">
             <div className="text-center">
-              <p className="text-sm font-black uppercase tracking-[0.24em] text-gray-400">
+              <p className="text-sm font-bold uppercase tracking-[0.24em] text-gray-400">
                 Laps
               </p>
               <p className="mt-3 text-lg font-bold text-gray-500">

@@ -98,7 +98,7 @@ function UserDropdownMenu({
             </Link>
           </div>
           <div className="flex flex-col mr-4 py-0 px-4 flex-2">
-            <h1 className="truncate text-md  font-extrabold uppercase ">
+            <h1 className="truncate text-md  font-bold uppercase ">
               {userName}
             </h1>
             <h6 className="truncate text-[12px]  ">

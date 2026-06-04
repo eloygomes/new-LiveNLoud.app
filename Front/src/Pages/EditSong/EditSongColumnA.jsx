@@ -564,10 +564,10 @@ function EditSongColumnA({
           onClick={onToggleSongData}
         >
           <div className="text-left">
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
               Song Workspace
             </p>
-            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Song Data</h2>
+            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">Song Data</h2>
           </div>
           <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
             {songDataOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
@@ -624,10 +624,10 @@ function EditSongColumnA({
           }
         >
           <div className="text-left">
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[goldenrod]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
               Song Workspace
             </p>
-            <h2 className="mt-2 text-[1.9rem] font-black leading-none tracking-tight text-black">Media & Setlist</h2>
+            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">Media & Setlist</h2>
           </div>
           <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
             {touchMediaOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
@@ -647,7 +647,7 @@ function EditSongColumnA({
                   <FaVideo className="text-sm" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg font-black text-black">Videos</div>
+                  <div className="text-lg font-bold text-black">Videos</div>
                   <div className="text-xs font-bold text-[#2f6f3e]">
                     {embedLink.length} videos added
                   </div>
@@ -668,7 +668,7 @@ function EditSongColumnA({
                   <FaListUl className="text-sm" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg font-black text-black">Setlist</div>
+                  <div className="text-lg font-bold text-black">Setlist</div>
                   <div className="text-xs font-bold text-[#2f6f3e]">
                     {setlist.length} setlists selected
                   </div>
@@ -692,7 +692,7 @@ function EditSongColumnA({
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <div className="text-[2rem] font-black tracking-tight text-black">Videos</div>
+                <div className="text-[2rem] font-bold tracking-tight text-black">Videos</div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
                   Add a video URL for this song.
                 </div>
@@ -733,7 +733,7 @@ function EditSongColumnA({
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <div className="text-[2rem] font-black tracking-tight text-black">Setlist</div>
+                <div className="text-[2rem] font-bold tracking-tight text-black">Setlist</div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
                   Select existing tags or create a new one for this song.
                 </div>

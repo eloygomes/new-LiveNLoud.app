@@ -6,6 +6,22 @@ import {
   unregisterScrollViewport,
 } from "../presentationScrollController";
 
+const isTextNavigationTarget = (target) =>
+  target instanceof HTMLElement &&
+  (target.closest(
+    'input, textarea, select, button, [contenteditable="true"], .presentation-render-content-block',
+  ) ||
+    target.isContentEditable);
+
+const getExpandedNavigationItems = (viewport) => {
+  const columns = Array.from(
+    viewport.querySelectorAll(".presentation-horizontal-columns > .presentation-column"),
+  );
+  if (columns.length) return columns;
+
+  return Array.from(viewport.querySelectorAll(".presentation-render-block"));
+};
+
 export function usePresentationLiveMode({
   activeProgressionRenderColumns,
   closeTouchVideo,
@@ -42,40 +58,50 @@ export function usePresentationLiveMode({
       const viewport = presentationContentRef.current;
       if (!viewport) return;
 
-      const blocks = Array.from(
-        viewport.querySelectorAll(".presentation-render-block"),
-      );
-      if (!blocks.length) return;
+      const navigationItems = getExpandedNavigationItems(viewport);
+      if (!navigationItems.length) return;
 
       const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
-      const activeIndex =
-        blocks
-          .map((block, index) => ({
-            index,
-            distance: Math.abs(
-              block.offsetLeft + block.clientWidth / 2 - viewportCenter,
+      const activeIndex = effectiveLiveMode
+        ? (navigationItems
+            .map((item, index) => ({
+              index,
+              distance: Math.abs(
+                item.offsetLeft + item.clientWidth / 2 - viewportCenter,
+              ),
+            }))
+            .sort((left, right) => left.distance - right.distance)[0]?.index ??
+          0)
+        : Math.max(
+            0,
+            navigationItems.findLastIndex(
+              (item) => item.offsetLeft <= viewport.scrollLeft + 24,
             ),
-          }))
-          .sort((left, right) => left.distance - right.distance)[0]?.index ?? 0;
+          );
       const targetIndex = getLiveColumnTargetIndex({
         currentIndex: activeIndex,
         direction,
-        columnCount: blocks.length,
+        columnCount: navigationItems.length,
       });
-      const targetBlock = blocks[targetIndex];
-      if (!targetBlock) return;
+      const targetItem = navigationItems[targetIndex];
+      if (!targetItem) return;
 
       const centeredOffset = effectiveLiveMode
-        ? targetBlock.offsetLeft -
-          (viewport.clientWidth - targetBlock.clientWidth) / 2
-        : targetBlock.offsetLeft - 20;
+        ? targetItem.offsetLeft -
+          (viewport.clientWidth - targetItem.clientWidth) / 2
+        : targetItem.offsetLeft - 20;
 
       viewport.scrollTo({
         left: Math.max(0, centeredOffset),
-        behavior: "smooth",
+        behavior: "auto",
       });
 
-      setActiveLiveColumnKey(targetBlock.dataset.liveColumnKey || "");
+      setActiveLiveColumnKey(
+        targetItem.dataset.liveColumnKey ||
+          targetItem.querySelector("[data-live-column-key]")?.dataset
+            ?.liveColumnKey ||
+          "",
+      );
     },
     [effectiveLiveMode, presentationContentRef, setActiveLiveColumnKey],
   );
@@ -187,12 +213,7 @@ export function usePresentationLiveMode({
 
       if (!delta) return;
       event.preventDefault();
-      if (effectiveLiveMode) {
-        scrollExpandedLayout(delta > 0 ? 1 : -1);
-        return;
-      }
-
-      viewport.scrollLeft += delta;
+      scrollExpandedLayout(delta > 0 ? 1 : -1);
     };
 
     viewport.addEventListener("wheel", handleWheel, { passive: false });
@@ -218,7 +239,7 @@ export function usePresentationLiveMode({
     let snapTimeoutId = 0;
     let hasInitialCenter = false;
     let isProgrammaticScroll = false;
-    const centerBlock = (block, behavior = "smooth") => {
+    const centerBlock = (block, behavior = "auto") => {
       if (!block) return;
       isProgrammaticScroll = true;
       viewport.scrollTo({
@@ -228,12 +249,9 @@ export function usePresentationLiveMode({
         ),
         behavior,
       });
-      window.setTimeout(
-        () => {
-          isProgrammaticScroll = false;
-        },
-        behavior === "auto" ? 0 : 260,
-      );
+      window.setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, 0);
     };
     const updateActiveColumn = () => {
       const blocks = Array.from(
@@ -286,7 +304,7 @@ export function usePresentationLiveMode({
               ),
             }))
             .sort((left, right) => left.distance - right.distance)[0]?.block;
-          centerBlock(closestBlock);
+          centerBlock(closestBlock, "auto");
         }, 160);
       }
     };
@@ -310,6 +328,35 @@ export function usePresentationLiveMode({
   ]);
 
   useEffect(() => {
+    const viewport = presentationContentRef.current;
+    if (!viewport || !shouldUseHorizontalColumnFlow || isEditing) {
+      return undefined;
+    }
+
+    const handleExpandedKeyNavigation = (event) => {
+      if (!["ArrowLeft", "ArrowRight"].includes(event.key)) {
+        return;
+      }
+
+      if (isTextNavigationTarget(event.target)) return;
+
+      event.preventDefault();
+      const direction = event.key === "ArrowLeft" ? -1 : 1;
+      scrollExpandedLayout(direction);
+    };
+
+    window.addEventListener("keydown", handleExpandedKeyNavigation);
+    return () => {
+      window.removeEventListener("keydown", handleExpandedKeyNavigation);
+    };
+  }, [
+    isEditing,
+    presentationContentRef,
+    scrollExpandedLayout,
+    shouldUseHorizontalColumnFlow,
+  ]);
+
+  useEffect(() => {
     if (!effectiveLiveMode) return undefined;
 
     focusLiveViewport();
@@ -328,6 +375,8 @@ export function usePresentationLiveMode({
     if (!effectiveLiveMode) return undefined;
 
     const handleLiveNavigation = (event) => {
+      if (event.defaultPrevented) return;
+
       const contentNode = presentationContentRef.current;
       if (!contentNode) return;
 
@@ -378,7 +427,7 @@ export function usePresentationLiveMode({
           scrollController.scrollViewportTo(0);
           return;
         }
-        contentNode.scrollTo({ top: 0, behavior: "smooth" });
+        contentNode.scrollTo({ top: 0, behavior: "auto" });
         return;
       }
       if (event.key === "End") {
@@ -389,14 +438,14 @@ export function usePresentationLiveMode({
         }
         contentNode.scrollTo({
           top: contentNode.scrollHeight,
-          behavior: "smooth",
+          behavior: "auto",
         });
         return;
       }
 
       if (!delta) return;
       event.preventDefault();
-      contentNode.scrollBy({ top: delta, behavior: "smooth" });
+      contentNode.scrollBy({ top: delta, behavior: "auto" });
     };
 
     window.addEventListener("keydown", handleLiveNavigation);

@@ -13,7 +13,7 @@ function TouchVideoMenu({ open, onClose, onCloseVideo }) {
       />
       <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
         <div className="mb-4 flex items-center justify-between">
-          <div className="text-[1.4rem] font-black tracking-tight text-black">
+          <div className="text-[1.4rem] font-bold tracking-tight text-black">
             Video
           </div>
           <button
@@ -27,7 +27,7 @@ function TouchVideoMenu({ open, onClose, onCloseVideo }) {
         </div>
         <button
           type="button"
-          className="w-full rounded-[16px] bg-white px-4 py-4 text-left text-base font-black text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
+          className="w-full rounded-[16px] bg-white px-4 py-4 text-left text-base font-bold text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
           onClick={onCloseVideo}
         >
           Close video

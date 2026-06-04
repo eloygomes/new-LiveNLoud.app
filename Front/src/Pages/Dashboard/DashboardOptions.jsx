@@ -74,7 +74,7 @@ function OfflineContentCard({
         className={`flex ${compact ? "flex-col gap-3" : "items-start justify-between gap-4"}`}
       >
         <div>
-          <h1 className="text-sm font-black uppercase">Offline Content</h1>
+          <h1 className="text-sm font-bold uppercase">Offline Content</h1>
           <p className="mt-1 text-[11px] font-semibold text-gray-500">
             Download songs and allow offline access on this device.
           </p>
@@ -103,7 +103,7 @@ function OfflineContentCard({
         </label>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase">
+      <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase">
         {isContentEnabled ? (
           <span className="rounded-full bg-white px-2 py-1 text-gray-800 shadow-[0_6px_14px_rgba(0,0,0,0.06)]">
             offline ready
@@ -141,7 +141,7 @@ function OfflineContentCard({
       {offlineInfo.offlineMode ? (
         <button
           type="button"
-          className="mt-4 inline-flex items-center rounded-full bg-amber-400 px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.22)]"
+          className="mt-4 inline-flex items-center rounded-full bg-amber-400 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-black shadow-[0_8px_18px_rgba(217,173,38,0.22)]"
           onClick={onSyncOffline}
         >
           Offline Mode • {offlineInfo.pendingChanges || 0} pending
@@ -178,7 +178,7 @@ function ColumnsData({
   return (
     <section className="neuphormism-b p-4">
       <div>
-        <h1 className="text-sm font-black uppercase">Columns Data</h1>
+        <h1 className="text-sm font-bold uppercase">Columns Data</h1>
         <p className="mt-1 text-[11px] font-semibold text-gray-500">
           Select which columns to display in the dashboard.
           {!canSelectAllColumns ? ` Limit: ${maxSelectableColumns}.` : ""}
@@ -208,7 +208,7 @@ function ColumnsData({
                   disabled ? "" : "cursor-pointer"
                 }`}
               >
-                <span className="truncate text-[12px] font-black uppercase text-gray-700">
+                <span className="truncate text-[12px] font-bold uppercase text-gray-700">
                   {label}
                 </span>
                 <input
@@ -540,7 +540,7 @@ export default function DashboardOptions({
             ) : null}
 
             <h1
-              className={`font-black ${isSmallScreen ? "text-[2rem]" : "text-md"}`}
+              className={`font-bold ${isSmallScreen ? "text-[2rem]" : "text-md"}`}
             >
               {isSmallScreen ? "FILTER" : "OPTIONS"}
             </h1>
@@ -580,26 +580,26 @@ export default function DashboardOptions({
               <>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="neuphormism-b rounded-lg p-3">
-                    <p className="text-[10px] font-black uppercase text-gray-500">
+                    <p className="text-[10px] font-bold uppercase text-gray-500">
                       Songs
                     </p>
-                    <p className="mt-1 text-2xl font-black text-gray-900">
+                    <p className="mt-1 text-2xl font-bold text-gray-900">
                       {dashboardMetrics.totalSongs}
                     </p>
                   </div>
                   <div className="neuphormism-b rounded-lg p-3">
-                    <p className="text-[10px] font-black uppercase text-gray-500">
+                    <p className="text-[10px] font-bold uppercase text-gray-500">
                       Ready
                     </p>
-                    <p className="mt-1 text-2xl font-black text-gray-900">
+                    <p className="mt-1 text-2xl font-bold text-gray-900">
                       {dashboardMetrics.readySongs}
                     </p>
                   </div>
                   <div className="neuphormism-b rounded-lg p-3">
-                    <p className="text-[10px] font-black uppercase text-gray-500">
+                    <p className="text-[10px] font-bold uppercase text-gray-500">
                       Avg
                     </p>
-                    <p className="mt-1 text-2xl font-black text-gray-900">
+                    <p className="mt-1 text-2xl font-bold text-gray-900">
                       {dashboardMetrics.averageProgress}%
                     </p>
                   </div>
@@ -707,7 +707,7 @@ export default function DashboardOptions({
           <div className="border-t border-black/5 bg-[#f2f2f2] px-1 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2">
             <button
               type="button"
-              className="w-full rounded-[10px] border border-black/10 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black shadow-[0_5px_12px_rgba(0,0,0,0.04)]"
+              className="w-full rounded-[10px] border border-black/10 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black shadow-[0_5px_12px_rgba(0,0,0,0.04)]"
               onClick={closeFilter}
             >
               Close Filter

@@ -22,7 +22,7 @@ function PresentationHorizontalNav({
             <button
               type="button"
               className={`presentation-horizontal-nav ${
-                effectiveLiveMode ? "" : "neuphormism-b-btn font-black text-black"
+                effectiveLiveMode ? "" : "neuphormism-b-btn font-bold text-black"
               }`}
               onClick={() => onNavigate(-1)}
               aria-label="Navigate left through expanded cifra"
@@ -39,7 +39,7 @@ function PresentationHorizontalNav({
             <button
               type="button"
               className={`presentation-horizontal-nav ${
-                effectiveLiveMode ? "" : "neuphormism-b-btn font-black text-black"
+                effectiveLiveMode ? "" : "neuphormism-b-btn font-bold text-black"
               }`}
               onClick={() => onNavigate(1)}
               aria-label="Navigate right through expanded cifra"

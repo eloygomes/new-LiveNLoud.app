@@ -44,10 +44,10 @@ function SongInstrumentNotes({
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[goldenrod]">
+          <div className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
             Notes
           </div>
-          <div className="truncate text-lg font-black text-black">
+          <div className="truncate text-lg font-bold text-black">
             {title || instrumentName}
           </div>
         </div>
@@ -78,7 +78,7 @@ function SongInstrumentNotes({
       <div className="mt-3 flex justify-end">
         <button
           type="button"
-          className="neuphormism-b-btn-gold rounded-[12px] px-4 py-2 text-sm font-black text-black disabled:opacity-50"
+          className="neuphormism-b-btn-gold rounded-[12px] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
           onClick={saveDraft}
           disabled={isSaving}
         >

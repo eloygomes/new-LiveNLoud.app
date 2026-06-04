@@ -1,3 +1,5 @@
+import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
+
 // fallback seguro + modo estrito opcional
 export const processSongCifra = (songCifra, { strict = false } = {}) => {
   const isInvalid =
@@ -43,6 +45,8 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
   }
 
   const isBlankLine = (line) => line.trim() === "";
+  const isColumnBreakLine = (line) =>
+    line.trim() === PRESENTATION_COLUMN_BREAK_MARKER;
   const isTabLine = (line) => /\|[-\s\d|]*\|?/.test(line);
   const isTomLine = (line) => line.toLowerCase().includes("tom");
   const tabStringPrefixes = ["E|", "B|", "G|", "D|", "A|", "E|"];
@@ -237,7 +241,7 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
 
     while (j < totalLines) {
       const trimmed = lines[j].trim();
-      if (parseSectionLabel(trimmed)) break;
+      if (parseSectionLabel(trimmed) || isColumnBreakLine(trimmed)) break;
 
       const { html, nextIndex } = processSingleLine(j);
       linesGroup.push(html);
@@ -253,6 +257,14 @@ ${linesGroup.join("\n")}
   // Loop principal
   while (i < totalLines) {
     const trimmed = lines[i].trim();
+    if (isColumnBreakLine(trimmed)) {
+      htmlBlocks.push(
+        `<div class="presentation-column-break" data-column-break="true"></div>`,
+      );
+      i += 1;
+      continue;
+    }
+
     const labelObj = parseSectionLabel(trimmed);
 
     if (labelObj) {
@@ -278,7 +290,7 @@ ${linesGroup.join("\n")}
       const subsection = [];
       while (j < totalLines) {
         const subLine = lines[j].trim();
-        if (parseSectionLabel(subLine)) break;
+        if (parseSectionLabel(subLine) || isColumnBreakLine(subLine)) break;
         if (isBlankLine(subLine)) {
           const { html } = processSingleLine(j);
           subsection.push(html);

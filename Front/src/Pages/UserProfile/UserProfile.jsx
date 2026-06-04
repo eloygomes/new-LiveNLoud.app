@@ -20,6 +20,7 @@ import {
   logoutUser,
   uploadProfileImage,
 } from "../../Tools/Controllers";
+import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
 import PasswordResetModal from "./PasswordResetModal";
 import UsernameEditModal from "./UsernameEditModal";
 import DeleteAccountModal from "./DeleteAccountModal"; // Importar o novo modal
@@ -84,7 +85,7 @@ function UserProfile() {
     if (Array.isArray(parsedResult) && parsedResult[0]) {
       setGetFullName(parsedResult[0].fullName || "");
       setGetUsername(parsedResult[0].username || "");
-      localStorage.setItem("username", parsedResult[0].username || "");
+      setLocalStorageItemSafe("username", parsedResult[0].username || "");
 
       const filteredData = parsedResult.filter(
         (item) =>
@@ -147,7 +148,7 @@ function UserProfile() {
     try {
       await updateUserName(newUsername);
       setGetUsername(newUsername); // Atualiza o estado com o novo nome de usuário
-      localStorage.setItem("username", newUsername);
+      setLocalStorageItemSafe("username", newUsername);
       alert("Username atualizado com sucesso!");
       setIsUsernameModalOpen(false);
     } catch (error) {
@@ -470,7 +471,7 @@ function UserProfile() {
     <div className="neuphormism-b rounded-[20px] p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
             {label}
           </div>
           <div className="mt-2 break-words text-[15px] font-bold text-black">
@@ -504,7 +505,7 @@ function UserProfile() {
             className="hidden"
             id="mobileProfileImage"
           />
-          <div className="mt-4 text-[1.15rem] font-black uppercase text-black">
+          <div className="mt-4 text-[1.15rem] font-bold uppercase text-black">
             {mobileProfileSummary.fullName}
           </div>
           <div className="mt-1 text-[13px] font-bold text-gray-500">
@@ -513,7 +514,7 @@ function UserProfile() {
           <button
             type="button"
             onClick={handleUpload}
-            className="neuphormism-b-btn-gold mt-4 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
+            className="neuphormism-b-btn-gold mt-4 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
             disabled={uploading}
           >
             {uploading ? "Uploading..." : "Upload Photo"}
@@ -537,7 +538,7 @@ function UserProfile() {
   const renderMobileUserData = () => (
     <div className="flex flex-col gap-4">
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           User Data
         </div>
         <div className="mt-2 text-sm text-gray-600">
@@ -545,7 +546,7 @@ function UserProfile() {
         </div>
         <button
           type="button"
-          className="neuphormism-b-btn mt-4 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
+          className="neuphormism-b-btn mt-4 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
           onClick={() => downloadUserData()}
         >
           Download
@@ -553,7 +554,7 @@ function UserProfile() {
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Platform User Data
         </div>
         <div className="mt-2 text-sm text-gray-600">
@@ -561,7 +562,7 @@ function UserProfile() {
         </div>
         <button
           type="button"
-          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white"
+          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-white"
           onClick={handleDelete}
         >
           Delete Songs
@@ -569,7 +570,7 @@ function UserProfile() {
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           User Account
         </div>
         <div className="mt-2 text-sm text-gray-600">
@@ -577,7 +578,7 @@ function UserProfile() {
         </div>
         <button
           type="button"
-          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-white"
+          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-white"
           onClick={handleDeleteAccountClick}
         >
           Delete Account
@@ -589,7 +590,7 @@ function UserProfile() {
   const renderMobileFriends = () => (
     <div className="flex flex-col gap-4">
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Invite A Friend
         </div>
         <div className="mt-2 text-sm text-gray-600">
@@ -612,7 +613,7 @@ function UserProfile() {
         />
         <button
           type="button"
-          className="neuphormism-b-btn-gold mt-4 w-full rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
+          className="neuphormism-b-btn-gold mt-4 w-full rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
           disabled={friendActionLoading}
           onClick={handleSendFriendInvite}
         >
@@ -627,7 +628,7 @@ function UserProfile() {
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Pending Requests
         </div>
         <div className="mt-3 flex flex-col gap-3">
@@ -647,7 +648,7 @@ function UserProfile() {
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    className="neuphormism-b-btn-gold rounded-[14px] bg-[goldenrod] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-black"
+                    className="neuphormism-b-btn-gold rounded-[14px] bg-[goldenrod] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black"
                     onClick={() =>
                       handleInvitationResponse(invitation._id, "accepted")
                     }
@@ -656,7 +657,7 @@ function UserProfile() {
                   </button>
                   <button
                     type="button"
-                    className="neuphormism-b-btn-red rounded-[14px] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white"
+                    className="neuphormism-b-btn-red rounded-[14px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white"
                     onClick={() =>
                       handleInvitationResponse(invitation._id, "declined")
                     }
@@ -671,7 +672,7 @@ function UserProfile() {
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Sent Requests
         </div>
         <div className="mt-3 flex flex-col gap-3">
@@ -693,7 +694,7 @@ function UserProfile() {
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Actual Friends
         </div>
         <div className="mt-3 flex flex-col gap-3">
@@ -715,7 +716,7 @@ function UserProfile() {
                 </div>
                 <button
                   type="button"
-                  className="neuphormism-b-btn-red mt-3 rounded-[14px] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-white"
+                  className="neuphormism-b-btn-red mt-3 rounded-[14px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white"
                   disabled={revokingEmail === friend.counterpartEmail}
                   onClick={() => handleRevokeFriendship(friend.counterpartEmail)}
                 >
@@ -753,14 +754,14 @@ function UserProfile() {
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-[16px] font-black uppercase text-black">
+              <div className="text-[16px] font-bold uppercase text-black">
                 {item.title}
               </div>
               <div className="mt-1 text-sm text-gray-600">{item.subtitle}</div>
             </div>
             <button
               type="button"
-              className={`neuphormism-b-btn h-11 w-16 rounded-[14px] text-[10px] font-black uppercase tracking-[0.12em] transition ${
+              className={`neuphormism-b-btn h-11 w-16 rounded-[14px] text-[10px] font-bold uppercase tracking-[0.12em] transition ${
                 item.value
                   ? "bg-[goldenrod] text-black"
                   : "bg-white text-gray-500"
@@ -774,7 +775,7 @@ function UserProfile() {
       ))}
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Language
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
@@ -782,7 +783,7 @@ function UserProfile() {
             <button
               key={item}
               type="button"
-              className={`rounded-[16px] px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] ${
+              className={`rounded-[16px] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] ${
                 language === item
                   ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
                   : "neuphormism-b-btn bg-white text-gray-500"
@@ -801,25 +802,25 @@ function UserProfile() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="neuphormism-b rounded-[20px] p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
             Songs
           </div>
-          <div className="mt-3 text-[1.4rem] font-black text-black">
+          <div className="mt-3 text-[1.4rem] font-bold text-black">
             {data.length}
           </div>
         </div>
         <div className="neuphormism-b rounded-[20px] p-4">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
             Progress
           </div>
-          <div className="mt-3 text-[1.4rem] font-black text-black">
+          <div className="mt-3 text-[1.4rem] font-bold text-black">
             {averageProgression}%
           </div>
         </div>
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Songs By Instruments
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3">
@@ -828,10 +829,10 @@ function UserProfile() {
               key={instrument.key}
               className="neuphormism-b-se rounded-[16px] px-3 py-4 text-center"
             >
-              <div className="text-[11px] font-black uppercase text-gray-500">
+              <div className="text-[11px] font-bold uppercase text-gray-500">
                 {instrument.short}
               </div>
-              <div className="mt-2 text-lg font-black text-black">
+              <div className="mt-2 text-lg font-bold text-black">
                 {songsByInstrument[instrument.key] ?? 0}
               </div>
             </div>
@@ -840,7 +841,7 @@ function UserProfile() {
       </div>
 
       <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-black uppercase text-black">
+        <div className="text-[16px] font-bold uppercase text-black">
           Activity Feed
         </div>
         <div className="mt-4 flex max-h-[22rem] flex-col gap-2 overflow-y-auto pr-1">
@@ -903,7 +904,7 @@ function UserProfile() {
 
         <div className="mx-auto flex min-h-[calc(100vh-12.25rem)] w-full max-w-[760px] flex-col justify-center">
         <div className="neuphormism-b rounded-[24px] p-4">
-          <div className="text-[13px] font-black uppercase tracking-[0.18em] text-black">
+          <div className="text-[13px] font-bold uppercase tracking-[0.18em] text-black">
             Menu
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -913,7 +914,7 @@ function UserProfile() {
                 <button
                   key={option}
                   type="button"
-                  className={`rounded-[16px] px-4 py-3 text-[11px] font-black uppercase tracking-[0.12em] ${
+                  className={`rounded-[16px] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] ${
                     active
                       ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
                       : "neuphormism-b-btn bg-[#f0f0f0] text-gray-500"
@@ -940,7 +941,7 @@ function UserProfile() {
         <div className="neuphormism-b mt-4 rounded-[24px] p-4">
           <button
             type="button"
-            className="neuphormism-b-btn flex w-full items-center justify-center gap-2 rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-black"
+            className="neuphormism-b-btn flex w-full items-center justify-center gap-2 rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
             onClick={handleMobileRefresh}
           >
             <FaSyncAlt className={mobileRefreshing ? "animate-spin" : ""} />
@@ -948,7 +949,7 @@ function UserProfile() {
           </button>
           <button
             type="button"
-            className="neuphormism-b-btn mt-3 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-red-600"
+            className="neuphormism-b-btn mt-3 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-red-600"
             onClick={handleSignOut}
           >
             Sign Out

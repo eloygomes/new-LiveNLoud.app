@@ -25,6 +25,7 @@ import {
 import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
 import DashboardSongActionSheet from "./DashboardSongActionSheet";
 import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
+import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
@@ -542,8 +543,8 @@ function DashList2Items({
       window.alert("This song is visible offline, but it was not marked to work offline.");
       return;
     }
-    localStorage.setItem("song", item.song || "");
-    localStorage.setItem("artist", item.artist || "");
+    setLocalStorageItemSafe("song", item.song || "");
+    setLocalStorageItemSafe("artist", item.artist || "");
     setSelectedSong(null);
     navigate(
       `/editsong/${encodeURIComponent(item.artist || "")}/${encodeURIComponent(
@@ -597,7 +598,7 @@ function DashList2Items({
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-gray-500 shadow-[inset_6px_6px_12px_rgba(0,0,0,0.06),inset_-6px_-6px_12px_rgba(255,255,255,0.95)]">
               <FaMusic size={28} />
             </div>
-            <h3 className="mt-5 text-xl font-black text-black">
+            <h3 className="mt-5 text-xl font-bold text-black">
               Nenhuma música encontrada
             </h3>
             <p className="mt-2 max-w-md text-sm leading-6 text-gray-600">
@@ -610,7 +611,7 @@ function DashList2Items({
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-[goldenrod] shadow-[inset_6px_6px_12px_rgba(0,0,0,0.06),inset_-6px_-6px_12px_rgba(255,255,255,0.95)]">
               <FaMusic size={28} />
             </div>
-            <h3 className="mt-5 text-xl font-black text-black">
+            <h3 className="mt-5 text-xl font-bold text-black">
               Sua biblioteca ainda está vazia
             </h3>
             <p className="mt-2 max-w-md text-sm leading-6 text-gray-600">
@@ -647,7 +648,7 @@ function DashList2Items({
                     </div>
                     <div className="min-w-0 flex-1 self-center">
                       <div
-                        className="truncate text-[1rem] font-black leading-tight text-black"
+                        className="truncate text-[1rem] font-bold leading-tight text-black"
                         title={item.song || ""}
                       >
                         {item.song || "N/A"}
@@ -668,7 +669,7 @@ function DashList2Items({
                           </div>
                           {offlineMode ? (
                             <span
-                              className={`ml-2 inline-flex items-center rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                              className={`ml-2 inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
                                 item.offlineEnabled
                                   ? "bg-[goldenrod] text-black"
                                   : "bg-[#e5e7eb] text-gray-600"
@@ -696,7 +697,7 @@ function DashList2Items({
                                   key={instrumentKey}
                                   className="flex items-center gap-2"
                                 >
-                                  <span className="w-8 text-[10px] font-black text-gray-500">
+                                  <span className="w-8 text-[10px] font-bold text-gray-500">
                                     {instrument?.label || ""}
                                   </span>
                                   <div className="h-4 min-w-0 flex-1 rounded-full bg-gray-200 input-neumorfismo">
@@ -715,7 +716,7 @@ function DashList2Items({
                       ) : null}
                       <div className="mt-2 flex max-w-full gap-2 overflow-x-auto">
                         {visibleColumns.includes("videos") ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-bold text-gray-600">
                             {getVideoLinks(item).length ? (
                               <>
                                 <FaVideo className="text-[goldenrod]" />
@@ -729,7 +730,7 @@ function DashList2Items({
                           </span>
                         ) : null}
                         {visibleColumns.includes("guitarPro") ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-bold text-gray-600">
                             <FaFileCode
                               className={
                                 getGuitarProFiles(item).length
@@ -741,7 +742,7 @@ function DashList2Items({
                           </span>
                         ) : null}
                         {visibleColumns.includes("notes") ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-bold text-gray-600">
                             <FaRegStickyNote
                               className={
                                 hasInstrumentNotes(item)
@@ -753,13 +754,13 @@ function DashList2Items({
                           </span>
                         ) : null}
                         {visibleColumns.includes("addedDate") ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-bold text-gray-600">
                             <FaCalendarPlus className="text-[goldenrod]" />
                             {getAddedDate(item) || "-"}
                           </span>
                         ) : null}
                         {visibleColumns.includes("lastPlay") ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-black text-gray-600">
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-bold text-gray-600">
                             <FaHistory className="text-[goldenrod]" />
                             {getLastPlayDate(item)}
                           </span>
@@ -847,8 +848,8 @@ function DashList2Items({
                 )}/${encodeURIComponent(item.song || "")}`}
                 className="absolute inset-0 z-10"
                 onClick={() => {
-                  localStorage.setItem("song", item.song || "");
-                  localStorage.setItem("artist", item.artist || "");
+                  setLocalStorageItemSafe("song", item.song || "");
+                  setLocalStorageItemSafe("artist", item.artist || "");
                 }}
               />
               <div
@@ -873,7 +874,7 @@ function DashList2Items({
                   <span>{item.song || "N/A"}</span>
                   {offlineMode ? (
                     <span
-                      className={`ml-2 inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase align-middle ${
+                      className={`ml-2 inline-flex rounded-full px-2 py-1 text-[9px] font-bold uppercase align-middle ${
                         item.offlineEnabled
                           ? "bg-[goldenrod] text-black"
                           : "bg-[#e5e7eb] text-gray-600"

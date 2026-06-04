@@ -1,4 +1,5 @@
 import { processSongCifra } from "./processSongCifra";
+import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 
 describe("processSongCifra", () => {
   it("returns a safe fallback when the cifra is empty", () => {
@@ -29,5 +30,15 @@ describe("processSongCifra", () => {
     expect(result.htmlBlocks[0]).toContain('class="verse"');
     expect(result.htmlBlocks[0]).toContain('class="tab"');
     expect(result.htmlBlocks[0]).toContain("E|----|");
+  });
+
+  it("creates an internal column break block without rendering marker text", () => {
+    const result = processSongCifra(
+      `line one\n${PRESENTATION_COLUMN_BREAK_MARKER}\nline two`,
+    );
+
+    expect(result.htmlBlocks).toHaveLength(3);
+    expect(result.htmlBlocks[1]).toContain("presentation-column-break");
+    expect(result.htmlBlocks[1]).not.toContain(PRESENTATION_COLUMN_BREAK_MARKER);
   });
 });

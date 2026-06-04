@@ -889,7 +889,7 @@ function GuitarProViewer({
               ? ` · Programa MIDI: ${selectedTrack.playbackInfo.program}`
               : ""}
           </div>
-          <div className="shrink-0 text-sm font-black text-black">
+          <div className="shrink-0 text-sm font-bold text-black">
             Zoom {Math.round(zoom * 100)}%
           </div>
         </div>
@@ -977,14 +977,14 @@ function GuitarProViewer({
           ) : (
             <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] bg-[#f0f0f0] text-black shadow-inner">
               <div className="flex shrink-0 items-center justify-between border-b border-white/70 bg-[#f7f7f7] px-3 py-2 shadow-sm">
-                <h3 className="text-[0.85rem] font-black uppercase tracking-[0.08em] text-black">
+                <h3 className="text-[0.85rem] font-bold uppercase tracking-[0.08em] text-black">
                   Instrumentos
                 </h3>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSidebarPinned((current) => !current)}
-                    className={`flex items-center gap-1 rounded-[7px] px-2 py-1 text-[10px] font-black shadow-sm ${
+                    className={`flex items-center gap-1 rounded-[7px] px-2 py-1 text-[10px] font-bold shadow-sm ${
                       sidebarPinned
                         ? "neuphormism-b-btn-gold text-black"
                         : "neuphormism-b-btn text-black"
@@ -1008,14 +1008,14 @@ function GuitarProViewer({
               </div>
 
               <div className="grid shrink-0 grid-cols-[1.35rem_2rem_minmax(0,1fr)_3.2rem] items-center gap-2 border-b border-white/70 bg-[#f4f4f4] pr-2 shadow-sm">
-                <div className="flex h-full items-center justify-center bg-[goldenrod] text-[10px] font-black text-white">
+                <div className="flex h-full items-center justify-center bg-[goldenrod] text-[10px] font-bold text-white">
                   M
                 </div>
                 <span className="neuphormism-b-avatar flex h-7 w-7 items-center justify-center rounded-full text-black">
                   <FaVolumeHigh className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0 py-2">
-                  <div className="mb-1 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.08em] text-gray-600">
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.08em] text-gray-600">
                     <span>Master</span>
                     <span>{Math.round(masterVolume * 100)}%</span>
                   </div>
@@ -1059,7 +1059,7 @@ function GuitarProViewer({
                       <button
                         type="button"
                         onClick={() => renderSelectedTrack(index)}
-                        className="self-stretch w-[1.35rem] shrink-0 text-[10px] font-black text-white"
+                        className="self-stretch w-[1.35rem] shrink-0 text-[10px] font-bold text-white"
                         style={{ backgroundColor: trackColor }}
                         title={`Track ${index + 1}`}
                       >
@@ -1073,7 +1073,7 @@ function GuitarProViewer({
                           <button
                             type="button"
                             onClick={() => renderSelectedTrack(index)}
-                            className="block w-full truncate text-left text-[10px] font-black leading-tight text-gray-600 pl-[3em] uppercase"
+                            className="block w-full truncate text-left text-[10px] font-bold leading-tight text-gray-600 pl-[3em] uppercase"
                             title={label}
                           >
                             {label}
@@ -1094,7 +1094,7 @@ function GuitarProViewer({
                               <button
                                 type="button"
                                 onClick={() => toggleTrackMute(index)}
-                                className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                                className={`h-4 w-5 rounded-[3px] text-[9px] font-bold leading-none shadow-sm ${
                                   track.playbackInfo?.isMute
                                     ? "bg-[#d66f5f] text-black"
                                     : "neuphormism-b-btn text-black"
@@ -1106,7 +1106,7 @@ function GuitarProViewer({
                               <button
                                 type="button"
                                 onClick={() => toggleTrackSolo(index)}
-                                className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                                className={`h-4 w-5 rounded-[3px] text-[9px] font-bold leading-none shadow-sm ${
                                   track.playbackInfo?.isSolo
                                     ? "neuphormism-b-btn-gold text-black"
                                     : "neuphormism-b-btn text-black"
@@ -1169,7 +1169,7 @@ function GuitarProViewer({
                                 />
                               </div>
 
-                              <div className="w-10 shrink-0 text-right text-[10px] font-black text-gray-600">
+                              <div className="w-10 shrink-0 text-right text-[10px] font-bold text-gray-600">
                                 {Math.round(volume * 100)}%
                               </div>
                             </div>
@@ -1233,7 +1233,7 @@ function GuitarProViewer({
                       <button
                         type="button"
                         onClick={() => renderSelectedTrack(index)}
-                        className="flex h-full items-center justify-center text-[10px] font-black text-white"
+                        className="flex h-full items-center justify-center text-[10px] font-bold text-white"
                         style={{ backgroundColor: trackColor }}
                         title={`Track ${index + 1}`}
                       >
@@ -1252,7 +1252,7 @@ function GuitarProViewer({
                         <button
                           type="button"
                           onClick={() => renderSelectedTrack(index)}
-                          className="block w-full truncate text-left text-[12px] font-black leading-tight text-black"
+                          className="block w-full truncate text-left text-[12px] font-bold leading-tight text-black"
                           title={label}
                         >
                           {label}
@@ -1261,7 +1261,7 @@ function GuitarProViewer({
                           <button
                             type="button"
                             onClick={() => toggleTrackMute(index)}
-                            className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                            className={`h-4 w-5 rounded-[3px] text-[9px] font-bold leading-none shadow-sm ${
                               track.playbackInfo?.isMute
                                 ? "bg-[#d66f5f] text-black"
                                 : "neuphormism-b-btn text-black"
@@ -1272,7 +1272,7 @@ function GuitarProViewer({
                           <button
                             type="button"
                             onClick={() => toggleTrackSolo(index)}
-                            className={`h-4 w-5 rounded-[3px] text-[9px] font-black leading-none shadow-sm ${
+                            className={`h-4 w-5 rounded-[3px] text-[9px] font-bold leading-none shadow-sm ${
                               track.playbackInfo?.isSolo
                                 ? "neuphormism-b-btn-gold text-black"
                                 : "neuphormism-b-btn text-black"
@@ -1331,7 +1331,7 @@ function GuitarProViewer({
                               title={`Volume ${Math.round(volume * 100)}%`}
                             />
                           </div>
-                          <div className="text-right text-[10px] font-black text-gray-600">
+                          <div className="text-right text-[10px] font-bold text-gray-600">
                             {Math.round(volume * 100)}%
                           </div>
                         </div>
@@ -1421,7 +1421,7 @@ function GuitarProViewer({
           >
             <FaMagnifyingGlassPlus className="h-3.5 w-3.5" />
           </button>
-          <div className="ml-1 min-w-[7rem] text-xs font-black text-gray-600">
+          <div className="ml-1 min-w-[7rem] text-xs font-bold text-gray-600">
             {playerReady
               ? `${formatDuration(playbackPosition.currentTime)} / ${formatDuration(
                   playbackPosition.endTime,
@@ -1458,7 +1458,7 @@ function GuitarProViewer({
         </div>
 
         <div className="min-w-0 text-right">
-          <div className="truncate text-sm font-black text-black">
+          <div className="truncate text-sm font-bold text-black">
             {songTitle || fileName}
           </div>
           <div className="truncate text-xs font-semibold text-gray-500">
