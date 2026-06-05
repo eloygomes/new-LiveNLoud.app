@@ -45,6 +45,17 @@ function cleanText(value) {
     .trim();
 }
 
+function cleanMultilineText(value) {
+  return String(value || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function getSupportedSite(hostname) {
   return SUPPORTED_HOSTS.find((entry) => entry.pattern.test(hostname)) || null;
 }
@@ -213,6 +224,29 @@ function getFieldValue(root, selector) {
   return normalizedText;
 }
 
+function extractParagraphText(container) {
+  if (!container) return "";
+
+  const paragraphs = Array.from(container.querySelectorAll("p"))
+    .map((paragraph) => cleanMultilineText(paragraph.innerText || paragraph.textContent))
+    .filter(Boolean);
+
+  if (paragraphs.length) {
+    return cleanMultilineText(paragraphs.join("\n\n"));
+  }
+
+  return cleanMultilineText(container.innerText || container.textContent);
+}
+
+function getCifraClubLyrics(root) {
+  const lyricsContainer =
+    root?.querySelector(".songContent .letra .letra-l") ||
+    root?.querySelector(".songContent .letra") ||
+    root?.querySelector(".songContent");
+
+  return extractParagraphText(lyricsContainer);
+}
+
 function buildPageContext() {
   const supportedSite = getSupportedSite(window.location.hostname);
   const compatible = Boolean(supportedSite);
@@ -221,6 +255,7 @@ function buildPageContext() {
   let tom = "";
   let tuning = "";
   let capo = "";
+  let lyrics = "";
 
   if (supportedSite?.id === "cifraclub") {
     const cifraRoot = getCifraRoot();
@@ -233,6 +268,7 @@ function buildPageContext() {
     tom = getFieldValue(cifraRoot, "#cifra_tom");
     tuning = getFieldValue(cifraRoot, "#cifra_afi");
     capo = getFieldValue(cifraRoot, "#cifra_capo");
+    lyrics = getCifraClubLyrics(cifraRoot);
   } else if (supportedSite?.id === "ultimate_guitar") {
     song = getUltimateGuitarSong();
     artist = getUltimateGuitarArtist();
@@ -245,6 +281,7 @@ function buildPageContext() {
     tom = "";
     tuning = "";
     capo = "";
+    lyrics = "";
   }
 
   const context = {
@@ -256,6 +293,7 @@ function buildPageContext() {
     capo: compatible ? capo : "",
     tom: compatible ? tom : "",
     tuning: compatible ? tuning : "",
+    lyrics: compatible ? lyrics : "",
     defaults: {
       song: NOT_AVAILABLE,
       artist: NOT_AVAILABLE,

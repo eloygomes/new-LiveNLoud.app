@@ -68,6 +68,9 @@ function isAllowedExtensionOrigin(origin) {
 
 function isAllowedOrigin(origin) {
   const allowed = [
+    "https://sustenido.eloygomes.com",
+    "https://www.sustenido.eloygomes.com",
+    "https://api.sustenido.eloygomes.com",
     "https://www.live.eloygomes.com",
     "https://api.live.eloygomes.com",
     "https://live.eloygomes.com",
@@ -206,6 +209,9 @@ app.use("/api/youtube", youtubeRoutes);
 
 // Servir arquivos estáticos da pasta uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Servir arquivos públicos para download, como o pacote da extensão.
+app.use("/downloads", express.static(path.join(__dirname, "downloads")));
 
 // Configuração do Multer para armazenamento local com extensão '.jpeg'
 const storage = multer.diskStorage({

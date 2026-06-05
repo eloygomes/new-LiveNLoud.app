@@ -3,24 +3,50 @@ import { PRESENTATION_COLUMN_BREAK_MARKER } from "./presentationConstants";
 const EDITABLE_LINE_SELECTOR =
   ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div";
 const MOVABLE_LINE_SELECTOR = "pre, p";
+const ZERO_WIDTH_CHARACTERS_REGEX = /[\u200b\u200c\u200d\u2060\ufeff]/g;
+
+function sanitizeEditableText(text = "") {
+  return String(text || "")
+    .replace(/\u00a0/g, " ")
+    .replace(ZERO_WIDTH_CHARACTERS_REGEX, "");
+}
 
 function readEditableBlockText(block) {
-  const lineNodes = Array.from(block.querySelectorAll("pre, p")).filter((node) =>
-    block.contains(node),
+  if (!block) return "";
+
+  if (typeof block.innerText === "string" && block.innerText !== "") {
+    return sanitizeEditableText(block.innerText).trimEnd();
+  }
+
+  const lineNodes = Array.from(block.querySelectorAll("pre, p, div")).filter(
+    (node) => {
+      if (!block.contains(node) || node === block) return false;
+
+      const tagName = node.tagName?.toLowerCase();
+      if (node.parentElement?.closest("pre, p")) return false;
+      if (tagName === "pre" || tagName === "p") return true;
+      if (tagName !== "div") return false;
+
+      return !node.querySelector("pre, p, div");
+    },
   );
 
   if (lineNodes.length) {
     return lineNodes
-      .map((node) => (node.textContent || "").replace(/\u00a0/g, " "))
+      .map((node) => sanitizeEditableText(node.textContent))
       .join("\n");
   }
 
   const rawText = block.innerText || block.textContent || "";
-  return rawText.replace(/\u00a0/g, " ").trimEnd();
+  return sanitizeEditableText(rawText).trimEnd();
 }
 
 function hasPreservedBlankLine(block) {
   return Boolean(block.querySelector(".presentation-blank-line"));
+}
+
+function hasMeaningfulEditableText(text = "") {
+  return sanitizeEditableText(text).trim() !== "";
 }
 
 function getEditableContentBlocks(contentNode) {
@@ -30,22 +56,84 @@ function getEditableContentBlocks(contentNode) {
   );
 }
 
-function serializeEditableBlocks(contentBlocks, { preserveColumnBreaks = false } = {}) {
-  const texts = contentBlocks
+function getContentBlockKeys(block) {
+  return (block?.dataset?.blockKeys || block?.dataset?.blockKey || "")
+    .split(",")
+    .map((blockKey) => blockKey.trim())
+    .filter(Boolean);
+}
+
+function hasExplicitColumnBreakBetween({
+  previousBlockKeys = [],
+  nextBlockKeys = [],
+  sourceBlocks = [],
+}) {
+  if (!previousBlockKeys.length || !nextBlockKeys.length || !sourceBlocks.length) {
+    return false;
+  }
+
+  const previousKeySet = new Set(previousBlockKeys);
+  const nextKeySet = new Set(nextBlockKeys);
+  const previousIndex = sourceBlocks.findLastIndex((block) =>
+    previousKeySet.has(block.blockKey),
+  );
+  const nextIndex = sourceBlocks.findIndex((block) =>
+    nextKeySet.has(block.blockKey),
+  );
+
+  if (previousIndex < 0 || nextIndex < 0 || previousIndex >= nextIndex) {
+    return false;
+  }
+
+  return sourceBlocks
+    .slice(previousIndex + 1, nextIndex)
+    .some((block) => block.isColumnBreak);
+}
+
+function serializeEditableBlocks(
+  contentBlocks,
+  {
+    preserveColumnBreaks = false,
+    persistVisualColumnBreaks = false,
+    sourceBlocks = [],
+  } = {},
+) {
+  const blocks = contentBlocks
     .map((block) => ({
       text: readEditableBlockText(block),
       hasPreservedBlankLine: hasPreservedBlankLine(block),
+      blockKeys: getContentBlockKeys(block),
     }))
-    .filter((block) => block.text.trim() !== "" || block.hasPreservedBlankLine)
-    .map((block) => block.text);
-
-  return texts
-    .join(
-      preserveColumnBreaks
-        ? `\n${PRESENTATION_COLUMN_BREAK_MARKER}\n`
-        : "\n",
+    .filter((block) =>
+      persistVisualColumnBreaks
+        ? hasMeaningfulEditableText(block.text)
+        : hasMeaningfulEditableText(block.text) || block.hasPreservedBlankLine,
     )
-    .trimEnd();
+    .map((block) => block);
+
+  // Layout contract: in horizontal editing mode, the visible editor columns are
+  // intentional user layout and must be serialized as column-break markers.
+  // Empty visual columns are explicitly discarded before markers are written,
+  // so the next non-empty column shifts left instead of saving a blank page.
+  // Outside that mode, never serialize automatic render columns as manual breaks.
+  // Changing this will make saved cifras move to different columns after reload.
+  return blocks.reduce((serialized, block, index) => {
+    if (index === 0) return block.text;
+
+    const previousBlock = blocks[index - 1];
+    const separator =
+      preserveColumnBreaks &&
+      (persistVisualColumnBreaks ||
+        hasExplicitColumnBreakBetween({
+          previousBlockKeys: previousBlock.blockKeys,
+          nextBlockKeys: block.blockKeys,
+          sourceBlocks,
+        }))
+        ? `\n${PRESENTATION_COLUMN_BREAK_MARKER}\n`
+        : "\n";
+
+    return `${serialized}${separator}${block.text}`;
+  }, "").trimEnd();
 }
 
 export function collectEditedPresentationBlocksFromNode({
@@ -53,6 +141,8 @@ export function collectEditedPresentationBlocksFromNode({
   fallbackCifra = "",
   excludedBlockKeys = [],
   preserveColumnBreaks = false,
+  persistVisualColumnBreaks = false,
+  sourceBlocks = [],
 }) {
   const excludedKeys = new Set(excludedBlockKeys);
   const contentBlocks = getEditableContentBlocks(contentNode).filter((block) => {
@@ -67,7 +157,11 @@ export function collectEditedPresentationBlocksFromNode({
   });
 
   if (!contentBlocks.length) return fallbackCifra;
-  return serializeEditableBlocks(contentBlocks, { preserveColumnBreaks });
+  return serializeEditableBlocks(contentBlocks, {
+    preserveColumnBreaks,
+    persistVisualColumnBreaks,
+    sourceBlocks,
+  });
 }
 
 export function removeEmptyEditableLine(event) {
@@ -197,12 +291,22 @@ function focusEditableBlockEnd(contentBlock) {
 }
 
 function fragmentHasText(fragment) {
-  return (
-    (fragment?.textContent || "")
-      .replace(/\u00a0/g, " ")
-      .replace(/\u200b/g, "")
-      .length > 0
-  );
+  return sanitizeEditableText(fragment?.textContent || "").length > 0;
+}
+
+function rangeTextBeforeCaret(contentBlock, range) {
+  if (!contentBlock || !range) return "";
+
+  const leadingRange = range.cloneRange();
+  leadingRange.selectNodeContents(contentBlock);
+
+  try {
+    leadingRange.setEnd(range.startContainer, range.startOffset);
+  } catch {
+    return "";
+  }
+
+  return sanitizeEditableText(leadingRange.toString()).trim();
 }
 
 function blockHasOverflow(contentBlock) {
@@ -292,6 +396,10 @@ function moveTrailingContentToBlockStart({
     range.collapse(true);
   }
 
+  if (rangeTextBeforeCaret(currentContentBlock, range) === "") {
+    return true;
+  }
+
   const trailingRange = range.cloneRange();
   trailingRange.selectNodeContents(currentContentBlock);
 
@@ -303,10 +411,9 @@ function moveTrailingContentToBlockStart({
 
   const trailingFragment = trailingRange.extractContents();
   const hasTrailingContent = fragmentHasText(trailingFragment);
-  const nextBlockHasContent = (nextContentBlock.textContent || "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\u200b/g, "")
-    .trimEnd();
+  const nextBlockHasContent = sanitizeEditableText(
+    nextContentBlock.textContent || "",
+  ).trimEnd();
 
   range.insertNode(ownerDocument.createTextNode("\n"));
   range.collapse(false);
@@ -359,10 +466,9 @@ function moveTrailingContentToBlockEnd({
 
   const trailingFragment = trailingRange.extractContents();
   const hasTrailingContent = fragmentHasText(trailingFragment);
-  const previousBlockHasContent = (previousContentBlock.textContent || "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\u200b/g, "")
-    .trimEnd();
+  const previousBlockHasContent = sanitizeEditableText(
+    previousContentBlock.textContent || "",
+  ).trimEnd();
 
   range.insertNode(ownerDocument.createTextNode("\n"));
   range.collapse(false);

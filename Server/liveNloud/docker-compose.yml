@@ -57,8 +57,8 @@ services:
 
       ACCESS_SECRET: REMOVED_ACCESS_SECRET
       REFRESH_SECRET: REMOVED_REFRESH_SECRET
-      FRONTEND_BASE_URL: https://www.live.eloygomes.com
-      API_PUBLIC_BASE_URL: https://api.live.eloygomes.com
+      FRONTEND_BASE_URL: https://sustenido.eloygomes.com
+      API_PUBLIC_BASE_URL: https://api.sustenido.eloygomes.com
 
       SMTP_HOST: mailserver
       SMTP_PORT: 587

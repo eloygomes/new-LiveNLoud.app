@@ -17,6 +17,7 @@ import {
 import {
   checkCifraExists,
   deleteGuitarProFile,
+  API_BASE,
   scrapeCifra,
   uploadGuitarProFile,
   updateInstrumentNotes,
@@ -37,8 +38,7 @@ import { classifyInstrumentLink } from "../shared/instrumentLinkClassifier";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 const QUICK_ADD_EXTENSION_READY_EVENT = "livenloud:quick-add-extension-ready";
-const QUICK_ADD_EXTENSION_DOWNLOAD_URL =
-  "https://api.live.eloygomes.com/downloads/sustenido-quick-add.zip";
+const QUICK_ADD_EXTENSION_DOWNLOAD_URL = `${API_BASE}/downloads/sustenido-quick-add.zip`;
 
 /** Normaliza a resposta do scrape em um doc utilizável */
 function normalizeScrapeDoc(scraped, instrumentName) {
@@ -116,7 +116,14 @@ function parseArtistSongFromUrl(raw) {
 
     if (host === "letras.mus.br" || host === "letras.com") {
       const artist = parts[0] || "";
-      return { artist, song: "" };
+      const song = /^\d+$/.test(parts[1] || "") ? "" : parts[1] || "";
+      return { artist, song };
+    }
+
+    if (host === "cifraclub.com.br") {
+      const artist = parts[0] || "";
+      const song = parts[1] || "";
+      return { artist, song };
     }
 
     const artist = parts.at(-2) || "";
@@ -141,6 +148,10 @@ function getLinkHost(raw) {
 function isLetrasLink(raw) {
   const host = getLinkHost(raw);
   return host === "letras.mus.br" || host === "letras.com";
+}
+
+function isVoiceLyricsLink(raw) {
+  return isLetrasLink(raw) || classifyInstrumentLink(raw) === "voice";
 }
 
 function NewSongInputLinkBox({
@@ -443,8 +454,8 @@ function NewSongInputLinkBox({
         onResolvedInstrumentLink?.(detectedInstrument, link);
       }
 
-      if (isLetrasLink(link) && effectiveInstrumentName !== "voice") {
-        console.warn(`[${instrumentName}] Letras link redirected to voice`, { link });
+      if (isVoiceLyricsLink(link) && effectiveInstrumentName !== "voice") {
+        console.warn(`[${instrumentName}] Voice lyrics link redirected to voice`, { link });
         setInstrument?.("");
         if (typeof onResolvedInstrumentLink === "function") {
           onResolvedInstrumentLink("voice", link);

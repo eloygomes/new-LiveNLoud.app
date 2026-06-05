@@ -20,7 +20,6 @@ Front/deploy.sh
 Front/coverage/
 Front/.vitest/
 
-Front/deploy
 Front/deploy_sustenido_prod.sh
 Front/deploy.sh
 
@@ -37,3 +36,7 @@ Front/.env.sustenido
 # Local documentation, analyses, and daily logs
 /docs
 /docs/**
+
+# Local ops configuration and database dumps
+/scripts/ops/config.sh
+/scripts/ops/backups/

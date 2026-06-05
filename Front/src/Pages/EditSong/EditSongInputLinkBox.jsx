@@ -83,6 +83,10 @@ function EditSongInputLinkBox({
     return host === "letras.mus.br" || host === "letras.com";
   };
 
+  const isVoiceLyricsLink = (raw) => (
+    isLetrasLink(raw) || classifyInstrumentLink(raw) === "voice"
+  );
+
   const openInstrumentLink = () => {
     const targetLink = (link || "").trim();
     if (!targetLink) return;
@@ -320,7 +324,7 @@ function EditSongInputLinkBox({
       onResolvedInstrumentLink?.(detectedInstrument, targetLink);
     }
 
-    if (isLetrasLink(targetLink) && effectiveInstrumentName !== "voice") {
+    if (isVoiceLyricsLink(targetLink) && effectiveInstrumentName !== "voice") {
       setInstrument("");
       onLinkChange?.("");
       setIsDirty?.(true);

@@ -91,11 +91,6 @@ function PresentationColumns({
               : {}),
           }}
         >
-          {showProgressionMarkers && isProgressionEligible ? (
-            <div className="presentation-column-header" contentEditable={false}>
-              {headerLabel}
-            </div>
-          ) : null}
           <div
             data-progression-drop-target={
               isProgressionEligible ? "true" : undefined
@@ -110,6 +105,21 @@ function PresentationColumns({
               isBlockSelected ? "presentation-progression-block-selected" : ""
             }`}
           >
+            <div
+              className={`presentation-column-header ${
+                showProgressionMarkers && isProgressionEligible
+                  ? "presentation-column-header-visible"
+                  : ""
+              }`}
+              contentEditable={false}
+              aria-hidden={
+                showProgressionMarkers && isProgressionEligible
+                  ? undefined
+                  : "true"
+              }
+            >
+              {headerLabel}
+            </div>
             <div className="presentation-column-body">
               <div
                 className="presentation-render-content-block"

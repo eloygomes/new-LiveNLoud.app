@@ -1,4 +1,7 @@
 import {
+  HORIZONTAL_EXPANDED_COLUMN_LINE_UNITS,
+} from "./presentationConstants";
+import {
   getColumnLabelFromIndex,
   getProgressionVisualColumnOverrideKey,
   splitBlocksIntoColumnChunks,
@@ -121,7 +124,15 @@ export function getActiveProgressionRenderColumns({
   shouldUseHorizontalColumnFlow = false,
 }) {
   if (shouldUseHorizontalColumnFlow) {
-    return splitBlocksIntoColumnChunks(visibleContentBlocks)
+    // Layout contract: once horizontal editor columns are saved as explicit
+    // breaks, render must honor those break boundaries. Still keep the
+    // line-unit pagination active inside each boundary: if a saved/edit column
+    // becomes taller than the visual block, the overflow must continue in the
+    // next block to the right instead of being clipped.
+    return splitBlocksIntoColumnChunks(
+      visibleContentBlocks,
+      HORIZONTAL_EXPANDED_COLUMN_LINE_UNITS,
+    )
       .filter((blocksChunk) =>
         blocksChunk.some(
           (block) =>

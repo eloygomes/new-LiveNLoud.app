@@ -39,6 +39,7 @@ const emptyPageContext = {
   capo: "",
   tom: "",
   tuning: "",
+  lyrics: "",
   defaults: {
     song: NOT_AVAILABLE,
     artist: NOT_AVAILABLE,
@@ -158,6 +159,52 @@ function hasPresentationContent(instrumentData = {}) {
   );
 }
 
+function getPresentationSourceText(scrapedDoc = {}) {
+  return (
+    scrapedDoc?.songCifra ||
+    scrapedDoc?.songLyrics ||
+    scrapedDoc?.songChords ||
+    scrapedDoc?.songTabs ||
+    ""
+  );
+}
+
+function getPageLyricsFallback(instrumentName, pageContext = state.pageContext) {
+  if (instrumentName !== "voice") return "";
+  return pageContext?.lyrics || "";
+}
+
+function withPageLyricsFallback(scrapedDoc, instrumentName, pageContext = state.pageContext) {
+  const lyrics = getPageLyricsFallback(instrumentName, pageContext);
+
+  if (!scrapedDoc) {
+    if (!hasText(lyrics)) return scrapedDoc;
+
+    return {
+      artist: cleanText(pageContext?.artist),
+      song: cleanText(pageContext?.song),
+      capo: cleanText(pageContext?.capo),
+      tuning: cleanText(pageContext?.tuning),
+      tom: cleanText(pageContext?.tom),
+      link: cleanText(pageContext?.link),
+      songCifra: lyrics,
+      songTabs: "",
+      songChords: "",
+      songLyrics: lyrics,
+      presentationLayouts: undefined,
+    };
+  }
+
+  if (hasPresentationContent(scrapedDoc)) return scrapedDoc;
+  if (!hasText(lyrics)) return scrapedDoc;
+
+  return {
+    ...scrapedDoc,
+    songCifra: scrapedDoc.songCifra || lyrics,
+    songLyrics: scrapedDoc.songLyrics || lyrics,
+  };
+}
+
 function setStatus(message) {
   const normalized = cleanText(message);
   debugLog("STATUS", normalized);
@@ -244,7 +291,13 @@ function setNoticeState(type) {
 }
 
 function shouldForceVoice(pageContext) {
-  return pageContext?.source === "letrasmus";
+  if (pageContext?.source === "letrasmus") return true;
+
+  if (pageContext?.source === "cifraclub") {
+    return getPathSegments(pageContext?.link).includes("letra");
+  }
+
+  return false;
 }
 
 function getHashParams(link) {
@@ -280,7 +333,7 @@ function getCifraClubInstrumentLinkSuggestions(link) {
   if (!url) return {};
 
   const host = url.hostname.replace(/^www\./i, "").toLowerCase();
-  if (host !== "cifraclub.com.br") return {};
+  if (host !== "cifraclub.com.br" && host !== "cifralub.com.br") return {};
 
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments.length < 2) return {};
@@ -290,6 +343,12 @@ function getCifraClubInstrumentLinkSuggestions(link) {
   const origin = `${url.protocol}//${url.hostname}`;
   const basePath = `/${artistSlug}/${songSlug}/`;
   const baseLink = `${origin}${basePath}`;
+
+  if (segments.includes("letra")) {
+    return {
+      voice: `${origin}${basePath}letra/`,
+    };
+  }
 
   return {
     guitar01: baseLink,
@@ -332,7 +391,7 @@ function getLetrasMusInstrumentLinkSuggestions(link) {
   if (!url) return {};
 
   const host = url.hostname.replace(/^www\./i, "").toLowerCase();
-  if (host !== "letras.mus.br") return {};
+  if (host !== "letras.mus.br" && host !== "letras.com") return {};
 
   return {
     voice: cleanText(link),
@@ -1007,6 +1066,9 @@ function normalizeScrapeDoc(scraped, instrumentName = getSelectedInstrument()) {
 
   const instrumentDoc = doc?.[instrumentName] || {};
 
+  const songLyrics = instrumentDoc.songLyrics || doc.songLyrics || "";
+  const songCifra = instrumentDoc.songCifra || doc.songCifra || songLyrics || "";
+
   return {
     artist: cleanText(doc.artist),
     song: cleanText(doc.song),
@@ -1014,10 +1076,10 @@ function normalizeScrapeDoc(scraped, instrumentName = getSelectedInstrument()) {
     tuning: cleanText(instrumentDoc.tuning || doc.tuning),
     tom: cleanText(doc.tom || doc.tone || doc.key),
     link: cleanText(instrumentDoc.link || doc.link),
-    songCifra: instrumentDoc.songCifra || doc.songCifra || "",
+    songCifra,
     songTabs: instrumentDoc.songTabs || doc.songTabs || "",
     songChords: instrumentDoc.songChords || doc.songChords || "",
-    songLyrics: instrumentDoc.songLyrics || doc.songLyrics || "",
+    songLyrics,
     presentationLayouts:
       instrumentDoc.presentationLayouts || doc.presentationLayouts,
   };
@@ -1128,10 +1190,16 @@ async function collectScrapedDocsForConfirmedInstruments(session, pageContext) {
       });
     }
 
-    if (scrapedDoc) {
+    const docWithFallback = withPageLyricsFallback(
+      scrapedDoc,
+      instrumentName,
+      pageContext,
+    );
+
+    if (docWithFallback) {
       scrapedDocsByInstrument[instrumentName] = {
-        ...scrapedDoc,
-        link: cleanText(scrapedDoc.link) || link,
+        ...docWithFallback,
+        link: cleanText(docWithFallback.link) || link,
       };
     }
   }
@@ -1159,8 +1227,12 @@ function buildSongPayload(
   const isAllInstrumentsMode = state.saveMode === "all";
   const today = new Date().toISOString().split("T")[0];
   const selectedInstrumentScrapedDoc =
-    scrapedDocsByInstrument[instrumentName] || scrapedDoc || null;
-  const layoutSongCifra = selectedInstrumentScrapedDoc?.songCifra || "";
+    withPageLyricsFallback(
+      scrapedDocsByInstrument[instrumentName] || scrapedDoc || null,
+      instrumentName,
+      pageContext,
+    );
+  const layoutSongCifra = getPresentationSourceText(selectedInstrumentScrapedDoc);
   const selectedInstrumentPayload = {
     active: true,
     capo: mergedCapo,
@@ -1181,7 +1253,7 @@ function buildSongPayload(
 
   if (!hasPresentationContent(selectedInstrumentPayload)) {
     throw new Error(
-      "Nenhum instrumento carregou conteúdo de apresentação ainda. Aguarde a importação da cifra antes de salvar.",
+      `${getInstrumentDisplayName(instrumentName)} não carregou conteúdo de apresentação ainda. Aguarde a importação da cifra antes de salvar.`,
     );
   }
 
@@ -1199,8 +1271,12 @@ function buildSongPayload(
     ([linkedInstrument, link]) => {
       instruments[linkedInstrument] = true;
       const linkedScrapedDoc =
-        scrapedDocsByInstrument[linkedInstrument] || null;
-      const linkedSongCifra = linkedScrapedDoc?.songCifra || "";
+        withPageLyricsFallback(
+          scrapedDocsByInstrument[linkedInstrument] || null,
+          linkedInstrument,
+          pageContext,
+        );
+      const linkedSongCifra = getPresentationSourceText(linkedScrapedDoc);
 
       instrumentBlocks[linkedInstrument] = {
         ...emptyInstrument,

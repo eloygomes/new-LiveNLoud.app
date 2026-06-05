@@ -41,6 +41,7 @@ export function usePresentationCifraEditor({
   setSongDataFetched,
   setToolBoxBtnStatus,
   setToolBoxRequestedPanel,
+  shouldUseHorizontalColumnFlow,
   songDataFetched,
   visibleContentBlocks,
 }) {
@@ -163,12 +164,24 @@ export function usePresentationCifraEditor({
   ]);
 
   const collectEditedPresentationBlocks = useCallback(() => {
+    // Layout contract: expanded horizontal editing must save the columns exactly
+    // as the user left them. `persistVisualColumnBreaks` is deliberately tied to
+    // `shouldUseHorizontalColumnFlow`; removing it causes saved content to be
+    // repaginated after reload and makes blocks jump between columns.
     return collectEditedPresentationBlocksFromNode({
       contentNode: presentationContentRef.current,
       fallbackCifra: draftCifra,
       preserveColumnBreaks: isExpandedCifra,
+      persistVisualColumnBreaks: shouldUseHorizontalColumnFlow,
+      sourceBlocks: visibleContentBlocks,
     });
-  }, [draftCifra, isExpandedCifra, presentationContentRef]);
+  }, [
+    draftCifra,
+    isExpandedCifra,
+    presentationContentRef,
+    shouldUseHorizontalColumnFlow,
+    visibleContentBlocks,
+  ]);
 
   const markCifraContentAsEdited = useCallback(
     (event) => {
@@ -224,10 +237,16 @@ export function usePresentationCifraEditor({
     setIsSavingCifra(true);
     setSaveError("");
 
-    const nextDraftCifra =
-      isEditing && hasEditedCifraContent
-        ? collectSafeEditedPresentationBlocks()
-        : editableSongCifra || draftCifra;
+    // Layout contract: while the cifra editor is open, the contenteditable DOM
+    // is the source of truth. Do not gate collection on `hasEditedCifraContent`;
+    // browser editing can miss that flag for deletes, selections, IME/input
+    // edge cases, or whole-column edits. Saving must persist exactly the editor
+    // content that the user sees at click time.
+    const shouldCollectEditedDom =
+      isEditing && Boolean(presentationContentRef.current);
+    const nextDraftCifra = shouldCollectEditedDom
+      ? collectSafeEditedPresentationBlocks()
+      : editableSongCifra || draftCifra;
     const { currentLayouts, nextSongData, persistedLayouts, updatedBlock } =
       buildCifraSavePayload({
         activeLayoutVariant,
@@ -331,10 +350,12 @@ export function usePresentationCifraEditor({
     isEditing,
     presentationLayoutIdentity,
     presentationLayoutStorageKey,
+    presentationContentRef,
     pushSnackbarMessage,
     setHasEditedLayoutContent,
     setIsEditing,
     setSongDataFetched,
+    shouldUseHorizontalColumnFlow,
     songDataFetched,
     updateEditedCifraContent,
     visibleContentBlocks,

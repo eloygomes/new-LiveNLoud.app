@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:live": "vite build --mode live",
-    "build:sustenido": "vite build --mode sustenido",
+    "build:live": "VITE_API_BASE_URL=https://api.live.eloygomes.com vite build --mode live",
+    "build:sustenido": "VITE_API_BASE_URL=https://api.sustenido.eloygomes.com vite build --mode sustenido",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run",

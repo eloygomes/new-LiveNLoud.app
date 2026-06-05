@@ -355,6 +355,7 @@ function Presentation() {
     setSongDataFetched,
     setToolBoxBtnStatus,
     setToolBoxRequestedPanel,
+    shouldUseHorizontalColumnFlow,
     songDataFetched,
     visibleContentBlocks,
   });
@@ -713,6 +714,7 @@ function Presentation() {
                 contentEditable={isEditing}
                 suppressContentEditableWarning
                 onBeforeInput={isEditing ? markCifraContentAsEdited : undefined}
+                onInput={isEditing ? markCifraContentAsEdited : undefined}
                 onPaste={
                   isEditing ? () => setHasEditedCifraContent(true) : undefined
                 }

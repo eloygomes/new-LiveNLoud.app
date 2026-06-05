@@ -130,19 +130,65 @@ export const estimateHtmlLineUnits = (html = "") => {
   );
 };
 
-export const splitHtmlBlockByPreElements = (html = "") => {
+function splitPreHtmlByLineUnits(preHtml = "", maxLineUnits = Infinity) {
+  if (!Number.isFinite(maxLineUnits) || maxLineUnits <= 0) {
+    return [preHtml];
+  }
+
+  const match = preHtml.match(/^<pre\b([^>]*)>([\s\S]*?)<\/pre>$/i);
+  if (!match) return [preHtml];
+
+  const [, attributes = "", content = ""] = match;
+  const lines = content.split("\n");
+  const chunks = [];
+  let currentLines = [];
+  let currentLineUnits = 0;
+
+  lines.forEach((line) => {
+    const lineUnits = line.trimEnd() ? 1 : 0;
+    if (
+      currentLines.length &&
+      currentLineUnits > 0 &&
+      currentLineUnits + lineUnits > maxLineUnits
+    ) {
+      chunks.push(currentLines);
+      currentLines = [];
+      currentLineUnits = 0;
+    }
+
+    currentLines.push(line);
+    currentLineUnits += lineUnits;
+  });
+
+  if (currentLines.length) {
+    chunks.push(currentLines);
+  }
+
+  return chunks.map(
+    (chunk) => `<pre${attributes}>${chunk.join("\n")}</pre>`,
+  );
+}
+
+export const splitHtmlBlockByPreElements = (
+  html = "",
+  maxLineUnits = Infinity,
+) => {
   const preMatches = Array.from(html.matchAll(/<pre\b[\s\S]*?<\/pre>/gi)).map(
     (match) => match[0],
   );
 
-  if (preMatches.length <= 1) {
+  const splitPreMatches = preMatches.flatMap((preHtml) =>
+    splitPreHtmlByLineUnits(preHtml, maxLineUnits),
+  );
+
+  if (preMatches.length <= 1 && splitPreMatches.length <= 1) {
     return [html];
   }
 
   const wrapperMatch = html.match(/^<div\b([^>]*)>/i);
   const wrapperAttributes = wrapperMatch?.[1] || "";
 
-  return preMatches.map(
+  return splitPreMatches.map(
     (preHtml, index) =>
       `<div${wrapperAttributes} data-column-fragment="${index + 1}">\n${preHtml}\n</div>`,
   );
@@ -168,7 +214,12 @@ export const splitBlocksIntoColumnChunks = (
       return;
     }
 
-    splitHtmlBlockByPreElements(entry.block).forEach((fragmentHtml, index) => {
+    const currentMaxLineUnitsForBlock = getMaxLineUnits(chunks.length);
+
+    splitHtmlBlockByPreElements(
+      entry.block,
+      currentMaxLineUnitsForBlock,
+    ).forEach((fragmentHtml, index) => {
       const fragment = {
         ...entry,
         block:

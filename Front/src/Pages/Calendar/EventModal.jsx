@@ -99,7 +99,7 @@ export default function EventModal({
       try {
         const users = await searchUsers(activeToken);
         if (!cancelled) {
-          setSuggestions(users);
+          setSuggestions(Array.isArray(users) ? users : []);
         }
       } catch (searchError) {
         if (!cancelled) {

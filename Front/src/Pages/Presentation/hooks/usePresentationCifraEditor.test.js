@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { usePresentationCifraEditor } from "./usePresentationCifraEditor";
+import { PRESENTATION_COLUMN_BREAK_MARKER } from "../helpers/presentationConstants";
 
 const { updateSongEntryMock } = vi.hoisted(() => ({
   updateSongEntryMock: vi.fn(),
@@ -194,5 +195,132 @@ describe("usePresentationCifraEditor", () => {
         }),
       }),
     );
+  });
+
+  it("saves the visible editor DOM as the final cifra while editing", async () => {
+    const presentationContent = document.createElement("div");
+    presentationContent.innerHTML = `
+      <div class="presentation-render-content-block" data-block-keys="block-0">
+        <pre>edited visible cifra</pre>
+      </div>
+    `;
+
+    const props = makeProps({
+      editableSongCifra: "stale cifra that should not be saved",
+      hasEditedCifraContent: false,
+      isEditing: true,
+      presentationContentRef: { current: presentationContent },
+      currentInstrumentData: {
+        songCifra: "stale cifra that should not be saved",
+        presentationLayouts: {
+          default: { songCifra: "stale cifra that should not be saved" },
+          expanded: { songCifra: "expanded cifra" },
+        },
+      },
+      instrumentPresentationLayouts: {
+        default: { songCifra: "stale cifra that should not be saved" },
+        expanded: { songCifra: "expanded cifra" },
+      },
+      songDataFetched: {
+        artist: "Artist",
+        song: "Song",
+        keys: {
+          songCifra: "stale cifra that should not be saved",
+          presentationLayouts: {
+            default: { songCifra: "stale cifra that should not be saved" },
+            expanded: { songCifra: "expanded cifra" },
+          },
+        },
+      },
+      visibleContentBlocks: [{ blockKey: "block-0" }],
+    });
+
+    const { result } = renderHook(() => usePresentationCifraEditor(props));
+
+    await act(async () => {
+      await result.current.handleSaveCifra();
+    });
+
+    expect(updateSongEntryMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keys: expect.objectContaining({
+          songCifra: "edited visible cifra",
+          presentationLayouts: expect.objectContaining({
+            default: expect.objectContaining({
+              songCifra: "edited visible cifra",
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("collects horizontal editor DOM even when the edited-content flag was not raised", async () => {
+    const presentationContent = document.createElement("div");
+    presentationContent.innerHTML = `
+      <div class="presentation-render-content-block" data-block-keys="block-0">
+        <pre>[Intro]</pre>
+        <pre>C G</pre>
+      </div>
+      <div class="presentation-render-content-block" data-block-keys="block-1">
+        <pre class="presentation-blank-line">\u200b</pre>
+      </div>
+      <div class="presentation-render-content-block" data-block-keys="block-2">
+        <pre>[Verse]</pre>
+        <pre>Am F</pre>
+      </div>
+    `;
+
+    const props = makeProps({
+      activeLayoutVariant: "expanded",
+      editableSongCifra: "stale cifra that should not be saved",
+      hasEditedCifraContent: false,
+      isEditing: true,
+      isExpandedCifra: true,
+      shouldUseHorizontalColumnFlow: true,
+      presentationContentRef: { current: presentationContent },
+      currentInstrumentData: {
+        songCifra: "default cifra",
+        presentationLayouts: {
+          default: { songCifra: "default cifra" },
+          expanded: { songCifra: "stale cifra that should not be saved" },
+        },
+      },
+      instrumentPresentationLayouts: {
+        default: { songCifra: "default cifra" },
+        expanded: { songCifra: "stale cifra that should not be saved" },
+      },
+      songDataFetched: {
+        artist: "Artist",
+        song: "Song",
+        keys: {
+          songCifra: "default cifra",
+          presentationLayouts: {
+            default: { songCifra: "default cifra" },
+            expanded: { songCifra: "stale cifra that should not be saved" },
+          },
+        },
+      },
+      visibleContentBlocks: [
+        { blockKey: "block-0" },
+        { blockKey: "block-1" },
+        { blockKey: "block-2" },
+      ],
+    });
+
+    const { result } = renderHook(() => usePresentationCifraEditor(props));
+
+    await act(async () => {
+      await result.current.handleSaveCifra();
+    });
+
+    const savedExpanded =
+      updateSongEntryMock.mock.calls[0][0].keys.presentationLayouts.expanded
+        .songCifra;
+
+    expect(savedExpanded).toBe(
+      `[Intro]\nC G\n${PRESENTATION_COLUMN_BREAK_MARKER}\n[Verse]\nAm F`,
+    );
+    expect(savedExpanded).not.toContain("stale cifra");
   });
 });
