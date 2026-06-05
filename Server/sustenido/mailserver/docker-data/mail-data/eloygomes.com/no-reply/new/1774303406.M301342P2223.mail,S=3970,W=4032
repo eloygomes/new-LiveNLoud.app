@@ -1,0 +1,62 @@
+Return-Path: <eloy.gomes@icloud.com>
+Delivered-To: no-reply@eloygomes.com
+Received: from mail.eloygomes.com
+	by mail.eloygomes.com with LMTP
+	id JC7XEa64wWmvCAAAX9t0eQ
+	(envelope-from <eloy.gomes@icloud.com>)
+	for <no-reply@eloygomes.com>; Mon, 23 Mar 2026 22:03:26 +0000
+Received: from localhost (localhost [127.0.0.1])
+	by mail.eloygomes.com (Postfix) with ESMTP id 42F33106994
+	for <no-reply@eloygomes.com>; Mon, 23 Mar 2026 22:03:26 +0000 (UTC)
+Authentication-Results: mail.eloygomes.com; dmarc=pass (p=quarantine dis=none) header.from=icloud.com
+Authentication-Results: mail.eloygomes.com;
+	dkim=pass (2048-bit key; unprotected) header.d=icloud.com header.i=@icloud.com header.a=rsa-sha256 header.s=1a1hai header.b=i5xFdX8C;
+	dkim-atps=neutral
+Received-SPF: Pass (mailfrom) identity=mailfrom; client-ip=57.103.88.33; helo=outbound.ci.icloud.com; envelope-from=eloy.gomes@icloud.com; receiver=eloygomes.com 
+Received: from outbound.ci.icloud.com (ci-2007c-snip4-11.eps.apple.com [57.103.88.33])
+	by mail.eloygomes.com (Postfix) with ESMTPS id E9D5F1067F1
+	for <no-reply@eloygomes.com>; Mon, 23 Mar 2026 22:03:25 +0000 (UTC)
+Received: from outbound.ci.icloud.com (unknown [127.0.0.2])
+	by p00-icloudmta-asmtp-us-central-1k-60-percent-3 (Postfix) with ESMTPS id 3F7B6180018A
+	for <no-reply@eloygomes.com>; Mon, 23 Mar 2026 22:03:17 +0000 (UTC)
+Dkim-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=icloud.com; s=1a1hai; t=1774303398; x=1776895398; bh=jHti7ZR9oT/NjybgmRLiTvIQFandZbMr5sDk6hAJQTo=; h=Content-Type:From:Mime-Version:Subject:Date:Message-Id:To:x-icloud-hme; b=i5xFdX8C2aglCBxl3bxWYnzfz+5y7jlnPVn/CHXxLXUwWA829W+Y3OQ39DN2Nl2FPPWPpboeUChBsTGQrEkJaPhogu3QrzPd3Rweu/o0Pu2AbrVddH0PCA6fmUzryZHx+q+CyRBlhL63mu/LVL6cOUYhw+D6TjQAj25GjvkK7i7R7bxoSTQP55YoOO2KShMpUxQfyBeN0opca6yk/udYzUfHsQ7EHhnSrjfrQ+EIy2NkKzffo+PAQ2aXyu6+J7j2cL58G9Wjw1vAhs/GkZ6arwqwxIeygrhbS6048/2lWW6YrkfRjgR6TovdeALrFYuqVlahlKFCG3kHPUe3lUipMg==
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+From: Eloy Gomes <eloy.gomes@icloud.com>
+Mime-Version: 1.0 (1.0)
+Subject: Re: Teste SMTP Live N Loud
+Date: Mon, 23 Mar 2026 19:03:03 -0300
+X-MS-Reactions: disallow
+Message-Id: <14020D8E-E85C-4FBE-9E16-B018EF40D23D@icloud.com>
+References: <35202921-bdcd-2395-4346-290292c6abde@eloygomes.com>
+In-Reply-To: <35202921-bdcd-2395-4346-290292c6abde@eloygomes.com>
+To: Sustenido <no-reply@eloygomes.com>
+X-Proofpoint-GUID: IaHfNgKWaaO4iJFWCsKdKsnVDDwO4AWl
+X-Authority-Info-Out: v=2.4 cv=PPsCOPqC c=1 sm=1 tr=0 ts=69c1b8a5
+ cx=c_apl:c_pps:t_out a=2G65uMN5HjSv0sBfM2Yj2w==:117
+ a=2G65uMN5HjSv0sBfM2Yj2w==:17 a=IkcTkHD0fZMA:10 a=Yq5XynenixoA:10
+ a=x7bEGLp0ZPQA:10 a=wOFXG-vVe48A:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=Jp3sITxXAAAA:8 a=Nffv5Pxl4gfn9vV1AsgA:9 a=QEXdDO2ut3YA:10 a=7-6mt20xH3gA:10
+ a=A4Ze0zQfP5Xa4Zyc1tTE:22
+X-Proofpoint-ORIG-GUID: IaHfNgKWaaO4iJFWCsKdKsnVDDwO4AWl
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMzIzMDE2MyBTYWx0ZWRfXyMipysmZMcU/
+ CpxPphntISrVQaX9po1Y0yCOKXoNil5TcJ+88A4iO3initzvxuU84D1HonGTDV552Ni3/+s+eqY
+ KefqYD7p9Q33aDjBJ0KMvGl820t3uvJAJXpiG6xP8x4znoWE1QXMrx9bRLZMNfKnZeeGZZOFSea
+ 5m0Hm8VcdQeUwL05A/YyzVuIwpzNe/HZrHvLLrlVn4ABObuZg91oR4vnpkm2re5l88Gr4wO9NBp
+ ekaKzyoE3lvgsXt7O4xkRh4aKnFq1WLp4ECpflxUYfMp8zWAnVYg7EFrN4bunTiev0V1u4/12Zm
+ 8588ZbbjcE7LEo6+Sd7vqYEur8yi+qSPmUJUCb1NnACEwSoTWLlx1Ew1CfUgQI=
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
+ definitions=2026-03-23_05,2026-03-23_02,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0
+ mlxscore=0 bulkscore=0 malwarescore=0 spamscore=0 lowpriorityscore=0
+ mlxlogscore=678 suspectscore=0 clxscore=1011 phishscore=0 classifier=spam
+ authscore=0 adjust=0 reason=mlx scancount=1 engine=8.22.0-2601150000
+ definitions=main-2603230163
+
+Teste de volta=20
+Sent from my iPhone
+
+> On 23 Mar 2026, at 18:51, Sustenido <no-reply@eloygomes.com> wrote:
+>=20
+> =EF=BB=BFTeste de envio do Docker Mailserver

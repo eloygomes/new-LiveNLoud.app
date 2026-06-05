@@ -67,6 +67,67 @@ Esses diretorios precisam conter o arquivo definido por `COMPOSE_FILE`, normalme
 docker-compose.yml
 ```
 
+## Copia de pastas do VPS para o local
+
+Use estes scripts quando quiser trazer uma copia completa das pastas de backend que existem no VPS para dentro do repositorio local em `Server/`.
+
+### Sustenido
+
+```bash
+./scripts/ops/serverTOlocal/copy_sustenido_from_vps.sh
+```
+
+Fluxo tecnico:
+
+1. Carrega `scripts/ops/config.sh` via `lib.sh`.
+2. Usa `REMOTE_SERVER` como origem SSH.
+3. Copia o conteudo de:
+
+```bash
+/home/sustenido/
+```
+
+4. Grava localmente em:
+
+```bash
+Server/sustenido/
+```
+
+5. Usa `rsync -avz --progress`, preservando estrutura, arquivos ocultos e subpastas.
+
+### LiveNloud
+
+```bash
+./scripts/ops/serverTOlocal/copy_liveNloud_from_vps.sh
+```
+
+Fluxo tecnico equivalente ao Sustenido, copiando:
+
+```bash
+/home/liveNloud/
+```
+
+para:
+
+```bash
+Server/liveNloud/
+```
+
+### Observacoes importantes
+
+- A barra final no caminho remoto faz o `rsync` copiar o conteudo da pasta, nao criar uma pasta duplicada dentro do destino.
+- Estes scripts podem trazer `.env`, uploads, backups, banco local em `db/` e outros arquivos sensiveis do VPS.
+- Se o destino local ja tiver arquivos com o mesmo nome, eles podem ser sobrescritos pelo conteudo do VPS.
+- Os scripts nao usam `--delete`, entao arquivos locais extras que nao existem no VPS nao sao apagados.
+- Para trocar os caminhos remotos sem editar o script, defina:
+
+```bash
+SUSTENIDO_SERVER_TO_LOCAL_REMOTE_DIR="/outro/caminho/sustenido"
+LIVE_SERVER_TO_LOCAL_REMOTE_DIR="/outro/caminho/liveNloud"
+```
+
+no `scripts/ops/config.sh`.
+
 ## Backups de banco
 
 ### Backup manual de live

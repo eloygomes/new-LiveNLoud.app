@@ -358,7 +358,7 @@ deploy_front_dist() {
     rm -rf '$backup_dir'/*
     mkdir -p '$backup_dir'
     mkdir -p '$site_dir'
-    cp -r '$site_dir'/.' '$backup_dir'/ 2>/dev/null || true
+    cp -r '$site_dir'/. '$backup_dir'/ 2>/dev/null || true
   "
 
   rsync -avz --delete "$dist_dir/" "$REMOTE_SERVER:$site_dir/"
@@ -382,8 +382,8 @@ next_front_version_from_remote() {
 
   branch="$(current_git_branch)"
 
-  echo "Fetching latest version from $remote/$branch..."
-  git -C "$REPO_DIR" fetch "$remote" "$branch"
+  echo "Fetching latest version from $remote/$branch..." >&2
+  git -C "$REPO_DIR" fetch "$remote" "$branch" >&2
 
   current_version="$(
     git -C "$REPO_DIR" show "FETCH_HEAD:Front/${SOFT_VERSION_FILE:-src/Pages/Dashboard/SoftVersion.jsx}" \
@@ -440,6 +440,12 @@ build_and_deploy_front() {
   local build_script
   local next_version
   local front_dir="$REPO_DIR/Front"
+  local version_file="${SOFT_VERSION_FILE:-src/Pages/Dashboard/SoftVersion.jsx}"
+  local version_test_file="${SOFT_VERSION_TEST_FILE:-src/Pages/Dashboard/SoftVersion.test.jsx}"
+  local version_file_abs="$front_dir/$version_file"
+  local version_test_file_abs="$front_dir/$version_test_file"
+  local backup_dir
+  local deploy_success=0
 
   require_env_name "$env"
   build_script="$(front_build_script "$env")"
@@ -450,10 +456,31 @@ build_and_deploy_front() {
   fi
 
   next_version="$(next_front_version_from_remote)"
+  if ! [[ "$next_version" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+    echo "Invalid next version computed: $next_version"
+    exit 1
+  fi
 
   echo "Next front version: $next_version"
   echo "Build script:       $build_script"
   echo "Expected API:       $(expected_api_base "$env")"
+
+  backup_dir="$(mktemp -d)"
+  cp "$version_file_abs" "$backup_dir/SoftVersion.jsx"
+  cp "$version_test_file_abs" "$backup_dir/SoftVersion.test.jsx"
+
+  restore_front_version_on_failure() {
+    if [ ! -d "$backup_dir" ]; then
+      return
+    fi
+    if [ "$deploy_success" != "1" ]; then
+      echo "Deploy did not finish. Restoring front version files..."
+      cp "$backup_dir/SoftVersion.jsx" "$version_file_abs"
+      cp "$backup_dir/SoftVersion.test.jsx" "$version_test_file_abs"
+    fi
+    rm -rf "$backup_dir"
+  }
+  trap restore_front_version_on_failure ERR RETURN
 
   update_front_version "$next_version"
 
@@ -467,6 +494,9 @@ build_and_deploy_front() {
   validate_front_dist_for_env "$env"
 
   deploy_front_dist "$env"
+  deploy_success=1
+  trap - ERR RETURN
+  rm -rf "$backup_dir"
 }
 
 run_healthcheck() {

@@ -1,0 +1,73 @@
+Return-Path: <noreply-dmarc-support@google.com>
+Delivered-To: no-reply@eloygomes.com
+Received: from mail.eloygomes.com
+	by mail.eloygomes.com with LMTP
+	id KF4JIg5rwmmqFQEAX9t0eQ
+	(envelope-from <noreply-dmarc-support@google.com>)
+	for <no-reply@eloygomes.com>; Tue, 24 Mar 2026 10:44:30 +0000
+Received: from localhost (localhost [127.0.0.1])
+	by mail.eloygomes.com (Postfix) with ESMTP id 803ED10699F
+	for <no-reply@eloygomes.com>; Tue, 24 Mar 2026 10:44:30 +0000 (UTC)
+Authentication-Results: mail.eloygomes.com; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: mail.eloygomes.com;
+	dkim=pass (2048-bit key; unprotected) header.d=google.com header.i=@google.com header.a=rsa-sha256 header.s=20251104 header.b=dJJZlSqm;
+	dkim-atps=neutral
+Received-SPF: Pass (mailfrom) identity=mailfrom; client-ip=209.85.222.201; helo=mail-qk1-f201.google.com; envelope-from=noreply-dmarc-support@google.com; receiver=eloygomes.com 
+Received: from mail-qk1-f201.google.com (mail-qk1-f201.google.com [209.85.222.201])
+	by mail.eloygomes.com (Postfix) with ESMTPS id A293710679A
+	for <postmaster@eloygomes.com>; Tue, 24 Mar 2026 10:44:29 +0000 (UTC)
+Received: by mail-qk1-f201.google.com with SMTP id af79cd13be357-8cd7ea0bb20so2379085885a.3
+        for <postmaster@eloygomes.com>; Tue, 24 Mar 2026 03:44:29 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1774349062; x=1774953862; darn=eloygomes.com;
+        h=content-transfer-encoding:content-disposition:to:from:subject
+         :message-id:date:mime-version:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=0PSP/xNJPAGOwzUTcna8jHjNGON67z/pmREJfa41OjM=;
+        b=dJJZlSqmEszEN9QIJ/yGjOd91AkUZ17vZgSNYeuwRtlytye/5209hXHwBHYU1iahaj
+         CwAazgJM4dfnGY20KO7OPcGUtUU9G+Ivq4RW6aFgZ7ieLp6hLZ64E6osOmoX03Cr9ucZ
+         aW5LmMFdKs70z3LDC25tu3FsjKollHgo2WdubwD9C4Knjs7r0oHdBrgkWawbmsIkNqMU
+         J2a9pqVxzIbY6XA9aTEaJXwb0D2et6lNjCqhMZDxEPHYMLuGiqWqCaPtKhYSLQPPJ+Ua
+         NE9STjC8xY8cnWAsKYTCoMq2zYDzKh0HFnTsyknO5FCoKlFeU0Ns8nkYr1qpdXe6YovY
+         p7Cw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1774349062; x=1774953862;
+        h=content-transfer-encoding:content-disposition:to:from:subject
+         :message-id:date:mime-version:x-gm-message-state:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=0PSP/xNJPAGOwzUTcna8jHjNGON67z/pmREJfa41OjM=;
+        b=IJ2mNjIAARrrsBRDJ+1fMZnBxnM7Pgyc7iJFPe2BUEjtm4siHflfajdMJk1l0A8lP3
+         LVec1ZEQug/g0+u5K2xvyFHyLi53feQZuZlSdw40UxMuIygPaH2eVzpku5tH+nZl6UVQ
+         4aTXSB+EcIUiVdQImPkLxGpRhd+EyFLS+6ZoE0sWflc5hxbUcHJgJvj/UQBc3RXPf8sY
+         X9c41DfV/HKGSZkNAs5sn3Bm9sOJQtufpfSTHFLhlXCkfwbdFvCYjD4ra/r4g+SMoTHM
+         ImFHl8aQ9ZP1PDxYSGAY1twPdwXd66FEKrSrAmbGZkgtL/rSJF7NVobqACPeMIpMc0/f
+         /LCw==
+X-Gm-Message-State: AOJu0YzUPpfFRMbp3xmKACrBAtX1t3gKK9mzncdbteFxtmJ9GHEfXYfH
+	3k1q7PAVNdHdlNIOy6nfR+wyxv00bgTcK+NNeTERQ0B5rfMcPASC5+nTZyc9xxFYLYvJRws=
+MIME-Version: 1.0
+X-Received: by 2002:a05:620a:40c1:b0:8c6:a539:55cd with SMTP id
+ af79cd13be357-8cfc7f51b0bmr2238250885a.41.1774349062138; Tue, 24 Mar 2026
+ 03:44:22 -0700 (PDT)
+Date: Mon, 23 Mar 2026 16:59:59 -0700
+Message-ID: <10748590609901905051@google.com>
+Subject: Report domain: eloygomes.com Submitter: google.com Report-ID: 10748590609901905051
+From: noreply-dmarc-support@google.com
+To: postmaster@eloygomes.com
+Content-Type: application/zip; 
+	name="google.com!eloygomes.com!1774224000!1774310399.zip"
+Content-Disposition: attachment; 
+	filename="google.com!eloygomes.com!1774224000!1774310399.zip"
+Content-Transfer-Encoding: base64
+
+UEsDBAoAAAAIAAdKeFxVWr103gEAAFIEAAAyAAAAZ29vZ2xlLmNvbSFlbG95Z29tZXMuY29tITE3
+NzQyMjQwMDAhMTc3NDMxMDM5OS54bWyNVMty4yAQvOcrVL5bIFt+KDUhe9ovyJ5VGI1kKhJQgJL4
+71MY9FhvDnsS09PTM9NQgtevoc8+0Dqp1cumyOkmQyV0I1X3svnz9nt73mSv7AlaxObCxTt7yjJI
+fFbkFMgUhIRFo62vB/S84Z4HLMtA265WfEDWad31mAs9AJnByMGBy54pbdH0t20zcCu2bjRB7te6
+LPJSzZe3vBZaeS58LVWr2dV7454JSaX5Uko44cp9oiW78ng8nCmQH+qjcFpDNqygp/J8qOiRVhUt
+KnqghwLIko/8hnusLVdd2ibL4IKdVKw4ncrdrqSUAonIlEfV3LP7gu6rCkiIoxj5W23utjYVjO6l
+uNVmvPTSXXEeRA9cKoa9vnV6QBc9S2ik8OZdDswCiYcEOtPesfCNkGFKKwRiUuwmwE2IEZ4VYbNw
+iJCaSOpOAvLTnGBRaDuNbPXnbIrToxVYS8OK8pRX+/xE8z0FsuATU+hRebajQOJpwlM//OD9yP3k
+S/RGOqOd9OGtxiHXyIoXbGm57IEsDiULWma4c8GDZNNqx4eeQObNQDaovGwlWjeXXZE3aOvW6uHx
+vtappPWPAvDRX2uLbuz9Irqa679eQ3rtQSRtloJ5ueVBkMeOgRwvEsjye/gGUEsBAgoACgAAAAgA
+B0p4XFVavXTeAQAAUgQAADIAAAAAAAAAAAAAAAAAAAAAAGdvb2dsZS5jb20hZWxveWdvbWVzLmNv
+bSExNzc0MjI0MDAwITE3NzQzMTAzOTkueG1sUEsFBgAAAAABAAEAYAAAAC4CAAAAAA==

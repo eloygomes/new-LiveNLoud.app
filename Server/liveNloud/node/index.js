@@ -15,7 +15,10 @@ const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const uri = process.env.MONGO_URI || "mongodb://root:example@db:27017/admin";
+const uri = process.env.MONGO_URI;
+if (!uri) {
+  throw new Error("MONGO_URI environment variable is required");
+}
 const client = new MongoClient(uri);
 
 async function postJson(url, payload, headers = {}) {
@@ -50,6 +53,28 @@ const cors = require("cors");
 const LAN_DEV_ORIGIN_REGEX = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/;
 const CHROME_EXTENSION_ORIGIN_REGEX = /^chrome-extension:\/\/[a-p]{32}$/;
 const FIREFOX_EXTENSION_ORIGIN_REGEX = /^moz-extension:\/\/[0-9a-f-]+$/i;
+const isProduction = process.env.NODE_ENV === "production";
+
+function parseCsvEnv(value) {
+  return (value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+const defaultAllowedOrigins = [
+  "https://sustenido.eloygomes.com",
+  "https://www.sustenido.eloygomes.com",
+  "https://www.live.eloygomes.com",
+  "https://live.eloygomes.com",
+];
+
+const configuredAllowedOrigins = parseCsvEnv(process.env.CORS_ALLOWED_ORIGINS);
+const allowedOrigins = new Set(
+  configuredAllowedOrigins.length
+    ? configuredAllowedOrigins
+    : defaultAllowedOrigins,
+);
 
 function isAllowedDevOrigin(origin) {
   return (
@@ -67,23 +92,11 @@ function isAllowedExtensionOrigin(origin) {
 }
 
 function isAllowedOrigin(origin) {
-  const allowed = [
-    "https://sustenido.eloygomes.com",
-    "https://www.sustenido.eloygomes.com",
-    "https://api.sustenido.eloygomes.com",
-    "https://www.live.eloygomes.com",
-    "https://api.live.eloygomes.com",
-    "https://live.eloygomes.com",
-    "http://127.0.0.1:5173",
-    "http://localhost:5173",
-  ];
-
-  return (
-    !origin ||
-    allowed.includes(origin) ||
-    isAllowedDevOrigin(origin) ||
-    isAllowedExtensionOrigin(origin)
-  );
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  if (!isProduction && isAllowedDevOrigin(origin)) return true;
+  if (!isProduction && isAllowedExtensionOrigin(origin)) return true;
+  return false;
 }
 
 // Função para conectar ao banco de dados
