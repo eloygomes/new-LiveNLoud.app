@@ -16,6 +16,7 @@ const jwt = require("jsonwebtoken");
 
 // ===== Mongo =====
 const uri = process.env.MONGO_URI || "mongodb://root:example@db:27017/admin";
+const APP_DATABASE_NAME = process.env.APP_DATABASE_NAME || "sustenido";
 const client = new MongoClient(uri);
 
 let mongoReady = false;
@@ -24,7 +25,7 @@ async function getAuthCollection() {
     await client.connect();
     mongoReady = true;
   }
-  const db = client.db("liveNloud_");
+  const db = client.db(APP_DATABASE_NAME);
   return db.collection("authUsers");
 }
 
@@ -276,8 +277,10 @@ router.get("/auth/callback", async (req, res) => {
 
     const { code, state, error } = req.query;
 
-    const okUrl = process.env.YOUTUBE_FRONT_OK_URL || "https://live.eloygomes.com";
-    const failUrl = process.env.YOUTUBE_FRONT_FAIL_URL || "https://live.eloygomes.com";
+    const okUrl =
+      process.env.YOUTUBE_FRONT_OK_URL || "https://sustenido.eloygomes.com";
+    const failUrl =
+      process.env.YOUTUBE_FRONT_FAIL_URL || "https://sustenido.eloygomes.com";
 
     if (error) {
       return res.redirect(
@@ -326,7 +329,8 @@ router.get("/auth/callback", async (req, res) => {
     );
   } catch (err) {
     console.error("[YT callback] error:", err?.message, err?.missing || "");
-    const failUrl = process.env.YOUTUBE_FRONT_FAIL_URL || "https://live.eloygomes.com";
+    const failUrl =
+      process.env.YOUTUBE_FRONT_FAIL_URL || "https://sustenido.eloygomes.com";
     return res.redirect(`${failUrl}?yt=fail&reason=server_error`);
   }
 });

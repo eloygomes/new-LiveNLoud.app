@@ -16,6 +16,24 @@
         </div>
       </header>
 
+      <section id="destinationCard" class="destination-card">
+        <div>
+          <span>Destino ativo</span>
+          <strong id="destinationLabel">Sustenido</strong>
+        </div>
+        <fieldset id="destinationToggle" class="destination-toggle hidden">
+          <legend>Escolher destino</legend>
+          <label>
+            <input type="radio" name="destination" value="sustenido" checked />
+            <span>Sustenido</span>
+          </label>
+          <label>
+            <input type="radio" name="destination" value="live" />
+            <span>Live</span>
+          </label>
+        </fieldset>
+      </section>
+
       <section id="statusCard" class="neumorphism status-card">
         <span class="status-dot" aria-hidden="true"></span>
         <p id="statusText">Carregando extensão...</p>

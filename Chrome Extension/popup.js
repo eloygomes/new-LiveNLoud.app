@@ -1,6 +1,19 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
-const API_BASE = "https://api.live.eloygomes.com";
+const ADMIN_DESTINATION_EMAIL = "eloy.gomes@icloud.com";
+const DEFAULT_DESTINATION = "sustenido";
+const DESTINATIONS = {
+  sustenido: {
+    label: "Sustenido",
+    apiBase: "https://api.sustenido.eloygomes.com",
+    database: "sustenido",
+  },
+  live: {
+    label: "Live",
+    apiBase: "https://api.live.eloygomes.com",
+    database: "liveNloud_",
+  },
+};
 const NOT_AVAILABLE = "N/A";
 const PAGE_RETRY_DELAY_MS = 2000;
 const PAGE_RETRY_MAX_ATTEMPTS = 6;
@@ -15,7 +28,15 @@ const STORAGE_KEYS = {
   refreshToken: "livenloud_refresh_token",
   email: "livenloud_user_email",
   rememberSession: "livenloud_remember_session",
+  destination: "livenloud_destination",
 };
+
+const SESSION_STORAGE_KEYS = [
+  STORAGE_KEYS.accessToken,
+  STORAGE_KEYS.refreshToken,
+  STORAGE_KEYS.email,
+  STORAGE_KEYS.rememberSession,
+];
 
 const emptyInstrument = {
   active: "",
@@ -40,6 +61,7 @@ const emptyPageContext = {
   tom: "",
   tuning: "",
   lyrics: "",
+  cifraText: "",
   defaults: {
     song: NOT_AVAILABLE,
     artist: NOT_AVAILABLE,
@@ -59,11 +81,19 @@ const state = {
   managedInstrumentTags: [],
   detectedInstrumentLinks: {},
   selectedInstrumentLinks: {},
+  destination: DEFAULT_DESTINATION,
+  sessionEmail: "",
 };
 
 const elements = {
   statusCard: document.getElementById("statusCard"),
   statusText: document.getElementById("statusText"),
+  destinationCard: document.getElementById("destinationCard"),
+  destinationLabel: document.getElementById("destinationLabel"),
+  destinationToggle: document.getElementById("destinationToggle"),
+  destinationInputs: Array.from(
+    document.querySelectorAll("input[name='destination']"),
+  ),
   unavailableView: document.getElementById("unavailableView"),
   loginView: document.getElementById("loginView"),
   songView: document.getElementById("songView"),
@@ -111,6 +141,78 @@ function debugLog(step, details) {
 
 function debugError(step, error) {
   console.error(`${DEBUG_PREFIX} ${step}`, error);
+}
+
+function normalizeEmail(value) {
+  return cleanText(value).toLowerCase();
+}
+
+function isAdminDestinationUser(email) {
+  return normalizeEmail(email) === ADMIN_DESTINATION_EMAIL;
+}
+
+function normalizeDestination(value) {
+  return Object.prototype.hasOwnProperty.call(DESTINATIONS, value)
+    ? value
+    : DEFAULT_DESTINATION;
+}
+
+function getDestinationConfig(destination = state.destination) {
+  return DESTINATIONS[normalizeDestination(destination)];
+}
+
+function getApiBase() {
+  return getDestinationConfig().apiBase;
+}
+
+async function readStoredDestination() {
+  const data = await readFromStorageArea(extensionApi.storage.local, [
+    STORAGE_KEYS.destination,
+  ]);
+  return normalizeDestination(data[STORAGE_KEYS.destination]);
+}
+
+async function writeStoredDestination(destination) {
+  await writeToStorageArea(extensionApi.storage.local, {
+    [STORAGE_KEYS.destination]: normalizeDestination(destination),
+  });
+}
+
+function renderDestinationControls(email = state.sessionEmail) {
+  const canChooseDestination = isAdminDestinationUser(email);
+  state.destination = canChooseDestination
+    ? normalizeDestination(state.destination)
+    : DEFAULT_DESTINATION;
+
+  if (elements.destinationLabel) {
+    elements.destinationLabel.textContent = getDestinationConfig().label;
+  }
+
+  elements.destinationInputs.forEach((input) => {
+    input.checked = input.value === state.destination;
+  });
+
+  if (elements.destinationToggle) {
+    elements.destinationToggle.classList.toggle("hidden", !canChooseDestination);
+  }
+}
+
+async function setDestination(destination, options = {}) {
+  const nextDestination = normalizeDestination(destination);
+  if (nextDestination === state.destination) {
+    renderDestinationControls(options.email);
+    return;
+  }
+
+  state.destination = nextDestination;
+  await writeStoredDestination(nextDestination);
+  renderDestinationControls(options.email);
+
+  if (options.clearSession) {
+    await clearSessionState({ keepDestination: true });
+    showLogin();
+    setStatus("Destino alterado. Faça login novamente.");
+  }
 }
 
 function cleanText(value) {
@@ -170,8 +272,7 @@ function getPresentationSourceText(scrapedDoc = {}) {
 }
 
 function getPageLyricsFallback(instrumentName, pageContext = state.pageContext) {
-  if (instrumentName !== "voice") return "";
-  return pageContext?.lyrics || "";
+  return pageContext?.cifraText || pageContext?.lyrics || "";
 }
 
 function withPageLyricsFallback(scrapedDoc, instrumentName, pageContext = state.pageContext) {
@@ -692,7 +793,7 @@ async function requestPageContext(tabId) {
 }
 
 async function readSessionState() {
-  const keys = Object.values(STORAGE_KEYS);
+  const keys = SESSION_STORAGE_KEYS;
   const [sessionData, localData] = await Promise.all([
     extensionApi.storage.session
       ? readFromStorageArea(extensionApi.storage.session, keys)
@@ -730,12 +831,12 @@ async function writeSessionState({
   await Promise.all([
     clearFromStorageArea(
       extensionApi.storage.local,
-      Object.values(STORAGE_KEYS),
+      SESSION_STORAGE_KEYS,
     ),
     extensionApi.storage.session
       ? clearFromStorageArea(
           extensionApi.storage.session,
-          Object.values(STORAGE_KEYS),
+          SESSION_STORAGE_KEYS,
         )
       : Promise.resolve(),
   ]);
@@ -755,12 +856,12 @@ async function clearSessionState() {
   await Promise.all([
     clearFromStorageArea(
       extensionApi.storage.local,
-      Object.values(STORAGE_KEYS),
+      SESSION_STORAGE_KEYS,
     ),
     extensionApi.storage.session
       ? clearFromStorageArea(
           extensionApi.storage.session,
-          Object.values(STORAGE_KEYS),
+          SESSION_STORAGE_KEYS,
         )
       : Promise.resolve(),
   ]);
@@ -821,7 +922,7 @@ async function getPageContext() {
 }
 
 async function loginRequest(email, password) {
-  const response = await fetch(`${API_BASE}/api/auth/login`, {
+  const response = await fetch(`${getApiBase()}/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -840,7 +941,7 @@ async function loginRequest(email, password) {
 
 async function fetchUserDoc(email, accessToken) {
   const response = await fetch(
-    `${API_BASE}/api/alldata/${encodeURIComponent(email)}`,
+    `${getApiBase()}/api/alldata/${encodeURIComponent(email)}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -1108,7 +1209,7 @@ async function scrapeSong(session, pageContext, options = {}) {
   const progress = getProgressValue();
   const instrumentName = options.instrumentName || getSelectedInstrument();
   const link = cleanText(options.link || pageContext.link);
-  const response = await fetch(`${API_BASE}/api/scrape`, {
+  const response = await fetch(`${getApiBase()}/api/scrape`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1144,7 +1245,7 @@ async function fetchExistingSongDoc(session, pageContext, options = {}) {
     artist: cleanText(pageContext.artist),
     song: cleanText(pageContext.song),
   });
-  const response = await fetch(`${API_BASE}/api/generalCifra?${params}`, {
+  const response = await fetch(`${getApiBase()}/api/generalCifra?${params}`, {
     headers: {
       Authorization: `Bearer ${session.accessToken}`,
     },
@@ -1184,10 +1285,15 @@ async function collectScrapedDocsForConfirmedInstruments(session, pageContext) {
     }
 
     if (!scrapedDoc) {
-      scrapedDoc = await scrapeSong(session, pageContext, {
-        instrumentName,
-        link,
-      });
+      try {
+        scrapedDoc = await scrapeSong(session, pageContext, {
+          instrumentName,
+          link,
+        });
+      } catch (scrapeError) {
+        debugError(`Scrape failed for ${instrumentName}`, scrapeError);
+        scrapedDoc = null;
+      }
     }
 
     const docWithFallback = withPageLyricsFallback(
@@ -1312,7 +1418,7 @@ function buildSongPayload(
   };
 
   return {
-    databaseComing: "liveNloud_",
+    databaseComing: getDestinationConfig().database,
     collectionComing: "data",
     userdata: {
       song: mergedSong,
@@ -1341,7 +1447,7 @@ function buildSongPayload(
 }
 
 async function saveSong(payload, accessToken) {
-  const response = await fetch(`${API_BASE}/api/newsong`, {
+  const response = await fetch(`${getApiBase()}/api/newsong`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1363,6 +1469,8 @@ async function ensureSession() {
   const storage = await readSessionState();
   const accessToken = storage.accessToken;
   const email = storage.email;
+  state.sessionEmail = email;
+  renderDestinationControls(email);
 
   if (!accessToken || !email) {
     showLogin();
@@ -1385,6 +1493,8 @@ async function ensureSession() {
 async function loadSongView(session) {
   setStatus("Carregando página...");
   hideFinalMessage();
+  state.sessionEmail = session.email;
+  renderDestinationControls(session.email);
   state.selectedSetlists = [];
   state.managedInstrumentTags = [];
   state.instrumentTouched = false;
@@ -1428,6 +1538,14 @@ elements.loginForm.addEventListener("submit", async (event) => {
     const email = cleanText(elements.emailInput.value);
     const password = elements.passwordInput.value;
     const rememberSession = Boolean(elements.rememberSessionInput.checked);
+    state.sessionEmail = email;
+
+    if (!isAdminDestinationUser(email)) {
+      state.destination = DEFAULT_DESTINATION;
+      await writeStoredDestination(DEFAULT_DESTINATION);
+    }
+
+    renderDestinationControls(email);
     const loginData = await loginRequest(email, password);
 
     await writeSessionState({
@@ -1445,6 +1563,21 @@ elements.loginForm.addEventListener("submit", async (event) => {
     debugError("Login flow failed", error);
     setStatus(error.message || "Login failed.");
   }
+});
+
+elements.emailInput.addEventListener("input", () => {
+  renderDestinationControls(elements.emailInput.value);
+});
+
+elements.destinationInputs.forEach((input) => {
+  input.addEventListener("change", async () => {
+    if (!input.checked) return;
+
+    await setDestination(input.value, {
+      email: state.sessionEmail || elements.emailInput.value,
+      clearSession: true,
+    });
+  });
 });
 
 elements.progressInput.addEventListener("input", () => {
@@ -1543,6 +1676,7 @@ elements.saveButton.addEventListener("click", async () => {
   } catch (error) {
     debugError("Save song failed", error);
     const errorMessage =
+      error?.message ||
       "Não foi possivel adicionar a cifra no momento, tente mais tarde";
     setNotice(errorMessage);
     setNoticeState("error");
@@ -1571,6 +1705,10 @@ elements.logoutButton.addEventListener("click", async () => {
 
 async function boot() {
   setStatus("");
+  state.destination = await readStoredDestination();
+  const storedSession = await readSessionState();
+  state.sessionEmail = storedSession.email;
+  renderDestinationControls(storedSession.email || elements.emailInput.value);
   const initialPageContext = await getPageContext();
   if (!initialPageContext.compatible) {
     showUnavailableSite();
@@ -1578,7 +1716,6 @@ async function boot() {
   }
 
   renderPageContext(initialPageContext);
-  const storedSession = await readSessionState();
   elements.rememberSessionInput.checked = storedSession.rememberSession;
   state.selectedInstrument = getSelectedInstrument();
   renderProgressValue();

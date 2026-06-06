@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "#Sustenido Quick Add",
-  "version": "0.62.0.0",
+  "version": "0.63.2.0",
   "description": "Add the current song page to #Sustenido from the browser toolbar.",
   "permissions": [
     "storage",
@@ -9,6 +9,7 @@
     "scripting"
   ],
   "host_permissions": [
+    "https://api.sustenido.eloygomes.com/*",
     "https://api.live.eloygomes.com/*",
     "https://www.cifraclub.com.br/*",
     "https://cifraclub.com.br/*",

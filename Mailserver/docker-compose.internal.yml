@@ -1,0 +1,26 @@
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    container_name: shared_mailserver
+    hostname: mail
+    domainname: eloygomes.com
+    env_file:
+      - ./mailserver.env
+    volumes:
+      - ./docker-data/mail-data:/var/mail
+      - ./docker-data/mail-state:/var/mail-state
+      - ./docker-data/mail-logs:/var/log/mail
+      - ./docker-data/config:/tmp/docker-mailserver
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+    restart: unless-stopped
+    networks:
+      - mailserver-network
+
+networks:
+  mailserver-network:
+    name: mailserver-network
+    driver: bridge

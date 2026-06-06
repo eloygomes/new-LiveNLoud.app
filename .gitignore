@@ -14,6 +14,8 @@ Front/src/assets/auto-rotate-img.gif
 !**/.env*.example
 /Server/liveNloud/.env
 /Server/liveNloud/node/.env
+/Mailserver/mailserver.env
+/Mailserver/docker-data/
 node_modules/
 **/node_modules/
 Front/deploy.sh

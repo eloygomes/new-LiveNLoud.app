@@ -63,10 +63,8 @@ function parseCsvEnv(value) {
 }
 
 const defaultAllowedOrigins = [
-  "https://sustenido.eloygomes.com",
-  "https://www.sustenido.eloygomes.com",
-  "https://www.live.eloygomes.com",
   "https://live.eloygomes.com",
+  "https://www.live.eloygomes.com",
 ];
 
 const configuredAllowedOrigins = parseCsvEnv(process.env.CORS_ALLOWED_ORIGINS);
@@ -94,8 +92,8 @@ function isAllowedExtensionOrigin(origin) {
 function isAllowedOrigin(origin) {
   if (!origin) return true;
   if (allowedOrigins.has(origin)) return true;
+  if (isAllowedExtensionOrigin(origin)) return true;
   if (!isProduction && isAllowedDevOrigin(origin)) return true;
-  if (!isProduction && isAllowedExtensionOrigin(origin)) return true;
   return false;
 }
 
@@ -1472,7 +1470,7 @@ const calendarEventsCollection = authDatabase.collection("calendarEvents");
 const setlistSharesCollection = authDatabase.collection("setlistShares");
 const userLogsCollection = authDatabase.collection("userLogs");
 const FRONTEND_BASE_URL =
-  process.env.FRONTEND_BASE_URL || "https://www.live.eloygomes.com";
+  process.env.FRONTEND_BASE_URL || "https://live.eloygomes.com";
 const DEFAULT_USER_SETLISTS = [
   "guitar01",
   "guitar02",

@@ -16,6 +16,7 @@ const jwt = require("jsonwebtoken");
 
 // ===== Mongo =====
 const uri = process.env.MONGO_URI || "REMOVED_MONGO_URI";
+const APP_DATABASE_NAME = process.env.APP_DATABASE_NAME || "liveNloud_";
 const client = new MongoClient(uri);
 
 let mongoReady = false;
@@ -24,7 +25,7 @@ async function getAuthCollection() {
     await client.connect();
     mongoReady = true;
   }
-  const db = client.db("liveNloud_");
+  const db = client.db(APP_DATABASE_NAME);
   return db.collection("authUsers");
 }
 

@@ -20,6 +20,8 @@ if (!uri) {
   throw new Error("MONGO_URI environment variable is required");
 }
 const client = new MongoClient(uri);
+const APP_DATABASE_NAME = process.env.APP_DATABASE_NAME || "sustenido";
+const appDatabase = () => client.db(APP_DATABASE_NAME);
 
 async function postJson(url, payload, headers = {}) {
   const response = await fetch(url, {
@@ -92,8 +94,8 @@ function isAllowedExtensionOrigin(origin) {
 function isAllowedOrigin(origin) {
   if (!origin) return true;
   if (allowedOrigins.has(origin)) return true;
+  if (isAllowedExtensionOrigin(origin)) return true;
   if (!isProduction && isAllowedDevOrigin(origin)) return true;
-  if (!isProduction && isAllowedExtensionOrigin(origin)) return true;
   return false;
 }
 
@@ -220,6 +222,9 @@ app.use("/api/youtube", youtubeRoutes);
 
 // Servir arquivos estáticos da pasta uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Servir arquivos públicos para download, como o pacote da extensão.
+app.use("/downloads", express.static(path.join(__dirname, "downloads")));
 
 // Configuração do Multer para armazenamento local com extensão '.jpeg'
 const storage = multer.diskStorage({
@@ -355,7 +360,7 @@ app.post(
       });
 
       // Obter referência à coleção onde as imagens serão armazenadas
-      const database = client.db("liveNloud_"); // Substitua pelo nome do seu banco de dados
+      const database = appDatabase(); // Substitua pelo nome do seu banco de dados
       const collection = database.collection("profileImages");
 
       // Garantir que o campo 'email' seja único para evitar duplicatas
@@ -416,7 +421,7 @@ app.get("/api/profileImage/:email", async (req, res) => {
       return res.status(400).json({ message: "Email inválido." });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("profileImages");
 
     const imageDocument = await collection.findOne({ email });
@@ -632,11 +637,11 @@ app.post("/api/scrape", async (req, res) => {
 // Rota para criar um novo usuário
 app.post("/api/signup", async (req, res) => {
   try {
-    const { userdata, databaseComing, collectionComing } = req.body;
+    const { userdata } = req.body;
     const normalizedEmail = normalizeEmail(userdata.email);
 
-    const database = client.db(databaseComing);
-    const collection = database.collection(collectionComing);
+    const database = appDatabase();
+    const collection = database.collection("data");
 
     console.log("Verificando se o email já existe...");
     const query = { email: normalizedEmail };
@@ -684,17 +689,8 @@ app.post("/api/signup", async (req, res) => {
 app.post("/api/newsong", async (req, res) => {
   try {
     const { userdata } = req.body;
-    const { databaseComing, collectionComing } = req.body;
-
-    // Verifica se os nomes estão presentes e válidos
-    if (!databaseComing || !collectionComing) {
-      return res
-        .status(400)
-        .json({ message: "Nome do banco de dados ou coleção não fornecido." });
-    }
-
-    const database = client.db(databaseComing.trim());
-    const collection = database.collection(collectionComing.trim());
+    const database = appDatabase();
+    const collection = database.collection("data");
 
     if (!userdata?.email || !userdata?.artist || !userdata?.song) {
       return res.status(400).json({
@@ -844,7 +840,7 @@ app.post("/api/newsong", async (req, res) => {
 app.post("/api/allsongdata", async (req, res) => {
   try {
     const { email, artist, song } = req.body;
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Verifica se os parâmetros foram passados
@@ -887,7 +883,7 @@ app.post("/api/deleteonesong", async (req, res) => {
   console.log("deleteonesong");
   try {
     const { email, artist, song } = req.body;
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Verifica se os parâmetros foram passados
@@ -919,7 +915,7 @@ app.get("/api/alldata/:email", async (req, res) => {
   try {
     const { email } = req.params;
     console.log(email);
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     const user = await collection.findOne({ email: email });
@@ -939,7 +935,7 @@ app.get("/api/alldata/:email", async (req, res) => {
 // Rota para buscar todos os dados de todos os usuários no banco de dados
 app.get("/api/alldata/", async (req, res) => {
   try {
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Busca todos os documentos na coleção 'data'
@@ -964,7 +960,7 @@ app.put("/api/updateUsername", async (req, res) => {
         .json({ message: "Email and new username are required." });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Find and update the username for the specified email
@@ -1000,7 +996,7 @@ app.put("/api/lastPlay", async (req, res) => {
       });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // 0) Garante que o documento/entrada existe
@@ -1111,7 +1107,7 @@ app.put("/api/lastPlay", async (req, res) => {
 app.get("/api/downloadUserData/:email", async (req, res) => {
   try {
     const { email } = req.params;
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Fetch the user's data from the database
@@ -1149,7 +1145,7 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
       return res.status(400).json({ message: "Email is required." });
     }
 
-    const database = client.db("liveNloud_"); // Your database name
+    const database = appDatabase(); // Your database name
     const collection = database.collection("data"); // Your collection name
 
     // Find the user document
@@ -1239,7 +1235,7 @@ app.post("/api/deleteUserAccount", async (req, res) => {
         .json({ message: "Email e senha sao obrigatorios." });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
     const profileImages = database.collection("profileImages");
     const authUser = await authCollection.findOne({ email });
@@ -1412,7 +1408,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 // Modelo AuthUser (usando o próprio MongoClient, sem mongoose)
-const authDatabase = client.db("liveNloud_");
+const authDatabase = appDatabase();
 const authCollection = authDatabase.collection("authUsers");
 const userDataCollection = authDatabase.collection("data");
 const notificationsCollection = authDatabase.collection("notifications");
@@ -1421,7 +1417,7 @@ const calendarEventsCollection = authDatabase.collection("calendarEvents");
 const setlistSharesCollection = authDatabase.collection("setlistShares");
 const userLogsCollection = authDatabase.collection("userLogs");
 const FRONTEND_BASE_URL =
-  process.env.FRONTEND_BASE_URL || "https://www.live.eloygomes.com";
+  process.env.FRONTEND_BASE_URL || "https://sustenido.eloygomes.com";
 const DEFAULT_USER_SETLISTS = [
   "guitar01",
   "guitar02",
@@ -1972,10 +1968,10 @@ app.post("/api/auth/signup", async (req, res) => {
       .update(rawApprovalToken)
       .digest("hex");
     const approveUrl =
-      `${process.env.API_PUBLIC_BASE_URL || "https://api.live.eloygomes.com"}/api/auth/approve-account` +
+      `${process.env.API_PUBLIC_BASE_URL || "https://api.sustenido.eloygomes.com"}/api/auth/approve-account` +
       `?email=${encodeURIComponent(email)}&token=${encodeURIComponent(rawApprovalToken)}&decision=approve`;
     const rejectUrl =
-      `${process.env.API_PUBLIC_BASE_URL || "https://api.live.eloygomes.com"}/api/auth/approve-account` +
+      `${process.env.API_PUBLIC_BASE_URL || "https://api.sustenido.eloygomes.com"}/api/auth/approve-account` +
       `?email=${encodeURIComponent(email)}&token=${encodeURIComponent(rawApprovalToken)}&decision=reject`;
 
     await authCollection.insertOne({
@@ -2368,7 +2364,7 @@ async function requireAuthorizedSongOwner(req, res) {
 }
 
 async function findUserSongRecord({ email, artist, song }) {
-  const database = client.db("liveNloud_");
+  const database = appDatabase();
   const collection = database.collection("data");
   const userDoc = await collection.findOne({ email });
 
@@ -2391,7 +2387,7 @@ async function findUserSongRecord({ email, artist, song }) {
 }
 
 function getGuitarProFileCollection() {
-  return client.db("liveNloud_").collection("guitarpro_files");
+  return appDatabase().collection("guitarpro_files");
 }
 
 function runGuitarProUpload(req, res) {
@@ -4161,7 +4157,7 @@ app.put("/api/updateSetlists", async (req, res) => {
       ),
     );
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     const userDoc = await collection.findOne({ email });
@@ -4275,7 +4271,7 @@ app.put("/api/song/updateExact", async (req, res) => {
       });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
     const userDoc = await collection.findOne({ email });
@@ -4342,7 +4338,7 @@ app.put("/api/song/instrumentNotes", async (req, res) => {
       });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
     const userDoc = await collection.findOne({ email });
 

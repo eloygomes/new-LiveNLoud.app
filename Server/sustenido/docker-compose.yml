@@ -29,6 +29,7 @@ services:
       PYTHON_API_URL: http://python_scraper:8000
       NODE_ENV: production
       MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@db:27017/admin
+      APP_DATABASE_NAME: ${APP_DATABASE_NAME:-sustenido}
 
       FRONTEND_BASE_URL: https://sustenido.eloygomes.com
       API_PUBLIC_BASE_URL: https://api.sustenido.eloygomes.com
@@ -40,6 +41,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
+      APPROVAL_ADMIN_EMAILS: ${APPROVAL_ADMIN_EMAILS}
 
     depends_on:
       - db
@@ -47,6 +49,7 @@ services:
     restart: unless-stopped
     networks:
       - sustenido-network
+      - mailserver-network
 
   python_scraper:
     image: python:3.10-slim
@@ -95,3 +98,5 @@ services:
 networks:
   sustenido-network:
     driver: bridge
+  mailserver-network:
+    external: true

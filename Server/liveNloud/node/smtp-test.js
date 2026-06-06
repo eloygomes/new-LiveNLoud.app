@@ -1,14 +1,19 @@
 const nodemailer = require("nodemailer");
 
 async function main() {
+  const port = Number(process.env.SMTP_PORT || 587);
+  const tlsServername = process.env.SMTP_TLS_SERVERNAME || process.env.SMTP_HOST;
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
+    port,
+    secure: port === 465,
+    requireTLS: port !== 465,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    tls: { servername: tlsServername },
   });
 
   await transporter.verify();

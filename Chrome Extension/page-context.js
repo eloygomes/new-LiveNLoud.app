@@ -238,6 +238,23 @@ function extractParagraphText(container) {
   return cleanMultilineText(container.innerText || container.textContent);
 }
 
+function extractCifraText(container) {
+  if (!container) return "";
+
+  const clone = container.cloneNode(true);
+  clone.querySelectorAll("br").forEach((br) => {
+    br.replaceWith("\n");
+  });
+
+  const parts = [];
+  const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    parts.push(walker.currentNode.nodeValue || "");
+  }
+
+  return cleanMultilineText(parts.join(""));
+}
+
 function getCifraClubLyrics(root) {
   const lyricsContainer =
     root?.querySelector(".songContent .letra .letra-l") ||
@@ -245,6 +262,10 @@ function getCifraClubLyrics(root) {
     root?.querySelector(".songContent");
 
   return extractParagraphText(lyricsContainer);
+}
+
+function getCifraClubCifraText(root) {
+  return extractCifraText(root?.querySelector(".cifra_cnt"));
 }
 
 function buildPageContext() {
@@ -256,6 +277,7 @@ function buildPageContext() {
   let tuning = "";
   let capo = "";
   let lyrics = "";
+  let cifraText = "";
 
   if (supportedSite?.id === "cifraclub") {
     const cifraRoot = getCifraRoot();
@@ -269,6 +291,7 @@ function buildPageContext() {
     tuning = getFieldValue(cifraRoot, "#cifra_afi");
     capo = getFieldValue(cifraRoot, "#cifra_capo");
     lyrics = getCifraClubLyrics(cifraRoot);
+    cifraText = getCifraClubCifraText(cifraRoot);
   } else if (supportedSite?.id === "ultimate_guitar") {
     song = getUltimateGuitarSong();
     artist = getUltimateGuitarArtist();
@@ -294,6 +317,7 @@ function buildPageContext() {
     tom: compatible ? tom : "",
     tuning: compatible ? tuning : "",
     lyrics: compatible ? lyrics : "",
+    cifraText: compatible ? cifraText : "",
     defaults: {
       song: NOT_AVAILABLE,
       artist: NOT_AVAILABLE,

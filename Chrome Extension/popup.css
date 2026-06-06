@@ -56,7 +56,7 @@ select,
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .brand-mark {
@@ -102,6 +102,90 @@ h1 {
 
 h2 {
   font-size: 24px;
+}
+
+.destination-card {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 10px;
+  border-radius: 8px;
+  background: #f4f4f4;
+  box-shadow:
+    inset 3px 3px 8px rgba(0, 0, 0, 0.08),
+    inset -3px -3px 8px rgba(255, 255, 255, 0.82);
+}
+
+.destination-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.destination-card span,
+.destination-toggle legend {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.destination-card strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.destination-toggle {
+  position: relative;
+  margin: 12px 0 0;
+  padding: 4px;
+  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  border-radius: 8px;
+  background: #dedede;
+  box-shadow:
+    inset 4px 4px 9px rgba(0, 0, 0, 0.1),
+    inset -4px -4px 9px rgba(255, 255, 255, 0.86);
+}
+
+.destination-toggle legend {
+  position: absolute;
+  top: -17px;
+  left: 0;
+  padding: 0;
+}
+
+.destination-toggle label {
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.destination-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.destination-toggle label:has(input:checked) {
+  background: var(--accent);
+  color: var(--ink);
+  box-shadow:
+    5px 5px 10px rgba(0, 0, 0, 0.14),
+    -5px -5px 10px rgba(255, 255, 255, 0.75);
 }
 
 .status-card {
