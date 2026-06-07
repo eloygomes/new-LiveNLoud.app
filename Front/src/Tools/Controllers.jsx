@@ -118,7 +118,7 @@ async function request(path, options = {}, retry = true) {
   if (
     retry &&
     [401, 403].includes(response.status) &&
-    !String(path).includes("/api/auth/")
+    !String(path).includes("/api/v1/auth/")
   ) {
     try {
       if (!refreshPromise) {
@@ -177,7 +177,7 @@ async function refreshAccessToken() {
   }
 
   const { data } = await request(
-    "/api/auth/refresh",
+    "/api/v1/auth/refresh",
     {
       method: "POST",
       data: { refreshToken },
@@ -515,7 +515,7 @@ async function backfillOfflineSongDetails(email, songs = []) {
 
   const detailedSongsResults = await Promise.allSettled(
     offlineSongs.map(async (song) => {
-      const { data } = await fetchApi.post("/api/allsongdata", {
+      const { data } = await fetchApi.post("/api/v1/allsongdata", {
         email,
         artist: song.artist,
         song: song.song,
@@ -580,7 +580,7 @@ export function normalizeLink(u) {
 
 export const requestData = async (email) => {
   try {
-    const { data } = await fetchApi.get(`/api/alldata/${email}`);
+    const { data } = await fetchApi.get(`/api/v1/alldata/${email}`);
     writeCachedOfflineSongs(data?.userdata || []);
     setOfflineModeEnabled(false);
     return JSON.stringify(data);
@@ -595,7 +595,7 @@ export const requestData = async (email) => {
 };
 
 export const fetchAllSongData = async (email, artist, song) => {
-  const url = "/api/allsongdata";
+  const url = "/api/v1/allsongdata";
   try {
     const { data } = await fetchApi.post(url, { email, artist, song });
     const cachedSongs = readCachedOfflineSongs();
@@ -620,7 +620,7 @@ export const fetchAllSongData = async (email, artist, song) => {
 };
 
 export const deleteOneSong = async (artist, song) => {
-  const url = "/api/deleteonesong";
+  const url = "/api/v1/deleteonesong";
   try {
     const { data } = await fetchApi.post(url, {
       email: getUserEmail(),
@@ -635,7 +635,7 @@ export const deleteOneSong = async (artist, song) => {
 };
 
 export const allDataFromOneSong = async (artist, song) => {
-  const url = "/api/allsongdata";
+  const url = "/api/v1/allsongdata";
   try {
     const { data } = await fetchApi.post(url, {
       email: getUserEmail(),
@@ -682,7 +682,7 @@ export const updateSongData = async (updatedData) => {
   };
 
   try {
-    const { data } = await fetchApi.post("/api/newsong", payload);
+    const { data } = await fetchApi.post("/api/v1/newsong", payload);
     mergeSongIntoCache({
       ...updatedData,
       artist,
@@ -720,7 +720,7 @@ export const updateSongEntry = async (updatedSong = {}) => {
   }
 
   try {
-    const { data } = await fetchApi.put("/api/song/updateExact", {
+    const { data } = await fetchApi.put("/api/v1/song/updateExact", {
       email,
       updatedSong,
     });
@@ -750,7 +750,7 @@ export const updateUserName = async (newName) => {
   };
 
   try {
-    const { data } = await fetchApi.put("/api/updateUsername", payload);
+    const { data } = await fetchApi.put("/api/v1/updateUsername", payload);
     return data;
   } catch (error) {
     console.error("Error updating song data:", error);
@@ -779,7 +779,7 @@ export const updateLastPlayed = async (song, artist, instrument) => {
   const payload = { email, song, artist, instrument: normalizedInstrument };
 
   try {
-    const { data } = await fetchApi.put("/api/lastPlay", payload);
+    const { data } = await fetchApi.put("/api/v1/lastPlay", payload);
     return data;
   } catch (error) {
     console.error("[updateLastPlayed:PUT]", {
@@ -807,7 +807,7 @@ export const updateInstrumentNotes = async ({
     throw new Error("artist, song e instrument são obrigatórios.");
   }
 
-  const { data } = await fetchApi.put("/api/song/instrumentNotes", {
+  const { data } = await fetchApi.put("/api/v1/song/instrumentNotes", {
     email,
     artist,
     song,
@@ -825,28 +825,28 @@ export async function uploadGuitarProFile({ email, artist, song, file }) {
   formData.append("song", song);
   formData.append("file", file);
 
-  const { data } = await fetchApi.post("/api/guitarpro/upload", formData, {
+  const { data } = await fetchApi.post("/api/v1/guitarpro/upload", formData, {
     headers: {},
   });
   return data;
 }
 
 export async function getGuitarProFiles({ email, artist, song }) {
-  const { data } = await fetchApi.get("/api/guitarpro/files", {
+  const { data } = await fetchApi.get("/api/v1/guitarpro/files", {
     params: { email, artist, song },
   });
   return data;
 }
 
 export async function deleteGuitarProFile({ email, artist, song, fileId }) {
-  const { data } = await fetchApi.delete("/api/guitarpro/delete", {
+  const { data } = await fetchApi.delete("/api/v1/guitarpro/delete", {
     data: { email, artist, song, fileId },
   });
   return data;
 }
 
 export async function downloadGuitarProFile({ email, artist, song, fileId }) {
-  const { data } = await fetchApi.get("/api/guitarpro/file", {
+  const { data } = await fetchApi.get("/api/v1/guitarpro/file", {
     params: { email, artist, song, fileId },
     responseType: "blob",
   });
@@ -858,7 +858,7 @@ export const downloadUserData = async () => {
   if (!email) return;
 
   try {
-    const resp = await fetchApi.get(`/api/downloadUserData/${email}`, {
+    const resp = await fetchApi.get(`/api/v1/downloadUserData/${email}`, {
       responseType: "blob",
     });
 
@@ -875,7 +875,7 @@ export const downloadUserData = async () => {
 };
 
 export const deleteAllUserSongs = async () => {
-  const url = "/api/deleteAllUserSongs";
+  const url = "/api/v1/deleteAllUserSongs";
 
   try {
     const { data } = await fetchApi.post(url, { email: getUserEmail() });
@@ -890,7 +890,7 @@ export const deleteAllUserSongs = async () => {
 };
 
 export const deleteUserAccountOnDb = async (password) => {
-  const url = "/api/deleteUserAccount";
+  const url = "/api/v1/deleteUserAccount";
 
   try {
     const { data } = await fetchApi.post(url, {
@@ -911,7 +911,7 @@ export const deleteUserAccount = async ({
   password,
   email = getUserEmail(),
 }) => {
-  const url = "/api/deleteUserAccount";
+  const url = "/api/v1/deleteUserAccount";
 
   try {
     const { data } = await fetchApi.post(url, { email, password });
@@ -930,7 +930,7 @@ export async function getAllUserSetlists() {
   if (!email) return [];
 
   try {
-    const res = await fetch(`${API_BASE}/api/alldata/${email}`);
+    const res = await fetch(`${API_BASE}/api/v1/alldata/${email}`);
     const data = await res.json();
 
     const allTags = new Set();
@@ -951,7 +951,7 @@ export async function getAllUserSetlists() {
 
 export async function login(userEmail, userPassword) {
   try {
-    const { data } = await fetchApi.post("/api/auth/login", {
+    const { data } = await fetchApi.post("/api/v1/auth/login", {
       email: userEmail,
       password: userPassword,
     });
@@ -984,7 +984,7 @@ export async function login(userEmail, userPassword) {
 }
 
 export async function signupAuthUser({ email, password, fullName, username }) {
-  const { data } = await fetchApi.post("/api/auth/signup", {
+  const { data } = await fetchApi.post("/api/v1/auth/signup", {
     email,
     password,
     fullName,
@@ -995,7 +995,7 @@ export async function signupAuthUser({ email, password, fullName, username }) {
 }
 
 export async function createInitialUserRecord(userdata) {
-  const { data } = await fetchApi.post("/api/signup", {
+  const { data } = await fetchApi.post("/api/v1/signup", {
     databaseComing: "liveNloud_",
     collectionComing: "data",
     userdata,
@@ -1009,7 +1009,7 @@ export async function requestYouTubeAuthUrl({ returnTo = "/dashboard", token }) 
     throw new Error("Sem token/JWT no storage (token/accessToken/jwt)");
   }
 
-  const { data } = await fetchApi.get("/api/youtube/auth/url", {
+  const { data } = await fetchApi.get("/api/v1/youtube/auth/url", {
     params: { returnTo },
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -1075,7 +1075,7 @@ export async function setOfflineContentAvailability(enabled) {
   let responseData = null;
   try {
     const { data } = await fetchApi.get(
-      `/api/alldata/${encodeURIComponent(email)}`,
+      `/api/v1/alldata/${encodeURIComponent(email)}`,
     );
     responseData = data;
     setOfflineModeEnabled(false);
@@ -1097,7 +1097,7 @@ export async function setOfflineContentAvailability(enabled) {
       }
 
       try {
-        const { data } = await fetchApi.post("/api/allsongdata", {
+        const { data } = await fetchApi.post("/api/v1/allsongdata", {
           email,
           artist: song.artist,
           song: song.song,
@@ -1129,47 +1129,47 @@ export async function setOfflineContentAvailability(enabled) {
 }
 
 export async function fetchCurrentUserProfile() {
-  const { data } = await fetchApi.get("/api/me");
+  const { data } = await fetchApi.get("/api/v1/me");
   syncStoredUserProfile(data);
   return data;
 }
 
 export async function searchUsers(query) {
-  const { data } = await fetchApi.get("/api/users/search", {
+  const { data } = await fetchApi.get("/api/v1/users/search", {
     params: { q: query },
   });
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchNotifications() {
-  const { data } = await fetchApi.get("/api/notifications");
+  const { data } = await fetchApi.get("/api/v1/notifications");
   return Array.isArray(data) ? data : [];
 }
 
 export async function markNotificationAsRead(notificationId) {
   const { data } = await fetchApi.put(
-    `/api/notifications/${notificationId}/read`,
+    `/api/v1/notifications/${notificationId}/read`,
   );
   return data;
 }
 
 export async function markAllNotificationsAsRead() {
-  const { data } = await fetchApi.put("/api/notifications/read-all");
+  const { data } = await fetchApi.put("/api/v1/notifications/read-all");
   return data;
 }
 
 export async function fetchInvitations() {
-  const { data } = await fetchApi.get("/api/invitations");
+  const { data } = await fetchApi.get("/api/v1/invitations");
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchUserLogs() {
-  const { data } = await fetchApi.get("/api/logs");
+  const { data } = await fetchApi.get("/api/v1/logs");
   return Array.isArray(data) ? data : [];
 }
 
 export async function createInvitation({ identifier, message = "" }) {
-  const { data } = await fetchApi.post("/api/invitations", {
+  const { data } = await fetchApi.post("/api/v1/invitations", {
     email: identifier,
     message,
   });
@@ -1178,7 +1178,7 @@ export async function createInvitation({ identifier, message = "" }) {
 
 export async function respondToInvitation(invitationId, status) {
   const { data } = await fetchApi.put(
-    `/api/invitations/${invitationId}/respond`,
+    `/api/v1/invitations/${invitationId}/respond`,
     {
       status,
     },
@@ -1188,42 +1188,42 @@ export async function respondToInvitation(invitationId, status) {
 
 export async function revokeFriendship(counterpartEmail) {
   const { data } = await fetchApi.delete(
-    `/api/friends/${encodeURIComponent(counterpartEmail)}`,
+    `/api/v1/friends/${encodeURIComponent(counterpartEmail)}`,
   );
   return data;
 }
 
 export async function fetchCalendarEvents() {
-  const { data } = await fetchApi.get("/api/calendar/events");
+  const { data } = await fetchApi.get("/api/v1/calendar/events");
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchCalendarEvent(eventId) {
-  const { data } = await fetchApi.get(`/api/calendar/events/${eventId}`);
+  const { data } = await fetchApi.get(`/api/v1/calendar/events/${eventId}`);
   return data;
 }
 
 export async function createCalendarEvent(payload) {
-  const { data } = await fetchApi.post("/api/calendar/events", payload);
+  const { data } = await fetchApi.post("/api/v1/calendar/events", payload);
   return data;
 }
 
 export async function updateCalendarEvent(eventId, payload) {
   const { data } = await fetchApi.put(
-    `/api/calendar/events/${eventId}`,
+    `/api/v1/calendar/events/${eventId}`,
     payload,
   );
   return data;
 }
 
 export async function deleteCalendarEvent(eventId) {
-  const { data } = await fetchApi.delete(`/api/calendar/events/${eventId}`);
+  const { data } = await fetchApi.delete(`/api/v1/calendar/events/${eventId}`);
   return data;
 }
 
 export async function respondToCalendarEvent(eventId, status) {
   const { data } = await fetchApi.put(
-    `/api/calendar/events/${eventId}/respond`,
+    `/api/v1/calendar/events/${eventId}/respond`,
     {
       status,
     },
@@ -1232,7 +1232,7 @@ export async function respondToCalendarEvent(eventId, status) {
 }
 
 export async function shareSetlists({ recipientEmail, setlistNames = [] }) {
-  const { data } = await fetchApi.post("/api/setlist-shares", {
+  const { data } = await fetchApi.post("/api/v1/setlist-shares", {
     recipientEmail,
     setlistNames,
   });
@@ -1241,14 +1241,14 @@ export async function shareSetlists({ recipientEmail, setlistNames = [] }) {
 
 export async function fetchSetlistShare(shareId) {
   const { data } = await fetchApi.get(
-    `/api/setlist-shares/${encodeURIComponent(shareId)}`,
+    `/api/v1/setlist-shares/${encodeURIComponent(shareId)}`,
   );
   return data;
 }
 
 export async function respondToSetlistShare(shareId, status) {
   const { data } = await fetchApi.put(
-    `/api/setlist-shares/${encodeURIComponent(shareId)}/respond`,
+    `/api/v1/setlist-shares/${encodeURIComponent(shareId)}/respond`,
     { status },
   );
   return data;
@@ -1262,7 +1262,7 @@ export async function getProfileImageObjectURL(cacheKey = "0") {
   const email = getUserEmail();
   if (!email) return null;
 
-  const url = `${API_BASE}/api/profileImage/${encodeURIComponent(
+  const url = `${API_BASE}/api/v1/profileImage/${encodeURIComponent(
     email,
   )}?_v=${encodeURIComponent(cacheKey)}`;
 
@@ -1358,7 +1358,7 @@ export async function fetchDistinctSetlists() {
 
   try {
     const resp = await fetch(
-      `${API_BASE}/api/alldata/${encodeURIComponent(email)}`,
+      `${API_BASE}/api/v1/alldata/${encodeURIComponent(email)}`,
     );
     const data = await resp.json();
 
@@ -1377,7 +1377,7 @@ export async function fetchDistinctSetlists() {
 
 /**
  * Atualiza, no backend, a lista de setlists disponíveis para o usuário atual.
- * A API real ainda será criada; ajuste a rota (`/api/updateSetlists`) quando pronta.
+ * A API real ainda será criada; ajuste a rota (`/api/v1/updateSetlists`) quando pronta.
  */
 export async function updateUserSetlists(nextSetlists = []) {
   const email = getUserEmail();
@@ -1391,7 +1391,7 @@ export async function updateUserSetlists(nextSetlists = []) {
   };
 
   try {
-    const { data } = await fetchApi.put("/api/updateSetlists", payload);
+    const { data } = await fetchApi.put("/api/v1/updateSetlists", payload);
     setOfflineModeEnabled(false);
     return data;
   } catch (error) {
@@ -1422,7 +1422,7 @@ export async function fetchUserSongs() {
 
   try {
     const resp = await fetch(
-      `${API_BASE}/api/alldata/${encodeURIComponent(email)}`,
+      `${API_BASE}/api/v1/alldata/${encodeURIComponent(email)}`,
     );
     const data = await resp.json();
     const cachedSongs = readCachedOfflineSongs();
@@ -1516,7 +1516,7 @@ export async function syncOfflineQueue() {
       writeOfflineSyncQueue(nextQueue);
 
       if (mutation.action === "UPDATE_SETLISTS") {
-        await fetchApi.put("/api/updateSetlists", mutation.payload);
+        await fetchApi.put("/api/v1/updateSetlists", mutation.payload);
       } else {
         const cachedSong = readCachedOfflineSongs().find(
           (entry) =>
@@ -1534,7 +1534,7 @@ export async function syncOfflineQueue() {
                 .toLowerCase(),
         );
 
-        await fetchApi.post("/api/newsong", {
+        await fetchApi.post("/api/v1/newsong", {
           databaseComing: "liveNloud_",
           collectionComing: "data",
           userdata: mutation.payload.userdata || cachedSong || mutation.payload,
@@ -1681,7 +1681,7 @@ export async function createNewSongOnServer({
     userdata,
   };
 
-  const resp = await fetchApi.post("/api/newsong", payload);
+  const resp = await fetchApi.post("/api/v1/newsong", payload);
   return resp.data;
 }
 
@@ -1706,7 +1706,7 @@ export async function uploadProfileImage(file, opts = {}) {
   formData.append("profileImage", file);
   formData.append("email", email);
 
-  const response = await fetchApi.post("/api/uploadProfileImage", formData, {
+  const response = await fetchApi.post("/api/v1/uploadProfileImage", formData, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
     },
@@ -1725,7 +1725,7 @@ export async function checkCifraExists({ instrumentName, link, artist, song }) {
   console.log("[checkCifraExists] →", { instrumentName, link, linkNorm });
 
   try {
-    const res = await fetchApi.get("/api/generalCifra", {
+    const res = await fetchApi.get("/api/v1/generalCifra", {
       params: { instrument: instrumentName, link, artist, song },
     });
     console.log("[checkCifraExists] ✔ encontrado:", res.data);
@@ -1766,7 +1766,7 @@ export async function scrapeCifra({
 
   console.log("[scrapeCifra] → payload", payload);
 
-  const res = await fetchApi.post("/api/scrape", payload);
+  const res = await fetchApi.post("/api/v1/scrape", payload);
 
   console.log("[scrapeCifra] ← resposta", {
     status: res.status,
@@ -1835,7 +1835,7 @@ export async function saveToGeneralCifra({
   };
 
   try {
-    const { data } = await fetchApi.post("/api/generalCifra", payload);
+    const { data } = await fetchApi.post("/api/v1/generalCifra", payload);
     return data; // 201 criado | 200 atualizado
   } catch (err) {
     const status = err?.response?.status;
@@ -1853,7 +1853,7 @@ export { updateUserName as updateUsername };
  * Atualiza a senha do usuário.
  * Ajuste a URL conforme o seu backend:
  *   - comum:  /api/updatePassword
- *   - ou:     /api/auth/updatePassword
+ *   - ou:     /api/v1/auth/updatePassword
  */
 export async function updatePassword({ email, currentPassword, newPassword }) {
   if (!email) {
@@ -1867,21 +1867,21 @@ export async function updatePassword({ email, currentPassword, newPassword }) {
   const payload = { email, currentPassword, newPassword };
 
   // 👉 Se sua rota for /api/updatePassword, troque abaixo:
-  const url = "/api/auth/updatePassword";
+  const url = "/api/v1/auth/updatePassword";
 
   const { data } = await fetchApi.put(url, payload);
   return data;
 }
 
 export async function requestPasswordReset(email) {
-  const { data } = await fetchApi.post("/api/auth/request-password-reset", {
+  const { data } = await fetchApi.post("/api/v1/auth/request-password-reset", {
     email,
   });
   return data;
 }
 
 export async function resetPassword({ email, token, newPassword }) {
-  const { data } = await fetchApi.post("/api/auth/reset-password", {
+  const { data } = await fetchApi.post("/api/v1/auth/reset-password", {
     email,
     token,
     newPassword,

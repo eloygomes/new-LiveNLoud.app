@@ -9,6 +9,7 @@ function UserRegistration() {
       subtitle="Build your profile"
       panelTitle="From first signup to first rehearsal."
       panelCopy="Create the account, keep your profile image defaulted, and enter the same workflow already used by the mobile experience."
+      hideHeader
     >
       <UserRegistrationForm />
     </AuthShell>

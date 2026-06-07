@@ -223,13 +223,13 @@ export default function PlaylistExport({ visibleSongs = [] }) {
             setMode("working");
             setStatusLine("Criando playlist no YouTube…");
 
-            // console.log("[YT EXPORT] POST /api/youtube/export", {
+            // console.log("[YT EXPORT] POST /api/v1/youtube/export", {
             //   playlistName: name,
             //   songs: payloadSongs.length,
             //   privacyStatus: "public",
             // });
 
-            const resp = await fetch("/api/youtube/export", {
+            const resp = await fetch("/api/v1/youtube/export", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

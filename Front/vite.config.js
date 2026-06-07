@@ -6,13 +6,8 @@ export default defineConfig({
   plugins: [react(), alphaTab()],
   server: {
     proxy: {
-      "/api": {
+      "/api/v1": {
         target: "http://localhost:3000",
-        changeOrigin: true,
-      },
-      "/socket.io": {
-        target: "http://localhost:3000",
-        ws: true,
         changeOrigin: true,
       },
       "/uploads": {

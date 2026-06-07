@@ -103,7 +103,7 @@ describe("PlaylistExport", () => {
     );
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith("/api/youtube/export", {
+      expect(fetchMock).toHaveBeenCalledWith("/api/v1/youtube/export", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

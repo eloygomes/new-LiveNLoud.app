@@ -1,5 +1,14 @@
-import livePhotoIcon from "../../assets/logo-provisorio.svg";
-import userIcon from "../../assets/user-logo.svg";
+import { useMemo } from "react";
+
+import musicianImage from "../../assets/musician.jpg";
+
+const musicBackdrops = [
+  musicianImage,
+  "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1800&q=85",
+  "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1800&q=85",
+  "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1800&q=85",
+  "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=1800&q=85",
+];
 
 export default function AuthShell({
   title,
@@ -9,11 +18,23 @@ export default function AuthShell({
   hideHeader = false,
   children,
 }) {
+  const backdropImage = useMemo(() => {
+    const index = Math.floor(Math.random() * musicBackdrops.length);
+    return musicBackdrops[index];
+  }, []);
+
   return (
-    <div className="min-h-screen px-4 lg:h-screen lg:overflow-hidden lg:px-8">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 lg:h-full lg:min-h-0">
+    <div className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-[#5f6660] px-4 py-5 md:h-[calc(100dvh/var(--desktop-app-zoom))] md:min-h-[calc(100dvh/var(--desktop-app-zoom))] lg:px-8">
+      <div
+        className="absolute inset-0 scale-110 bg-cover bg-center blur-2xl"
+        style={{ backgroundImage: `url(${backdropImage})` }}
+      />
+      <div className="absolute inset-0 bg-[#4f574f]/72" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.18),rgba(0,0,0,0.34))]" />
+
+      <div className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col gap-4">
         {!hideHeader ? (
-          <div className="hidden neuphormism-b items-center justify-between px-6 lg:flex">
+          <div className="hidden neuphormism-b items-center justify-between rounded-[20px] bg-white/80 px-6 backdrop-blur lg:flex">
             <div>
               <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                 # sustenido
@@ -28,93 +49,54 @@ export default function AuthShell({
           </div>
         ) : null}
 
-        <div className="grid flex-1 grid-cols-1 place-items-center gap-4 py-6 lg:min-h-0 lg:grid-cols-[0.85fr,0.9fr] lg:py-0">
-          <section className="hidden lg:flex neuphormism-b max-h-full min-h-0 flex-col overflow-hidden">
-            <div className="relative flex flex-1 flex-col overflow-hidden p-5 sm:p-6">
-              <div className="absolute -right-16 top-16 h-48 w-48 rounded-full bg-[goldenrod]/10 blur-3xl" />
-              <div className="absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-black/5 blur-3xl" />
-
-              <div className="relative">
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-gray-500">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <main className="grid w-full max-w-5xl overflow-hidden rounded-[8px] border border-white/30 bg-[#efefef]/88 p-2 shadow-[0_18px_54px_rgba(0,0,0,0.26),0_0_42px_rgba(255,255,255,0.28),inset_1px_1px_0_rgba(255,255,255,0.82),inset_-1px_-1px_0_rgba(172,172,172,0.26)] backdrop-blur-md lg:h-[min(710px,calc(100dvh-2.5rem))] lg:grid-cols-[1.03fr,0.97fr]">
+            <section className="relative hidden min-h-0 overflow-hidden rounded-[6px] lg:block">
+              <img
+                src={backdropImage}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/72 via-black/18 to-black/10" />
+              <div className="absolute inset-x-0 bottom-0 p-10 text-white">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-[goldenrod]">
                   # sustenido
                 </p>
-                <h2 className="mt-4 text-3xl font-bold uppercase leading-none sm:text-4xl">
+                <h2 className="mt-4 max-w-sm text-3xl font-bold uppercase leading-none sm:text-4xl">
                   {panelTitle}
                 </h2>
-                <p className="mt-4 max-w-md text-sm leading-6 text-gray-600">
+                <p className="mt-4 max-w-md text-sm font-medium leading-6 text-white/86">
                   {panelCopy}
                 </p>
-              </div>
-
-              <div className="relative mt-6 flex flex-col gap-3">
-                <div className="rounded-[28px] border border-white/70 bg-white/65 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.07)] backdrop-blur">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-black/95">
-                      <img
-                        src={livePhotoIcon}
-                        alt="Sustenido live icon"
-                        className="h-8 w-8 invert"
-                      />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
-                        Live workflow
-                      </div>
-                      <div className="mt-2 text-base font-bold uppercase leading-tight">
-                        Charts, calendar and collaborators in one practice desk.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-col gap-3">
-                    <div className="rounded-[20px] bg-white px-4 py-3">
-                      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
-                        Rehearsals
-                      </div>
-                      <div className="mt-2 text-sm leading-5 text-gray-600">
-                        Plan sessions and update events without leaving the app.
-                      </div>
-                    </div>
-                    <div className="rounded-[20px] bg-white px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[goldenrod]/15">
-                          <img
-                            src={userIcon}
-                            alt="User profile icon"
-                            className="h-5 w-5"
-                          />
-                        </div>
-                        <div className="text-sm font-bold uppercase">
-                          Friends and invites
-                        </div>
-                      </div>
-                      <div className="mt-3 text-xs leading-5 text-gray-600">
-                        Keep access, recovery and onboarding connected to the
-                        same backend flow.
-                      </div>
-                    </div>
-                  </div>
+                <div className="mt-7 flex gap-2">
+                  <span className="h-2 w-8 rounded-full bg-white" />
+                  <span className="h-2 w-2 rounded-full bg-white/45" />
+                  <span className="h-2 w-2 rounded-full bg-white/45" />
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <section className="flex min-h-[calc(100vh-3rem)] w-full items-center justify-center self-center lg:min-h-0 lg:max-w-none">
-            <div className="neuphormism-b w-full max-w-[420px] rounded-[28px] px-5 py-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.8)] sm:max-w-[560px] sm:px-7 sm:py-6">
-              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
-                Account access
-              </div>
-              <div className="mt-3 text-2xl font-bold uppercase sm:text-3xl">
-                {subtitle}
-              </div>
-              <div className="mt-2 text-sm leading-6 text-gray-600">
-                Use the same routes and actions already connected to the
-                backend.
-              </div>
+            <section className="flex h-[calc(100dvh-2.5rem)] w-full items-center justify-center overflow-y-auto rounded-[6px] bg-[#f4f4f2] px-5 py-8 sm:px-8 lg:h-full lg:px-12">
+              <div className="w-full max-w-md">
+                <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full bg-[#efefef] text-xl font-black uppercase text-black shadow-[6px_6px_14px_rgba(180,180,180,0.65),-6px_-6px_14px_rgba(255,255,255,0.95)]">
+                  #
+                </div>
+                <div className="text-center text-[11px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
+                  Account access
+                </div>
+                <div className="mt-4 text-center text-2xl font-bold uppercase leading-tight sm:text-3xl">
+                  {subtitle}
+                </div>
+                <div className="mx-auto mt-3 max-w-sm text-center text-sm leading-6 text-gray-600">
+                  Use the same routes and actions already connected to the
+                  backend.
+                </div>
 
-              <div className="mt-6">{children}</div>
-            </div>
-          </section>
+                <div className="mt-8">{children}</div>
+              </div>
+            </section>
+          </main>
         </div>
       </div>
     </div>

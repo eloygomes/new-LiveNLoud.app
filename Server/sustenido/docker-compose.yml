@@ -49,7 +49,6 @@ services:
     restart: unless-stopped
     networks:
       - sustenido-network
-      - mailserver-network
 
   python_scraper:
     image: python:3.10-slim
@@ -76,27 +75,6 @@ services:
     networks:
       - sustenido-network
 
-  python_socketio:
-    image: python:3.10
-    container_name: sustenido_python_socketio_container
-    working_dir: /usr/src/app/socketio
-    volumes:
-      - ./python_socketio:/usr/src/app/socketio
-    command: >
-      sh -c "pip install --upgrade pip setuptools &&
-      pip install -r requirements.txt &&
-      sleep 15 &&
-      python tuner.py"
-    environment:
-      NODEJS_URL: http://node:3000/python
-    depends_on:
-      - node
-    restart: unless-stopped
-    networks:
-      - sustenido-network
-
 networks:
   sustenido-network:
     driver: bridge
-  mailserver-network:
-    external: true

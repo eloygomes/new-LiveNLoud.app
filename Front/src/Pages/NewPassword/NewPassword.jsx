@@ -93,6 +93,7 @@ function NewPassword() {
       subtitle={isResetMode ? "Set a secure new password" : "Request a reset link"}
       panelTitle="Secure the next session."
       panelCopy="Reset access without leaving the same authentication flow already connected to the backend."
+      hideHeader
     >
       <form
         onSubmit={isResetMode ? handleResetPassword : handleRequestReset}

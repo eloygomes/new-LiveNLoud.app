@@ -344,7 +344,7 @@ function EditSongInputLinkBox({
 
     try {
       notify("Load", "Carregando...");
-      await api.post("/api/scrape", {
+      await api.post("/api/v1/scrape", {
         artist: "",
         song: "",
         email: userEmail,

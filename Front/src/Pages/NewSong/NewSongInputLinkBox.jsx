@@ -433,7 +433,7 @@ function NewSongInputLinkBox({
     [setArtistName, setSongName, setArtistScrapado, setSongScrapado]
   );
 
-  /** Fluxo principal (sem enviar nada para /api/generalCifra — o Python cuida disso) */
+  /** Fluxo principal (sem enviar nada para /api/v1/generalCifra — o Python cuida disso) */
   const handleSubmit = useCallback(
     async (linkOverride) => {
       if (inFlightRef.current) return;

@@ -13,7 +13,7 @@ describe("Controllers", () => {
     vi.restoreAllMocks();
   });
 
-  it("falls back to cached song data when /api/allsongdata fails", async () => {
+  it("falls back to cached song data when /api/v1/allsongdata fails", async () => {
     const cachedSong = {
       artist: "Artist A",
       song: "Song A",

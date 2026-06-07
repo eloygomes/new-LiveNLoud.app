@@ -10,10 +10,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const youtubeRoutes = require("./youtube/youtube.routes");
 const cookieParser = require("cookie-parser");
-
-// Socket.IO
-const http = require("http");
-const { Server } = require("socket.io");
+const { createRuntime } = require("./server/runtime");
 
 const uri = process.env.MONGO_URI;
 if (!uri) {
@@ -50,54 +47,11 @@ const pythonApiUrl = process.env.PYTHON_API_URL || "http://python_scraper:8000";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const cors = require("cors");
-
-const LAN_DEV_ORIGIN_REGEX = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/;
-const CHROME_EXTENSION_ORIGIN_REGEX = /^chrome-extension:\/\/[a-p]{32}$/;
-const FIREFOX_EXTENSION_ORIGIN_REGEX = /^moz-extension:\/\/[0-9a-f-]+$/i;
-const isProduction = process.env.NODE_ENV === "production";
-
-function parseCsvEnv(value) {
-  return (value || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 const defaultAllowedOrigins = [
   "https://sustenido.eloygomes.com",
   "https://www.sustenido.eloygomes.com",
 ];
-
-const configuredAllowedOrigins = parseCsvEnv(process.env.CORS_ALLOWED_ORIGINS);
-const allowedOrigins = new Set(
-  configuredAllowedOrigins.length
-    ? configuredAllowedOrigins
-    : defaultAllowedOrigins,
-);
-
-function isAllowedDevOrigin(origin) {
-  return (
-    origin === "http://127.0.0.1:5173" ||
-    origin === "http://localhost:5173" ||
-    LAN_DEV_ORIGIN_REGEX.test(origin)
-  );
-}
-
-function isAllowedExtensionOrigin(origin) {
-  return (
-    CHROME_EXTENSION_ORIGIN_REGEX.test(origin) ||
-    FIREFOX_EXTENSION_ORIGIN_REGEX.test(origin)
-  );
-}
-
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-  if (allowedOrigins.has(origin)) return true;
-  if (isAllowedExtensionOrigin(origin)) return true;
-  if (!isProduction && isAllowedDevOrigin(origin)) return true;
-  return false;
-}
+const { applyCoreMiddleware } = createRuntime({ defaultAllowedOrigins });
 
 // Função para conectar ao banco de dados
 async function connectToDatabase() {
@@ -111,114 +65,12 @@ async function connectToDatabase() {
 
 connectToDatabase();
 
-// Crie o servidor HTTP a partir do Express
-const server = http.createServer(app);
-
-const io = new Server(server, {
-  path: "/socket.io",
-  cors: {
-    origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS"));
-    },
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
-    credentials: true,
-  },
-});
-
-// Namespaces
-const clientNamespace = io.of("/"); // Namespace padrão para clientes
-const pythonNamespace = io.of("/python"); // Namespace dedicado para o script Python
-
-// INSTRUÇÕES
-// •	messageToServer: Evento que o cliente emite para enviar dados ao servidor.
-// •	processData: Evento que o servidor emite para o script Python com os dados a serem processados.
-// •	processedData: Evento que o script Python emite para enviar os dados processados de volta ao servidor.
-// •	messageFromServer: Evento que o servidor emite para enviar os dados processados de volta ao cliente.
-
-// Handle client connections
-clientNamespace.on("connection", (socket) => {
-  const userEmail = socket.handshake.query.email;
-  const pipa = socket.handshake.query.pipa;
-
-  console.log("Usuário conectado:", socket.id, "Email:", userEmail);
-  console.log("FRONT", pipa);
-
-  if (userEmail) {
-    socket.join(userEmail);
-  }
-
-  // Escutar eventos do cliente
-  socket.on("messageToServer", ({ audioData, sampleRate }) => {
-    console.log("Audio chunk:", {
-      bytes: audioData?.length || audioData?.byteLength,
-      sampleRate,
-      id: socket.id,
-    });
-    pythonNamespace.emit("processData", {
-      clientId: socket.id,
-      audioData,
-      sampleRate,
-    });
-  });
-
-  socket.on("health", (data, cb) => {
-    cb && cb({ ok: true, ts: Date.now() });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Usuário desconectado:", socket.id);
-  });
-});
-
-// Handle Python script connections
-pythonNamespace.on("connection", (socket) => {
-  console.log(`Script Python conectado: ${socket.id}`);
-
-  // Receber dados processados do script Python
-  socket.on("processedData", (data) => {
-    console.log("Dados processados recebidos do Python:", data);
-
-    // Enviar os dados processados de volta ao cliente original
-    const clientId = data.clientId;
-    const clientSocket = clientNamespace.sockets.get(clientId);
-
-    if (clientSocket) {
-      clientSocket.emit("messageFromServer", data);
-      console.log("Dados processados enviados ao cliente:", clientId);
-    } else {
-      console.log("Cliente não encontrado:", clientId);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`Script Python desconectado: ${socket.id}`);
-  });
-});
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (isAllowedOrigin(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  }),
-);
-
-// Middleware para JSON com limite de tamanho adequado
-app.use(express.json({ limit: "50mb" }));
+applyCoreMiddleware(app);
 
 app.use(cookieParser());
 
 // ✅ exemplo (corrigido: usa o import já feito lá em cima)
-app.use("/api/youtube", youtubeRoutes);
+app.use("/api/v1/youtube", youtubeRoutes);
 
 // Servir arquivos estáticos da pasta uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -338,7 +190,7 @@ app.use((err, req, res, next) => {
 });
 
 app.post(
-  "/api/uploadProfileImage",
+  "/api/v1/uploadProfileImage",
   upload.single("profileImage"),
   async (req, res) => {
     try {
@@ -411,7 +263,7 @@ app.post(
   },
 );
 
-app.get("/api/profileImage/:email", async (req, res) => {
+app.get("/api/v1/profileImage/:email", async (req, res) => {
   try {
     const { email } = req.params;
 
@@ -541,7 +393,7 @@ async function waitForGeneralCifraDoc(
 }
 
 // Rota para chamar o serviço Python e realizar o scrape
-app.post("/api/scrape", async (req, res) => {
+app.post("/api/v1/scrape", async (req, res) => {
   console.log("[SCRAPE] called", { body: req.body });
 
   try {
@@ -635,7 +487,7 @@ app.post("/api/scrape", async (req, res) => {
 });
 
 // Rota para criar um novo usuário
-app.post("/api/signup", async (req, res) => {
+app.post("/api/v1/signup", async (req, res) => {
   try {
     const { userdata } = req.body;
     const normalizedEmail = normalizeEmail(userdata.email);
@@ -686,7 +538,7 @@ app.post("/api/signup", async (req, res) => {
 });
 
 // Rota para adicionar ou atualizar uma música
-app.post("/api/newsong", async (req, res) => {
+app.post("/api/v1/newsong", async (req, res) => {
   try {
     const { userdata } = req.body;
     const database = appDatabase();
@@ -837,7 +689,7 @@ app.post("/api/newsong", async (req, res) => {
 });
 
 // Rota para buscar uma música específica no banco de dados
-app.post("/api/allsongdata", async (req, res) => {
+app.post("/api/v1/allsongdata", async (req, res) => {
   try {
     const { email, artist, song } = req.body;
     const database = appDatabase();
@@ -879,7 +731,7 @@ app.post("/api/allsongdata", async (req, res) => {
 });
 
 // Rota para buscar e deletar uma música específica no banco de dados
-app.post("/api/deleteonesong", async (req, res) => {
+app.post("/api/v1/deleteonesong", async (req, res) => {
   console.log("deleteonesong");
   try {
     const { email, artist, song } = req.body;
@@ -911,7 +763,7 @@ app.post("/api/deleteonesong", async (req, res) => {
 });
 
 // Rota para obter todas as músicas de um usuário
-app.get("/api/alldata/:email", async (req, res) => {
+app.get("/api/v1/alldata/:email", async (req, res) => {
   try {
     const { email } = req.params;
     console.log(email);
@@ -933,7 +785,7 @@ app.get("/api/alldata/:email", async (req, res) => {
 });
 
 // Rota para buscar todos os dados de todos os usuários no banco de dados
-app.get("/api/alldata/", async (req, res) => {
+app.get("/api/v1/alldata/", async (req, res) => {
   try {
     const database = appDatabase();
     const collection = database.collection("data");
@@ -949,7 +801,7 @@ app.get("/api/alldata/", async (req, res) => {
 });
 
 // Rota para atualizar o nome do usuário
-app.put("/api/updateUsername", async (req, res) => {
+app.put("/api/v1/updateUsername", async (req, res) => {
   try {
     const { email, newUsername } = req.body;
 
@@ -986,7 +838,7 @@ app.put("/api/updateUsername", async (req, res) => {
 });
 
 // Rota para atualizar o last time played
-app.put("/api/lastPlay", async (req, res) => {
+app.put("/api/v1/lastPlay", async (req, res) => {
   try {
     const { email, song, artist, instrument } = req.body;
 
@@ -1104,7 +956,7 @@ app.put("/api/lastPlay", async (req, res) => {
 });
 
 // Rota para download user data em formato JSON
-app.get("/api/downloadUserData/:email", async (req, res) => {
+app.get("/api/v1/downloadUserData/:email", async (req, res) => {
   try {
     const { email } = req.params;
     const database = appDatabase();
@@ -1133,7 +985,7 @@ app.get("/api/downloadUserData/:email", async (req, res) => {
 });
 
 // Route to delete all songs while preserving the account shell.
-app.post("/api/deleteAllUserSongs", async (req, res) => {
+app.post("/api/v1/deleteAllUserSongs", async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email || "");
 
@@ -1220,7 +1072,7 @@ app.post("/api/deleteAllUserSongs", async (req, res) => {
 });
 
 // Rota para deletar a conta completa do usuário
-app.post("/api/deleteUserAccount", async (req, res) => {
+app.post("/api/v1/deleteUserAccount", async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email || "");
     const password = String(req.body?.password || "");
@@ -1292,7 +1144,7 @@ app.post("/api/deleteUserAccount", async (req, res) => {
 });
 
 // Rota para criar ou atualizar uma música no banco geral
-app.post("/api/createMusic", async (req, res) => {
+app.post("/api/v1/createMusic", async (req, res) => {
   try {
     const {
       song,
@@ -1698,11 +1550,6 @@ async function createNotification({
     _id: result.insertedId,
   };
 
-  clientNamespace.to(recipient.email).emit("notification:new", {
-    ...savedNotification,
-    _id: savedNotification._id.toString(),
-  });
-
   return savedNotification;
 }
 
@@ -1935,7 +1782,7 @@ const genRefreshToken = (id) =>
   jwt.sign({ userId: id }, process.env.REFRESH_SECRET, { expiresIn: "7d" });
 
 // Rota de cadastro
-app.post("/api/auth/signup", async (req, res) => {
+app.post("/api/v1/auth/signup", async (req, res) => {
   const email = normalizeEmail(req.body?.email || "");
   const password = String(req.body?.password || "");
   const fullName = String(req.body?.fullName || "").trim();
@@ -1968,10 +1815,10 @@ app.post("/api/auth/signup", async (req, res) => {
       .update(rawApprovalToken)
       .digest("hex");
     const approveUrl =
-      `${process.env.API_PUBLIC_BASE_URL || "https://api.sustenido.eloygomes.com"}/api/auth/approve-account` +
+      `${process.env.API_PUBLIC_BASE_URL || "https://api.sustenido.eloygomes.com"}/api/v1/auth/approve-account` +
       `?email=${encodeURIComponent(email)}&token=${encodeURIComponent(rawApprovalToken)}&decision=approve`;
     const rejectUrl =
-      `${process.env.API_PUBLIC_BASE_URL || "https://api.sustenido.eloygomes.com"}/api/auth/approve-account` +
+      `${process.env.API_PUBLIC_BASE_URL || "https://api.sustenido.eloygomes.com"}/api/v1/auth/approve-account` +
       `?email=${encodeURIComponent(email)}&token=${encodeURIComponent(rawApprovalToken)}&decision=reject`;
 
     await authCollection.insertOne({
@@ -2018,7 +1865,7 @@ app.post("/api/auth/signup", async (req, res) => {
 });
 
 // Rota de login
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/v1/auth/login", async (req, res) => {
   const email = normalizeEmail(req.body?.email || "");
   const password = String(req.body?.password || "");
   try {
@@ -2064,7 +1911,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-app.get("/api/auth/approve-account", async (req, res) => {
+app.get("/api/v1/auth/approve-account", async (req, res) => {
   const email = normalizeEmail(req.query?.email || "");
   const token = String(req.query?.token || "");
   const decision = String(req.query?.decision || "approve").toLowerCase();
@@ -2134,7 +1981,7 @@ app.get("/api/auth/approve-account", async (req, res) => {
   }
 });
 
-app.put("/api/auth/updatePassword", async (req, res) => {
+app.put("/api/v1/auth/updatePassword", async (req, res) => {
   const { email, currentPassword, newPassword } = req.body;
 
   if (!email || !currentPassword || !newPassword) {
@@ -2190,7 +2037,7 @@ app.put("/api/auth/updatePassword", async (req, res) => {
   }
 });
 
-app.post("/api/auth/request-password-reset", async (req, res) => {
+app.post("/api/v1/auth/request-password-reset", async (req, res) => {
   const email = String(req.body?.email || "")
     .trim()
     .toLowerCase();
@@ -2247,7 +2094,7 @@ app.post("/api/auth/request-password-reset", async (req, res) => {
   }
 });
 
-app.post("/api/auth/reset-password", async (req, res) => {
+app.post("/api/v1/auth/reset-password", async (req, res) => {
   const email = String(req.body?.email || "")
     .trim()
     .toLowerCase();
@@ -2315,7 +2162,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
 });
 
 // Rota de refresh token
-app.post("/api/auth/refresh", async (req, res) => {
+app.post("/api/v1/auth/refresh", async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) return res.sendStatus(401);
 
@@ -2403,14 +2250,14 @@ function runGuitarProUpload(req, res) {
 }
 
 // Rota protegida de teste
-app.get("/api/protected", authenticateJWT, (req, res) => {
+app.get("/api/v1/protected", authenticateJWT, (req, res) => {
   res.json({
     message: "Você acessou uma rota protegida!",
     userId: req.user.userId,
   });
 });
 
-app.get("/api/me", authenticateJWT, async (req, res) => {
+app.get("/api/v1/me", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2419,12 +2266,12 @@ app.get("/api/me", authenticateJWT, async (req, res) => {
 
     return res.json(currentUser);
   } catch (error) {
-    console.error("GET /api/me error:", error);
+    console.error("GET /api/v1/me error:", error);
     return res.status(500).json({ message: "Erro interno ao buscar usuário." });
   }
 });
 
-app.post("/api/guitarpro/upload", authenticateJWT, async (req, res) => {
+app.post("/api/v1/guitarpro/upload", authenticateJWT, async (req, res) => {
   let storedFilePath = "";
 
   try {
@@ -2528,7 +2375,7 @@ app.post("/api/guitarpro/upload", authenticateJWT, async (req, res) => {
   }
 });
 
-app.get("/api/guitarpro/files", authenticateJWT, async (req, res) => {
+app.get("/api/v1/guitarpro/files", authenticateJWT, async (req, res) => {
   try {
     const email = await requireAuthorizedSongOwner(req, res);
     if (!email) return;
@@ -2554,7 +2401,7 @@ app.get("/api/guitarpro/files", authenticateJWT, async (req, res) => {
   }
 });
 
-app.get("/api/guitarpro/file", authenticateJWT, async (req, res) => {
+app.get("/api/v1/guitarpro/file", authenticateJWT, async (req, res) => {
   try {
     const email = await requireAuthorizedSongOwner(req, res);
     if (!email) return;
@@ -2624,7 +2471,7 @@ app.get("/api/guitarpro/file", authenticateJWT, async (req, res) => {
   }
 });
 
-app.delete("/api/guitarpro/delete", authenticateJWT, async (req, res) => {
+app.delete("/api/v1/guitarpro/delete", authenticateJWT, async (req, res) => {
   try {
     const email = await requireAuthorizedSongOwner(req, res);
     if (!email) return;
@@ -2678,7 +2525,7 @@ app.delete("/api/guitarpro/delete", authenticateJWT, async (req, res) => {
   }
 });
 
-app.get("/api/users/search", authenticateJWT, async (req, res) => {
+app.get("/api/v1/users/search", authenticateJWT, async (req, res) => {
   try {
     const query = normalizeEmail(req.query?.q || "");
     const currentUser = await getCurrentUserProfile(req);
@@ -2715,12 +2562,12 @@ app.get("/api/users/search", authenticateJWT, async (req, res) => {
 
     return res.json(users);
   } catch (error) {
-    console.error("GET /api/users/search error:", error);
+    console.error("GET /api/v1/users/search error:", error);
     return res.status(500).json({ message: "Erro ao buscar usuários." });
   }
 });
 
-app.get("/api/notifications", authenticateJWT, async (req, res) => {
+app.get("/api/v1/notifications", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2735,12 +2582,12 @@ app.get("/api/notifications", authenticateJWT, async (req, res) => {
 
     return res.json(notifications.map(serializeNotification));
   } catch (error) {
-    console.error("GET /api/notifications error:", error);
+    console.error("GET /api/v1/notifications error:", error);
     return res.status(500).json({ message: "Erro ao buscar notificações." });
   }
 });
 
-app.get("/api/logs", authenticateJWT, async (req, res) => {
+app.get("/api/v1/logs", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2765,7 +2612,7 @@ app.get("/api/logs", authenticateJWT, async (req, res) => {
   }
 });
 
-app.put("/api/notifications/read-all", authenticateJWT, async (req, res) => {
+app.put("/api/v1/notifications/read-all", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2777,18 +2624,14 @@ app.put("/api/notifications/read-all", authenticateJWT, async (req, res) => {
       { $set: { read: true, updatedAt: new Date() } },
     );
 
-    clientNamespace.to(currentUser.email).emit("notification:read-all", {
-      userEmail: currentUser.email,
-    });
-
     return res.json({ message: "Notificações marcadas como lidas." });
   } catch (error) {
-    console.error("PUT /api/notifications/read-all error:", error);
+    console.error("PUT /api/v1/notifications/read-all error:", error);
     return res.status(500).json({ message: "Erro ao atualizar notificações." });
   }
 });
 
-app.put("/api/notifications/:id/read", authenticateJWT, async (req, res) => {
+app.put("/api/v1/notifications/:id/read", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2813,18 +2656,14 @@ app.put("/api/notifications/:id/read", authenticateJWT, async (req, res) => {
       return res.status(404).json({ message: "Notificação não encontrada." });
     }
 
-    clientNamespace.to(currentUser.email).emit("notification:updated", {
-      notification: serializeNotification(result),
-    });
-
     return res.json(serializeNotification(result));
   } catch (error) {
-    console.error("PUT /api/notifications/:id/read error:", error);
+    console.error("PUT /api/v1/notifications/:id/read error:", error);
     return res.status(500).json({ message: "Erro ao atualizar notificação." });
   }
 });
 
-app.get("/api/invitations", authenticateJWT, async (req, res) => {
+app.get("/api/v1/invitations", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2844,12 +2683,12 @@ app.get("/api/invitations", authenticateJWT, async (req, res) => {
 
     return res.json(invitations.map(serializeInvitation));
   } catch (error) {
-    console.error("GET /api/invitations error:", error);
+    console.error("GET /api/v1/invitations error:", error);
     return res.status(500).json({ message: "Erro ao buscar convites." });
   }
 });
 
-app.post("/api/invitations", authenticateJWT, async (req, res) => {
+app.post("/api/v1/invitations", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -2939,12 +2778,12 @@ app.post("/api/invitations", authenticateJWT, async (req, res) => {
 
     return res.status(201).json(serializeInvitation(savedInvitation));
   } catch (error) {
-    console.error("POST /api/invitations error:", error);
+    console.error("POST /api/v1/invitations error:", error);
     return res.status(500).json({ message: "Erro ao criar convite." });
   }
 });
 
-app.put("/api/invitations/:id/respond", authenticateJWT, async (req, res) => {
+app.put("/api/v1/invitations/:id/respond", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3044,12 +2883,12 @@ app.put("/api/invitations/:id/respond", authenticateJWT, async (req, res) => {
 
     return res.json(serializeInvitation(updatedInvitation));
   } catch (error) {
-    console.error("PUT /api/invitations/:id/respond error:", error);
+    console.error("PUT /api/v1/invitations/:id/respond error:", error);
     return res.status(500).json({ message: "Erro ao responder convite." });
   }
 });
 
-app.delete("/api/friends/:email", authenticateJWT, async (req, res) => {
+app.delete("/api/v1/friends/:email", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3100,12 +2939,12 @@ app.delete("/api/friends/:email", authenticateJWT, async (req, res) => {
 
     return res.json({ message: "Friendship revoked successfully." });
   } catch (error) {
-    console.error("DELETE /api/friends/:email error:", error);
+    console.error("DELETE /api/v1/friends/:email error:", error);
     return res.status(500).json({ message: "Erro ao revogar amizade." });
   }
 });
 
-app.get("/api/calendar/events", authenticateJWT, async (req, res) => {
+app.get("/api/v1/calendar/events", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3124,12 +2963,12 @@ app.get("/api/calendar/events", authenticateJWT, async (req, res) => {
 
     return res.json(events.map(serializeCalendarEvent));
   } catch (error) {
-    console.error("GET /api/calendar/events error:", error);
+    console.error("GET /api/v1/calendar/events error:", error);
     return res.status(500).json({ message: "Erro ao buscar eventos." });
   }
 });
 
-app.get("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
+app.get("/api/v1/calendar/events/:id", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3172,12 +3011,12 @@ app.get("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
           : "pending",
     });
   } catch (error) {
-    console.error("GET /api/calendar/events/:id error:", error);
+    console.error("GET /api/v1/calendar/events/:id error:", error);
     return res.status(500).json({ message: "Erro ao buscar evento." });
   }
 });
 
-app.post("/api/calendar/events", authenticateJWT, async (req, res) => {
+app.post("/api/v1/calendar/events", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3268,12 +3107,12 @@ app.post("/api/calendar/events", authenticateJWT, async (req, res) => {
 
     return res.status(201).json(serializeCalendarEvent(savedEvent));
   } catch (error) {
-    console.error("POST /api/calendar/events error:", error);
+    console.error("POST /api/v1/calendar/events error:", error);
     return res.status(500).json({ message: "Erro ao criar evento." });
   }
 });
 
-app.put("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
+app.put("/api/v1/calendar/events/:id", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3427,13 +3266,13 @@ app.put("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
 
     return res.json(serializeCalendarEvent(updatedEvent));
   } catch (error) {
-    console.error("PUT /api/calendar/events/:id error:", error);
+    console.error("PUT /api/v1/calendar/events/:id error:", error);
     return res.status(500).json({ message: "Erro ao atualizar evento." });
   }
 });
 
 app.put(
-  "/api/calendar/events/:id/respond",
+  "/api/v1/calendar/events/:id/respond",
   authenticateJWT,
   async (req, res) => {
     try {
@@ -3525,7 +3364,7 @@ app.put(
 
       return res.json({ event: serializeCalendarEvent(updatedEvent), status });
     } catch (error) {
-      console.error("PUT /api/calendar/events/:id/respond error:", error);
+      console.error("PUT /api/v1/calendar/events/:id/respond error:", error);
       return res
         .status(500)
         .json({ message: "Erro ao responder convite do evento." });
@@ -3533,7 +3372,7 @@ app.put(
   },
 );
 
-app.delete("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
+app.delete("/api/v1/calendar/events/:id", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3563,12 +3402,12 @@ app.delete("/api/calendar/events/:id", authenticateJWT, async (req, res) => {
 
     return res.json({ message: "Evento removido com sucesso." });
   } catch (error) {
-    console.error("DELETE /api/calendar/events/:id error:", error);
+    console.error("DELETE /api/v1/calendar/events/:id error:", error);
     return res.status(500).json({ message: "Erro ao remover evento." });
   }
 });
 
-app.post("/api/setlist-shares", authenticateJWT, async (req, res) => {
+app.post("/api/v1/setlist-shares", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3690,12 +3529,12 @@ app.post("/api/setlist-shares", authenticateJWT, async (req, res) => {
 
     return res.status(201).json(serializeSetlistShare(savedShare));
   } catch (error) {
-    console.error("POST /api/setlist-shares error:", error);
+    console.error("POST /api/v1/setlist-shares error:", error);
     return res.status(500).json({ message: "Erro ao compartilhar setlist." });
   }
 });
 
-app.get("/api/setlist-shares/:id", authenticateJWT, async (req, res) => {
+app.get("/api/v1/setlist-shares/:id", authenticateJWT, async (req, res) => {
   try {
     const currentUser = await getCurrentUserProfile(req);
     if (!currentUser) {
@@ -3726,13 +3565,13 @@ app.get("/api/setlist-shares/:id", authenticateJWT, async (req, res) => {
 
     return res.json(serializeSetlistShare(share));
   } catch (error) {
-    console.error("GET /api/setlist-shares/:id error:", error);
+    console.error("GET /api/v1/setlist-shares/:id error:", error);
     return res.status(500).json({ message: "Erro ao buscar setlist share." });
   }
 });
 
 app.put(
-  "/api/setlist-shares/:id/respond",
+  "/api/v1/setlist-shares/:id/respond",
   authenticateJWT,
   async (req, res) => {
     try {
@@ -3929,7 +3768,7 @@ app.put(
         mergedCount,
       });
     } catch (error) {
-      console.error("PUT /api/setlist-shares/:id/respond error:", error);
+      console.error("PUT /api/v1/setlist-shares/:id/respond error:", error);
       return res
         .status(500)
         .json({ message: "Erro ao responder setlist share." });
@@ -4139,7 +3978,7 @@ function withLinkNorm(subdoc = {}) {
   await collection.createIndex({ "instruments.voice": 1 });
 })();
 
-app.put("/api/updateSetlists", async (req, res) => {
+app.put("/api/v1/updateSetlists", async (req, res) => {
   try {
     const { email, setlists } = req.body;
 
@@ -4195,7 +4034,7 @@ app.put("/api/updateSetlists", async (req, res) => {
   }
 });
 
-app.get("/api/generalCifra", async (req, res) => {
+app.get("/api/v1/generalCifra", async (req, res) => {
   try {
     let { instrument, link } = req.query || {};
     if (!instrument || !link) {
@@ -4255,12 +4094,12 @@ app.get("/api/generalCifra", async (req, res) => {
 
     return res.status(200).json(doc);
   } catch (error) {
-    console.error("GET /api/generalCifra error:", error);
+    console.error("GET /api/v1/generalCifra error:", error);
     return res.status(500).json({ message: "Erro interno." });
   }
 });
 
-app.put("/api/song/updateExact", async (req, res) => {
+app.put("/api/v1/song/updateExact", async (req, res) => {
   try {
     const { email, updatedSong } = req.body;
 
@@ -4327,7 +4166,7 @@ app.put("/api/song/updateExact", async (req, res) => {
   }
 });
 
-app.put("/api/song/instrumentNotes", async (req, res) => {
+app.put("/api/v1/song/instrumentNotes", async (req, res) => {
   try {
     const { email, artist, song, instrument, notes = "" } = req.body;
     const normalizedInstrument = normalizeInstrument(instrument);
@@ -4404,7 +4243,6 @@ app.put("/api/song/instrumentNotes", async (req, res) => {
   }
 });
 
-// Inicie o servidor HTTP (Express + Socket.IO)
-server.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor rodando em http://0.0.0.0:${PORT}`);
 });

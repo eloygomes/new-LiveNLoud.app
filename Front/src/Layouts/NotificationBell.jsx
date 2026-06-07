@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaBell } from "react-icons/fa";
-import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import {
-  API_BASE,
   fetchCurrentUserProfile,
   fetchSetlistShare,
   fetchNotifications,
@@ -195,39 +193,6 @@ export default function NotificationBell() {
       mounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!profile?.email) return undefined;
-
-    const socket = io(API_BASE, {
-      path: "/socket.io",
-      transports: ["polling", "websocket"],
-      withCredentials: true,
-      query: { email: profile.email },
-    });
-
-    socket.on("notification:new", (notification) => {
-      setNotifications((current) => [notification, ...current]);
-    });
-
-    socket.on("notification:updated", ({ notification }) => {
-      setNotifications((current) =>
-        current.map((entry) =>
-          entry._id === notification._id ? notification : entry,
-        ),
-      );
-    });
-
-    socket.on("notification:read-all", () => {
-      setNotifications((current) =>
-        current.map((notification) => ({ ...notification, read: true })),
-      );
-    });
-
-    return () => {
-      socket.close();
-    };
-  }, [profile]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
