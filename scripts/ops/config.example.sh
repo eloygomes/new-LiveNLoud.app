@@ -32,6 +32,7 @@ SOFT_VERSION_TEST_FILE="src/Pages/Dashboard/SoftVersion.test.jsx"
 # Fill these with the real paths used by your live and sustenido deployments.
 LIVE_REMOTE_APP_DIR="/home/03/liveNloud"
 SUSTENIDO_REMOTE_APP_DIR="/home/sustenido/liveNloud"
+ADMIN_REMOTE_DIR="/home/Admin"
 
 COMPOSE_FILE="docker-compose.yml"
 MONGO_SERVICE="db"

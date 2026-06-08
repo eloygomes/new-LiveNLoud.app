@@ -67,6 +67,7 @@ services:
       python scrapper.py"
     environment:
       MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@db:27017/admin
+      APP_DATABASE_NAME: ${APP_DATABASE_NAME:-sustenido}
       CHROME_BINARY: /usr/bin/chromium
       TRUSTED_HOSTS: localhost,127.0.0.1,python_scraper,python_scraper:8000
     depends_on:

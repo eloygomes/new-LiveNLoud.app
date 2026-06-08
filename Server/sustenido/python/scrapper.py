@@ -1,4 +1,3 @@
-import os
 from urllib.parse import urlparse
 
 from flask import Flask, request, jsonify
@@ -8,14 +7,6 @@ from source_rules import detect_source
 from storage_service import store_in_mongo
 
 app = Flask(__name__)
-app.config["TRUSTED_HOSTS"] = [
-    host.strip()
-    for host in os.getenv(
-        "TRUSTED_HOSTS",
-        "localhost,127.0.0.1,python_scraper,python_scraper:8000",
-    ).split(",")
-    if host.strip()
-]
 
 
 def sanitize_scrape_link(link: str) -> str:
@@ -39,7 +30,13 @@ def scrape_and_store():
     print("[SCRAPER DEBUG] request.host =", request.host, flush=True)
     print("[SCRAPER DEBUG] Host header =", request.headers.get("Host"), flush=True)
     print("[SCRAPER DEBUG] headers =", dict(request.headers), flush=True)
-    data = request.json
+    data = request.get_json(silent=True) or {}
+
+    if not data:
+        return jsonify({
+            "message": "Invalid or missing JSON payload",
+            "details": "The scraper expected application/json with artist, song, instrument, email and link.",
+        }), 400
 
     link_url = sanitize_scrape_link(data.get('link'))
     artist = data.get('artist')

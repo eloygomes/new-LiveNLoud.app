@@ -419,9 +419,7 @@ app.post("/api/v1/scrape", async (req, res) => {
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
     console.time(requestLabel);
-    const response = await postJson(`${pythonApiUrl}/scrape`, pyPayload, {
-      Host: "localhost",
-    });
+    const response = await postJson(`${pythonApiUrl}/scrape`, pyPayload);
     console.timeEnd(requestLabel);
     console.log("[SCRAPE] python resp:", response.status, response.data);
 
@@ -475,10 +473,13 @@ app.post("/api/v1/scrape", async (req, res) => {
         details: pyDetails,
         error: error.response.data,
       });
-    } else if (error.request) {
+    } else if (error.request || error.name === "TypeError") {
       return res
-        .status(500)
-        .json({ message: "Nenhuma resposta recebida da API Python" });
+        .status(502)
+        .json({
+          message: "Nenhuma resposta recebida da API Python",
+          details: error?.message || "",
+        });
     }
     return res.status(500).json({
       message: "Erro na configuração da requisição para a API Python",
@@ -1268,6 +1269,10 @@ const invitationsCollection = authDatabase.collection("invitations");
 const calendarEventsCollection = authDatabase.collection("calendarEvents");
 const setlistSharesCollection = authDatabase.collection("setlistShares");
 const userLogsCollection = authDatabase.collection("userLogs");
+const analyticsEventsCollection = authDatabase.collection("analytics_events");
+const userActivationCollection = authDatabase.collection("user_activation");
+const userDailyMetricsCollection = authDatabase.collection("user_daily_metrics");
+const productMetricsDailyCollection = authDatabase.collection("product_metrics_daily");
 const FRONTEND_BASE_URL =
   process.env.FRONTEND_BASE_URL || "https://sustenido.eloygomes.com";
 const DEFAULT_USER_SETLISTS = [
@@ -1830,6 +1835,13 @@ app.post("/api/v1/auth/signup", async (req, res) => {
       userdata: " ",
     });
 
+    await recordBackendAnalyticsEvent({
+      eventName: "signup_completed",
+      eventCategory: "auth",
+      email,
+      properties: { approvalStatus: "pending" },
+    });
+
     let mailResult = { sent: false, reason: "not_attempted" };
     try {
       mailResult = await sendSignupApprovalRequestEmail({
@@ -1853,6 +1865,13 @@ app.post("/api/v1/auth/signup", async (req, res) => {
       };
     }
 
+    await recordBackendAnalyticsEvent({
+      eventName: mailResult.sent ? "email_confirmation_sent" : "email_confirmation_failed",
+      eventCategory: "auth",
+      email,
+      properties: { reason: mailResult.reason || "", delivery: mailResult.sent ? "sent" : "failed" },
+    });
+
     res.status(201).json({
       message: "Cadastro recebido e aguardando aprovacao.",
       approvalStatus: "pending",
@@ -1872,6 +1891,12 @@ app.post("/api/v1/auth/login", async (req, res) => {
     const user = await authCollection.findOne({ email });
     if (!user) {
       console.log("Usuário não encontrado:", email);
+      await recordBackendAnalyticsEvent({
+        eventName: "login_failed",
+        eventCategory: "auth",
+        email,
+        properties: { reason: "user_not_found" },
+      });
       return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
@@ -1880,10 +1905,24 @@ app.post("/api/v1/auth/login", async (req, res) => {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       console.log("Senha inválida para:", email);
+      await recordBackendAnalyticsEvent({
+        eventName: "login_failed",
+        eventCategory: "auth",
+        user,
+        email,
+        properties: { reason: "invalid_password" },
+      });
       return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
     if (user.approvalStatus === "rejected") {
+      await recordBackendAnalyticsEvent({
+        eventName: "login_failed",
+        eventCategory: "auth",
+        user,
+        email,
+        properties: { reason: "approval_rejected" },
+      });
       return res.status(403).json({
         error:
           "Sua conta nao foi aprovada. Entre em contato com o administrador.",
@@ -1891,6 +1930,13 @@ app.post("/api/v1/auth/login", async (req, res) => {
     }
 
     if (user.approvalStatus !== "approved") {
+      await recordBackendAnalyticsEvent({
+        eventName: "login_failed",
+        eventCategory: "auth",
+        user,
+        email,
+        properties: { reason: "approval_pending", approvalStatus: user.approvalStatus || "" },
+      });
       return res.status(403).json({
         error: "Sua conta ainda aguarda aprovacao.",
       });
@@ -1901,8 +1947,16 @@ app.post("/api/v1/auth/login", async (req, res) => {
 
     await authCollection.updateOne(
       { _id: user._id },
-      { $set: { refreshToken } },
+      { $set: { refreshToken, lastLoginAt: new Date() } },
     );
+
+    await recordBackendAnalyticsEvent({
+      eventName: "login_success",
+      eventCategory: "auth",
+      user,
+      email,
+      properties: { approvalStatus: user.approvalStatus || "" },
+    });
 
     res.json({ accessToken, refreshToken });
   } catch (err) {
@@ -2193,6 +2247,244 @@ function authenticateJWT(req, res, next) {
     next();
   });
 }
+
+let analyticsIndexesReady = false;
+
+async function ensureAnalyticsIndexes() {
+  if (analyticsIndexesReady) return;
+  await Promise.all([
+    analyticsEventsCollection.createIndex({ timestamp: -1 }),
+    analyticsEventsCollection.createIndex({ eventName: 1, timestamp: -1 }),
+    analyticsEventsCollection.createIndex({ userId: 1, timestamp: -1 }),
+    analyticsEventsCollection.createIndex({ sessionId: 1, timestamp: 1 }),
+    analyticsEventsCollection.createIndex({ email: 1, timestamp: -1 }),
+    analyticsEventsCollection.createIndex({ environment: 1, timestamp: -1 }),
+    analyticsEventsCollection.createIndex({ source: 1, timestamp: -1 }),
+    analyticsEventsCollection.createIndex({ "properties.songId": 1 }),
+    analyticsEventsCollection.createIndex({ "properties.instrument": 1, timestamp: -1 }),
+    userActivationCollection.createIndex({ userId: 1 }, { unique: true, sparse: true }),
+    userActivationCollection.createIndex({ email: 1 }, { unique: true, sparse: true }),
+    userDailyMetricsCollection.createIndex({ userId: 1, date: 1 }, { unique: true }),
+    productMetricsDailyCollection.createIndex({ date: 1, environment: 1, source: 1 }, { unique: true }),
+  ]);
+  analyticsIndexesReady = true;
+}
+
+function normalizeAnalyticsProperties(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !["password", "token", "refreshToken", "accessToken"].includes(key))
+      .map(([key, item]) => [key, typeof item === "string" ? item.slice(0, 1200) : item]),
+  );
+}
+
+function buildAnalyticsEvent(req, payload, userProfile = null) {
+  const eventName = String(payload.eventName || payload.event || "").trim();
+  if (!/^[a-zA-Z0-9_.:-]{2,80}$/.test(eventName)) {
+    return { error: "eventName invalido." };
+  }
+  const now = new Date();
+  const eventTimestamp = payload.timestamp ? new Date(payload.timestamp) : now;
+
+  return {
+    eventName,
+    eventCategory: String(payload.eventCategory || payload.category || "product").slice(0, 80),
+    userId: userProfile?.id || payload.userId || null,
+    email: normalizeEmail(userProfile?.email || payload.email || ""),
+    anonymousId: String(payload.anonymousId || "").slice(0, 160),
+    sessionId: String(payload.sessionId || "").slice(0, 160),
+    environment: process.env.NODE_ENV || "production",
+    source: String(payload.source || "web").slice(0, 80),
+    appVersion: String(payload.appVersion || process.env.APP_VERSION || "").slice(0, 40) || null,
+    timestamp: Number.isNaN(eventTimestamp.getTime()) ? now : eventTimestamp,
+    createdAt: now,
+    page: {
+      path: String(payload.page?.path || payload.path || "").slice(0, 500) || null,
+      title: String(payload.page?.title || "").slice(0, 160) || null,
+      referrer: String(payload.page?.referrer || req.headers["referer"] || "").slice(0, 500) || null,
+    },
+    device: {
+      userAgent: String(payload.device?.userAgent || req.headers["user-agent"] || "").slice(0, 1200) || null,
+      browser: String(payload.device?.browser || "").slice(0, 80) || null,
+      os: String(payload.device?.os || "").slice(0, 80) || null,
+      deviceType: String(payload.device?.deviceType || "").slice(0, 80) || null,
+      screenWidth: Number(payload.device?.screenWidth) || null,
+      screenHeight: Number(payload.device?.screenHeight) || null,
+      language: String(payload.device?.language || "").slice(0, 40) || null,
+    },
+    geo: {
+      country: null,
+      region: null,
+      city: null,
+    },
+    properties: normalizeAnalyticsProperties(payload.properties),
+    request: {
+      ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "",
+      userAgent: req.headers["user-agent"] || "",
+      path: req.headers["referer"] || "",
+    },
+  };
+}
+
+function eventDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString().slice(0, 10) : date.toISOString().slice(0, 10);
+}
+
+function activationFieldForEvent(eventName) {
+  return {
+    signup_completed: "signupCompletedAt",
+    email_confirmed: "emailConfirmedAt",
+    first_song_added: "firstSongAddedAt",
+    song_added: "firstSongAddedAt",
+    first_presentation_opened: "firstPresentationOpenedAt",
+    presentation_opened: "firstPresentationOpenedAt",
+    practice_started: "firstPracticeStartedAt",
+  }[eventName];
+}
+
+async function updateAnalyticsAggregates(event) {
+  const date = eventDateKey(event.timestamp);
+  const userKey = event.userId || event.email || event.anonymousId;
+  const eventName = event.eventName;
+  const metricIncrements = {
+    events: 1,
+    signups: eventName === "signup_completed" ? 1 : 0,
+    logins: eventName === "login_success" ? 1 : 0,
+    songsAdded: ["first_song_added", "song_added"].includes(eventName) ? 1 : 0,
+    presentationsOpened: ["first_presentation_opened", "presentation_opened"].includes(eventName) ? 1 : 0,
+    practiceStarted: eventName === "practice_started" ? 1 : 0,
+    practiceFinished: eventName === "practice_finished" ? 1 : 0,
+    errors: ["frontend_error", "api_error", "smtp_error", "safari_error"].includes(eventName) ? 1 : 0,
+  };
+
+  if (userKey) {
+    await userDailyMetricsCollection.updateOne(
+      { userId: event.userId || event.email || event.anonymousId, date },
+      {
+        $setOnInsert: {
+          userId: event.userId || event.email || event.anonymousId,
+          email: event.email || null,
+          anonymousId: event.anonymousId || null,
+          date,
+          createdAt: new Date(),
+        },
+        $set: { updatedAt: new Date() },
+        $inc: metricIncrements,
+      },
+      { upsert: true },
+    );
+
+    const activationField = activationFieldForEvent(eventName);
+    if (activationField && (event.userId || event.email)) {
+      const setOnInsert = {
+        createdAt: new Date(),
+      };
+      if (event.userId) setOnInsert.userId = event.userId;
+      if (event.email) setOnInsert.email = event.email;
+      await userActivationCollection.updateOne(
+        event.userId ? { userId: event.userId } : { email: event.email },
+        {
+          $setOnInsert: setOnInsert,
+          $set: { updatedAt: new Date() },
+          $min: { [activationField]: event.timestamp },
+        },
+        { upsert: true },
+      );
+
+      if (["practice_started", "practice_finished"].includes(eventName)) {
+        await userActivationCollection.updateOne(
+          event.userId ? { userId: event.userId } : { email: event.email },
+          { $min: { activatedAt: event.timestamp } },
+        );
+      }
+    }
+  }
+
+  await productMetricsDailyCollection.updateOne(
+    { date, environment: event.environment, source: event.source },
+    {
+      $setOnInsert: { date, environment: event.environment, source: event.source, createdAt: new Date() },
+      $set: { updatedAt: new Date() },
+      $inc: metricIncrements,
+    },
+    { upsert: true },
+  );
+}
+
+async function recordBackendAnalyticsEvent({
+  eventName,
+  eventCategory = "backend",
+  user = null,
+  email = "",
+  properties = {},
+}) {
+  try {
+    const now = new Date();
+    const event = {
+      eventName,
+      eventCategory,
+      userId: user?._id ? String(user._id) : null,
+      email: normalizeEmail(user?.email || email || ""),
+      anonymousId: null,
+      sessionId: `backend_${now.toISOString().slice(0, 10)}`,
+      environment: process.env.NODE_ENV || "production",
+      source: "backend",
+      appVersion: process.env.APP_VERSION || null,
+      timestamp: now,
+      createdAt: now,
+      page: { path: null, title: null, referrer: null },
+      device: { userAgent: null, browser: null, os: null, deviceType: null, screenWidth: null, screenHeight: null, language: null },
+      geo: { country: null, region: null, city: null },
+      properties: normalizeAnalyticsProperties(properties),
+      request: { ip: "", userAgent: "", path: "" },
+    };
+
+    await ensureAnalyticsIndexes();
+    await analyticsEventsCollection.insertOne(event);
+    await updateAnalyticsAggregates(event);
+  } catch (error) {
+    console.error("Erro ao registrar analytics backend:", error);
+  }
+}
+
+app.post("/api/v1/analytics/track", authenticateJWT, async (req, res) => {
+  try {
+    const userProfile = await getCurrentUserProfile(req);
+    if (!userProfile?.email) return res.sendStatus(403);
+
+    const event = buildAnalyticsEvent(req, req.body || {}, userProfile);
+    if (event.error) return res.status(400).json({ message: event.error });
+
+    await ensureAnalyticsIndexes();
+    await analyticsEventsCollection.insertOne(event);
+    await updateAnalyticsAggregates(event);
+    return res.status(201).json({ ok: true });
+  } catch (error) {
+    console.error("Erro ao registrar analytics:", error);
+    return res.status(500).json({ message: "Erro ao registrar analytics." });
+  }
+});
+
+app.post("/api/v1/analytics/track-public", async (req, res) => {
+  if (process.env.ANALYTICS_PUBLIC_ENABLED !== "true") {
+    return res.sendStatus(404);
+  }
+
+  try {
+    const event = buildAnalyticsEvent(req, req.body || {});
+    if (event.error) return res.status(400).json({ message: event.error });
+
+    await ensureAnalyticsIndexes();
+    await analyticsEventsCollection.insertOne(event);
+    await updateAnalyticsAggregates(event);
+    return res.status(201).json({ ok: true });
+  } catch (error) {
+    console.error("Erro ao registrar analytics publico:", error);
+    return res.status(500).json({ message: "Erro ao registrar analytics." });
+  }
+});
 
 async function requireAuthorizedSongOwner(req, res) {
   const requestedEmail = normalizeEmail(req.body?.email || req.query?.email || "");

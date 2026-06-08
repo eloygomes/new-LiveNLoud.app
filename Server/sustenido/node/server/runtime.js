@@ -80,6 +80,10 @@ function createRuntime({
   }
 
   function applyCoreMiddleware(app) {
+    if (isProduction) {
+      app.set("trust proxy", 1);
+    }
+
     app.use(corsMiddleware);
     app.use(apiVersionCompatibility);
     app.use("/api", apiLimiter);

@@ -1,0 +1,45 @@
+{
+  "name": "livenloud-admin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5174",
+    "dev:server": "node server/index.js",
+    "start": "node server/index.js",
+    "build": "vite build",
+    "build:admin": "VITE_ADMIN_API_BASE_URL=/api vite build --mode sustenido",
+    "build:sustenido": "VITE_ADMIN_API_BASE_URL=/api vite build --mode sustenido",
+    "preview": "vite preview --port 4174",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "bcrypt": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.468.0",
+    "mongodb": "^6.8.0",
+    "nodemailer": "^8.0.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.1.5",
+    "vite": "^7.3.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.3",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "jsdom": "^27.0.1",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.7",
+    "vitest": "^3.2.4"
+  }
+}
