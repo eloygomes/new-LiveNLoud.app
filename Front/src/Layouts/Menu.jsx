@@ -29,6 +29,11 @@ export default function RootLayouts() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const oauthPopupStatus = new URLSearchParams(location.search).get("yt");
+  if (location.pathname === "/" && oauthPopupStatus) {
+    return <Outlet />;
+  }
+
   const isDashboardRoute = location.pathname === "/";
   const isToolsRoute = location.pathname === "/tools";
   const isToolDetailRoute = [

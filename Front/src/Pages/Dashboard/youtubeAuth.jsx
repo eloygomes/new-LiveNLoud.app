@@ -129,14 +129,14 @@ export async function startYouTubeLoginPopup(arg = "/dashboard") {
       const data = ev.data;
       if (!data || typeof data !== "object") return;
 
-      if (data.type === "YT_OAUTH_OK") {
-        console.log("[YT AUTH] popup reported success", data);
+      if (data.type === "YT_EXPORT_OK") {
+        console.log("[YT AUTH] popup reported export success", data);
         cleanup();
-        resolve(true);
+        resolve(data);
         return;
       }
 
-      if (data.type === "YT_OAUTH_ERROR") {
+      if (data.type === "YT_EXPORT_ERROR" || data.type === "YT_OAUTH_ERROR") {
         console.log("[YT AUTH] popup reported error", data);
         cleanup();
         reject(new Error(data.message || "OAuth erro"));

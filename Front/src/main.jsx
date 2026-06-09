@@ -34,6 +34,7 @@ import ToolsHub from "./Pages/Tools/ToolsHub";
 import { registerServiceWorker } from "./registerServiceWorker";
 import {
   ensureAuthenticatedSession,
+  exportYouTubePlaylist,
   isOfflineModeEnabled,
   markOfflineReauthRequired,
 } from "./Tools/Controllers";
@@ -76,41 +77,144 @@ const ProtectedRoute = ({ element: Component, ...rest }) => {
   );
 };
 
+function pickStoredJwtToken() {
+  const keys = ["accessToken", "access_token", "jwt", "token"];
+  for (const key of keys) {
+    const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+    if (value && String(value).trim()) return String(value).trim();
+  }
+  return null;
+}
+
+function normalizeSongsForYouTubeExport(list = []) {
+  return (list || [])
+    .map((song) => ({
+      song: String(song?.song || song?.title || song?.name || "").trim(),
+      artist: String(song?.artist || "").trim(),
+    }))
+    .filter((song) => song.song);
+}
+
 // ✅ Dedicated popup completion route for YouTube OAuth
 const YouTubePopupDone = () => {
   const [searchParams] = useSearchParams();
   const yt = searchParams.get("yt");
   const reason = searchParams.get("reason");
-  const [seconds, setSeconds] = React.useState(3);
+  const [seconds, setSeconds] = React.useState(null);
+  const [status, setStatus] = React.useState(
+    yt === "ok" ? "working" : "error",
+  );
+  const [message, setMessage] = React.useState(
+    yt === "ok"
+      ? "Criando playlist no YouTube..."
+      : `Nao foi possivel concluir a autenticacao${reason ? `: ${reason}` : "."}`,
+  );
+  const [summary, setSummary] = React.useState("");
 
   React.useEffect(() => {
-    // Try to notify the opener that OAuth finished.
-    // This can be blocked if COOP is set to `same-origin` (fix via NGINX: same-origin-allow-popups).
-    try {
-      window.opener?.postMessage(
-        yt === "ok"
-          ? { type: "YT_OAUTH_OK", href: window.location.href }
-          : {
-              type: "YT_OAUTH_ERROR",
-              href: window.location.href,
-              message: reason || "OAuth do YouTube falhou.",
-            },
-        window.location.origin,
-      );
-    } catch (e) {
-      // Do not hard-fail; user can still close manually.
-      console.error("[YT DONE] failed to postMessage to opener", e);
+    let active = true;
+
+    async function finishWithError(errorMessage) {
+      if (!active) return;
+      setStatus("error");
+      setMessage(errorMessage);
+      setSeconds(5);
+      try {
+        window.opener?.postMessage(
+          {
+            type: "YT_EXPORT_ERROR",
+            href: window.location.href,
+            message: errorMessage,
+          },
+          window.location.origin,
+        );
+      } catch (e) {
+        console.error("[YT DONE] failed to postMessage export error", e);
+      }
     }
 
-    const id = setInterval(() => {
-      setSeconds((s) => s - 1);
-    }, 1000);
+    async function exportFromPopupStorage() {
+      if (yt !== "ok") {
+        await finishWithError(
+          reason || "OAuth do YouTube falhou. Tente novamente.",
+        );
+        return;
+      }
 
-    return () => clearInterval(id);
+      try {
+        const playlistName = String(
+          sessionStorage.getItem("youtube_playlist_name") || "",
+        ).trim();
+        const rawSongs = sessionStorage.getItem("youtube_playlist_songs") || "[]";
+        const songs = normalizeSongsForYouTubeExport(JSON.parse(rawSongs));
+        const token = pickStoredJwtToken();
+
+        if (!playlistName || !songs.length) {
+          throw new Error("Nao encontrei nome ou musicas para exportar.");
+        }
+
+        if (!token) {
+          throw new Error("Nao encontrei o token do usuario. Faca login novamente.");
+        }
+
+        const data = await exportYouTubePlaylist({
+          playlistName,
+          songs,
+          privacyStatus: "public",
+          token,
+        });
+
+        if (!active) return;
+
+        sessionStorage.removeItem("youtube_playlist_name");
+        sessionStorage.removeItem("youtube_playlist_songs");
+        sessionStorage.removeItem("yt_export_attempted");
+
+        const added = data?.added ?? "?";
+        const notFound = data?.notFound?.length ?? 0;
+        setStatus("success");
+        setMessage("Playlist criada no YouTube.");
+        setSummary(`Itens adicionados: ${added}. Nao encontrados: ${notFound}.`);
+        setSeconds(3);
+
+        try {
+          window.opener?.postMessage(
+            {
+              type: "YT_EXPORT_OK",
+              href: window.location.href,
+              added,
+              notFound,
+            },
+            window.location.origin,
+          );
+        } catch (e) {
+          console.error("[YT DONE] failed to postMessage export success", e);
+        }
+      } catch (error) {
+        await finishWithError(
+          `Falha ao criar playlist: ${error?.message || "erro"}`,
+        );
+      }
+    }
+
+    exportFromPopupStorage();
+
+    return () => {
+      active = false;
+    };
   }, [yt, reason]);
 
   React.useEffect(() => {
-    if (seconds <= 0) {
+    if (seconds === null) return undefined;
+    const id = setInterval(() => {
+      setSeconds((s) => (s === null ? null : s - 1));
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [seconds]);
+
+  React.useEffect(() => {
+    if (seconds !== null && seconds <= 0) {
       try {
         window.close();
       } catch {
@@ -119,8 +223,8 @@ const YouTubePopupDone = () => {
     }
   }, [seconds]);
 
-  const canClose = seconds > 0;
-  const isOk = yt === "ok";
+  const canClose = seconds === null || seconds > 0;
+  const isOk = status === "success";
 
   return (
     <div
@@ -146,22 +250,29 @@ const YouTubePopupDone = () => {
         }}
       >
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
-          {isOk ? "YouTube conectado" : "Falha no YouTube"}
+          {status === "working"
+            ? "Criando playlist"
+            : isOk
+              ? "Playlist criada"
+              : "Falha no YouTube"}
         </div>
 
-        {isOk ? (
-          <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 14 }}>
-            Autenticação concluída. A playlist será criada na janela principal.
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 8 }}>
+          {message}
+        </div>
+
+        {summary ? (
+          <div style={{ fontSize: 12, opacity: 0.78, marginBottom: 14 }}>
+            {summary}
           </div>
-        ) : (
-          <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 14 }}>
-            Não foi possível concluir a autenticação
-            {reason ? `: ${reason}` : "."}
-          </div>
-        )}
+        ) : null}
 
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 14 }}>
-          {canClose ? `Fechando automaticamente em ${seconds}s…` : "Fechando…"}
+          {seconds === null
+            ? "Aguarde..."
+            : canClose
+              ? `Fechando automaticamente em ${seconds}s...`
+              : "Fechando..."}
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -211,6 +322,15 @@ const PresentationRoute = () => {
   );
 };
 
+const DashboardRoute = () => {
+  const [searchParams] = useSearchParams();
+  return searchParams.has("yt") ? (
+    <YouTubePopupDone />
+  ) : (
+    <ProtectedRoute element={Dashboard} />
+  );
+};
+
 // Configuração das rotas
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -237,7 +357,7 @@ const router = createBrowserRouter(
           path="/chordlibrary"
           element={<ProtectedRoute element={ChordLibrary} />}
         />
-        <Route path="/" element={<ProtectedRoute element={Dashboard} />} />
+        <Route path="/" element={<DashboardRoute />} />
         <Route
           path="/editsong/:artist/:song"
           element={<ProtectedRoute element={EditSong} />}

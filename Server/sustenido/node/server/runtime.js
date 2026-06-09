@@ -18,7 +18,7 @@ function createRuntime({
   apiRateLimitWindowMs = Number(
     process.env.API_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000,
   ),
-  apiRateLimitMax = Number(process.env.API_RATE_LIMIT_MAX || 100),
+  apiRateLimitMax = Number(process.env.API_RATE_LIMIT_MAX || 1000),
 } = {}) {
   const isProduction = process.env.NODE_ENV === "production";
   const configuredAllowedOrigins = parseCsvEnv(

@@ -1018,6 +1018,25 @@ export async function requestYouTubeAuthUrl({ returnTo = "/dashboard", token }) 
   return data?.url || "";
 }
 
+export async function exportYouTubePlaylist({
+  playlistName,
+  songs,
+  privacyStatus = "public",
+  token,
+}) {
+  const { data } = await fetchApi.post(
+    "/api/v1/youtube/export",
+    {
+      playlistName,
+      songs,
+      privacyStatus,
+    },
+    token ? { headers: { Authorization: `Bearer ${token}` } } : {},
+  );
+
+  return data;
+}
+
 export async function tryOfflineLogin(userEmail = "") {
   if (typeof window === "undefined") return false;
 

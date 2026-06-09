@@ -5,6 +5,7 @@ import { FaSpotify, FaYoutube } from "react-icons/fa";
 import { pickJwtToken, startYouTubeLoginPopup } from "./youtubeAuth";
 import { startSpotifyLogin } from "./spotifyAuth";
 import { formatDisplayDate } from "../../Tools/dateFormat";
+import { exportYouTubePlaylist } from "../../Tools/Controllers";
 
 function normalizeSongsForExport(list = []) {
   // Backend expects: [{ song, artist }]
@@ -106,18 +107,21 @@ export default function PlaylistExport({ visibleSongs = [] }) {
       setStatusLine("Abrindo login do YouTube (popup)…");
 
       try {
-        await startYouTubeLoginPopup({
+        const result = await startYouTubeLoginPopup({
           // IMPORTANT: return to a page that mounts this component in the popup.
           // Now using dedicated /yt/done route for popup completion.
           returnTo: "/yt/done",
         });
 
-        // After popup success, trigger export directly from current page.
-        setStatusLine("Conectado. Iniciando exportação…");
-        window.postMessage(
-          { type: "YT_OAUTH_OK", from: "self" },
-          window.location.origin,
+        setStatusLine(
+          `✅ Playlist criada! Itens adicionados: ${
+            result?.added ?? "?"
+          } • Não encontrados: ${result?.notFound ?? 0}`,
         );
+        sessionStorage.removeItem("youtube_playlist_name");
+        sessionStorage.removeItem("youtube_playlist_songs");
+        sessionStorage.removeItem("yt_export_attempted");
+        setMode("idle");
       } catch (e) {
         console.error("[YT EXPORT] popup auth failed", e);
         setMode("idle");
@@ -229,38 +233,12 @@ export default function PlaylistExport({ visibleSongs = [] }) {
             //   privacyStatus: "public",
             // });
 
-            const resp = await fetch("/api/v1/youtube/export", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                playlistName: name,
-                songs: payloadSongs,
-                privacyStatus: "public",
-              }),
+            const data = await exportYouTubePlaylist({
+              playlistName: name,
+              songs: payloadSongs,
+              privacyStatus: "public",
+              token,
             });
-
-            const respText = await resp.text().catch(() => "");
-            // console.log("[YT EXPORT] response", {
-            //   ok: resp.ok,
-            //   status: resp.status,
-            //   textPreview: respText.slice(0, 400),
-            // });
-
-            let data = {};
-            try {
-              data = respText ? JSON.parse(respText) : {};
-            } catch {
-              data = { raw: respText };
-            }
-
-            if (!resp.ok) {
-              const msg =
-                data?.message || data?.error || `Erro HTTP ${resp.status}`;
-              throw new Error(msg);
-            }
 
             if (cancelled) return;
 

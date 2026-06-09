@@ -103,22 +103,24 @@ describe("PlaylistExport", () => {
     );
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith("/api/v1/youtube/export", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer jwt-token",
-        },
-        body: JSON.stringify({
-          playlistName: "YT List",
-          songs: [
-            { song: "Oceans", artist: "Hillsong" },
-            { song: "Another Song", artist: "Band" },
-          ],
-          privacyStatus: "public",
-        }),
-      });
+      expect(fetchMock).toHaveBeenCalled();
     });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.live.eloygomes.com/api/v1/youtube/export");
+    expect(options.method).toBe("POST");
+    expect(options.headers.get("Content-Type")).toBe("application/json");
+    expect(options.headers.get("Authorization")).toBe("Bearer jwt-token");
+    expect(options.body).toBe(
+      JSON.stringify({
+        playlistName: "YT List",
+        songs: [
+          { song: "Oceans", artist: "Hillsong" },
+          { song: "Another Song", artist: "Band" },
+        ],
+        privacyStatus: "public",
+      }),
+    );
 
     expect(
       await screen.findByText(/playlist criada! itens adicionados: 2/i),
