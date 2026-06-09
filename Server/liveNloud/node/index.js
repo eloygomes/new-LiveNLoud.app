@@ -16,7 +16,12 @@ const uri = process.env.MONGO_URI;
 if (!uri) {
   throw new Error("MONGO_URI environment variable is required");
 }
+if (!process.env.ACCESS_SECRET || !process.env.REFRESH_SECRET) {
+  throw new Error("ACCESS_SECRET and REFRESH_SECRET environment variables are required");
+}
 const client = new MongoClient(uri);
+const APP_DATABASE_NAME = process.env.APP_DATABASE_NAME || "liveNloud_";
+const appDatabase = () => client.db(APP_DATABASE_NAME);
 
 async function postJson(url, payload, headers = {}) {
   const response = await fetch(url, {
@@ -565,7 +570,7 @@ app.post("/api/v1/signup", async (req, res) => {
 });
 
 // Rota para adicionar ou atualizar uma música
-app.post("/api/v1/newsong", async (req, res) => {
+app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
   try {
     let { userdata } = req.body;
     const { databaseComing, collectionComing } = req.body;
@@ -586,6 +591,15 @@ app.post("/api/v1/newsong", async (req, res) => {
       });
     }
 
+    const ownerEmail = await requireSameUserEmail(
+      req,
+      res,
+      userdata.email,
+      "Usuario nao autorizado para criar ou atualizar esta musica.",
+    );
+    if (!ownerEmail) return;
+
+    userdata.email = ownerEmail;
     userdata = await hydrateUserdataFromGeneralCifra(userdata);
 
     const query = { email: userdata.email };
@@ -727,10 +741,18 @@ app.post("/api/v1/newsong", async (req, res) => {
 });
 
 // Rota para buscar uma música específica no banco de dados
-app.post("/api/v1/allsongdata", async (req, res) => {
+app.post("/api/v1/allsongdata", authenticateJWT, async (req, res) => {
   try {
     const { email, artist, song } = req.body;
-    const database = client.db("liveNloud_");
+    const ownerEmail = await requireSameUserEmail(
+      req,
+      res,
+      email,
+      "Usuario nao autorizado para consultar esta musica.",
+    );
+    if (!ownerEmail) return;
+
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Verifica se os parâmetros foram passados
@@ -741,7 +763,7 @@ app.post("/api/v1/allsongdata", async (req, res) => {
     }
 
     // Busca o documento pelo email
-    const user = await collection.findOne({ email: email });
+    const user = await collection.findOne({ email: ownerEmail });
 
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado." });
@@ -769,11 +791,18 @@ app.post("/api/v1/allsongdata", async (req, res) => {
 });
 
 // Rota para buscar e deletar uma música específica no banco de dados
-app.post("/api/v1/deleteonesong", async (req, res) => {
-  console.log("deleteonesong");
+app.post("/api/v1/deleteonesong", authenticateJWT, async (req, res) => {
   try {
     const { email, artist, song } = req.body;
-    const database = client.db("liveNloud_");
+    const ownerEmail = await requireSameUserEmail(
+      req,
+      res,
+      email,
+      "Usuario nao autorizado para deletar esta musica.",
+    );
+    if (!ownerEmail) return;
+
+    const database = appDatabase();
     const collection = database.collection("data");
 
     // Verifica se os parâmetros foram passados
@@ -785,7 +814,7 @@ app.post("/api/v1/deleteonesong", async (req, res) => {
 
     // Busca o documento pelo email e remove a música específica do array 'userdata'
     const updateResult = await collection.updateOne(
-      { email: email },
+      { email: ownerEmail },
       { $pull: { userdata: { artist: artist, song: song } } },
     );
 
@@ -801,14 +830,21 @@ app.post("/api/v1/deleteonesong", async (req, res) => {
 });
 
 // Rota para obter todas as músicas de um usuário
-app.get("/api/v1/alldata/:email", async (req, res) => {
+app.get("/api/v1/alldata/:email", authenticateJWT, async (req, res) => {
   try {
     const { email } = req.params;
-    console.log(email);
-    const database = client.db("liveNloud_");
+    const ownerEmail = await requireSameUserEmail(
+      req,
+      res,
+      email,
+      "Usuario nao autorizado para consultar estes dados.",
+    );
+    if (!ownerEmail) return;
+
+    const database = appDatabase();
     const collection = database.collection("data");
 
-    const user = await collection.findOne({ email: email });
+    const user = await collection.findOne({ email: ownerEmail });
 
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado." });
@@ -1023,11 +1059,15 @@ app.get("/api/v1/downloadUserData/:email", async (req, res) => {
 });
 
 // Route to delete all songs while preserving the account shell.
-app.post("/api/v1/deleteAllUserSongs", async (req, res) => {
+app.post("/api/v1/deleteAllUserSongs", authenticateJWT, async (req, res) => {
   try {
-    const email = normalizeEmail(req.body?.email || "");
-
-    console.log("Received request to delete songs for email:", email);
+    const email = await requireSameUserEmail(
+      req,
+      res,
+      req.body?.email,
+      "Usuario nao autorizado para deletar estas musicas.",
+    );
+    if (!email) return;
 
     // Validate that email is provided
     if (!email) {
@@ -1035,7 +1075,7 @@ app.post("/api/v1/deleteAllUserSongs", async (req, res) => {
       return res.status(400).json({ message: "Email is required." });
     }
 
-    const database = client.db("liveNloud_"); // Your database name
+    const database = appDatabase(); // Your database name
     const collection = database.collection("data"); // Your collection name
 
     // Find the user document
@@ -1045,9 +1085,6 @@ app.post("/api/v1/deleteAllUserSongs", async (req, res) => {
       console.log(`User with email ${email} not found.`);
       return res.status(404).json({ message: "User not found." });
     }
-
-    // Log the current userdata
-    console.log(`Current userdata for ${email}:`, user.userdata);
 
     // Ensure userdata is an array
     if (!Array.isArray(user.userdata)) {
@@ -1096,7 +1133,6 @@ app.post("/api/v1/deleteAllUserSongs", async (req, res) => {
 
     // Fetch the updated document to confirm the changes
     const updatedUser = await collection.findOne({ email: email });
-    console.log(`Updated userdata for ${email}:`, updatedUser.userdata);
 
     return res.status(200).json({
       message: "Todas as músicas do usuário foram deletadas com sucesso!",
@@ -1110,22 +1146,24 @@ app.post("/api/v1/deleteAllUserSongs", async (req, res) => {
 });
 
 // Rota para deletar a conta completa do usuário
-app.post("/api/v1/deleteUserAccount", async (req, res) => {
+app.post("/api/v1/deleteUserAccount", authenticateJWT, async (req, res) => {
   try {
-    const email = normalizeEmail(req.body?.email || "");
+    const email = await requireSameUserEmail(
+      req,
+      res,
+      req.body?.email,
+      "Usuario nao autorizado para deletar esta conta.",
+    );
+    if (!email) return;
     const password = String(req.body?.password || "");
-    console.log("deleting:", email);
-
-    console.log("Recebido pedido para deletar conta do email:", email);
 
     if (!email || !password) {
-      console.log("Email não fornecido no pedido.");
       return res
         .status(400)
         .json({ message: "Email e senha sao obrigatorios." });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
     const profileImages = database.collection("profileImages");
     const authUser = await authCollection.findOne({ email });
@@ -1313,7 +1351,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 // Modelo AuthUser (usando o próprio MongoClient, sem mongoose)
-const authDatabase = client.db("liveNloud_");
+const authDatabase = appDatabase();
 const authCollection = authDatabase.collection("authUsers");
 const userDataCollection = authDatabase.collection("data");
 const notificationsCollection = authDatabase.collection("notifications");
@@ -1331,6 +1369,14 @@ const DEFAULT_USER_SETLISTS = [
   "drums",
   "voice",
 ];
+const MIN_BCRYPT_ROUNDS = 12;
+const BCRYPT_ROUNDS = (() => {
+  const parsed = Number(process.env.BCRYPT_ROUNDS || MIN_BCRYPT_ROUNDS);
+  if (!Number.isInteger(parsed) || parsed < MIN_BCRYPT_ROUNDS) {
+    throw new Error(`BCRYPT_ROUNDS must be an integer >= ${MIN_BCRYPT_ROUNDS}`);
+  }
+  return parsed;
+})();
 
 function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase();
@@ -1433,6 +1479,28 @@ async function getCurrentUserProfile(req) {
   });
 
   return buildSafeUserProfile({ authUser, dataDoc });
+}
+
+async function getCurrentUserEmail(req) {
+  const currentUser = await getCurrentUserProfile(req);
+  return normalizeEmail(currentUser?.email || "");
+}
+
+async function requireSameUserEmail(req, res, requestedEmail, message = "Usuario nao autorizado.") {
+  const normalizedRequestedEmail = normalizeEmail(requestedEmail);
+  const currentUserEmail = await getCurrentUserEmail(req);
+
+  if (!normalizedRequestedEmail) {
+    res.status(400).json({ message: "Email e obrigatorio." });
+    return null;
+  }
+
+  if (!currentUserEmail || currentUserEmail !== normalizedRequestedEmail) {
+    res.status(403).json({ message });
+    return null;
+  }
+
+  return currentUserEmail;
 }
 
 async function findUserByUsernameOrEmail(value = "") {
@@ -1845,7 +1913,7 @@ app.post("/api/v1/auth/signup", async (req, res) => {
     return res.status(400).json({ error: "Email e senha sao obrigatorios" });
   }
 
-  const hash = await bcrypt.hash(password, 10);
+  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   try {
     const existing = await authCollection.findOne({ email });
@@ -2067,7 +2135,7 @@ app.put("/api/v1/auth/updatePassword", async (req, res) => {
       });
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
     await authCollection.updateOne(
       { _id: user._id },
@@ -2191,7 +2259,7 @@ app.post("/api/v1/auth/reset-password", async (req, res) => {
       });
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
     await authCollection.updateOne(
       { _id: user._id },
@@ -4189,9 +4257,16 @@ function prepareInstrumentBlockForStorage(subdoc = {}) {
   await collection.createIndex({ "instruments.voice": 1 });
 })();
 
-app.put("/api/v1/updateSetlists", async (req, res) => {
+app.put("/api/v1/updateSetlists", authenticateJWT, async (req, res) => {
   try {
     const { email, setlists } = req.body;
+    const ownerEmail = await requireSameUserEmail(
+      req,
+      res,
+      email,
+      "Usuario nao autorizado para atualizar estas setlists.",
+    );
+    if (!ownerEmail) return;
 
     if (!email || !Array.isArray(setlists)) {
       return res
@@ -4207,10 +4282,10 @@ app.put("/api/v1/updateSetlists", async (req, res) => {
       ),
     );
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
-    const userDoc = await collection.findOne({ email });
+    const userDoc = await collection.findOne({ email: ownerEmail });
     if (!userDoc) {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
@@ -4223,7 +4298,7 @@ app.put("/api/v1/updateSetlists", async (req, res) => {
     });
 
     const updateResult = await collection.updateOne(
-      { email },
+      { email: ownerEmail },
       {
         $set: {
           userdata: updatedUserdata,
@@ -4325,9 +4400,16 @@ app.get("/api/v1/generalCifra", async (req, res) => {
   }
 });
 
-app.put("/api/v1/song/updateExact", async (req, res) => {
+app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
   try {
     const { email, updatedSong } = req.body;
+    const ownerEmail = await requireSameUserEmail(
+      req,
+      res,
+      email,
+      "Usuario nao autorizado para atualizar esta musica.",
+    );
+    if (!ownerEmail) return;
 
     if (!email || !updatedSong || !updatedSong.artist || !updatedSong.song) {
       return res.status(400).json({
@@ -4336,10 +4418,10 @@ app.put("/api/v1/song/updateExact", async (req, res) => {
       });
     }
 
-    const database = client.db("liveNloud_");
+    const database = appDatabase();
     const collection = database.collection("data");
 
-    const userDoc = await collection.findOne({ email });
+    const userDoc = await collection.findOne({ email: ownerEmail });
     if (!userDoc || !Array.isArray(userDoc.userdata)) {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
@@ -4372,10 +4454,13 @@ app.put("/api/v1/song/updateExact", async (req, res) => {
     );
     nextUserdata[songIndex] = mergedEntry;
 
-    await collection.updateOne({ email }, { $set: { userdata: nextUserdata } });
+    await collection.updateOne(
+      { email: ownerEmail },
+      { $set: { userdata: nextUserdata } },
+    );
 
     await addUserLog({
-      userEmail: email,
+      userEmail: ownerEmail,
       action: "song_updated",
       message: `Edited song "${updatedSong.song}" by ${updatedSong.artist}.`,
       meta: { song: updatedSong.song, artist: updatedSong.artist },

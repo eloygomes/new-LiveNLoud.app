@@ -773,7 +773,7 @@ export async function updateUserSetlists(setlists: string[]) {
   }
 
   try {
-    const response = await fetchWithTimeout(`${API_BASE_URL}/updateSetlists`, {
+    const response = await authFetch("/updateSetlists", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -854,12 +854,12 @@ export async function deleteUserAccountMobile(password: string) {
 export const getListOfMusic = async ({ email }: Props) => {
   try {
     const normalizedEmail = email.trim().toLowerCase();
-    const url = `${API_BASE_URL}/alldata/${encodeURIComponent(normalizedEmail)}`;
+    const url = `/alldata/${encodeURIComponent(normalizedEmail)}`;
     debugLog("getListOfMusic", "request", {
       url,
       email: normalizedEmail,
     });
-    const response = await fetchWithTimeout(url);
+    const response = await authFetch(url);
     debugLog("getListOfMusic", "status", response.status);
 
     if (!response.ok) {
@@ -888,12 +888,12 @@ export const getListOfMusic = async ({ email }: Props) => {
 export const getAllUserData = async ({ email }: Props) => {
   try {
     const normalizedEmail = email.trim().toLowerCase();
-    const url = `${API_BASE_URL}/alldata/${encodeURIComponent(normalizedEmail)}`;
+    const url = `/alldata/${encodeURIComponent(normalizedEmail)}`;
     debugLog("getAllUserData", "request", {
       url,
       email: normalizedEmail,
     });
-    const response = await fetchWithTimeout(url);
+    const response = await authFetch(url);
     debugLog("getAllUserData", "status", response.status);
 
     if (!response.ok) {
@@ -943,7 +943,7 @@ export const getSpecificSongData = async ({ email, artist, song }: Props) => {
       artist,
       song,
     });
-    const response = await fetchWithTimeout(`${API_BASE_URL}/allsongdata`, {
+    const response = await authFetch("/allsongdata", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1058,14 +1058,14 @@ export async function syncOfflineQueue() {
         const setlists = Array.isArray(mutation.payload.setlists)
           ? mutation.payload.setlists
           : [];
-        const response = await fetchWithTimeout(`${API_BASE_URL}/updateSetlists`, {
+        const response = await authFetch("/updateSetlists", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, setlists }),
         });
         await readJsonOrThrow(response);
       } else {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/newsong`, {
+        const response = await authFetch("/newsong", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

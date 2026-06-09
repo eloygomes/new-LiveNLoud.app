@@ -930,8 +930,9 @@ export async function getAllUserSetlists() {
   if (!email) return [];
 
   try {
-    const res = await fetch(`${API_BASE}/api/v1/alldata/${email}`);
-    const data = await res.json();
+    const { data } = await fetchApi.get(
+      `/api/v1/alldata/${encodeURIComponent(email)}`,
+    );
 
     const allTags = new Set();
     if (Array.isArray(data.userdata)) {
@@ -1357,10 +1358,9 @@ export async function fetchDistinctSetlists() {
   if (!email) return [];
 
   try {
-    const resp = await fetch(
-      `${API_BASE}/api/v1/alldata/${encodeURIComponent(email)}`,
+    const { data } = await fetchApi.get(
+      `/api/v1/alldata/${encodeURIComponent(email)}`,
     );
-    const data = await resp.json();
 
     const tags = new Set();
     if (Array.isArray(data?.userdata)) {
@@ -1421,10 +1421,9 @@ export async function fetchUserSongs() {
   }
 
   try {
-    const resp = await fetch(
-      `${API_BASE}/api/v1/alldata/${encodeURIComponent(email)}`,
+    const { data } = await fetchApi.get(
+      `/api/v1/alldata/${encodeURIComponent(email)}`,
     );
-    const data = await resp.json();
     const cachedSongs = readCachedOfflineSongs();
     const songs = normalizeOfflineSongs(data.userdata || [])
       .map((song) => {

@@ -45,6 +45,16 @@ function safeReturnTo(returnToRaw, fallback = "/") {
   return s.startsWith("/") ? s : fallback;
 }
 
+function buildFrontUrl(baseUrl, path = "/", params = {}) {
+  const url = new URL(safeReturnTo(path), baseUrl);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  return url.toString();
+}
+
 // ===== JWT middleware =====
 function authenticateJWT(req, res, next) {
   const auth = req.headers["authorization"] || "";
@@ -281,20 +291,28 @@ router.get("/auth/callback", async (req, res) => {
       process.env.YOUTUBE_FRONT_OK_URL || "https://sustenido.eloygomes.com";
     const failUrl =
       process.env.YOUTUBE_FRONT_FAIL_URL || "https://sustenido.eloygomes.com";
+    const callbackPath = process.env.YOUTUBE_FRONT_CALLBACK_PATH || "/yt/done";
 
     if (error) {
       return res.redirect(
-        `${failUrl}?yt=fail&reason=${encodeURIComponent(String(error))}`
+        buildFrontUrl(failUrl, callbackPath, {
+          yt: "fail",
+          reason: String(error),
+        })
       );
     }
 
     const parsed = verifyState(String(state || ""), process.env.YOUTUBE_STATE_SECRET);
     if (!parsed) {
-      return res.redirect(`${failUrl}?yt=fail&reason=bad_state`);
+      return res.redirect(
+        buildFrontUrl(failUrl, callbackPath, { yt: "fail", reason: "bad_state" })
+      );
     }
 
     if (!code) {
-      return res.redirect(`${failUrl}?yt=fail&reason=no_code`);
+      return res.redirect(
+        buildFrontUrl(failUrl, callbackPath, { yt: "fail", reason: "no_code" })
+      );
     }
 
     const tokens = await exchangeCodeForTokens({
@@ -325,13 +343,19 @@ router.get("/auth/callback", async (req, res) => {
 
     const returnTo = safeReturnTo(parsed.returnTo, "/");
     return res.redirect(
-      `${okUrl}?yt=ok&returnTo=${encodeURIComponent(returnTo)}`
+      buildFrontUrl(okUrl, returnTo, { yt: "ok", returnTo })
     );
   } catch (err) {
     console.error("[YT callback] error:", err?.message, err?.missing || "");
     const failUrl =
       process.env.YOUTUBE_FRONT_FAIL_URL || "https://sustenido.eloygomes.com";
-    return res.redirect(`${failUrl}?yt=fail&reason=server_error`);
+    const callbackPath = process.env.YOUTUBE_FRONT_CALLBACK_PATH || "/yt/done";
+    return res.redirect(
+      buildFrontUrl(failUrl, callbackPath, {
+        yt: "fail",
+        reason: "server_error",
+      })
+    );
   }
 });
 

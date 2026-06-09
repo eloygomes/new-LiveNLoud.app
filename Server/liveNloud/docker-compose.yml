@@ -30,8 +30,9 @@ services:
       NODE_ENV: production
       MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@db:27017/admin
 
-      ACCESS_SECRET: REMOVED_ACCESS_SECRET
-      REFRESH_SECRET: REMOVED_REFRESH_SECRET
+      ACCESS_SECRET: ${ACCESS_SECRET:?ACCESS_SECRET is required}
+      REFRESH_SECRET: ${REFRESH_SECRET:?REFRESH_SECRET is required}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
       APP_DATABASE_NAME: ${APP_DATABASE_NAME:-liveNloud_}
       FRONTEND_BASE_URL: https://live.eloygomes.com
       API_PUBLIC_BASE_URL: https://api.live.eloygomes.com

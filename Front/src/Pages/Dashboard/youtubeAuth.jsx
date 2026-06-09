@@ -108,17 +108,19 @@ export async function startYouTubeLoginPopup(arg = "/dashboard") {
     const timeoutMs = 5 * 60 * 1000;
 
     const timeoutId = setTimeout(() => {
-      cleanup();
+      cleanup({ closePopup: true });
       reject(new Error("Timeout no OAuth do YouTube"));
     }, timeoutMs);
 
-    function cleanup() {
+    function cleanup({ closePopup = false } = {}) {
       clearTimeout(timeoutId);
       window.removeEventListener("message", onMessage);
-      try {
-        popup.close();
-      } catch {
-        // ignore
+      if (closePopup) {
+        try {
+          popup.close();
+        } catch {
+          // ignore
+        }
       }
     }
 

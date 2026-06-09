@@ -80,21 +80,26 @@ const ProtectedRoute = ({ element: Component, ...rest }) => {
 const YouTubePopupDone = () => {
   const [searchParams] = useSearchParams();
   const yt = searchParams.get("yt");
-  const [seconds, setSeconds] = React.useState(10);
+  const reason = searchParams.get("reason");
+  const [seconds, setSeconds] = React.useState(3);
 
   React.useEffect(() => {
     // Try to notify the opener that OAuth finished.
     // This can be blocked if COOP is set to `same-origin` (fix via NGINX: same-origin-allow-popups).
-    if (yt === "ok") {
-      try {
-        window.opener?.postMessage(
-          { type: "YT_OAUTH_OK", href: window.location.href },
-          window.location.origin,
-        );
-      } catch (e) {
-        // Do not hard-fail; user can still close manually.
-        console.error("[YT DONE] failed to postMessage to opener", e);
-      }
+    try {
+      window.opener?.postMessage(
+        yt === "ok"
+          ? { type: "YT_OAUTH_OK", href: window.location.href }
+          : {
+              type: "YT_OAUTH_ERROR",
+              href: window.location.href,
+              message: reason || "OAuth do YouTube falhou.",
+            },
+        window.location.origin,
+      );
+    } catch (e) {
+      // Do not hard-fail; user can still close manually.
+      console.error("[YT DONE] failed to postMessage to opener", e);
     }
 
     const id = setInterval(() => {
@@ -102,10 +107,10 @@ const YouTubePopupDone = () => {
     }, 1000);
 
     return () => clearInterval(id);
-  }, [yt]);
+  }, [yt, reason]);
 
   React.useEffect(() => {
-    if (seconds < 0) {
+    if (seconds <= 0) {
       try {
         window.close();
       } catch {
@@ -114,7 +119,8 @@ const YouTubePopupDone = () => {
     }
   }, [seconds]);
 
-  const canClose = seconds >= 0;
+  const canClose = seconds > 0;
+  const isOk = yt === "ok";
 
   return (
     <div
@@ -140,17 +146,17 @@ const YouTubePopupDone = () => {
         }}
       >
         <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
-          ✅ YouTube conectado
+          {isOk ? "YouTube conectado" : "Falha no YouTube"}
         </div>
 
-        {yt === "ok" ? (
+        {isOk ? (
           <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 14 }}>
-            Autenticação concluída. A janela principal vai continuar o export.
+            Autenticação concluída. A playlist será criada na janela principal.
           </div>
         ) : (
           <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 14 }}>
-            Não detectei <code style={{ color: "#ddd" }}>yt=ok</code> na URL. Se
-            algo falhar, volte para o app e tente novamente.
+            Não foi possível concluir a autenticação
+            {reason ? `: ${reason}` : "."}
           </div>
         )}
 

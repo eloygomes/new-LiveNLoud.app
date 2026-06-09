@@ -72,8 +72,20 @@ function createRuntime({
 
   function apiVersionCompatibility(req, _res, next) {
     if (req.url === "/api") {
+      console.warn(JSON.stringify({
+        event: "legacy_api_call",
+        method: req.method,
+        path: req.originalUrl || req.url,
+        removalTarget: "2026-07-09",
+      }));
       req.url = "/api/v1";
     } else if (req.url.startsWith("/api/") && !req.url.startsWith("/api/v1/")) {
+      console.warn(JSON.stringify({
+        event: "legacy_api_call",
+        method: req.method,
+        path: req.originalUrl || req.url,
+        removalTarget: "2026-07-09",
+      }));
       req.url = `/api/v1/${req.url.slice("/api/".length)}`;
     }
     next();
