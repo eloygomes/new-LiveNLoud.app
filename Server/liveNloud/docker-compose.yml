@@ -28,7 +28,7 @@ services:
     environment:
       PYTHON_API_URL: http://python_scraper:8000
       NODE_ENV: production
-      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@db:27017/admin
+      MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
 
       ACCESS_SECRET: ${ACCESS_SECRET:?ACCESS_SECRET is required}
       REFRESH_SECRET: ${REFRESH_SECRET:?REFRESH_SECRET is required}
@@ -68,7 +68,7 @@ services:
       pip install --no-cache-dir -r requirements.txt &&
       python scrapper.py"
     environment:
-      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASS}@db:27017/admin
+      MONGO_URI: ${MONGO_URI:?MONGO_URI is required}
       APP_DATABASE_NAME: ${APP_DATABASE_NAME:-liveNloud_}
       CHROME_BINARY: /usr/bin/chromium
       TRUSTED_HOSTS: localhost,127.0.0.1,python_scraper,python_scraper:8000

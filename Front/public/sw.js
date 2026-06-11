@@ -1,6 +1,6 @@
-const APP_SHELL_CACHE = "sustenido-app-shell-v1";
-const RUNTIME_CACHE = "sustenido-runtime-v1";
-const APP_SHELL_URLS = ["/", "/index.html", "/vite.svg"];
+const APP_SHELL_CACHE = "sustenido-app-shell-v2";
+const RUNTIME_CACHE = "sustenido-runtime-v2";
+const APP_SHELL_URLS = ["/vite.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

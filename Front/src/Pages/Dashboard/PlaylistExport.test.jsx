@@ -1,14 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import PlaylistExport from "./PlaylistExport";
 import { startSpotifyLogin } from "./spotifyAuth";
-import { pickJwtToken, startYouTubeLoginPopup } from "./youtubeAuth";
+import { startYouTubeLoginPopup } from "./youtubeAuth";
 
 vi.mock("./spotifyAuth", () => ({
   startSpotifyLogin: vi.fn(),
 }));
 
 vi.mock("./youtubeAuth", () => ({
-  pickJwtToken: vi.fn(),
   startYouTubeLoginPopup: vi.fn(),
 }));
 
@@ -70,62 +69,67 @@ describe("PlaylistExport", () => {
     );
   });
 
-  it("exports the stored youtube playlist after oauth success", async () => {
-    pickJwtToken.mockReturnValue("jwt-token");
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () =>
-        JSON.stringify({
-          added: 2,
-          notFound: [],
-        }),
+  it("starts the youtube popup flow and reports export success", async () => {
+    startYouTubeLoginPopup.mockResolvedValue({
+      added: 2,
+      notFound: 0,
     });
-    vi.stubGlobal("fetch", fetchMock);
-    const replaceStateSpy = vi.spyOn(window.history, "replaceState");
 
-    sessionStorage.setItem("youtube_playlist_name", "YT List");
-    sessionStorage.setItem(
-      "youtube_playlist_songs",
+    render(
+      <PlaylistExport
+        visibleSongs={[
+          { title: "Oceans", artist: "Hillsong" },
+          { name: "Another Song", artist: "Band" },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /youtube/i }));
+
+    const input = screen.getByDisplayValue(
+      "Sustenido • 2 músicas • 12 / 05 / 2026",
+    );
+    fireEvent.change(input, { target: { value: "YT List" } });
+    fireEvent.click(screen.getByRole("button", { name: /criar/i }));
+
+    await waitFor(() => {
+      expect(startYouTubeLoginPopup).toHaveBeenCalledWith({
+        returnTo: "/yt/done",
+      });
+    });
+
+    expect(sessionStorage.getItem("youtube_playlist_name")).toBeNull();
+    expect(sessionStorage.getItem("youtube_playlist_songs")).toBeNull();
+    expect(
+      await screen.findByText(/playlist criada! itens adicionados: 2/i),
+    ).toBeInTheDocument();
+  });
+
+  it("stores the youtube export payload before opening the popup", async () => {
+    startYouTubeLoginPopup.mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    render(
+      <PlaylistExport
+        visibleSongs={[
+          { title: "Oceans", artist: "Hillsong" },
+          { name: "Another Song", artist: "Band" },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /youtube/i }));
+    fireEvent.click(screen.getByRole("button", { name: /criar/i }));
+
+    expect(sessionStorage.getItem("youtube_playlist_name")).toBe(
+      "Sustenido • 2 músicas • 12 / 05 / 2026",
+    );
+    expect(sessionStorage.getItem("youtube_playlist_songs")).toBe(
       JSON.stringify([
         { title: "Oceans", artist: "Hillsong" },
         { name: "Another Song", artist: "Band" },
       ]),
     );
-
-    render(<PlaylistExport visibleSongs={[]} />);
-
-    fireEvent(
-      window,
-      new MessageEvent("message", {
-        origin: window.location.origin,
-        data: { type: "YT_OAUTH_OK" },
-      }),
-    );
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
-    });
-
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://api.live.eloygomes.com/api/v1/youtube/export");
-    expect(options.method).toBe("POST");
-    expect(options.headers.get("Content-Type")).toBe("application/json");
-    expect(options.headers.get("Authorization")).toBe("Bearer jwt-token");
-    expect(options.body).toBe(
-      JSON.stringify({
-        playlistName: "YT List",
-        songs: [
-          { song: "Oceans", artist: "Hillsong" },
-          { song: "Another Song", artist: "Band" },
-        ],
-        privacyStatus: "public",
-      }),
-    );
-
-    expect(
-      await screen.findByText(/playlist criada! itens adicionados: 2/i),
-    ).toBeInTheDocument();
-    expect(sessionStorage.getItem("youtube_playlist_name")).toBeNull();
-    expect(replaceStateSpy).toHaveBeenCalled();
   });
 });

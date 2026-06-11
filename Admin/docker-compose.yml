@@ -2,6 +2,8 @@ services:
   admin-db:
     image: mongo:7.0.12
     restart: unless-stopped
+    ports:
+      - "27019:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${ADMIN_MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${ADMIN_MONGO_ROOT_PASSWORD}
