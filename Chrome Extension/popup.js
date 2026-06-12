@@ -939,14 +939,67 @@ async function loginRequest(email, password) {
   return data;
 }
 
-async function fetchUserDoc(email, accessToken) {
-  const response = await fetch(
-    `${getApiBase()}/api/alldata/${encodeURIComponent(email)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+function isAuthFailure(response) {
+  return response.status === 401 || response.status === 403;
+}
+
+async function refreshExtensionAccessToken(session) {
+  const refreshToken = cleanText(session?.refreshToken);
+  if (!refreshToken) {
+    throw new Error("Refresh token not found.");
+  }
+
+  const response = await fetch(`${getApiBase()}/api/auth/refresh`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ refreshToken }),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || !data?.accessToken) {
+    throw new Error(data?.message || "Could not refresh session.");
+  }
+
+  const nextSession = {
+    ...session,
+    accessToken: data.accessToken,
+  };
+
+  session.accessToken = data.accessToken;
+  await writeSessionState(nextSession);
+  state.sessionEmail = nextSession.email;
+  renderDestinationControls(nextSession.email);
+
+  return nextSession;
+}
+
+async function fetchWithSessionRefresh(session, url, options = {}, retry = true) {
+  const headers = new Headers(options.headers || {});
+  headers.set("Authorization", `Bearer ${session.accessToken}`);
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (retry && isAuthFailure(response)) {
+    const nextSession = await refreshExtensionAccessToken(session);
+    return fetchWithSessionRefresh(nextSession, url, options, false);
+  }
+
+  return response;
+}
+
+async function fetchUserDoc(sessionOrEmail, accessToken) {
+  const session =
+    typeof sessionOrEmail === "object"
+      ? sessionOrEmail
+      : { email: sessionOrEmail, accessToken };
+  const response = await fetchWithSessionRefresh(
+    session,
+    `${getApiBase()}/api/alldata/${encodeURIComponent(session.email)}`,
   );
 
   if (!response.ok) {
@@ -956,8 +1009,8 @@ async function fetchUserDoc(email, accessToken) {
   return response.json();
 }
 
-async function fetchDistinctSetlists(email, accessToken) {
-  const data = await fetchUserDoc(email, accessToken);
+async function fetchDistinctSetlists(session) {
+  const data = await fetchUserDoc(session);
   const tags = new Set();
 
   if (Array.isArray(data?.userdata)) {
@@ -1209,22 +1262,25 @@ async function scrapeSong(session, pageContext, options = {}) {
   const progress = getProgressValue();
   const instrumentName = options.instrumentName || getSelectedInstrument();
   const link = cleanText(options.link || pageContext.link);
-  const response = await fetch(`${getApiBase()}/api/scrape`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.accessToken}`,
+  const response = await fetchWithSessionRefresh(
+    session,
+    `${getApiBase()}/api/scrape`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        artist: cleanText(pageContext.artist),
+        song: cleanText(pageContext.song),
+        email: session.email,
+        instrument: instrumentName,
+        instrument_progressbar: progress,
+        link,
+        linkNorm: normalizeLinkForApi(link),
+      }),
     },
-    body: JSON.stringify({
-      artist: cleanText(pageContext.artist),
-      song: cleanText(pageContext.song),
-      email: session.email,
-      instrument: instrumentName,
-      instrument_progressbar: progress,
-      link,
-      linkNorm: normalizeLinkForApi(link),
-    }),
-  });
+  );
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -1245,11 +1301,10 @@ async function fetchExistingSongDoc(session, pageContext, options = {}) {
     artist: cleanText(pageContext.artist),
     song: cleanText(pageContext.song),
   });
-  const response = await fetch(`${getApiBase()}/api/generalCifra?${params}`, {
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-    },
-  });
+  const response = await fetchWithSessionRefresh(
+    session,
+    `${getApiBase()}/api/generalCifra?${params}`,
+  );
 
   if (response.status === 404) return null;
 
@@ -1446,15 +1501,18 @@ function buildSongPayload(
   };
 }
 
-async function saveSong(payload, accessToken) {
-  const response = await fetch(`${getApiBase()}/api/newsong`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
+async function saveSong(payload, session) {
+  const response = await fetchWithSessionRefresh(
+    session,
+    `${getApiBase()}/api/newsong`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
+  );
 
   const data = await response.json().catch(() => ({}));
 
@@ -1479,8 +1537,8 @@ async function ensureSession() {
   }
 
   try {
-    await fetchUserDoc(email, accessToken);
-    return { accessToken, email };
+    await fetchUserDoc(storage);
+    return storage;
   } catch (error) {
     debugError("Session validation failed", error);
     await clearSessionState();
@@ -1506,7 +1564,7 @@ async function loadSongView(session) {
 
   const [pageData, setlists] = await Promise.all([
     getPageContext(),
-    fetchDistinctSetlists(session.email, session.accessToken),
+    fetchDistinctSetlists(session),
   ]);
 
   if (!pageData.compatible) {
@@ -1665,7 +1723,7 @@ elements.saveButton.addEventListener("click", async () => {
       scrapedDocsByInstrument,
     );
     setNotice("Salvando cifra...");
-    await saveSong(payload, session.accessToken);
+    await saveSong(payload, session);
     const successMessage = "Cifra adicionada com sucesso";
     setNotice(successMessage);
     setNoticeState("success");

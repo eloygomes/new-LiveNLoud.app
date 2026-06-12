@@ -44,7 +44,9 @@ export default function RootLayouts() {
   ].includes(location.pathname);
   const isNewSongRoute = location.pathname === "/newsong";
   const isEditSongRoute = location.pathname.startsWith("/editsong/");
-  const isPresentationRoute = location.pathname.startsWith("/presentation/");
+  const isPresentationRoute =
+    location.pathname.startsWith("/presentation/") ||
+    location.pathname.startsWith("/blankpresentation/");
   const isUserProfileRoute = location.pathname.startsWith("/userprofile/");
   const isTouchDashboardLayout =
     typeof window !== "undefined" && window.innerWidth < 768;

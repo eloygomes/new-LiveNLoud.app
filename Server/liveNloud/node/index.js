@@ -1898,7 +1898,7 @@ function renderApprovalHtml({ title, message }) {
 
 // Helpers
 const genAccessToken = (id) =>
-  jwt.sign({ userId: id }, process.env.ACCESS_SECRET, { expiresIn: "15m" });
+  jwt.sign({ userId: id }, process.env.ACCESS_SECRET, { expiresIn: "1h" });
 const genRefreshToken = (id) =>
   jwt.sign({ userId: id }, process.env.REFRESH_SECRET, { expiresIn: "7d" });
 

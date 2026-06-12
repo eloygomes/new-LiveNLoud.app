@@ -1,12 +1,68 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import EditSongColumnA from "./EditSongColumnA";
 import EditSongColumnB from "./EditSongColumnB";
 import { fetchAllSongData } from "../../Tools/Controllers";
 import SnackBar from "../../Tools/SnackBar";
+import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
+import {
+  getAdjacentSetlistSongs,
+  loadActiveSetlistSongs,
+} from "../shared/setlistNavigation";
 
 const WEB_LAYOUT_MIN_WIDTH = 768;
 
+function safeDecode(value = "") {
+  try {
+    return decodeURIComponent(value || "");
+  } catch {
+    return value || "";
+  }
+}
+
+function SetlistNavigationButtons({
+  previousSetlistSong,
+  nextSetlistSong,
+  onGoToSetlistSong,
+  touchLayout = false,
+}) {
+  const buttonClass = touchLayout
+    ? "neuphormism-b-btn px-3 py-1.5 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
+    : "neuphormism-b-btn px-3 py-1.5 text-xs font-bold text-black disabled:cursor-not-allowed disabled:opacity-35";
+
+  return (
+    <div
+      className={
+        touchLayout
+          ? "mt-3 grid grid-cols-2 gap-2 opacity-80"
+          : "mt-3 grid grid-cols-2 gap-2 opacity-80"
+      }
+    >
+      <button
+        type="button"
+        disabled={!previousSetlistSong}
+        className={buttonClass}
+        onClick={() => onGoToSetlistSong(previousSetlistSong)}
+        aria-label="Previous song in selected setlist"
+      >
+        &lt;&lt;
+      </button>
+      <button
+        type="button"
+        disabled={!nextSetlistSong}
+        className={buttonClass}
+        onClick={() => onGoToSetlistSong(nextSetlistSong)}
+        aria-label="Next song in selected setlist"
+      >
+        &gt;&gt;
+      </button>
+    </div>
+  );
+}
+
 function EditSong() {
+  const navigate = useNavigate();
+  const { artist: routeArtist = "", song: routeSong = "" } = useParams();
   const isTouchLayout =
     typeof window !== "undefined" && window.innerWidth < WEB_LAYOUT_MIN_WIDTH;
   const [songDataOpen, setSongDataOpen] = useState(true);
@@ -14,6 +70,7 @@ function EditSong() {
   const [songData, setSongData] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [pageActions, setPageActions] = useState(null);
+  const [setlistSongs, setSetlistSongs] = useState([]);
   const [showSnackBar, setShowSnackBar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState({
     title: "",
@@ -39,12 +96,39 @@ function EditSong() {
     setIsDirty(true);
   }, []);
 
-  // LocalStorage user email
   const userEmail = localStorage.getItem("userEmail");
-  const artist = localStorage.getItem("artist");
-  const song = localStorage.getItem("song");
+  const artist =
+    safeDecode(routeArtist) || localStorage.getItem("artist") || "";
+  const song = safeDecode(routeSong) || localStorage.getItem("song") || "";
 
-  const loadDataFromUser = async () => {
+  const { previousSetlistSong, nextSetlistSong } = useMemo(
+    () => getAdjacentSetlistSongs(setlistSongs, artist, song),
+    [artist, setlistSongs, song],
+  );
+
+  const goToSetlistSong = useCallback(
+    (targetSong) => {
+      if (!targetSong) return;
+
+      const nextArtist = String(targetSong.artist || "").trim();
+      const nextSong = String(targetSong.song || "").trim();
+      if (!nextArtist || !nextSong) return;
+
+      setLocalStorageItemSafe("artist", nextArtist);
+      setLocalStorageItemSafe("song", nextSong);
+      setDataFromAPI([]);
+      setSongData(null);
+      setIsDirty(false);
+      navigate(
+        `/editsong/${encodeURIComponent(nextArtist)}/${encodeURIComponent(
+          nextSong,
+        )}`,
+      );
+    },
+    [navigate],
+  );
+
+  const loadDataFromUser = useCallback(async () => {
     try {
       const data = await fetchAllSongData(userEmail, artist, song);
       if (data) {
@@ -62,11 +146,28 @@ function EditSong() {
     } catch (error) {
       console.error("Error fetching data from API:", error);
     }
-  };
+  }, [artist, song, userEmail]);
 
   useEffect(() => {
+    setLocalStorageItemSafe("artist", artist);
+    setLocalStorageItemSafe("song", song);
     loadDataFromUser();
-  }, []);
+  }, [artist, loadDataFromUser, song]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSetlistNavigation = async () => {
+      const songs = await loadActiveSetlistSongs(artist, song);
+      if (active) setSetlistSongs(songs);
+    };
+
+    loadSetlistNavigation();
+
+    return () => {
+      active = false;
+    };
+  }, [artist, song]);
 
   if (isTouchLayout) {
     return (
@@ -89,20 +190,28 @@ function EditSong() {
                   Update song info, revise links, and keep the current setlist structure.
                 </p>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-bold"
-                  onClick={pageActions?.onDelete}
-                >
-                  Delete
-                </button>
-                <button
-                  className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-bold disabled:opacity-50"
-                  onClick={pageActions?.onUpdate}
-                  disabled={!pageActions?.canUpdate}
-                >
-                  Update
-                </button>
+              <div className="flex shrink-0 flex-col items-stretch">
+                <div className="flex gap-2">
+                  <button
+                    className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-bold"
+                    onClick={pageActions?.onDelete}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-bold disabled:opacity-50"
+                    onClick={pageActions?.onUpdate}
+                    disabled={!pageActions?.canUpdate}
+                  >
+                    Update
+                  </button>
+                </div>
+                <SetlistNavigationButtons
+                  previousSetlistSong={previousSetlistSong}
+                  nextSetlistSong={nextSetlistSong}
+                  onGoToSetlistSong={goToSetlistSong}
+                  touchLayout
+                />
               </div>
             </div>
           </div>
@@ -171,20 +280,27 @@ function EditSong() {
               structure without leaving context.
             </p>
           </div>
-          <div className="flex shrink-0 justify-end gap-3">
-            <button
-              className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-bold"
-              onClick={pageActions?.onDelete}
-            >
-              Delete
-            </button>
-            <button
-              className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-bold disabled:opacity-50"
-              onClick={pageActions?.onUpdate}
-              disabled={!pageActions?.canUpdate}
-            >
-              Update
-            </button>
+          <div className="flex shrink-0 flex-col items-stretch">
+            <div className="flex justify-end gap-3">
+              <button
+                className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-bold"
+                onClick={pageActions?.onDelete}
+              >
+                Delete
+              </button>
+              <button
+                className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-bold disabled:opacity-50"
+                onClick={pageActions?.onUpdate}
+                disabled={!pageActions?.canUpdate}
+              >
+                Update
+              </button>
+            </div>
+            <SetlistNavigationButtons
+              previousSetlistSong={previousSetlistSong}
+              nextSetlistSong={nextSetlistSong}
+              onGoToSetlistSong={goToSetlistSong}
+            />
           </div>
         </section>
 

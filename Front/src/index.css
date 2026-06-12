@@ -193,7 +193,7 @@ main{
 
 .neuphormism-b-se:hover {
   border-radius: 5px;
-  background: linear-gradient(145deg, #efefef, rgba(173, 170, 170, 0.539));
+  /* background: linear-gradient(145deg, #efefef, rgba(173, 170, 170, 0.539)); */
   box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
   cursor: pointer;
 }

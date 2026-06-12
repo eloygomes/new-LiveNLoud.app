@@ -30,6 +30,40 @@ const getLatestLastPlayValue = (songData) => {
     .sort((left, right) => right.date.getTime() - left.date.getTime())[0]?.value;
 };
 
+const hasStoredValue = (value) => {
+  if (value === null || value === undefined || value === false) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+};
+
+const hasPresentationLayoutContent = (layouts) => {
+  if (!layouts || typeof layouts !== "object") return false;
+  return Object.values(layouts).some((layout) =>
+    hasStoredValue(layout?.songCifra),
+  );
+};
+
+const instrumentBlockHasContent = (block) => {
+  if (!block || typeof block !== "object") return false;
+  return [
+    block.link,
+    block.songCifra,
+    block.songTabs,
+    block.songChords,
+    block.songLyrics,
+    block.notes,
+  ].some(hasStoredValue) || hasPresentationLayoutContent(block.presentationLayouts);
+};
+
+const isInstrumentActive = (block) =>
+  Boolean(
+    block?.active === true ||
+      block?.active === "true" ||
+      instrumentBlockHasContent(block),
+  );
+
 function EditSongColumnA({
   dataFromAPI,
   progGuitar01,
@@ -245,6 +279,28 @@ function EditSongColumnA({
       try {
         const parsedData = JSON.parse(dataFromAPI);
         // console.log("Parsed data:", parsedData);
+        const getInstrumentBlock = (instrument) => {
+          const directBlock = parsedData[instrument];
+          const nestedBlock = parsedData.instruments?.[instrument];
+          return directBlock && typeof directBlock === "object"
+            ? directBlock
+            : nestedBlock && typeof nestedBlock === "object"
+              ? nestedBlock
+              : directBlock;
+        };
+        const hydrateInstrument = (instrument, setters) => {
+          const block = getInstrumentBlock(instrument);
+          if (!isInstrumentActive(block)) return;
+
+          setters.setSongCifra(block.songCifra || "");
+          setters.setActive(true);
+          setters.setCapo(block.capo || "");
+          setters.setTuning(block.tuning || "");
+          setters.setLastPlayed(block.lastPlay || "");
+          setters.setLink(block.link || "");
+          setters.setProgress(block.progress || 0);
+          setters.setNotes(block.notes || "");
+        };
 
         setArtistName(parsedData.artist || "");
         setSongName(parsedData.song || "");
@@ -261,71 +317,66 @@ function EditSongColumnA({
           setSetlist(parsedData.setlist);
         }
 
-        if (parsedData.guitar01?.active) {
-          setSongCifraguitar01(parsedData.guitar01.songCifra);
-          setInstrActiveStatusguitar01(true);
-          setInstCapoguitar01(parsedData.guitar01.capo);
-          setInstTuningguitar01(parsedData.guitar01.tuning);
-          setInstLastPlayedguitar01(parsedData.guitar01.lastPlay);
-          setInstLinkguitar01(parsedData.guitar01.link);
-          setInstProgressBarguitar01(parsedData.guitar01.progress);
-          setInstNotesguitar01(parsedData.guitar01.notes || "");
-        }
-
-        if (parsedData.guitar02?.active) {
-          setSongCifraguitar02(parsedData.guitar02.songCifra);
-          setInstrActiveStatusguitar02(true);
-          setInstCapoguitar02(parsedData.guitar02.capo);
-          setInstTuningguitar02(parsedData.guitar02.tuning);
-          setInstLastPlayedguitar02(parsedData.guitar02.lastPlay);
-          setInstLinkguitar02(parsedData.guitar02.link);
-          setInstProgressBarguitar02(parsedData.guitar02.progress);
-          setInstNotesguitar02(parsedData.guitar02.notes || "");
-        }
-
-        if (parsedData.bass?.active) {
-          setSongCifrabass(parsedData.bass.songCifra);
-          setInstrActiveStatusbass(true);
-          setInstCapobass(parsedData.bass.capo);
-          setInstTuningbass(parsedData.bass.tuning);
-          setInstLastPlayedbass(parsedData.bass.lastPlay);
-          setInstLinkbass(parsedData.bass.link);
-          setInstProgressBarbass(parsedData.bass.progress);
-          setInstNotesbass(parsedData.bass.notes || "");
-        }
-
-        if (parsedData.keys?.active) {
-          setSongCifrakeyboard(parsedData.keys.songCifra);
-          setInstrActiveStatuskeyboard(true);
-          setInstCapokeyboard(parsedData.keys.capo);
-          setInstTuningkeyboard(parsedData.keys.tuning);
-          setInstLastPlayedkeyboard(parsedData.keys.lastPlay);
-          setInstLinkkeyboard(parsedData.keys.link);
-          setInstProgressBarkeyboard(parsedData.keys.progress);
-          setInstNoteskeyboard(parsedData.keys.notes || "");
-        }
-
-        if (parsedData.drums?.active) {
-          setSongCifradrums(parsedData.drums.songCifra);
-          setInstrActiveStatusdrums(true);
-          setInstCapodrums(parsedData.drums.capo);
-          setInstTuningdrums(parsedData.drums.tuning);
-          setInstLastPlayeddrums(parsedData.drums.lastPlay);
-          setInstLinkdrums(parsedData.drums.link);
-          setInstProgressBardrums(parsedData.drums.progress);
-          setInstNotesdrums(parsedData.drums.notes || "");
-        }
-
-        if (parsedData.voice?.active) {
-          setSongCifravoice(parsedData.voice.songCifra);
-          setInstrActiveStatusvoice(true);
-          setInstCapovoice(parsedData.voice.capo);
-          setInstTuningvoice(parsedData.voice.tuning);
-          setInstLastPlayedvoice(parsedData.voice.lastPlay);
-          setInstLinkvoice(parsedData.voice.link);
-          setInstProgressBarvoice(parsedData.voice.progress);
-          setInstNotesvoice(parsedData.voice.notes || "");
-        }
+        hydrateInstrument("guitar01", {
+          setSongCifra: setSongCifraguitar01,
+          setActive: setInstrActiveStatusguitar01,
+          setCapo: setInstCapoguitar01,
+          setTuning: setInstTuningguitar01,
+          setLastPlayed: setInstLastPlayedguitar01,
+          setLink: setInstLinkguitar01,
+          setProgress: setInstProgressBarguitar01,
+          setNotes: setInstNotesguitar01,
+        });
+        hydrateInstrument("guitar02", {
+          setSongCifra: setSongCifraguitar02,
+          setActive: setInstrActiveStatusguitar02,
+          setCapo: setInstCapoguitar02,
+          setTuning: setInstTuningguitar02,
+          setLastPlayed: setInstLastPlayedguitar02,
+          setLink: setInstLinkguitar02,
+          setProgress: setInstProgressBarguitar02,
+          setNotes: setInstNotesguitar02,
+        });
+        hydrateInstrument("bass", {
+          setSongCifra: setSongCifrabass,
+          setActive: setInstrActiveStatusbass,
+          setCapo: setInstCapobass,
+          setTuning: setInstTuningbass,
+          setLastPlayed: setInstLastPlayedbass,
+          setLink: setInstLinkbass,
+          setProgress: setInstProgressBarbass,
+          setNotes: setInstNotesbass,
+        });
+        hydrateInstrument("keys", {
+          setSongCifra: setSongCifrakeyboard,
+          setActive: setInstrActiveStatuskeyboard,
+          setCapo: setInstCapokeyboard,
+          setTuning: setInstTuningkeyboard,
+          setLastPlayed: setInstLastPlayedkeyboard,
+          setLink: setInstLinkkeyboard,
+          setProgress: setInstProgressBarkeyboard,
+          setNotes: setInstNoteskeyboard,
+        });
+        hydrateInstrument("drums", {
+          setSongCifra: setSongCifradrums,
+          setActive: setInstrActiveStatusdrums,
+          setCapo: setInstCapodrums,
+          setTuning: setInstTuningdrums,
+          setLastPlayed: setInstLastPlayeddrums,
+          setLink: setInstLinkdrums,
+          setProgress: setInstProgressBardrums,
+          setNotes: setInstNotesdrums,
+        });
+        hydrateInstrument("voice", {
+          setSongCifra: setSongCifravoice,
+          setActive: setInstrActiveStatusvoice,
+          setCapo: setInstCapovoice,
+          setTuning: setInstTuningvoice,
+          setLastPlayed: setInstLastPlayedvoice,
+          setLink: setInstLinkvoice,
+          setProgress: setInstProgressBarvoice,
+          setNotes: setInstNotesvoice,
+        });
       } catch (error) {
         console.error("Failed to parse dataFromAPI:", error);
       }

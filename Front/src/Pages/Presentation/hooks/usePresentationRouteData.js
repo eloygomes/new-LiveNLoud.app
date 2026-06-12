@@ -1,9 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
   allDataFromOneSong,
-  fetchUserSongs,
-  loadDashboardVisibleSongs,
-  loadSelectedSetlists,
   updateLastPlayed,
 } from "../../../Tools/Controllers";
 import {
@@ -21,6 +18,7 @@ import {
   logPresentationDebug,
 } from "../helpers/presentationUtils";
 import { setLocalStorageItemSafe } from "../../../Tools/storageSafe";
+import { loadActiveSetlistSongs } from "../../shared/setlistNavigation";
 
 function hydrateSongPresentationData(rawSongData = {}) {
   const hydratedSongData = { ...rawSongData };
@@ -56,37 +54,6 @@ function getSelectedPresentationInstrument(songData, requestedInstrument) {
         instrumentHasPresentationContent(songData[key]),
     )?.key || requestedInstrument
   );
-}
-
-async function loadSetlistSongsForRoute(decodedRouteArtist, decodedRouteSong) {
-  const currentArtist = decodedRouteArtist.trim().toLowerCase();
-  const currentSong = decodedRouteSong.trim().toLowerCase();
-  const dashboardVisibleSongs = loadDashboardVisibleSongs();
-
-  if (dashboardVisibleSongs.length && currentArtist && currentSong) {
-    const currentSongIsVisibleOnDashboard = dashboardVisibleSongs.some(
-      (song) =>
-        String(song.artist || "").trim().toLowerCase() === currentArtist &&
-        String(song.song || "").trim().toLowerCase() === currentSong,
-    );
-
-    if (currentSongIsVisibleOnDashboard) return dashboardVisibleSongs;
-  }
-
-  const selectedSetlists = loadSelectedSetlists().map((setlist) =>
-    setlist.trim().toLowerCase(),
-  );
-  const { songs } = await fetchUserSongs();
-
-  if (!selectedSetlists.length) return songs;
-
-  return songs.filter((song) => {
-    const songSetlists = (song.setlist || []).map((setlist) =>
-      setlist.trim().toLowerCase(),
-    );
-
-    return selectedSetlists.some((setlist) => songSetlists.includes(setlist));
-  });
 }
 
 export function usePresentationRouteData({
@@ -223,7 +190,7 @@ export function usePresentationRouteData({
     let active = true;
 
     const loadSetlistNavigation = async () => {
-      const songs = await loadSetlistSongsForRoute(
+      const songs = await loadActiveSetlistSongs(
         decodedRouteArtist,
         decodedRouteSong,
       );

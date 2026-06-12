@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   FaDrum,
   FaGuitar,
@@ -22,6 +23,7 @@ const BLANK_INSTRUMENTS = [
 ];
 
 export default function NewSongStartChoice({ open, onClose, onChooseLink }) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState("choice");
   const [blankSongName, setBlankSongName] = useState("");
   const [blankArtistName, setBlankArtistName] = useState("");
@@ -46,6 +48,16 @@ export default function NewSongStartChoice({ open, onClose, onChooseLink }) {
 
   const goBlankPresentation = () => {
     if (!canStartBlank) return;
+    const nextArtist = blankArtistName.trim();
+    const nextSong = blankSongName.trim();
+
+    onClose?.();
+    setMode("choice");
+    navigate(
+      `/blankpresentation/${encodeURIComponent(nextArtist)}/${encodeURIComponent(
+        nextSong,
+      )}/${encodeURIComponent(blankInstrument)}`,
+    );
   };
 
   const content = (
@@ -160,19 +172,26 @@ export default function NewSongStartChoice({ open, onClose, onChooseLink }) {
                   <button
                     key={key}
                     type="button"
-                    className={`rounded-[18px] p-4 text-left transition active:scale-[0.99] ${
+                    className={`relative rounded-[18px] p-4 text-left transition active:scale-[0.99] ${
                       selected
-                        ? "bg-[goldenrod] text-black shadow-[8px_8px_18px_rgba(0,0,0,0.18),-8px_-8px_18px_rgba(255,255,255,0.75)]"
-                        : "neuphormism-b-se text-gray-500"
+                        ? "neuphormism-b-se text-black ring-2 ring-[goldenrod]/70"
+                        : "neuphormism-b-se text-gray-500 hover:text-black"
                     }`}
                     onClick={() => setBlankInstrument(key)}
                   >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full neuphormism-b-btn">
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-[12px] neuphormism-b-btn ${
+                        selected ? "text-black" : "text-gray-500"
+                      }`}
+                    >
                       <Icon className="text-[14px]" />
                     </span>
                     <span className="mt-4 block text-sm font-bold">
                       {label}
                     </span>
+                    {selected ? (
+                      <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-[goldenrod]" />
+                    ) : null}
                   </button>
                 );
               })}
