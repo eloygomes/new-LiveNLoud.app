@@ -114,6 +114,31 @@ describe("Presentation extracted components", () => {
     expect(onExit).toHaveBeenCalled();
   });
 
+  it("keeps only zoom controls visible in the touch live header", () => {
+    render(
+      <PresentationLiveHeader
+        effectiveLiveMode
+        isTouchLayout
+        songFromURL="Song"
+        artistFromURL="Artist"
+        liveCifraZoomLabel="120%"
+        blockSpacingLabel="32px"
+        onDecreaseZoom={vi.fn()}
+        onIncreaseZoom={vi.fn()}
+        onDecreaseSpacing={vi.fn()}
+        onIncreaseSpacing={vi.fn()}
+        onExit={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("group", { name: "Live cifra zoom" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Live block spacing" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders touch video actions", () => {
     const onClose = vi.fn();
     const onCloseVideo = vi.fn();
@@ -167,21 +192,18 @@ describe("Presentation extracted components", () => {
     render(
       <PresentationTopBar
         visible
-        isTouchLayout
+        isTouchLayout={false}
         isTouchVideoActive={false}
-        touchVideoLink=""
         songFromURL="Song"
         artistFromURL="Artist"
         activeLayoutLabel="Default layout"
         previousSetlistSong={{ artist: "Prev", song: "Prev Song" }}
         nextSetlistSong={{ artist: "Next", song: "Next Song" }}
-        getMobileTitleSizeClass={() => "text-base"}
         toolBoxBtnStatus={false}
         isEditing={false}
         isVideoModalOpen={false}
         openEditorToolBox={openEditorToolBox}
         onToggleToolBox={vi.fn()}
-        onOpenTouchVideoMenu={vi.fn()}
         isExpandedCifra={false}
         onToggleExpanded={onToggleExpanded}
         onGoToEditSong={vi.fn()}
@@ -190,9 +212,6 @@ describe("Presentation extracted components", () => {
         onOpenGuitarProViewer={vi.fn()}
         onEnterLiveMode={vi.fn()}
         onGoToSetlistSong={onGoToSetlistSong}
-        onTouchVideoLinkChange={vi.fn()}
-        onTouchVideoActiveChange={vi.fn()}
-        onVideoModalChange={vi.fn()}
       />,
     );
 
@@ -206,6 +225,60 @@ describe("Presentation extracted components", () => {
 
     expect(openEditorToolBox).toHaveBeenCalled();
     expect(onToggleExpanded).toHaveBeenCalled();
+    expect(onGoToSetlistSong).toHaveBeenCalledWith({
+      artist: "Next",
+      song: "Next Song",
+    });
+  });
+
+  it("keeps only options and song navigation in the touch top bar", () => {
+    const onToggleToolBox = vi.fn();
+    const onGoToSetlistSong = vi.fn();
+
+    render(
+      <PresentationTopBar
+        visible
+        isTouchLayout
+        isTouchVideoActive={false}
+        songFromURL="Song"
+        artistFromURL="Artist"
+        activeLayoutLabel="Default layout"
+        previousSetlistSong={{ artist: "Prev", song: "Prev Song" }}
+        nextSetlistSong={{ artist: "Next", song: "Next Song" }}
+        toolBoxBtnStatus={false}
+        isEditing={false}
+        isVideoModalOpen={false}
+        openEditorToolBox={vi.fn()}
+        onToggleToolBox={onToggleToolBox}
+        isExpandedCifra={false}
+        onToggleExpanded={vi.fn()}
+        onGoToEditSong={vi.fn()}
+        instrumentSelected="keys"
+        canOpenGuitarPro={false}
+        onOpenGuitarProViewer={vi.fn()}
+        onEnterLiveMode={vi.fn()}
+        onGoToSetlistSong={onGoToSetlistSong}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Open cifra editor" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Enable expanded layout" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Song settings" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Options" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Next song in selected setlist",
+      }),
+    );
+
+    expect(onToggleToolBox).toHaveBeenCalled();
     expect(onGoToSetlistSong).toHaveBeenCalledWith({
       artist: "Next",
       song: "Next Song",

@@ -1,5 +1,5 @@
 export const clampPresentationFontSizeStep = (value = 0) =>
-  Math.max(-3, Math.min(4, Number.isFinite(value) ? value : 0));
+  Math.max(-10, Math.min(10, Number.isFinite(value) ? value : 0));
 
 export const clampPresentationBlockSpacingStep = (value = 0) =>
   Math.max(-4, Number.isFinite(value) ? value : 0);
@@ -265,7 +265,7 @@ export const shouldDropBlankLinesForPresentationFlow = ({
 export const clampLiveCifraZoomPercent = (value = 120) => {
   const numericValue = Number(value);
   const safeValue = Number.isFinite(numericValue) ? numericValue : 120;
-  return Math.max(90, Math.min(170, Math.round(safeValue / 10) * 10));
+  return Math.max(0, Math.min(200, Math.round(safeValue / 10) * 10));
 };
 
 export const getLiveColumnDisplayState = ({

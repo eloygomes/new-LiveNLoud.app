@@ -3,6 +3,7 @@ const GLOBAL_KEY = "__liveNloudScrollController";
 const defaultState = {
   autoScrollActive: false,
   speed: 3,
+  speedMode: "desktop",
   verticalMode: "page",
 };
 

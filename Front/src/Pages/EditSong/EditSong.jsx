@@ -10,7 +10,23 @@ import {
   loadActiveSetlistSongs,
 } from "../shared/setlistNavigation";
 
-const WEB_LAYOUT_MIN_WIDTH = 768;
+const TOUCH_LAYOUT_MAX_WIDTH = 1024;
+
+function getIsSongTouchLayout() {
+  if (typeof window === "undefined") return false;
+
+  const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+  const isIosDevice =
+    /iPad|iPhone|iPod/i.test(window.navigator?.userAgent || "") ||
+    (window.navigator?.platform === "MacIntel" &&
+      window.navigator?.maxTouchPoints > 1);
+
+  return (
+    window.innerWidth < 768 ||
+    isIosDevice ||
+    (window.innerWidth <= TOUCH_LAYOUT_MAX_WIDTH && hasCoarsePointer)
+  );
+}
 
 function safeDecode(value = "") {
   try {
@@ -63,8 +79,7 @@ function SetlistNavigationButtons({
 function EditSong() {
   const navigate = useNavigate();
   const { artist: routeArtist = "", song: routeSong = "" } = useParams();
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < WEB_LAYOUT_MIN_WIDTH;
+  const isTouchLayout = getIsSongTouchLayout();
   const [songDataOpen, setSongDataOpen] = useState(true);
   const [dataFromAPI, setDataFromAPI] = useState([]);
   const [songData, setSongData] = useState(null);
@@ -171,35 +186,36 @@ function EditSong() {
 
   if (isTouchLayout) {
     return (
-      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-0">
+      <div className="min-h-screen bg-[#f0f0f0] px-3 pb-28 pt-3">
         <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
           <SnackBar snackbarMessage={snackbarMessage} />
         </div>
 
         <div className="origin-top">
-          <div className="px-1 py-2">
-            <div className="flex items-start justify-between gap-3">
+          <section className="neuphormism-b rounded-[22px] px-4 py-4">
+            <div className="flex flex-col gap-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                   Edit
                 </p>
-                <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
-                  Update Song
+                <h1 className="mt-2 text-[2rem] font-bold leading-none tracking-tight text-black">
+                  Edit Song
                 </h1>
                 <p className="mt-2 text-sm font-medium text-gray-500">
-                  Update song info, revise links, and keep the current setlist structure.
+                  Update song info, revise links, and keep the current setlist
+                  structure without leaving context.
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col items-stretch">
-                <div className="flex gap-2">
+              <div className="flex flex-col items-stretch gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
-                    className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2 text-sm font-bold"
+                    className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2.5 text-sm font-bold"
                     onClick={pageActions?.onDelete}
                   >
                     Delete
                   </button>
                   <button
-                    className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2 text-sm font-bold disabled:opacity-50"
+                    className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2.5 text-sm font-bold disabled:opacity-50"
                     onClick={pageActions?.onUpdate}
                     disabled={!pageActions?.canUpdate}
                   >
@@ -214,9 +230,32 @@ function EditSong() {
                 />
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
+            <EditSongColumnB
+              dataFromAPI={dataFromAPI}
+              progGuitar01={progGuitar01}
+              setProgGuitar01={setProgGuitar01}
+              progGuitar02={progGuitar02}
+              setProgGuitar02={setProgGuitar02}
+              progBass={progBass}
+              setProgBass={setProgBass}
+              progKey={progKey}
+              setProgKey={setProgKey}
+              progDrums={progDrums}
+              setProgDrums={setProgDrums}
+              progVoice={progVoice}
+              setProgVoice={setProgVoice}
+              instrumentUpdatersRef={instrumentUpdatersRef}
+              setIsDirty={setIsDirty}
+              setShowSnackBar={setShowSnackBar}
+              setSnackbarMessage={setSnackbarMessage}
+              onLinkAdded={() => setSongDataOpen(true)}
+              songData={songData}
+              onSongDataChange={handleSongDataChange}
+              touchLayout
+            />
             <EditSongColumnA
               dataFromAPI={dataFromAPI}
               progGuitar01={progGuitar01}
@@ -229,33 +268,9 @@ function EditSong() {
               isDirty={isDirty}
               setIsDirty={setIsDirty}
               touchLayout
+              touchInlineMedia
               songDataOpen={songDataOpen}
               onToggleSongData={() => setSongDataOpen((current) => !current)}
-              middleContent={
-                <EditSongColumnB
-                  dataFromAPI={dataFromAPI}
-                  progGuitar01={progGuitar01}
-                  setProgGuitar01={setProgGuitar01}
-                  progGuitar02={progGuitar02}
-                  setProgGuitar02={setProgGuitar02}
-                  progBass={progBass}
-                  setProgBass={setProgBass}
-                  progKey={progKey}
-                  setProgKey={setProgKey}
-                  progDrums={progDrums}
-                  setProgDrums={setProgDrums}
-                  progVoice={progVoice}
-                  setProgVoice={setProgVoice}
-                  instrumentUpdatersRef={instrumentUpdatersRef}
-                  setIsDirty={setIsDirty}
-                  setShowSnackBar={setShowSnackBar}
-                  setSnackbarMessage={setSnackbarMessage}
-                  onLinkAdded={() => setSongDataOpen(true)}
-                  songData={songData}
-                  onSongDataChange={handleSongDataChange}
-                  touchLayout
-                />
-              }
               onPageActionsChange={setPageActions}
             />
           </div>

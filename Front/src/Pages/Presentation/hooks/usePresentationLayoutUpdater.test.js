@@ -83,7 +83,7 @@ describe("usePresentationLayoutUpdater", () => {
     expect(
       runStateUpdate(setSongDataFetched, initialSongData).keys.presentationLayouts
         .default.fontSizeStep,
-    ).toBe(4);
+    ).toBe(10);
 
     act(() => {
       result.current.adjustActiveBlockSpacingStep(-10);

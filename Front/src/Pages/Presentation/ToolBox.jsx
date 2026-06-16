@@ -1,12 +1,22 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DraggableComponent from "./DraggableComponent";
 import TollBoxAcoord from "./TollBoxAcoord";
 import ToolBoxYT from "./ToolBoxYT";
 import VideoDragComp from "./videoDragComp";
 import ToolBoxChordPlayer from "./ToolBoxChordPlayer";
 import SongInstrumentNotes from "../SongInstrumentNotes";
+
+const TOUCH_PANEL_LABELS = {
+  "panel-editor": "Editor",
+  "panel-transpose": "Transpose",
+  "panel-layout": "Layout",
+  "panel-notes": "Notes",
+  panel1: "Instruments",
+  panel2: "Videos",
+  panel6: "Scrolling",
+};
 
 function ToolBox({
   toolBoxBtnStatus,
@@ -54,14 +64,29 @@ function ToolBox({
   onOpenInstrumentNotes,
   isSavingNotes = false,
   onSelectInstrument,
+  onGoToEditSong,
+  canOpenGuitarPro = false,
+  onOpenGuitarProViewer,
+  onEnterLiveMode,
+  isTouchVideoActive = false,
+  onCloseTouchVideo,
   requestedPanel,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
   const [activeTouchPanel, setActiveTouchPanel] = useState(null);
+  const activeTouchPanelLabel = activeTouchPanel
+    ? TOUCH_PANEL_LABELS[activeTouchPanel]
+    : "";
 
   // dimensões aproximadas apenas para layout; não afetam o drag
   const BOX_WIDTH = 320;
+
+  useEffect(() => {
+    if (!isTouchLayout || !toolBoxBtnStatus || !isEditing) return;
+
+    setActiveTouchPanel((currentPanel) => currentPanel || "panel-editor");
+  }, [isEditing, isTouchLayout, toolBoxBtnStatus]);
 
   if (!toolBoxBtnStatus && !videoModalStatus && !chordModalStatus && !notesModalStatus) {
     return null;
@@ -79,7 +104,17 @@ function ToolBox({
     closeToolBoxAndDiscardEditor();
   };
 
+  const hideTouchToolBox = () => {
+    setActiveTouchPanel(null);
+    setToolBoxBtnStatus(false);
+  };
+
   const handleTouchHeaderClose = () => {
+    if (isEditing) {
+      hideTouchToolBox();
+      return;
+    }
+
     if (activeTouchPanel) {
       setActiveTouchPanel(null);
       return;
@@ -150,19 +185,21 @@ function ToolBox({
           <button
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
-            onClick={closeTouchToolBox}
+            onClick={isEditing ? hideTouchToolBox : closeTouchToolBox}
             aria-label="Close toolbox"
           />
-          <div className=" absolute inset-x-0 bottom-0 rounded-t-[18px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
-            <div className="mb-4 flex items-start justify-between">
-              <h1 className="text-[2rem] font-bold tracking-tight text-black">
-                ToolBox
+          <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[18px] bg-[#f2f2f2] px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+            <div className="mb-3 flex items-center justify-between">
+              <h1 className="min-w-0 truncate text-sm font-bold leading-6 text-black">
+                {`ToolBox${activeTouchPanelLabel ? ` - ${activeTouchPanelLabel}` : ""}`}
               </h1>
               <button
-                className="neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-2xl font-semibold text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                className="neuphormism-b-btn flex h-8 w-8 items-center justify-center rounded-[12px] bg-white text-lg font-semibold text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
                 onClick={handleTouchHeaderClose}
                 aria-label={
-                  activeTouchPanel ? "Back to toolbox" : "Close toolbox"
+                  activeTouchPanel && !isEditing
+                    ? "Back to toolbox"
+                    : "Close toolbox"
                 }
                 type="button"
               >
@@ -174,6 +211,8 @@ function ToolBox({
               embedLinks={embedLinks}
               setLinktoplay={setLinktoplay}
               setVideoModalStatus={setVideoModalStatus}
+              linktoplay={linktoplay}
+              onVideoModalChange={onVideoModalChange}
               setChordModalStatus={setChordModalStatus}
               setChordPreviewData={setChordPreviewData}
               songFromURL={songFromURL}
@@ -205,6 +244,7 @@ function ToolBox({
               decreaseBlockSpacing={decreaseBlockSpacing}
               increaseBlockSpacing={increaseBlockSpacing}
               closeToolBox={closeTouchToolBox}
+              closeToolBoxWithoutDiscard={hideTouchToolBox}
               activeTouchPanel={activeTouchPanel}
               setActiveTouchPanel={setActiveTouchPanel}
               instrumentNotes={instrumentNotes}
@@ -212,6 +252,12 @@ function ToolBox({
               onSaveInstrumentNotes={onSaveInstrumentNotes}
               isSavingNotes={isSavingNotes}
               onSelectInstrument={onSelectInstrument}
+              onGoToEditSong={onGoToEditSong}
+              canOpenGuitarPro={canOpenGuitarPro}
+              onOpenGuitarProViewer={onOpenGuitarProViewer}
+              onEnterLiveMode={onEnterLiveMode}
+              isTouchVideoActive={isTouchVideoActive}
+              onCloseTouchVideo={onCloseTouchVideo}
               requestedPanel={requestedPanel}
             />
           </div>
@@ -246,6 +292,8 @@ function ToolBox({
                 embedLinks={embedLinks}
                 setLinktoplay={setLinktoplay}
                 setVideoModalStatus={setVideoModalStatus}
+                linktoplay={linktoplay}
+                onVideoModalChange={onVideoModalChange}
                 setChordModalStatus={setChordModalStatus}
                 setChordPreviewData={setChordPreviewData}
                 songFromURL={songFromURL}
@@ -285,6 +333,12 @@ function ToolBox({
                 onSaveInstrumentNotes={onSaveInstrumentNotes}
                 isSavingNotes={isSavingNotes}
                 onSelectInstrument={onSelectInstrument}
+                onGoToEditSong={onGoToEditSong}
+                canOpenGuitarPro={canOpenGuitarPro}
+                onOpenGuitarProViewer={onOpenGuitarProViewer}
+                onEnterLiveMode={onEnterLiveMode}
+                isTouchVideoActive={isTouchVideoActive}
+                onCloseTouchVideo={onCloseTouchVideo}
                 requestedPanel={requestedPanel}
               />
 

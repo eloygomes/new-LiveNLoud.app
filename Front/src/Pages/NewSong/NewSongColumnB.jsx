@@ -680,7 +680,7 @@ function NewSongColumnBWeb(props) {
 
 function NewSongColumnBMobile(props) {
   const [activeInstrument, setActiveInstrument] = useState(null);
-  const [touchInstrumentsOpen, setTouchInstrumentsOpen] = useState(false);
+  const [touchInstrumentsOpen, setTouchInstrumentsOpen] = useState(true);
 
   const instrumentCards = useMemo(
     () =>

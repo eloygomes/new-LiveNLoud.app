@@ -51,6 +51,8 @@ describe("ScrollControlPanel", () => {
     render(<ScrollControlPanel isTouchLayout />);
 
     expect(screen.getByText("Auto scroll")).toBeInTheDocument();
+    expect(screen.getByText("10/20")).toBeInTheDocument();
+    expect(getScrollControllerState().speed).toBe(10);
     expect(screen.getByRole("button", { name: "Increase speed" })).toBeInTheDocument();
     expect(screen.getByRole("slider", { name: "Auto scroll speed" })).toBeInTheDocument();
   });

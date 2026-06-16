@@ -124,7 +124,7 @@ describe("presentationLayoutHelpers", () => {
 
     expect(normalized).toEqual({
       songCifra: "legacy cifra",
-      fontSizeStep: 4,
+      fontSizeStep: 10,
       blockSpacingStep: 0,
       twoColumns: true,
       showProgressionMarkers: false,
@@ -405,10 +405,11 @@ describe("presentationLayoutHelpers", () => {
   });
 
   it("clamps live cifra zoom to supported percentages", () => {
-    expect(clampLiveCifraZoomPercent(40)).toBe(90);
+    expect(clampLiveCifraZoomPercent(-20)).toBe(0);
+    expect(clampLiveCifraZoomPercent(40)).toBe(40);
     expect(clampLiveCifraZoomPercent(124)).toBe(120);
     expect(clampLiveCifraZoomPercent(126)).toBe(130);
-    expect(clampLiveCifraZoomPercent(250)).toBe(170);
+    expect(clampLiveCifraZoomPercent(250)).toBe(200);
     expect(clampLiveCifraZoomPercent("invalid")).toBe(120);
   });
 

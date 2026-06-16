@@ -56,6 +56,19 @@ body {
   background: linear-gradient(145deg, #efefef, #f0f0f0);
 }
 
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html,
+  body,
+  #root,
+  #REMOVED_MONGO_USER {
+    background: #000;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
 main{
   overflow-y: hidden;
 }
@@ -403,6 +416,10 @@ main{
   font-family: "Courier New", Courier, monospace;
   outline: none;
   overflow-x: hidden;
+}
+
+.presentation-live-content-touch {
+  padding: 0 0.75rem 5rem;
 }
 
 .presentation-live-content .presentation-horizontal-columns {

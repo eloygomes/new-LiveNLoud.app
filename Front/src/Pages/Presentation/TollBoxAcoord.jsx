@@ -1,23 +1,40 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import { IoChevronForward, IoChevronBack } from "react-icons/io5";
+import { FaFilePen, FaSliders } from "react-icons/fa6";
+import {
+  GiDrumKit,
+  GiGuitar,
+  GiGuitarBassHead,
+  GiMicrophone,
+  GiPianoKeys,
+} from "react-icons/gi";
+import {
+  IoArrowDownCircle,
+  IoChevronBack,
+  IoChevronForward,
+  IoDocumentText,
+  IoGrid,
+  IoMusicalNotes,
+  IoPlayCircle,
+  IoSwapVertical,
+  IoVideocam,
+  IoVideocamOff,
+} from "react-icons/io5";
 
 import ScrollControlPanel from "./ScrollControlPanel";
-import ToolBoxMini from "./ToolBoxMini";
-import ToolBoxTunerMini from "./ToolBoxTunerMini";
-import ToolBoxChordLibraryMini from "./ToolBoxChordLibraryMini";
 import ToolBoxEditControls from "./ToolBoxEditControls";
 import SongInstrumentNotes from "../SongInstrumentNotes";
+import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
 
 // Uma lista de instrumentos, igual ao que você usa em DashList2Items
 const instrumentLabels = [
-  { key: "guitar01", label: "G1" },
-  { key: "guitar02", label: "G2" },
-  { key: "bass", label: "B" },
-  { key: "keys", label: "K" },
-  { key: "drums", label: "D" },
-  { key: "voice", label: "V" },
+  { key: "guitar01", label: "Guitar 01", short: "G1", icon: GiGuitar },
+  { key: "guitar02", label: "Guitar 02", short: "G2", icon: GiGuitar },
+  { key: "bass", label: "Bass", short: "B", icon: GiGuitarBassHead },
+  { key: "keys", label: "Keys", short: "K", icon: GiPianoKeys },
+  { key: "drums", label: "Drums", short: "D", icon: GiDrumKit },
+  { key: "voice", label: "Voice", short: "V", icon: GiMicrophone },
 ];
 
 // Função auxiliar para agrupar o array em pares [ [item1,item2], [item3,item4], ... ]
@@ -33,6 +50,8 @@ export default function TollBoxAcoord({
   embedLinks,
   setLinktoplay,
   setVideoModalStatus,
+  linktoplay,
+  onVideoModalChange,
   setChordModalStatus,
   setChordPreviewData,
   songFromURL,
@@ -58,6 +77,7 @@ export default function TollBoxAcoord({
   showProgressionMarkers = false,
   isTouchLayout = false,
   closeToolBox,
+  closeToolBoxWithoutDiscard,
   activeTouchPanel,
   setActiveTouchPanel,
   touchFontSizeLabel = "100%",
@@ -73,14 +93,16 @@ export default function TollBoxAcoord({
   onSaveInstrumentNotes,
   isSavingNotes = false,
   onSelectInstrument = () => {},
+  onGoToEditSong,
+  canOpenGuitarPro = false,
+  onOpenGuitarProViewer,
+  onEnterLiveMode,
+  isTouchVideoActive = false,
+  onCloseTouchVideo,
   requestedPanel,
 }) {
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
-  // Estados para controlar qual ferramenta está ativa
-  const [TunerStatus, setTunerStatus] = useState(false);
-  const [MetronomeStatus, setMetronomeStatus] = useState(true);
-  const [ChordLibraryStatus, setChordLibraryStatus] = useState(false);
   const [activeDesktopPanel, setActiveDesktopPanel] = useState(null);
 
   useEffect(() => {
@@ -103,13 +125,6 @@ export default function TollBoxAcoord({
   const handlePlayClick = (url) => {
     setLinktoplay(url);
     setVideoModalStatus(true);
-    if (isTouchLayout) {
-      closeToolBox?.();
-    }
-  };
-
-  const chordLibraryModal = () => {
-    setChordModalStatus(true);
   };
 
   if (!songDataFetched || !songDataFetched.instruments) {
@@ -119,26 +134,157 @@ export default function TollBoxAcoord({
   // Montamos um array de arrays, cada subarray com 2 instrumentos (exemplo)
   const chunkedInstruments = chunkArray(instrumentLabels, 2);
 
-  const bpm = "120";
-
   const openTouchEditorDetails = () => {
     if (!isEditing && songCifraData) {
       startEditingCifra();
+      closeToolBoxWithoutDiscard?.();
+      return;
     }
+
     setActiveTouchPanel?.("panel-editor");
   };
 
   const handleTouchSave = async () => {
     await handleSaveCifra();
     setActiveTouchPanel?.(null);
-    closeToolBox?.();
+    closeToolBoxWithoutDiscard?.();
   };
 
   const handleTouchDiscard = () => {
     handleDiscardDraft();
     setActiveTouchPanel?.(null);
-    closeToolBox?.();
+    closeToolBoxWithoutDiscard?.();
   };
+
+  const runTouchAction = (action) => {
+    action?.();
+  };
+
+  const renderStepControl = ({
+    label,
+    value,
+    decreaseLabel,
+    increaseLabel,
+    onDecrease,
+    onIncrease,
+    disabled = false,
+  }) => (
+    <div
+      className={
+        isTouchLayout
+          ? "rounded-[12px] px-1 py-1"
+          : "rounded-[16px] px-1 py-2"
+      }
+    >
+      <div
+        className={
+          isTouchLayout
+            ? "mb-1 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-black/55"
+            : "mb-2 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-black/55"
+        }
+      >
+        {label}
+      </div>
+      <div
+        className={`grid items-center rounded-[16px] px-1 py-1 ${
+          isTouchLayout
+            ? "grid-cols-[2.15rem_minmax(0,1fr)_2.15rem] gap-1.5"
+            : "grid-cols-[2.6rem_minmax(0,1fr)_2.6rem] gap-2"
+        } ${disabled ? "opacity-45" : ""}`}
+      >
+        <button
+          type="button"
+          className={
+            isTouchLayout
+              ? "neuphormism-b-btn flex h-8 w-full items-center justify-center rounded-[12px] text-base font-bold leading-none text-black active:scale-[0.98] disabled:cursor-not-allowed"
+              : "neuphormism-b-btn flex h-10 w-full items-center justify-center rounded-[14px] text-[1.25rem] font-bold leading-none text-black active:scale-[0.98] disabled:cursor-not-allowed"
+          }
+          onClick={onDecrease}
+          disabled={disabled}
+          aria-label={decreaseLabel}
+        >
+          -
+        </button>
+        <div
+          className={
+            isTouchLayout
+              ? "min-w-0 rounded-[12px] bg-white/55 px-2 py-2 text-center text-xs font-bold leading-none text-black"
+              : "min-w-0 rounded-[14px] bg-white/55 px-2 py-2.5 text-center text-sm font-bold leading-none text-black"
+          }
+          aria-label={`${label} value`}
+        >
+          {value}
+        </div>
+        <button
+          type="button"
+          className={
+            isTouchLayout
+              ? "neuphormism-b-btn flex h-8 w-full items-center justify-center rounded-[12px] text-base font-bold leading-none text-black active:scale-[0.98] disabled:cursor-not-allowed"
+              : "neuphormism-b-btn flex h-10 w-full items-center justify-center rounded-[14px] text-[1.25rem] font-bold leading-none text-black active:scale-[0.98] disabled:cursor-not-allowed"
+          }
+          onClick={onIncrease}
+          disabled={disabled}
+          aria-label={increaseLabel}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderToggleControl = ({
+    label,
+    active,
+    activeText,
+    inactiveText,
+    onClick,
+  }) => (
+    <div
+      className={
+        isTouchLayout
+          ? "flex flex-col gap-1.5 rounded-[12px] px-1 py-1"
+          : "flex flex-col gap-2 rounded-[16px] px-1 py-2"
+      }
+    >
+      <div
+        className={
+          isTouchLayout
+            ? "text-xs font-bold text-black"
+            : "text-sm font-bold text-black"
+        }
+      >
+        {label}
+      </div>
+      <button
+        type="button"
+        className={`flex w-full items-center justify-between rounded-[14px] font-bold uppercase tracking-[0.1em] transition active:scale-[0.98] ${
+          isTouchLayout ? "h-9 px-2.5 text-xs" : "h-[42px] px-3 text-sm"
+        } ${
+          active
+            ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+            : "neuphormism-b-se text-black"
+        }`}
+        onClick={onClick}
+      >
+        <span>{active ? activeText : inactiveText}</span>
+        <span
+          className={`${
+            isTouchLayout ? "h-3.5 w-7" : "h-4 w-8"
+          } rounded-full p-0.5 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] ${
+            active ? "bg-[goldenrod]" : "bg-white"
+          }`}
+        >
+          <span
+            className={`${
+              isTouchLayout ? "h-2.5 w-2.5" : "h-3 w-3"
+            } block rounded-full bg-black transition ${
+              active ? (isTouchLayout ? "translate-x-3.5" : "translate-x-4") : ""
+            }`}
+          />
+        </span>
+      </button>
+    </div>
+  );
 
   const renderEditorContent = () => (
     <ToolBoxEditControls
@@ -146,66 +292,127 @@ export default function TollBoxAcoord({
       isSavingCifra={isSavingCifra}
       hasDraftChanges={hasDraftChanges}
       songCifraData={songCifraData}
-      handleSaveCifra={handleSaveCifra}
-      handleDiscardDraft={handleDiscardDraft}
+      handleSaveCifra={isTouchLayout ? handleTouchSave : handleSaveCifra}
+      handleDiscardDraft={
+        isTouchLayout ? handleTouchDiscard : handleDiscardDraft
+      }
       startEditingCifra={startEditingCifra}
-      onToggleMarksVisibility={onToggleMarksVisibility}
-      blockSpacingLabel={blockSpacingLabel}
-      onDecreaseBlockSpacing={decreaseBlockSpacing}
-      onIncreaseBlockSpacing={increaseBlockSpacing}
-      showProgressionMarkers={showProgressionMarkers}
+      isTouchLayout={isTouchLayout}
     />
   );
 
-  const renderInstrumentsContent = () => (
-    <ul className={isTouchLayout ? "grid grid-cols-2 gap-2" : "mb-5"}>
-      {chunkedInstruments.map((row, rowIndex) => (
-        <li
-          key={rowIndex}
-          className={
-            isTouchLayout ? "contents" : "hover:font-semibold flex flex-row"
-          }
-        >
-          {row.map((instrument) => {
-            const { key, label } = instrument;
+  const renderInstrumentsContent = () => {
+    if (isTouchLayout) {
+      return (
+        <ul className="space-y-2">
+          {instrumentLabels.map((instrument) => {
+            const { key, label, short, icon: Icon } = instrument;
             const isActive = instLinkPageStatus[key];
             const isSelected = key === instrumentSelected;
-            const sharedClass = isTouchLayout
-              ? "rounded-[14px] px-3 py-3 text-sm font-bold"
-              : "w-1/2 p-2 m-2 text-sm";
+            const sharedClass =
+              "neuphormism-b-btn flex min-h-10 w-full items-center justify-between rounded-[12px] px-2.5 py-1.5 text-left text-[0.82rem] font-bold shadow-[0_3px_8px_rgba(0,0,0,0.04)]";
+
             return isActive ? (
-              <button
-                key={key}
-                onClick={() => onSelectInstrument(key)}
-                className={`${sharedClass} ${
-                  isSelected
-                    ? "bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.28)]"
-                    : isTouchLayout
-                      ? "bg-[#ececec] text-black"
-                      : "neuphormism-b-btn"
-                } flex justify-center items-center rounded text-center`}
-              >
-                {label}
-              </button>
+              <li key={key}>
+                <button
+                  type="button"
+                  onClick={() => onSelectInstrument(key)}
+                  className={`${sharedClass} ${
+                    isSelected
+                      ? "bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.28)]"
+                      : "bg-[#ececec] text-black"
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">{label}</span>
+                  </span>
+                  <span className="shrink-0 text-[0.68rem] font-black uppercase text-black/50">
+                    {short}
+                  </span>
+                </button>
+              </li>
             ) : (
-              <button
-                key={key}
-                type="button"
-                className={`${sharedClass} ${isTouchLayout ? "bg-[#ececec] text-gray-400" : "neuphormism-b-btn-desactivated"}`}
-                disabled
-                aria-disabled="true"
-              >
-                {label}
-              </button>
+              <li key={key}>
+                <button
+                  type="button"
+                  className={`${sharedClass} cursor-not-allowed bg-[#ececec] text-gray-400 opacity-55`}
+                  disabled
+                  aria-disabled="true"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">{label}</span>
+                  </span>
+                  <span className="shrink-0 text-[0.68rem] font-black uppercase">
+                    {short}
+                  </span>
+                </button>
+              </li>
             );
           })}
-        </li>
-      ))}
-    </ul>
-  );
+        </ul>
+      );
+    }
+
+    return (
+      <ul className="mb-5">
+        {chunkedInstruments.map((row, rowIndex) => (
+          <li key={rowIndex} className="hover:font-semibold flex flex-row">
+            {row.map((instrument) => {
+              const { key, label } = instrument;
+              const isActive = instLinkPageStatus[key];
+              const isSelected = key === instrumentSelected;
+              const sharedClass = "w-1/2 p-2 m-2 text-sm";
+              return isActive ? (
+                <button
+                  key={key}
+                  onClick={() => onSelectInstrument(key)}
+                  className={`${sharedClass} ${
+                    isSelected
+                      ? "bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.28)]"
+                      : "neuphormism-b-btn"
+                  } flex justify-center items-center rounded text-center`}
+                >
+                  {label}
+                </button>
+              ) : (
+                <button
+                  key={key}
+                  type="button"
+                  className={`${sharedClass} neuphormism-b-btn-desactivated`}
+                  disabled
+                  aria-disabled="true"
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </li>
+        ))}
+      </ul>
+    );
+  };
 
   const renderVideosContent = () => (
     <ul>
+      {isTouchLayout && linktoplay ? (
+        <li className="mb-3">
+          <ToolBoxYT
+            linktoplay={linktoplay}
+            setVideoModalStatus={setVideoModalStatus}
+            setLinktoplay={setLinktoplay}
+            isTouchLayout
+            onVideoModalChange={onVideoModalChange}
+            renderInline
+            iframeHeight={208}
+          />
+        </li>
+      ) : null}
       {embedLinks.map((link, index) => (
         <li
           key={index}
@@ -217,7 +424,7 @@ export default function TollBoxAcoord({
             type="button"
             className={
               isTouchLayout
-                ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
+                ? "w-full rounded-[12px] bg-white px-3 py-2 text-left text-xs font-bold text-black"
                 : "neuphormism-b-se  py-2 w-full m-2 text-sm"
             }
             onClick={() => handlePlayClick(link)}
@@ -229,59 +436,51 @@ export default function TollBoxAcoord({
     </ul>
   );
 
-  const renderHighlightContent = () => {
-    const activeHighlight = selectContenttoShow || "default";
-    const options = [
-      { value: "full", activeValues: ["default", "full"], label: "original" },
-      { value: "tabs", activeValues: ["tabs"], label: "tabs" },
-      { value: "chords", activeValues: ["chords"], label: "notes" },
-    ];
-
-    return (
-      <ul className={isTouchLayout ? "space-y-4" : "m-2 space-y-3"}>
-        {options.map((option) => {
-          const isSelected = option.activeValues.includes(activeHighlight);
-          return (
-            <li key={option.value} className="hover:font-semibold">
-              <button
-                type="button"
-                className={
-                  isSelected
-                    ? "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-left text-sm font-bold text-black"
-                    : isTouchLayout
-                      ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
-                      : "neuphormism-b-se w-full rounded-[14px] px-3 py-3 text-left text-sm font-bold text-black"
-                }
-                onClick={() => {
-                  setSelectContenttoShow(option.value);
-                }}
-              >
-                {option.label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  };
-
   const renderTransposeContent = () => (
-    <div className={isTouchLayout ? "space-y-3" : " space-y-3"}>
-      <div className="py-3 text-black">
-        <div className="text-center text-[0.7rem] font-bold uppercase tracking-[0.14em] text-black/55">
+    <div className={isTouchLayout ? "space-y-2" : "space-y-3"}>
+      <div className={isTouchLayout ? "py-1 text-black" : "py-3 text-black"}>
+        <div
+          className={
+            isTouchLayout
+              ? "text-center text-[0.62rem] font-bold uppercase tracking-[0.14em] text-black/55"
+              : "text-center text-[0.7rem] font-bold uppercase tracking-[0.14em] text-black/55"
+          }
+        >
           Tom
         </div>
-        <div className="mt-3 flex flex-col items-center justify-center gap-2">
+        <div
+          className={
+            isTouchLayout
+              ? "mt-3 grid grid-cols-[3rem_minmax(0,1fr)_3rem] items-center gap-3"
+              : "mt-4 grid grid-cols-[3.5rem_minmax(0,1fr)_3.5rem] items-center gap-3"
+          }
+        >
           <button
             type="button"
-            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-bold text-black"
-            onClick={() => setTransposeSteps?.((value) => value + 1)}
-            aria-label="Transpose up"
+            className={
+              isTouchLayout
+                ? "neuphormism-b-btn flex h-10 w-full items-center justify-center rounded-[12px] text-base font-bold text-black"
+                : "neuphormism-b-btn flex h-11 w-full items-center justify-center rounded-[14px] text-xl font-bold text-black"
+            }
+            onClick={() => setTransposeSteps?.((value) => value - 1)}
+            aria-label="Transpose down"
           >
-            +
+            -
           </button>
-          <div className="min-w-0 py-3 text-center">
-            <div className="text-[2rem] font-bold leading-none">
+          <div
+            className={
+              isTouchLayout
+                ? "min-w-0 py-1.5 text-center"
+                : "min-w-0 py-3 text-center"
+            }
+          >
+            <div
+              className={
+                isTouchLayout
+                  ? "text-[1.55rem] font-bold leading-none"
+                  : "text-[2rem] font-bold leading-none"
+              }
+            >
               {displayKey}
             </div>
             <div className="mt-1 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-black/55">
@@ -292,11 +491,15 @@ export default function TollBoxAcoord({
           </div>
           <button
             type="button"
-            className="neuphormism-b-btn flex h-8 w-28 items-center justify-center rounded-[14px] text-xl font-bold text-black"
-            onClick={() => setTransposeSteps?.((value) => value - 1)}
-            aria-label="Transpose down"
+            className={
+              isTouchLayout
+                ? "neuphormism-b-btn flex h-10 w-full items-center justify-center rounded-[12px] text-base font-bold text-black"
+                : "neuphormism-b-btn flex h-11 w-full items-center justify-center rounded-[14px] text-xl font-bold text-black"
+            }
+            onClick={() => setTransposeSteps?.((value) => value + 1)}
+            aria-label="Transpose up"
           >
-            -
+            +
           </button>
         </div>
       </div>
@@ -304,136 +507,33 @@ export default function TollBoxAcoord({
   );
 
   const renderLayoutContent = () => (
-    <div className={isTouchLayout ? "space-y-3" : "space-y-3"}>
-      <div className="flex flex-col items-start gap-2 rounded-[14px] px-1 py-1">
-        <div className="text-sm font-bold text-black">
-          Progression marks
-        </div>
-        <button
-          type="button"
-          className={`w-full rounded-[14px] px-4 py-2 text-center text-xs font-bold uppercase tracking-[0.08em] ${
-            showProgressionMarkers
-              ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
-              : isTouchLayout
-                ? "bg-white text-black"
-                : "neuphormism-b-se text-black"
-          }`}
-          onClick={() => onToggleMarksVisibility?.()}
-        >
-          {showProgressionMarkers ? "On" : "Off"}
-        </button>
-      </div>
+    <div className={isTouchLayout ? "space-y-2" : "space-y-3"}>
+      {renderStepControl({
+        label: "Font size",
+        value: touchFontSizeLabel,
+        decreaseLabel: "Decrease font size",
+        increaseLabel: "Increase font size",
+        onDecrease: decreaseTouchFontSize,
+        onIncrease: increaseTouchFontSize,
+      })}
+
+      {renderStepControl({
+        label: "Block spacing",
+        value: blockSpacingLabel,
+        decreaseLabel: "Decrease block spacing",
+        increaseLabel: "Increase block spacing",
+        onDecrease: decreaseBlockSpacing,
+        onIncrease: increaseBlockSpacing,
+      })}
+
+      {renderToggleControl({
+        label: "Progression marks",
+        active: showProgressionMarkers,
+        activeText: "On",
+        inactiveText: "Off",
+        onClick: onToggleMarksVisibility,
+      })}
     </div>
-  );
-
-  const renderFontSizeContent = () => (
-    <div className="rounded-[18px] px-1 py-3">
-      <div className=" flex h-9 w-full pb-8 pt-3  min-w-0 flex-1 items-center justify-center rounded-[14px] px-2 text-center text-[0.95rem] font-bold leading-none tracking-tight text-black">
-        {touchFontSizeLabel}
-      </div>
-      <div className="flex items-center justify-between gap-1">
-        <button
-          type="button"
-          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-bold leading-none text-black active:scale-[0.98]"
-          onClick={decreaseTouchFontSize}
-          aria-label="Decrease font size"
-        >
-          -
-        </button>
-
-        <button
-          type="button"
-          className="neuphormism-b-btn flex h-9 w-11 shrink-0 items-center justify-center rounded-[14px] text-[1.25rem] font-bold leading-none text-black active:scale-[0.98]"
-          onClick={increaseTouchFontSize}
-          aria-label="Increase font size"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderToolsContent = () => (
-    <ul className={isTouchLayout ? "space-y-2" : "my-5"}>
-      {TunerStatus && (
-        <div className="block">
-          <ToolBoxTunerMini />
-        </div>
-      )}
-      {MetronomeStatus && (
-        <div className="block">
-          <ToolBoxMini bpm={bpm} />
-        </div>
-      )}
-      {ChordLibraryStatus && (
-        <div className="block">
-          <ToolBoxChordLibraryMini
-            onOpenPreview={(previewData) => {
-              setChordPreviewData(previewData);
-              chordLibraryModal();
-            }}
-          />
-        </div>
-      )}
-      <li className="hover:font-semibold">
-        <button
-          type="button"
-          className={`w-full ${isTouchLayout ? "rounded-[14px] px-3 py-3 text-left text-sm font-bold" : "my-2 py-2"} ${
-            TunerStatus
-              ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
-              : isTouchLayout
-                ? "bg-white text-black"
-                : "neuphormism-b-se"
-          }`}
-          onClick={() => {
-            setTunerStatus(true);
-            setMetronomeStatus(false);
-            setChordLibraryStatus(false);
-          }}
-        >
-          tuner
-        </button>
-      </li>
-      <li className="hover:font-semibold">
-        <button
-          type="button"
-          className={`w-full ${isTouchLayout ? "rounded-[14px] px-3 py-3 text-left text-sm font-bold" : "my-2 py-2"} ${
-            MetronomeStatus
-              ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
-              : isTouchLayout
-                ? "bg-white text-black"
-                : "neuphormism-b-se"
-          }`}
-          onClick={() => {
-            setTunerStatus(false);
-            setMetronomeStatus(true);
-            setChordLibraryStatus(false);
-          }}
-        >
-          metronome
-        </button>
-      </li>
-      <li className="hover:font-semibold">
-        <button
-          type="button"
-          className={`w-full ${isTouchLayout ? "rounded-[14px] px-3 py-3 text-left text-sm font-bold" : "my-2 py-2"} ${
-            ChordLibraryStatus
-              ? "neuphormism-b-btn-gold text-black bg-[#d9ad26] "
-              : isTouchLayout
-                ? "bg-white text-black"
-                : "neuphormism-b-se"
-          }`}
-          onClick={() => {
-            setTunerStatus(false);
-            setMetronomeStatus(false);
-            setChordLibraryStatus(true);
-            chordLibraryModal();
-          }}
-        >
-          chord library
-        </button>
-      </li>
-    </ul>
   );
 
   const renderScrollingContent = () => (
@@ -474,7 +574,6 @@ export default function TollBoxAcoord({
       id: "panel-editor",
       label: "Editor",
       content: renderEditorContent(),
-      open: openTouchEditorDetails,
     },
     {
       id: "panel-transpose",
@@ -511,32 +610,81 @@ export default function TollBoxAcoord({
     ...(hasVideos
       ? [{ id: "panel2", label: "Videos", content: renderVideosContent() }]
       : []),
-    { id: "panel4", label: "Highlight", content: renderHighlightContent() },
-    { id: "panel5", label: "Tools", content: renderToolsContent() },
     { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
   ];
 
   if (isTouchLayout) {
+    const touchMenuIconClass = "h-4 w-4";
     const touchSections = [
       {
         id: "panel-editor",
         label: "Editor",
+        icon: <FaFilePen className={touchMenuIconClass} />,
         content: renderEditorContent(),
         open: openTouchEditorDetails,
       },
+      ...(typeof onGoToEditSong === "function"
+        ? [
+            {
+              id: "action-song-settings",
+              label: "Song Settings",
+              icon: <FaSliders className={touchMenuIconClass} />,
+              action: () => runTouchAction(onGoToEditSong),
+            },
+          ]
+        : []),
+      ...(instrumentSelected !== "voice" &&
+      typeof onOpenGuitarProViewer === "function"
+        ? [
+            {
+              id: "action-guitar-pro",
+              label: "Guitar Pro",
+              icon: <GuitarProIcon active={canOpenGuitarPro} compact />,
+              disabled: !canOpenGuitarPro,
+              action: () => runTouchAction(onOpenGuitarProViewer),
+            },
+          ]
+        : []),
+      ...(typeof onEnterLiveMode === "function"
+        ? [
+            {
+              id: "action-live",
+              label: "LIVE",
+              icon: <IoPlayCircle className={touchMenuIconClass} />,
+              tone: "gold",
+              action: () => {
+                runTouchAction(onEnterLiveMode);
+                closeToolBoxWithoutDiscard?.();
+              },
+            },
+          ]
+        : []),
+      ...(isTouchVideoActive && typeof onCloseTouchVideo === "function"
+        ? [
+            {
+              id: "action-close-video",
+              label: "Close Video",
+              icon: <IoVideocamOff className={touchMenuIconClass} />,
+              action: () => runTouchAction(onCloseTouchVideo),
+            },
+          ]
+        : []),
       {
         id: "panel-transpose",
         label: "Transpose",
+        icon: <IoSwapVertical className={touchMenuIconClass} />,
         content: renderTransposeContent(),
       },
       {
         id: "panel-layout",
         label: "Layout",
+        icon: <IoGrid className={touchMenuIconClass} />,
         content: renderLayoutContent(),
       },
       {
         id: "panel-notes",
         label: "Notes",
+        icon: <IoDocumentText className={touchMenuIconClass} />,
         content: (
           <SongInstrumentNotes
             instrumentName={instrumentSelected}
@@ -552,14 +700,25 @@ export default function TollBoxAcoord({
       {
         id: "panel1",
         label: "Instruments",
+        icon: <IoMusicalNotes className={touchMenuIconClass} />,
         content: renderInstrumentsContent(),
       },
       ...(hasVideos
-        ? [{ id: "panel2", label: "Videos", content: renderVideosContent() }]
+        ? [
+            {
+              id: "panel2",
+              label: "Videos",
+              icon: <IoVideocam className={touchMenuIconClass} />,
+              content: renderVideosContent(),
+            },
+          ]
         : []),
-      { id: "panel4", label: "Highlight", content: renderHighlightContent() },
-      { id: "panel5", label: "Tools", content: renderToolsContent() },
-      { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
+      {
+        id: "panel6",
+        label: "Scrolling",
+        icon: <IoArrowDownCircle className={touchMenuIconClass} />,
+        content: renderScrollingContent(),
+      },
     ];
 
     const activeSection = touchSections.find(
@@ -567,18 +726,11 @@ export default function TollBoxAcoord({
     );
 
     if (activeSection) {
-      return (
-        <div className="space-y-4">
-          <div className="mb-1 text-[1.5rem] font-bold tracking-tight text-black">
-            {activeSection.label}
-          </div>
-          {activeSection.content}
-        </div>
-      );
+      return <div className="space-y-3">{activeSection.content}</div>;
     }
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {touchSections.map((section) => {
           const shouldBlinkEditor =
             section.id === "panel-editor" &&
@@ -588,20 +740,40 @@ export default function TollBoxAcoord({
             <div key={section.id}>
               <button
                 type="button"
-                className={`neuphormism-b-btn flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-lg font-bold text-black shadow-[0_4px_10px_rgba(0,0,0,0.04)] ${
-                  shouldBlinkEditor
-                    ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite] bg-[#ececec]"
+                disabled={section.disabled}
+                className={`neuphormism-b-btn flex min-h-10 w-full items-center justify-between rounded-[12px] px-2.5 py-1.5 text-left text-[0.82rem] font-bold text-black shadow-[0_3px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:opacity-45 ${
+                  section.tone === "gold"
+                    ? "!bg-[goldenrod] !text-black"
                     : "bg-[#ececec]"
+                } ${
+                  shouldBlinkEditor
+                    ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
+                    : ""
                 }`}
                 onClick={() => {
+                  if (section.action) {
+                    section.action();
+                    return;
+                  }
                   section.open?.();
                   if (!section.open) {
                     setActiveTouchPanel?.(section.id);
                   }
                 }}
               >
-                <span>{section.label}</span>
-                <span className="text-2xl leading-none">+</span>
+                <span className="flex min-w-0 items-center gap-2.5">
+                  {section.icon ? (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                      {section.icon}
+                    </span>
+                  ) : null}
+                  <span className="truncate">{section.label}</span>
+                </span>
+                {section.action ? (
+                  <IoChevronForward className="h-4 w-4 shrink-0" />
+                ) : (
+                  <span className="text-lg leading-none">+</span>
+                )}
               </button>
             </div>
           );

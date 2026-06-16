@@ -46,6 +46,33 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const resetDashboardScroll = () => {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      } catch {
+        // Some test/browser contexts expose scrollTo without implementing it.
+      }
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+
+      requestAnimationFrame(() => {
+        document
+          .querySelectorAll("[data-dashboard-scroll-container='true']")
+          .forEach((element) => {
+            element.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+          });
+      });
+    };
+
+    resetDashboardScroll();
+    window.addEventListener("dashboard-reset-scroll", resetDashboardScroll);
+
+    return () => {
+      window.removeEventListener("dashboard-reset-scroll", resetDashboardScroll);
+    };
+  }, []);
+
+  useEffect(() => {
     const shouldLockScroll = window.innerWidth >= 768;
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow; // <html>
@@ -67,7 +94,7 @@ function Dashboard() {
   return (
     <div className="flex h-full min-h-0 justify-center overflow-hidden pt-0 sm:pt-0 md:pt-5 lg:pt-1 xl:pt-1 2xl:pt-1">
       {isMobile === 1 || isMobile === 2 ? (
-        <div className="mobile h-full min-h-0 w-full overflow-y-auto bg-[#f0f0f0] px-3 pt-3">
+        <div className="mobile h-full min-h-0 w-full overflow-hidden bg-[#f0f0f0] px-3 pt-3">
           <DashList2 searchTerm={searchTerm} />
           <FloatingActionButtons />
         </div>

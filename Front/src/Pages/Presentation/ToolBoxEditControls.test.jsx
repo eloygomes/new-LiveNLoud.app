@@ -10,51 +10,34 @@ const baseProps = {
   handleSaveCifra: vi.fn(),
   handleDiscardDraft: vi.fn(),
   startEditingCifra: vi.fn(),
-  onToggleMarksVisibility: vi.fn(),
-  activeLayoutLabel: "Expanded Layout",
-  blockSpacingLabel: "32px",
-  onDecreaseBlockSpacing: vi.fn(),
-  onIncreaseBlockSpacing: vi.fn(),
-  showProgressionMarkers: false,
 };
 
 describe("ToolBoxEditControls", () => {
-  it("renders editor layout controls without font size", () => {
+  it("renders only the edit entry point outside edit mode", () => {
     render(<ToolBoxEditControls {...baseProps} />);
 
-    expect(screen.queryByText("Expanded Layout")).not.toBeInTheDocument();
-    expect(screen.queryByText("Active layout")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Decrease font size")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Increase font size")).not.toBeInTheDocument();
-    expect(screen.getByText("32px")).toBeInTheDocument();
-    expect(screen.getByText("Block spacing")).toBeInTheDocument();
-    expect(screen.queryByText("Columns")).not.toBeInTheDocument();
-    expect(screen.queryByText("Detected blocks")).not.toBeInTheDocument();
-    expect(screen.getByText("Progression marks")).toBeInTheDocument();
-    expect(screen.queryByText("Mark tag side")).not.toBeInTheDocument();
-    expect(screen.queryByText("Selected mark")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /off/i })).toBeInTheDocument();
-    expect(screen.queryByText("Show Marks")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Edit cifra")).not.toBeInTheDocument();
+    expect(screen.queryByText("Block spacing")).not.toBeInTheDocument();
+    expect(screen.queryByText("Progression marks")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 
-  it("wires block spacing controls to the provided callbacks", () => {
-    const onDecreaseBlockSpacing = vi.fn();
-    const onIncreaseBlockSpacing = vi.fn();
+  it("starts cifra editing from the edit button", () => {
+    const startEditingCifra = vi.fn();
 
     render(
       <ToolBoxEditControls
         {...baseProps}
-        onDecreaseBlockSpacing={onDecreaseBlockSpacing}
-        onIncreaseBlockSpacing={onIncreaseBlockSpacing}
+        startEditingCifra={startEditingCifra}
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Decrease block spacing"));
-    fireEvent.click(screen.getByLabelText("Increase block spacing"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(onDecreaseBlockSpacing).toHaveBeenCalledTimes(1);
-    expect(onIncreaseBlockSpacing).toHaveBeenCalledTimes(1);
+    expect(startEditingCifra).toHaveBeenCalledTimes(1);
   });
 
   it("does not render the legacy marks editor entry point", () => {
@@ -84,5 +67,19 @@ describe("ToolBoxEditControls", () => {
     expect(
       screen.queryByRole("button", { name: "Delete block" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("renders save and discard while editing", () => {
+    render(
+      <ToolBoxEditControls
+        {...baseProps}
+        isEditing
+        hasDraftChanges
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
   });
 });

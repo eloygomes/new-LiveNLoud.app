@@ -99,6 +99,36 @@ describe("Login", () => {
     expect(mockedNavigate).toHaveBeenCalledWith("/");
   });
 
+  it("shows the rate-limit message when login is throttled", async () => {
+    loginApi.mockRejectedValue({
+      response: {
+        status: 429,
+        data: {
+          message:
+            "Muitas tentativas de login. Aguarde alguns minutos e tente novamente.",
+        },
+      },
+    });
+    tryOfflineLogin.mockResolvedValue(false);
+
+    render(<Login />);
+
+    fireEvent.change(screen.getByPlaceholderText("you@email.com"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Your password"), {
+      target: { value: "secret" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Login" }));
+
+    expect(
+      await screen.findByText(
+        "Muitas tentativas de login. Aguarde alguns minutos e tente novamente.",
+      ),
+    ).toBeInTheDocument();
+    expect(mockedNavigate).not.toHaveBeenCalled();
+  });
+
   it("prefills the remembered email and lets the user disable stay connected", async () => {
     localStorage.setItem("auth:rememberedEmail", "saved@example.com");
     localStorage.setItem("auth:stayConnected", "true");

@@ -402,7 +402,10 @@ function DashList2({ searchTerm = "" }) {
 
       {isMobile ? (
         <div className="flex h-full min-h-0 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-32">
+          <div
+            data-dashboard-scroll-container="true"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-32"
+          >
             <ul>
               <DashList2Items
                 sortColumn={sortColumn}

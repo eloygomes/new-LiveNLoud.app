@@ -78,6 +78,7 @@ function EditSongColumnA({
   setShowSnackBar,
   setSnackbarMessage,
   touchLayout = false,
+  touchInlineMedia = false,
   songDataOpen = false,
   onToggleSongData,
   middleContent = null,
@@ -659,7 +660,48 @@ function EditSongColumnA({
         setIsDirty={setIsDirty}
       />
 
-      <div className="mt-4 rounded-[20px] neuphormism-b p-3">
+      {touchInlineMedia ? (
+        <div className="mt-4 space-y-4">
+          <div className="rounded-[20px] neuphormism-b p-3">
+            <div className="mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+                Videos
+              </p>
+            </div>
+            <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none [&_.neuphormism-b-btn]:!rounded-[14px] [&_.neuphormism-b-btn]:!bg-white">
+              <EditSongEmbed
+                ytEmbedSongList={embedLink}
+                setEmbedLink={(updater) => {
+                  setEmbedLink((prevLinks) => {
+                    const nextLinks =
+                      typeof updater === "function" ? updater(prevLinks) : updater;
+                    setIsDirty?.(true);
+                    return nextLinks;
+                  });
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-[20px] neuphormism-b p-3">
+            <div className="mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+                Setlist
+              </p>
+            </div>
+            <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
+              <EditSongSetlist
+                setlist={setlist}
+                setSetlist={setSetlistAndMarkDirty}
+                setlistOptions={setListOptions}
+                setSetListOptions={setSetListOptionsAndMarkDirty}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+      <>
+        <div className="mt-4 rounded-[20px] neuphormism-b p-3">
         <button
           type="button"
           className="flex w-full items-center justify-between"
@@ -730,7 +772,7 @@ function EditSongColumnA({
             </div>
           </div>
         ) : null}
-      </div>
+        </div>
 
       {touchVideosOpen ? (
         <div className="fixed inset-0 z-[110] bg-black/25">
@@ -808,6 +850,8 @@ function EditSongColumnA({
           </div>
         </div>
       ) : null}
+      </>
+      )}
 
     </>
   ) : (

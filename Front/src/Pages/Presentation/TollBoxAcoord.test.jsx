@@ -41,6 +41,9 @@ const baseProps = {
   touchFontSizeLabel: "100%",
   decreaseTouchFontSize: vi.fn(),
   increaseTouchFontSize: vi.fn(),
+  blockSpacingLabel: "32px",
+  decreaseBlockSpacing: vi.fn(),
+  increaseBlockSpacing: vi.fn(),
   onSelectInstrument: vi.fn(),
 };
 
@@ -59,5 +62,52 @@ describe("TollBoxAcoord", () => {
     fireEvent.click(screen.getByRole("button", { name: "On" }));
 
     expect(onToggleMarksVisibility).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes font size and block spacing controls inside the layout panel", () => {
+    const decreaseTouchFontSize = vi.fn();
+    const increaseTouchFontSize = vi.fn();
+    const decreaseBlockSpacing = vi.fn();
+    const increaseBlockSpacing = vi.fn();
+
+    render(
+      <TollBoxAcoord
+        {...baseProps}
+        decreaseTouchFontSize={decreaseTouchFontSize}
+        increaseTouchFontSize={increaseTouchFontSize}
+        decreaseBlockSpacing={decreaseBlockSpacing}
+        increaseBlockSpacing={increaseBlockSpacing}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Layout" }));
+    fireEvent.click(screen.getByLabelText("Decrease font size"));
+    fireEvent.click(screen.getByLabelText("Increase font size"));
+    fireEvent.click(screen.getByLabelText("Decrease block spacing"));
+    fireEvent.click(screen.getByLabelText("Increase block spacing"));
+
+    expect(decreaseTouchFontSize).toHaveBeenCalledTimes(1);
+    expect(increaseTouchFontSize).toHaveBeenCalledTimes(1);
+    expect(decreaseBlockSpacing).toHaveBeenCalledTimes(1);
+    expect(increaseBlockSpacing).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts editing and hides the touch sheet when opening editor on touch", () => {
+    const startEditingCifra = vi.fn();
+    const closeToolBoxWithoutDiscard = vi.fn();
+
+    render(
+      <TollBoxAcoord
+        {...baseProps}
+        isTouchLayout
+        startEditingCifra={startEditingCifra}
+        closeToolBoxWithoutDiscard={closeToolBoxWithoutDiscard}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Editor/i }));
+
+    expect(startEditingCifra).toHaveBeenCalledTimes(1);
+    expect(closeToolBoxWithoutDiscard).toHaveBeenCalledTimes(1);
   });
 });

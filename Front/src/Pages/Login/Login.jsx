@@ -15,6 +15,22 @@ import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
 const REMEMBERED_EMAIL_KEY = "auth:rememberedEmail";
 const STAY_CONNECTED_KEY = "auth:stayConnected";
 
+function resetDashboardViewport() {
+  if (typeof window === "undefined") return;
+
+  document.activeElement?.blur?.();
+  document.body.style.zoom = "";
+  document.documentElement.style.zoom = "";
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  try {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  } catch {
+    // Some test/browser contexts expose scrollTo without implementing it.
+  }
+  window.dispatchEvent(new CustomEvent("dashboard-reset-scroll"));
+}
+
 function Login() {
   const [userEmail, setUserEmail] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -50,6 +66,7 @@ function Login() {
         message: "Stored session restored automatically.",
       });
       setShowSnackBar(true);
+      resetDashboardViewport();
       navigate("/");
     });
 
@@ -81,6 +98,7 @@ function Login() {
         setLocalStorageItemSafe(STAY_CONNECTED_KEY, "false");
       }
 
+      resetDashboardViewport();
       navigate("/");
     } catch (err) {
       console.error("Login failed:", err);
@@ -92,11 +110,19 @@ function Login() {
           message: "Stored session restored. Some songs still require internet.",
         });
         setShowSnackBar(true);
+        resetDashboardViewport();
         navigate("/");
       } else {
+        const rateLimitMessage =
+          err?.response?.status === 429
+            ? err?.response?.data?.message ||
+              "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+            : "";
+
         setSnackbarMessage({
           title: "Error",
           message:
+            rateLimitMessage ||
             err?.response?.data?.error ||
             "Login inválido. Verifique e-mail e senha.",
         });
@@ -137,6 +163,7 @@ function Login() {
         message: "Offline session restored.",
       });
       setShowSnackBar(true);
+      resetDashboardViewport();
       navigate("/");
     } finally {
       setLoading(false);
@@ -169,7 +196,7 @@ function Login() {
             autoFocus
             value={userEmail}
             onChange={(e) => setUserEmail(e.target.value)}
-            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod]"
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-[16px] outline-none transition focus:border-[goldenrod]"
             placeholder="you@email.com"
           />
         </div>
@@ -195,7 +222,7 @@ function Login() {
             autoComplete="current-password"
             value={userPassword}
             onChange={(e) => setUserPassword(e.target.value)}
-            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[goldenrod]"
+            className="w-full rounded-[20px] border border-gray-200 bg-white px-4 py-3 text-[16px] outline-none transition focus:border-[goldenrod]"
             placeholder="Your password"
           />
         </div>

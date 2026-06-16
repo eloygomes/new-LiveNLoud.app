@@ -14,7 +14,6 @@ import {
   getPresentationLayoutsDebugSummary,
   getProgressionColumnsDebugSummary,
 } from "./presentationLayoutHelpers";
-import TouchVideoMenu from "./components/TouchVideoMenu";
 import PresentationHorizontalNav from "./components/PresentationHorizontalNav";
 import PresentationStatusState from "./components/PresentationStatusState";
 import PresentationLiveHeader from "./components/PresentationLiveHeader";
@@ -22,7 +21,6 @@ import PresentationTopBar from "./components/PresentationTopBar";
 import PresentationColumns from "./components/PresentationColumns";
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 import {
-  getMobileTitleSizeClass,
   getPresentationLayoutModeStorageKey,
   getPresentationLayoutsStorageKey,
   logPresentationDebug,
@@ -59,6 +57,26 @@ function getInitialExpandedCifraState({ artist, song, instrument }) {
   });
 
   return window.localStorage.getItem(storageKey) === "expanded";
+}
+
+function getIsPresentationTouchLayout() {
+  if (typeof window === "undefined") return false;
+
+  const navigatorRef = window.navigator;
+  const userAgent = navigatorRef?.userAgent || "";
+  const isIosDevice =
+    /iPad|iPhone|iPod/.test(userAgent) ||
+    (navigatorRef?.platform === "MacIntel" &&
+      Number(navigatorRef?.maxTouchPoints || 0) > 1);
+  const hasCoarsePointer =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+
+  return (
+    window.innerWidth < 768 ||
+    isIosDevice ||
+    (window.innerWidth <= 1366 && hasCoarsePointer)
+  );
 }
 
 function Presentation() {
@@ -203,6 +221,7 @@ function Presentation() {
     selectContenttoShow,
     songDataFetched,
   });
+  const isTouchLayout = getIsPresentationTouchLayout();
   const {
     adjustLiveCifraZoom,
     blockSpacingLabel,
@@ -214,6 +233,7 @@ function Presentation() {
     touchFontSizeRem,
   } = usePresentationVisualScale({
     blockSpacingStep,
+    isTouchLayout,
     touchFontSizeStep,
   });
 
@@ -227,13 +247,10 @@ function Presentation() {
     canOpenGuitarPro,
     closeGuitarProViewer,
     closeTouchVideo,
-    closeTouchVideoMenu,
     guitarProViewerOpen,
     isTouchVideoActive,
-    isTouchVideoMenuOpen,
     isVideoModalOpen,
     openGuitarProViewer,
-    openTouchVideoMenu,
     resetMediaControls,
     selectedGuitarProFile,
     setIsTouchVideoActive,
@@ -250,9 +267,9 @@ function Presentation() {
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [notesModalStatus, setNotesModalStatus] = useState(false);
   const liveModeRootRef = useRef(null);
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
+  const shouldUseFullBleedLayout =
+    effectiveLiveMode || (!isTouchLayout && isExpandedCifra);
 
   const presentationLayoutIdentity = `${artistFromURL}::${songFromURL}::${instrumentSelected}`;
   const presentationLayoutStorageKey = useMemo(
@@ -569,19 +586,25 @@ function Presentation() {
           onOpenInstrumentNotes={openInstrumentNotesWindow}
           isSavingNotes={isSavingNotes}
           onSelectInstrument={goToInstrument}
+          onGoToEditSong={goToEditSong}
+          canOpenGuitarPro={canOpenGuitarPro}
+          onOpenGuitarProViewer={openGuitarProViewer}
+          onEnterLiveMode={enterLiveMode}
+          isTouchVideoActive={isTouchVideoActive}
+          onCloseTouchVideo={closeTouchVideo}
           requestedPanel={toolBoxRequestedPanel}
         />
       )}
       <div
         className={`container mx-auto h-full min-h-0 ${
-          effectiveLiveMode || isExpandedCifra ? "max-w-none px-0" : ""
+          shouldUseFullBleedLayout ? "max-w-none px-0" : ""
         }`}
       >
         <div
           className={`flex min-h-0 flex-col ${
             effectiveLiveMode ? "h-[100dvh]" : "h-full"
           } ${
-            effectiveLiveMode || isExpandedCifra
+            shouldUseFullBleedLayout
               ? "w-full max-w-none px-0"
               : "w-11/12 2xl:w-9/12 mx-auto"
           }`}
@@ -590,13 +613,11 @@ function Presentation() {
             visible={!effectiveLiveMode}
             isTouchLayout={isTouchLayout}
             isTouchVideoActive={isTouchVideoActive}
-            touchVideoLink={touchVideoLink}
             songFromURL={songFromURL}
             artistFromURL={artistFromURL}
             activeLayoutLabel={activeLayoutLabel}
             previousSetlistSong={previousSetlistSong}
             nextSetlistSong={nextSetlistSong}
-            getMobileTitleSizeClass={getMobileTitleSizeClass}
             toolBoxBtnStatus={toolBoxBtnStatus}
             isEditing={isEditing}
             isVideoModalOpen={isVideoModalOpen}
@@ -604,7 +625,6 @@ function Presentation() {
             onToggleToolBox={() =>
               toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
             }
-            onOpenTouchVideoMenu={openTouchVideoMenu}
             isExpandedCifra={isExpandedCifra}
             onToggleExpanded={() => setIsExpandedCifra((value) => !value)}
             onGoToEditSong={goToEditSong}
@@ -613,9 +633,6 @@ function Presentation() {
             onOpenGuitarProViewer={openGuitarProViewer}
             onEnterLiveMode={enterLiveMode}
             onGoToSetlistSong={goToSetlistSong}
-            onTouchVideoLinkChange={setTouchVideoLink}
-            onTouchVideoActiveChange={setIsTouchVideoActive}
-            onVideoModalChange={setIsVideoModalOpen}
           />
           <PresentationLiveHeader
             effectiveLiveMode={effectiveLiveMode}
@@ -631,12 +648,6 @@ function Presentation() {
             onExit={exitLiveMode}
           />
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
-
-          <TouchVideoMenu
-            open={isTouchLayout && isTouchVideoActive && isTouchVideoMenuOpen}
-            onClose={closeTouchVideoMenu}
-            onCloseVideo={closeTouchVideo}
-          />
 
           <PresentationHorizontalNav
             open={shouldUseHorizontalColumnFlow}
@@ -661,6 +672,10 @@ function Presentation() {
                 : `presentation-scroll-content neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "px-10 py-5"}`
             } ${hideChords ? "hide-chords" : ""} ${
               selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
+            } ${
+              effectiveLiveMode && isTouchLayout
+                ? "presentation-live-content-touch"
+                : ""
             } ${
               shouldUseHorizontalColumnFlow
                 ? "presentation-expanded-cifra-horizontal"

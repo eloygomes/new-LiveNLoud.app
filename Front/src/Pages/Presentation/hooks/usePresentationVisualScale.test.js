@@ -13,11 +13,31 @@ describe("usePresentationVisualScale", () => {
 
     expect(result.current.blockSpacingPx).toBeGreaterThan(0);
     expect(result.current.blockSpacingLabel).toMatch(/px$/);
-    expect(result.current.touchFontSizeRem).toBeCloseTo(0.9);
-    expect(result.current.presentationFontScale).toBeCloseTo(0.9 / 0.82);
+    expect(result.current.touchFontSizeRem).toBeCloseTo(0.82 * 1.1);
+    expect(result.current.presentationFontScale).toBeCloseTo(1.1);
     expect(result.current.touchFontSizeLabel).toBe("110%");
     expect(result.current.liveCifraZoomScale).toBe(1.2);
     expect(result.current.liveCifraZoomLabel).toBe("120%");
+  });
+
+  it("uses 60 percent visual scale as the touch live 100 percent baseline", () => {
+    const { result } = renderHook(() =>
+      usePresentationVisualScale({
+        blockSpacingStep: 0,
+        isTouchLayout: true,
+        touchFontSizeStep: 0,
+      }),
+    );
+
+    expect(result.current.liveCifraZoomLabel).toBe("100%");
+    expect(result.current.liveCifraZoomScale).toBeCloseTo(0.6);
+
+    act(() => {
+      result.current.adjustLiveCifraZoom(10);
+    });
+
+    expect(result.current.liveCifraZoomLabel).toBe("110%");
+    expect(result.current.liveCifraZoomScale).toBeCloseTo(0.66);
   });
 
   it("clamps live zoom adjustments", () => {
@@ -32,12 +52,12 @@ describe("usePresentationVisualScale", () => {
       result.current.adjustLiveCifraZoom(1000);
     });
 
-    expect(result.current.liveCifraZoomLabel).toBe("170%");
+    expect(result.current.liveCifraZoomLabel).toBe("200%");
 
     act(() => {
       result.current.adjustLiveCifraZoom(-1000);
     });
 
-    expect(result.current.liveCifraZoomLabel).toBe("90%");
+    expect(result.current.liveCifraZoomLabel).toBe("0%");
   });
 });

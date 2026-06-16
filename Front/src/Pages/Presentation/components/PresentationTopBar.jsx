@@ -6,25 +6,21 @@ import {
   FaUpRightAndDownLeftFromCenter,
 } from "react-icons/fa6";
 import GuitarProIcon from "../../../components/GuitarPro/GuitarProIcon";
-import ToolBoxYT from "../ToolBoxYT";
 
 function PresentationTopBar({
   visible,
   isTouchLayout,
   isTouchVideoActive,
-  touchVideoLink,
   songFromURL,
   artistFromURL,
   activeLayoutLabel,
   previousSetlistSong,
   nextSetlistSong,
-  getMobileTitleSizeClass,
   toolBoxBtnStatus,
   isEditing,
   isVideoModalOpen,
   openEditorToolBox,
   onToggleToolBox,
-  onOpenTouchVideoMenu,
   isExpandedCifra,
   onToggleExpanded,
   onGoToEditSong,
@@ -33,117 +29,109 @@ function PresentationTopBar({
   onOpenGuitarProViewer,
   onEnterLiveMode,
   onGoToSetlistSong,
-  onTouchVideoLinkChange,
-  onTouchVideoActiveChange,
-  onVideoModalChange,
 }) {
   if (!visible) return null;
 
-  return (
-    <div
-      className={`relative my-5 flex shrink-0 justify-between neuphormism-b ${
-        isTouchLayout
-          ? "items-stretch gap-3 px-4 py-3"
-          : "min-h-[7.25rem] flex-row items-center px-10 pb-4 pt-8"
-      }`}
-    >
-      {!isTouchLayout ? (
-        <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-          <span>Presentation</span>
-          <span>{activeLayoutLabel}</span>
-        </div>
-      ) : null}
-      <div className={`flex min-w-0 flex-1 flex-col ${isTouchLayout ? "pr-1" : ""}`}>
-        {isTouchLayout && isTouchVideoActive ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
-                  Video Active
-                </div>
-                <div className="truncate text-[1rem] font-bold leading-[1.15rem] text-black/70">
-                  {songFromURL} • {artistFromURL}
-                </div>
-              </div>
-            </div>
-            <ToolBoxYT
-              linktoplay={touchVideoLink}
-              setVideoModalStatus={onTouchVideoActiveChange}
-              setLinktoplay={onTouchVideoLinkChange}
-              isTouchLayout
-              onVideoModalChange={onVideoModalChange}
-              renderInline
-              iframeHeight={208}
-            />
-          </div>
-        ) : (
-          <>
+  if (isTouchLayout) {
+    return (
+      <div className="relative my-3 flex shrink-0 flex-col gap-3 neuphormism-b px-4 py-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <h1
-              className={`font-bold text-black ${
-                isTouchLayout
-                  ? `${getMobileTitleSizeClass(songFromURL, "song")} truncate`
-                  : "text-[2.45rem] leading-[1.02]"
-              }`}
+              className="truncate text-[1.6rem] font-bold leading-[1.7rem] text-black"
               title={songFromURL}
             >
               {songFromURL}
             </h1>
-            <h1
-              className={`font-bold text-black ${
-                isTouchLayout
-                  ? `${getMobileTitleSizeClass(artistFromURL, "artist")} truncate`
-                  : "text-[2rem] leading-[1.02]"
-              }`}
+            <h2
+              className="truncate text-[1.1rem] font-bold leading-[1.25rem] text-black/80"
               title={artistFromURL}
             >
               {artistFromURL}
-            </h1>
-          </>
-        )}
-        {isTouchLayout ? (
-          <div className="mt-8 flex items-stretch gap-1.5 opacity-80">
-            <button
-              type="button"
-              disabled={!previousSetlistSong}
-              className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
-              onClick={() => onGoToSetlistSong(previousSetlistSong)}
-              aria-label="Previous song in selected setlist"
-            >
-              &lt;&lt;
-            </button>
-            <button
-              type="button"
-              disabled={!nextSetlistSong}
-              className="neuphormism-b-btn px-3 py-1.5 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
-              onClick={() => onGoToSetlistSong(nextSetlistSong)}
-              aria-label="Next song in selected setlist"
-            >
-              &gt;&gt;
-            </button>
+            </h2>
           </div>
-        ) : null}
-      </div>
-      <div
-        className={`flex flex-col ${
-          isTouchLayout
-            ? "shrink-0 items-stretch justify-start gap-2"
-            : "items-stretch gap-3 pt-2"
-        }`}
-      >
-        <div
-          className={
-            isTouchLayout
-              ? "flex h-full flex-col items-stretch justify-between gap-3"
-              : "flex flex-col gap-2"
+          <button
+            type="button"
+            className={`neuphormism-b-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] font-bold text-black ${
+              toolBoxBtnStatus ||
+              isEditing ||
+              (!toolBoxBtnStatus && (isVideoModalOpen || isTouchVideoActive))
+                ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
+                : ""
+            }`}
+            onClick={onToggleToolBox}
+            aria-label="Options"
+            title="Open presentation options"
+          >
+            <FaGear className="h-[1.38rem] w-[1.38rem]" />
+            <span className="sr-only">Options</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 opacity-85">
+          <button
+            type="button"
+            disabled={!previousSetlistSong}
+            className="neuphormism-b-btn h-9 px-3 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={() => onGoToSetlistSong(previousSetlistSong)}
+            aria-label="Previous song in selected setlist"
+          >
+            &lt;&lt;
+          </button>
+          <button
+            type="button"
+            disabled={!nextSetlistSong}
+            className="neuphormism-b-btn h-9 px-3 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
+            onClick={() => onGoToSetlistSong(nextSetlistSong)}
+            aria-label="Next song in selected setlist"
+          >
+            &gt;&gt;
+          </button>
+        </div>
+
+        <style>{`
+          @keyframes mobile-gear-blink {
+            0%, 100% {
+              background: #efefef;
+              color: #111;
+              box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+            }
+            50% {
+              background: goldenrod;
+              color: #111;
+              box-shadow: 0 10px 20px rgba(218,165,32,0.34);
+            }
           }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="relative my-5 flex min-h-[7.25rem] shrink-0 flex-row items-center justify-between neuphormism-b px-10 pb-4 pt-8"
+    >
+      <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+        <span>Presentation</span>
+        <span>{activeLayoutLabel}</span>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <h1
+          className="font-bold text-black text-[2.45rem] leading-[1.02]"
+          title={songFromURL}
         >
-          <div
-            className={
-              isTouchLayout
-                ? "hidden"
-                : "order-2 mt-3 grid grid-cols-2 gap-2 opacity-80"
-            }
-          >
+          {songFromURL}
+        </h1>
+        <h1
+          className="font-bold text-black text-[2rem] leading-[1.02]"
+          title={artistFromURL}
+        >
+          {artistFromURL}
+        </h1>
+      </div>
+      <div className="flex flex-col items-stretch gap-3 pt-2">
+        <div className="flex flex-col gap-2">
+          <div className="order-2 mt-3 grid grid-cols-2 gap-2 opacity-80">
             <button
               type="button"
               disabled={!previousSetlistSong}
@@ -163,30 +151,16 @@ function PresentationTopBar({
               &gt;&gt;
             </button>
           </div>
-          <div
-            className={
-              isTouchLayout
-                ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
-                : "order-1 flex flex-col items-stretch gap-2"
-            }
-          >
-            <div
-              className={
-                isTouchLayout
-                  ? "flex shrink-0 flex-col items-stretch justify-end gap-2"
-                  : "flex flex-row items-stretch gap-3"
-              }
-            >
+          <div className="order-1 flex flex-col items-stretch gap-2">
+            <div className="flex flex-row items-stretch gap-3">
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
-                  isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                }`}
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
                 onClick={openEditorToolBox}
                 aria-label="Open cifra editor"
                 title="Open cifra editor"
               >
-                <FaFilePen className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"} />
+                <FaFilePen className="h-5 w-5" />
                 <span className="sr-only">Editor</span>
               </button>
               <button
@@ -194,45 +168,39 @@ function PresentationTopBar({
                 className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
                   toolBoxBtnStatus ||
                   isEditing ||
-                  (isTouchLayout &&
-                    !toolBoxBtnStatus &&
-                    (isVideoModalOpen || isTouchVideoActive))
+                  (!toolBoxBtnStatus && (isVideoModalOpen || isTouchVideoActive))
                     ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
                     : ""
-                } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
-                onClick={isTouchLayout && isTouchVideoActive ? onOpenTouchVideoMenu : onToggleToolBox}
+                } px-4 py-3 text-sm`}
+                onClick={onToggleToolBox}
                 aria-label="Options"
                 title="Open presentation options"
               >
-                <FaGear className={isTouchLayout ? "h-4 w-4" : "h-6 w-6"} />
+                <FaGear className="h-6 w-6" />
                 <span className="sr-only">Options</span>
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
-                  isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                }`}
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
                 onClick={onToggleExpanded}
                 aria-label={isExpandedCifra ? "Disable expanded layout" : "Enable expanded layout"}
                 title={isExpandedCifra ? "Disable expanded layout" : "Enable expanded layout"}
               >
                 {isExpandedCifra ? (
-                  <FaDownLeftAndUpRightToCenter className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"} />
+                  <FaDownLeftAndUpRightToCenter className="h-5 w-5" />
                 ) : (
-                  <FaUpRightAndDownLeftFromCenter className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"} />
+                  <FaUpRightAndDownLeftFromCenter className="h-5 w-5" />
                 )}
                 <span className="sr-only">Expanded layout</span>
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
-                  isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"
-                }`}
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
                 onClick={onGoToEditSong}
                 aria-label="Song settings"
                 title="Open song settings"
               >
-                <FaSliders className={isTouchLayout ? "h-4 w-4" : "h-5 w-5"} />
+                <FaSliders className="h-5 w-5" />
                 <span className="sr-only">Song Settings</span>
               </button>
               {instrumentSelected !== "voice" ? (
@@ -242,7 +210,7 @@ function PresentationTopBar({
                     canOpenGuitarPro
                       ? "text-black"
                       : "cursor-not-allowed text-gray-400 opacity-60"
-                  } ${isTouchLayout ? "h-10 w-16 p-0 text-xs" : "px-4 py-3 text-sm"}`}
+                  } px-4 py-3 text-sm`}
                   onClick={onOpenGuitarProViewer}
                   disabled={!canOpenGuitarPro}
                   aria-label="Open Guitar Pro viewer"
@@ -258,11 +226,7 @@ function PresentationTopBar({
               ) : null}
               <button
                 type="button"
-                className={`neuphormism-b-btn-gold flex items-center justify-center font-bold text-black ${
-                  isTouchLayout
-                    ? "h-10 w-16 px-3 text-xs tracking-[0.08em]"
-                    : "min-w-[6.5rem] px-6 py-3 text-base"
-                }`}
+                className="neuphormism-b-btn-gold flex min-w-[6.5rem] items-center justify-center px-6 py-3 text-base font-bold text-black"
                 onClick={onEnterLiveMode}
               >
                 LIVE
@@ -270,22 +234,6 @@ function PresentationTopBar({
             </div>
           </div>
         </div>
-        {isTouchLayout ? (
-          <style>{`
-            @keyframes mobile-gear-blink {
-              0%, 100% {
-                background: #efefef;
-                color: #111;
-                box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-              }
-              50% {
-                background: goldenrod;
-                color: #111;
-                box-shadow: 0 10px 20px rgba(218,165,32,0.34);
-              }
-            }
-          `}</style>
-        ) : null}
       </div>
     </div>
   );

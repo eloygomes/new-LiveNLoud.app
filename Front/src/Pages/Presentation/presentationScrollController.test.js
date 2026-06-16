@@ -19,6 +19,7 @@ describe("presentationScrollController", () => {
     expect(getScrollControllerState()).toEqual({
       autoScrollActive: false,
       speed: 3,
+      speedMode: "desktop",
       verticalMode: "page",
     });
   });
@@ -32,11 +33,13 @@ describe("presentationScrollController", () => {
     expect(getScrollControllerState()).toEqual({
       autoScrollActive: true,
       speed: 5,
+      speedMode: "desktop",
       verticalMode: "page",
     });
     expect(listener).toHaveBeenCalledWith({
       autoScrollActive: true,
       speed: 5,
+      speedMode: "desktop",
       verticalMode: "page",
     });
 
