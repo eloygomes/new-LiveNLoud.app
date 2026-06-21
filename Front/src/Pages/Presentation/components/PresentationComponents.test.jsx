@@ -216,6 +216,57 @@ describe("Presentation extracted components", () => {
     expect(screen.getByText("C G")).toBeInTheDocument();
   });
 
+  it("shows chord brackets only while editing presentation columns", () => {
+    const columns = [
+      {
+        groupKey: "column-1",
+        baseGroupKey: "column-1",
+        blockKeys: ["block-1"],
+        blocks: [
+          {
+            block:
+              '<pre><span class="notespresentation" data-chord="C">C</span> lyric <span class="notespresentation" data-chord="D/F#">D/F#</span></pre>',
+            index: 0,
+          },
+        ],
+        isProgressionEligible: false,
+        displayPosition: 1,
+      },
+    ];
+
+    const { rerender } = render(
+      <PresentationColumns
+        columns={columns}
+        selectContenttoShow="default"
+        showProgressionMarkers={false}
+        effectiveLiveMode={false}
+        shouldUseHorizontalColumnFlow={false}
+        selectedBlockKeys={[]}
+        activeLiveColumnKey=""
+      />,
+    );
+
+    expect(screen.getByText("C")).toBeInTheDocument();
+    expect(screen.getByText("D/F#")).toBeInTheDocument();
+    expect(screen.queryByText("[C]")).not.toBeInTheDocument();
+
+    rerender(
+      <PresentationColumns
+        columns={columns}
+        selectContenttoShow="default"
+        showProgressionMarkers={false}
+        effectiveLiveMode={false}
+        shouldUseHorizontalColumnFlow={false}
+        selectedBlockKeys={[]}
+        activeLiveColumnKey=""
+        isEditing
+      />,
+    );
+
+    expect(screen.getByText("[C]")).toBeInTheDocument();
+    expect(screen.getByText("[D/F#]")).toBeInTheDocument();
+  });
+
   it("renders top bar actions", () => {
     const openEditorToolBox = vi.fn();
     const onToggleExpanded = vi.fn();

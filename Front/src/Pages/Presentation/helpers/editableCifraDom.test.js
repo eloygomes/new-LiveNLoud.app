@@ -109,6 +109,48 @@ describe("editableCifraDom", () => {
     expect(serialized).toBe("[Intro]\nC G edited in browser");
   });
 
+  it("converts bracketed chord tokens created in the editor before saving", () => {
+    const contentNode = document.createElement("div");
+    contentNode.innerHTML = `
+      <div class="presentation-render-content-block">
+        <div class="verse">
+          <pre class="mt-1 presentation-lyrics">if I had loose mile</pre>
+          <div>[C] [F7] [D/F#]</div>
+          <div>I would [A] loose my soul</div>
+        </div>
+      </div>
+    `;
+
+    const serialized = collectEditedPresentationBlocksFromNode({
+      contentNode,
+      fallbackCifra: "",
+    });
+
+    expect(serialized).toBe(
+      "if I had loose mile\nC F7 D/F#\nI would A loose my soul",
+    );
+  });
+
+  it("preserves rendered section labels while applying editor chord brackets elsewhere", () => {
+    const contentNode = document.createElement("div");
+    contentNode.innerHTML = `
+      <div class="presentation-render-content-block">
+        <div class="intro">
+          <pre class="mt-1 intro">[Intro]</pre>
+          <pre class="mt-1 section">[A]</pre>
+          <div>[D/F#]</div>
+        </div>
+      </div>
+    `;
+
+    const serialized = collectEditedPresentationBlocksFromNode({
+      contentNode,
+      fallbackCifra: "",
+    });
+
+    expect(serialized).toBe("[Intro]\n[A]\nD/F#");
+  });
+
   it("discards empty visual columns before saving horizontal layout breaks", () => {
     const contentNode = document.createElement("div");
     contentNode.innerHTML = `

@@ -882,6 +882,7 @@ function Presentation() {
                   shouldUseHorizontalColumnFlow={shouldUseHorizontalColumnFlow}
                   selectedBlockKeys={[]}
                   activeLiveColumnKey={activeLiveColumnKey}
+                  isEditing={isEditing}
                 />
               </div>
             )}

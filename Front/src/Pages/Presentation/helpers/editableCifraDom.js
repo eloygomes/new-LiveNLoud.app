@@ -4,6 +4,15 @@ const EDITABLE_LINE_SELECTOR =
   ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div";
 const MOVABLE_LINE_SELECTOR = "pre, p";
 const ZERO_WIDTH_CHARACTERS_REGEX = /[\u200b\u200c\u200d\u2060\ufeff]/g;
+const EDITABLE_BRACKETED_CHORD_REGEX = /\[([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\([^)]+\))?(?:\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\([^)]+\))?)?)\]/g;
+const SECTION_LINE_CLASSES = new Set([
+  "intro",
+  "chorus",
+  "verse",
+  "solo",
+  "bridge",
+  "section",
+]);
 
 function sanitizeEditableText(text = "") {
   return String(text || "")
@@ -11,12 +20,37 @@ function sanitizeEditableText(text = "") {
     .replace(ZERO_WIDTH_CHARACTERS_REGEX, "");
 }
 
+function isRenderedSectionLabelLine(node, text = "") {
+  if (!node?.classList || !/^\s*\[[^\]]+\]\s*$/.test(text)) return false;
+
+  return Array.from(node.classList).some((className) =>
+    SECTION_LINE_CLASSES.has(className),
+  );
+}
+
+function normalizeEditedLineText(node, text = "") {
+  const sanitizedText = sanitizeEditableText(text);
+
+  if (isRenderedSectionLabelLine(node, sanitizedText)) {
+    return sanitizedText;
+  }
+
+  return sanitizedText.replace(
+    EDITABLE_BRACKETED_CHORD_REGEX,
+    (_, chord) => chord,
+  );
+}
+
+function getEditableNodeText(node) {
+  if (typeof node?.innerText === "string" && node.innerText !== "") {
+    return node.innerText;
+  }
+
+  return node?.textContent || "";
+}
+
 function readEditableBlockText(block) {
   if (!block) return "";
-
-  if (typeof block.innerText === "string" && block.innerText !== "") {
-    return sanitizeEditableText(block.innerText).trimEnd();
-  }
 
   const lineNodes = Array.from(block.querySelectorAll("pre, p, div")).filter(
     (node) => {
@@ -33,12 +67,12 @@ function readEditableBlockText(block) {
 
   if (lineNodes.length) {
     return lineNodes
-      .map((node) => sanitizeEditableText(node.textContent))
+      .map((node) => normalizeEditedLineText(node, getEditableNodeText(node)))
       .join("\n");
   }
 
-  const rawText = block.innerText || block.textContent || "";
-  return sanitizeEditableText(rawText).trimEnd();
+  const rawText = getEditableNodeText(block);
+  return normalizeEditedLineText(block, rawText).trimEnd();
 }
 
 function hasPreservedBlankLine(block) {
