@@ -2,6 +2,8 @@ import { useCallback, useMemo } from "react";
 import { normalizePresentationInstrumentValue } from "../helpers/presentationUtils";
 import { setLocalStorageItemSafe } from "../../../Tools/storageSafe";
 
+const PRESERVED_LIVE_NAVIGATION_KEY = "presentation:preserve-live-navigation";
+
 export function usePresentationNavigation({
   artistFromURL,
   decodedRouteArtist,
@@ -20,10 +22,11 @@ export function usePresentationNavigation({
   songFromURL,
 }) {
   const navigatePresentationPath = useCallback(
-    (path) => {
+    (path, options = {}) => {
       resetTransientPresentationState();
 
       if (
+        !options.preserveLiveMode &&
         document.fullscreenElement &&
         typeof document.exitFullscreen === "function"
       ) {
@@ -123,7 +126,7 @@ export function usePresentationNavigation({
       : null;
 
   const goToSetlistSong = useCallback(
-    (song) => {
+    (song, options = {}) => {
       if (!song) return;
 
       const nextArtist = String(song.artist || "").trim();
@@ -131,6 +134,12 @@ export function usePresentationNavigation({
       if (!nextArtist || !nextSong) return;
 
       const nextInstrument = instrumentSelected || decodedRouteInstrument;
+      if (options.preserveLiveMode && typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          PRESERVED_LIVE_NAVIGATION_KEY,
+          String(Date.now()),
+        );
+      }
       setIsRouteSongLoading(true);
       setArtistFromURL(nextArtist);
       setSongFromURL(nextSong);
@@ -141,6 +150,7 @@ export function usePresentationNavigation({
         `/presentation/${encodeURIComponent(nextArtist)}/${encodeURIComponent(
           nextSong,
         )}/${encodeURIComponent(nextInstrument)}`,
+        { preserveLiveMode: Boolean(options.preserveLiveMode) },
       );
     },
     [

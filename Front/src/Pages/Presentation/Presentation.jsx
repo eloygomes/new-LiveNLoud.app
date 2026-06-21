@@ -79,6 +79,22 @@ function getIsPresentationTouchLayout() {
   );
 }
 
+const PRESERVED_LIVE_NAVIGATION_KEY = "presentation:preserve-live-navigation";
+
+function getShouldRestorePreservedLiveMode() {
+  if (typeof window === "undefined") return false;
+
+  const rawTimestamp = window.sessionStorage.getItem(
+    PRESERVED_LIVE_NAVIGATION_KEY,
+  );
+  window.sessionStorage.removeItem(PRESERVED_LIVE_NAVIGATION_KEY);
+
+  const timestamp = Number(rawTimestamp);
+  if (!Number.isFinite(timestamp)) return false;
+
+  return Date.now() - timestamp < 10000;
+}
+
 function Presentation() {
   const navigate = useNavigate();
   const {
@@ -263,7 +279,9 @@ function Presentation() {
   });
 
   const [isLiveMode, setIsLiveMode] = useState(false);
-  const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(false);
+  const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(() =>
+    getShouldRestorePreservedLiveMode(),
+  );
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [notesModalStatus, setNotesModalStatus] = useState(false);
   const liveModeRootRef = useRef(null);
@@ -639,12 +657,18 @@ function Presentation() {
             isTouchLayout={isTouchLayout}
             songFromURL={songFromURL}
             artistFromURL={artistFromURL}
+            previousSetlistSong={previousSetlistSong}
+            nextSetlistSong={nextSetlistSong}
+            setlistSongs={setlistSongs}
             liveCifraZoomLabel={liveCifraZoomLabel}
             blockSpacingLabel={blockSpacingLabel}
             onDecreaseZoom={() => adjustLiveCifraZoom(-10)}
             onIncreaseZoom={() => adjustLiveCifraZoom(10)}
             onDecreaseSpacing={() => adjustActiveBlockSpacingStep(-1)}
             onIncreaseSpacing={() => adjustActiveBlockSpacingStep(1)}
+            onGoToSetlistSong={(song) =>
+              goToSetlistSong(song, { preserveLiveMode: true })
+            }
             onExit={exitLiveMode}
           />
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}

@@ -1,51 +1,173 @@
-import { IoClose } from "react-icons/io5";
+import { useState } from "react";
+import {
+  IoChatbubbleOutline,
+  IoChevronBack,
+  IoChevronDown,
+  IoChevronUp,
+  IoClose,
+  IoEllipsisHorizontal,
+  IoHeartOutline,
+  IoListOutline,
+  IoPaperPlaneOutline,
+  IoRadio,
+  IoRepeatOutline,
+} from "react-icons/io5";
 
 function PresentationLiveHeader({
   effectiveLiveMode,
   isTouchLayout,
   songFromURL,
   artistFromURL,
+  previousSetlistSong,
+  nextSetlistSong,
+  setlistSongs = [],
   liveCifraZoomLabel,
   blockSpacingLabel,
   onDecreaseZoom,
   onIncreaseZoom,
   onDecreaseSpacing,
   onIncreaseSpacing,
+  onGoToSetlistSong = () => {},
   onExit,
 }) {
+  const [setlistOpen, setSetlistOpen] = useState(false);
+
   if (!effectiveLiveMode) return null;
+
+  const normalizedCurrentArtist = String(artistFromURL || "")
+    .trim()
+    .toLowerCase();
+  const normalizedCurrentSong = String(songFromURL || "").trim().toLowerCase();
+  const hasSetlistSongs = setlistSongs.length > 0;
+
+  const handleSelectSetlistSong = (song) => {
+    onGoToSetlistSong(song);
+    setSetlistOpen(false);
+  };
 
   if (isTouchLayout) {
     return (
-      <div className="px-3 pb-1 pt-2">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-white/10 bg-black pb-3">
-          <div className="min-w-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
-              # sustenido live
-            </div>
-            <div
-              className="mt-1 truncate text-[1.02rem] font-bold leading-[1.05rem] text-white"
-              title={songFromURL}
-            >
-              {songFromURL}
-            </div>
-            <div
-              className="mt-0.5 truncate text-[0.82rem] font-bold leading-[0.92rem] text-[goldenrod]"
-              title={artistFromURL}
-            >
-              {artistFromURL}
-            </div>
-          </div>
+      <div className="presentation-live-reels-overlay" aria-label="Live controls">
+        <div className="presentation-live-reels-top">
+          <button
+            type="button"
+            className="presentation-live-reels-icon-button"
+            onClick={onExit}
+            aria-label="Close live mode"
+          >
+            <IoChevronBack aria-hidden="true" />
+          </button>
 
-          <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="presentation-live-reels-tabs">
+            <span>LIVE</span>
             <button
               type="button"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/8 font-bold uppercase tracking-[0.1em] text-white"
-              onClick={onExit}
-              aria-label="Close live mode"
+              className="presentation-live-reels-setlist-tab"
+              onClick={() => setSetlistOpen(true)}
+              aria-label="Open live setlist"
             >
-              <IoClose className="h-3.5 w-3.5" />
+              Setlist
             </button>
+          </div>
+
+          <div className="presentation-live-reels-friends" aria-hidden="true">
+            <span>{(artistFromURL || "?").slice(0, 1).toUpperCase()}</span>
+            <span>{(songFromURL || "?").slice(0, 1).toUpperCase()}</span>
+            <span>
+              <IoRadio aria-hidden="true" />
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="presentation-live-reels-icon-button"
+            onClick={onExit}
+            aria-label="Close live mode"
+          >
+            <IoClose aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="presentation-live-reels-actions">
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            disabled={!previousSetlistSong}
+            onClick={() => onGoToSetlistSong(previousSetlistSong)}
+            aria-label="Previous song in selected setlist"
+          >
+            <IoChevronUp aria-hidden="true" />
+            <span>Prev</span>
+          </button>
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            aria-label="Like live song"
+          >
+            <IoHeartOutline aria-hidden="true" />
+            <span>391</span>
+          </button>
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            aria-label="Comment on live song"
+          >
+            <IoChatbubbleOutline aria-hidden="true" />
+            <span>53</span>
+          </button>
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            aria-label="Repeat live song"
+          >
+            <IoRepeatOutline aria-hidden="true" />
+            <span>10</span>
+          </button>
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            onClick={() => setSetlistOpen(true)}
+            aria-label="Open live setlist"
+          >
+            <IoListOutline aria-hidden="true" />
+            <span>Setlist</span>
+          </button>
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            disabled={!nextSetlistSong}
+            onClick={() => onGoToSetlistSong(nextSetlistSong)}
+            aria-label="Next song in selected setlist"
+          >
+            <IoChevronDown aria-hidden="true" />
+            <span>Next</span>
+          </button>
+          <button
+            type="button"
+            className="presentation-live-reels-action"
+            aria-label="Share live song"
+          >
+            <IoPaperPlaneOutline aria-hidden="true" />
+            <span>261</span>
+          </button>
+          <div className="presentation-live-reels-more" aria-hidden="true">
+            <IoEllipsisHorizontal />
+          </div>
+        </div>
+
+        <div className="presentation-live-reels-bottom">
+          <div className="presentation-live-reels-meta">
+            <div className="presentation-live-reels-avatar" aria-hidden="true">
+              {(artistFromURL || "?").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="presentation-live-reels-title" title={songFromURL}>
+                {songFromURL}
+              </div>
+              <div className="presentation-live-reels-artist" title={artistFromURL}>
+                {artistFromURL}
+              </div>
+            </div>
             <div
               className="presentation-live-step-control presentation-live-step-control-touch"
               role="group"
@@ -69,23 +191,96 @@ function PresentationLiveHeader({
               </button>
             </div>
           </div>
+          <div className="presentation-live-reels-caption">
+            {songFromURL} - {artistFromURL}
+          </div>
+          <div className="presentation-live-reels-comment" aria-hidden="true">
+            Add comment...
+          </div>
         </div>
+
+        {setlistOpen ? (
+          <div className="presentation-live-setlist-panel" role="dialog" aria-modal="true" aria-label="Live setlist">
+            <div className="presentation-live-setlist-backdrop" onClick={() => setSetlistOpen(false)} />
+            <div className="presentation-live-setlist-sheet">
+              <div className="presentation-live-setlist-header">
+                <div>
+                  <div className="presentation-live-setlist-eyebrow">LIVE</div>
+                  <div className="presentation-live-setlist-title">Setlist</div>
+                </div>
+                <button
+                  type="button"
+                  className="presentation-live-reels-icon-button"
+                  onClick={() => setSetlistOpen(false)}
+                  aria-label="Close live setlist"
+                >
+                  <IoClose aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="presentation-live-setlist-list">
+                {hasSetlistSongs ? (
+                  setlistSongs.map((song, index) => {
+                    const itemArtist = String(song?.artist || "").trim();
+                    const itemSong = String(song?.song || "").trim();
+                    const isCurrent =
+                      itemArtist.toLowerCase() === normalizedCurrentArtist &&
+                      itemSong.toLowerCase() === normalizedCurrentSong;
+
+                    return (
+                      <button
+                        type="button"
+                        key={`${itemArtist}-${itemSong}-${index}`}
+                        className={`presentation-live-setlist-item ${
+                          isCurrent ? "presentation-live-setlist-item-active" : ""
+                        }`}
+                        onClick={() => handleSelectSetlistSong(song)}
+                        aria-current={isCurrent ? "true" : undefined}
+                      >
+                        <span className="presentation-live-setlist-index">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="presentation-live-setlist-copy">
+                          <span className="presentation-live-setlist-song">
+                            {itemSong || "Untitled"}
+                          </span>
+                          <span className="presentation-live-setlist-artist">
+                            {itemArtist || "Unknown artist"}
+                          </span>
+                        </span>
+                        {isCurrent ? (
+                          <span className="presentation-live-setlist-now">
+                            Live
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="presentation-live-setlist-empty">
+                    No songs in this setlist.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="px-8 pb-2 pt-6">
-      <div className="flex items-start justify-between gap-3 border-b border-white/10 bg-black pb-3">
-        <div className="min-w-0">
-          <div className="truncate text-3xl font-bold leading-tight text-white">
+    <div className="presentation-live-desktop-header">
+      <div className="presentation-live-desktop-bar">
+        <div className="presentation-live-desktop-title">
+          <div className="presentation-live-desktop-song" title={songFromURL}>
             {songFromURL}
           </div>
-          <div className="truncate text-xl font-bold leading-tight text-[goldenrod]">
+          <div className="presentation-live-desktop-artist" title={artistFromURL}>
             {artistFromURL}
           </div>
         </div>
-        <div className="flex shrink-0 items-center justify-end gap-2">
+        <div className="presentation-live-desktop-actions">
           <div className="presentation-live-header-controls">
             <div
               className="presentation-live-step-control"
@@ -134,7 +329,33 @@ function PresentationLiveHeader({
           </div>
           <button
             type="button"
-            className="flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-white"
+            className="presentation-live-desktop-button"
+            onClick={() => setSetlistOpen((value) => !value)}
+            aria-label="Open live setlist"
+          >
+            Setlist
+          </button>
+          <button
+            type="button"
+            className="presentation-live-desktop-button"
+            disabled={!previousSetlistSong}
+            onClick={() => onGoToSetlistSong(previousSetlistSong)}
+            aria-label="Previous song in selected setlist"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="presentation-live-desktop-button"
+            disabled={!nextSetlistSong}
+            onClick={() => onGoToSetlistSong(nextSetlistSong)}
+            aria-label="Next song in selected setlist"
+          >
+            Next
+          </button>
+          <button
+            type="button"
+            className="presentation-live-desktop-button"
             onClick={onExit}
             aria-label="Close live mode"
           >
@@ -143,6 +364,69 @@ function PresentationLiveHeader({
           </button>
         </div>
       </div>
+      {setlistOpen ? (
+        <div className="presentation-live-setlist-panel presentation-live-setlist-panel-desktop" role="dialog" aria-modal="true" aria-label="Live setlist">
+          <div className="presentation-live-setlist-backdrop" onClick={() => setSetlistOpen(false)} />
+          <div className="presentation-live-setlist-sheet">
+            <div className="presentation-live-setlist-header">
+              <div>
+                <div className="presentation-live-setlist-eyebrow">LIVE</div>
+                <div className="presentation-live-setlist-title">Setlist</div>
+              </div>
+              <button
+                type="button"
+                className="presentation-live-reels-icon-button"
+                onClick={() => setSetlistOpen(false)}
+                aria-label="Close live setlist"
+              >
+                <IoClose aria-hidden="true" />
+              </button>
+            </div>
+            <div className="presentation-live-setlist-list">
+              {hasSetlistSongs ? (
+                setlistSongs.map((song, index) => {
+                  const itemArtist = String(song?.artist || "").trim();
+                  const itemSong = String(song?.song || "").trim();
+                  const isCurrent =
+                    itemArtist.toLowerCase() === normalizedCurrentArtist &&
+                    itemSong.toLowerCase() === normalizedCurrentSong;
+
+                  return (
+                    <button
+                      type="button"
+                      key={`${itemArtist}-${itemSong}-${index}`}
+                      className={`presentation-live-setlist-item ${
+                        isCurrent ? "presentation-live-setlist-item-active" : ""
+                      }`}
+                      onClick={() => handleSelectSetlistSong(song)}
+                      aria-current={isCurrent ? "true" : undefined}
+                    >
+                      <span className="presentation-live-setlist-index">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="presentation-live-setlist-copy">
+                        <span className="presentation-live-setlist-song">
+                          {itemSong || "Untitled"}
+                        </span>
+                        <span className="presentation-live-setlist-artist">
+                          {itemArtist || "Unknown artist"}
+                        </span>
+                      </span>
+                      {isCurrent ? (
+                        <span className="presentation-live-setlist-now">Live</span>
+                      ) : null}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="presentation-live-setlist-empty">
+                  No songs in this setlist.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

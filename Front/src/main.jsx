@@ -13,8 +13,6 @@ import {
   RouterProvider,
   Navigate,
   useSearchParams,
-  useParams,
-  useLocation,
 } from "react-router-dom";
 import Menu from "./Layouts/Menu";
 import Dashboard from "./Pages/Dashboard/Dashboard";
@@ -314,13 +312,7 @@ const YouTubePopupDone = () => {
 };
 
 const PresentationRoute = () => {
-  const { artist = "", song = "", instrument = "" } = useParams();
-  const location = useLocation();
-  return (
-    <Presentation
-      key={`${location.pathname}${location.search}::${artist}::${song}::${instrument}`}
-    />
-  );
+  return <Presentation />;
 };
 
 const DashboardRoute = () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PresentationColumns from "./PresentationColumns";
 import PresentationHorizontalNav from "./PresentationHorizontalNav";
@@ -115,18 +115,27 @@ describe("Presentation extracted components", () => {
   });
 
   it("keeps only zoom controls visible in the touch live header", () => {
+    const onGoToSetlistSong = vi.fn();
+
     render(
       <PresentationLiveHeader
         effectiveLiveMode
         isTouchLayout
         songFromURL="Song"
         artistFromURL="Artist"
+        previousSetlistSong={{ artist: "Prev", song: "Prev Song" }}
+        nextSetlistSong={{ artist: "Next", song: "Next Song" }}
+        setlistSongs={[
+          { artist: "Artist", song: "Song" },
+          { artist: "Next", song: "Next Song" },
+        ]}
         liveCifraZoomLabel="120%"
         blockSpacingLabel="32px"
         onDecreaseZoom={vi.fn()}
         onIncreaseZoom={vi.fn()}
         onDecreaseSpacing={vi.fn()}
         onIncreaseSpacing={vi.fn()}
+        onGoToSetlistSong={onGoToSetlistSong}
         onExit={vi.fn()}
       />,
     );
@@ -137,6 +146,38 @@ describe("Presentation extracted components", () => {
     expect(
       screen.queryByRole("group", { name: "Live block spacing" }),
     ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Previous song in selected setlist" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Next song in selected setlist" }),
+    );
+
+    expect(onGoToSetlistSong).toHaveBeenNthCalledWith(1, {
+      artist: "Prev",
+      song: "Prev Song",
+    });
+    expect(onGoToSetlistSong).toHaveBeenNthCalledWith(2, {
+      artist: "Next",
+      song: "Next Song",
+    });
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Open live setlist" })[0],
+    );
+    const setlistDialog = screen.getByRole("dialog", { name: "Live setlist" });
+    expect(setlistDialog).toBeInTheDocument();
+    expect(screen.getByText("Next Song")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(setlistDialog).getByRole("button", { name: /Next Song/i }),
+    );
+
+    expect(onGoToSetlistSong).toHaveBeenLastCalledWith({
+      artist: "Next",
+      song: "Next Song",
+    });
   });
 
   it("renders touch video actions", () => {

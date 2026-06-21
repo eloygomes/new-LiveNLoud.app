@@ -27,6 +27,7 @@ const baseProps = () => ({
 describe("usePresentationNavigation", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     window.history.pushState({}, "", "/presentation/Current%20Artist/Current%20Song/keys");
   });
 
@@ -74,6 +75,28 @@ describe("usePresentationNavigation", () => {
     expect(props.setSongFromURL).toHaveBeenCalledWith("Next Song");
     expect(props.setSongDataFetched).toHaveBeenCalledWith(undefined);
     expect(props.setEmbedLinks).toHaveBeenCalledWith([]);
+    expect(props.navigate).toHaveBeenCalledWith(
+      "/presentation/Next%20Artist/Next%20Song/keys",
+    );
+  });
+
+  it("can preserve live mode while navigating setlist songs", () => {
+    const props = baseProps();
+    const { result } = renderHook(() => usePresentationNavigation(props));
+
+    act(() => {
+      result.current.goToSetlistSong(
+        {
+          artist: "Next Artist",
+          song: "Next Song",
+        },
+        { preserveLiveMode: true },
+      );
+    });
+
+    expect(
+      window.sessionStorage.getItem("presentation:preserve-live-navigation"),
+    ).toMatch(/^\d+$/);
     expect(props.navigate).toHaveBeenCalledWith(
       "/presentation/Next%20Artist/Next%20Song/keys",
     );
