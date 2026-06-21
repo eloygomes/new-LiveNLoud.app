@@ -1,16 +1,20 @@
-import { useState } from "react";
 import {
   IoChatbubbleOutline,
+  IoAdd,
   IoChevronBack,
   IoChevronDown,
+  IoChevronForward,
   IoChevronUp,
   IoClose,
   IoEllipsisHorizontal,
   IoHeartOutline,
   IoListOutline,
+  IoRemove,
   IoPaperPlaneOutline,
   IoRadio,
   IoRepeatOutline,
+  IoResizeOutline,
+  IoSearchOutline,
 } from "react-icons/io5";
 
 function PresentationLiveHeader({
@@ -20,30 +24,23 @@ function PresentationLiveHeader({
   artistFromURL,
   previousSetlistSong,
   nextSetlistSong,
-  setlistSongs = [],
+  liveView = "cifra",
   liveCifraZoomLabel,
   blockSpacingLabel,
   onDecreaseZoom,
   onIncreaseZoom,
   onDecreaseSpacing,
   onIncreaseSpacing,
+  onOpenSetlist = () => {},
+  onCloseSetlist = () => {},
   onGoToSetlistSong = () => {},
   onExit,
 }) {
-  const [setlistOpen, setSetlistOpen] = useState(false);
-
   if (!effectiveLiveMode) return null;
-
-  const normalizedCurrentArtist = String(artistFromURL || "")
-    .trim()
-    .toLowerCase();
-  const normalizedCurrentSong = String(songFromURL || "").trim().toLowerCase();
-  const hasSetlistSongs = setlistSongs.length > 0;
-
-  const handleSelectSetlistSong = (song) => {
-    onGoToSetlistSong(song);
-    setSetlistOpen(false);
-  };
+  const showSetlistView = liveView === "setlist";
+  const handleSetlistButtonClick = showSetlistView
+    ? onCloseSetlist
+    : onOpenSetlist;
 
   if (isTouchLayout) {
     return (
@@ -63,7 +60,7 @@ function PresentationLiveHeader({
             <button
               type="button"
               className="presentation-live-reels-setlist-tab"
-              onClick={() => setSetlistOpen(true)}
+              onClick={handleSetlistButtonClick}
               aria-label="Open live setlist"
             >
               Setlist
@@ -126,7 +123,7 @@ function PresentationLiveHeader({
           <button
             type="button"
             className="presentation-live-reels-action"
-            onClick={() => setSetlistOpen(true)}
+            onClick={handleSetlistButtonClick}
             aria-label="Open live setlist"
           >
             <IoListOutline aria-hidden="true" />
@@ -199,72 +196,6 @@ function PresentationLiveHeader({
           </div>
         </div>
 
-        {setlistOpen ? (
-          <div className="presentation-live-setlist-panel" role="dialog" aria-modal="true" aria-label="Live setlist">
-            <div className="presentation-live-setlist-backdrop" onClick={() => setSetlistOpen(false)} />
-            <div className="presentation-live-setlist-sheet">
-              <div className="presentation-live-setlist-header">
-                <div>
-                  <div className="presentation-live-setlist-eyebrow">LIVE</div>
-                  <div className="presentation-live-setlist-title">Setlist</div>
-                </div>
-                <button
-                  type="button"
-                  className="presentation-live-reels-icon-button"
-                  onClick={() => setSetlistOpen(false)}
-                  aria-label="Close live setlist"
-                >
-                  <IoClose aria-hidden="true" />
-                </button>
-              </div>
-
-              <div className="presentation-live-setlist-list">
-                {hasSetlistSongs ? (
-                  setlistSongs.map((song, index) => {
-                    const itemArtist = String(song?.artist || "").trim();
-                    const itemSong = String(song?.song || "").trim();
-                    const isCurrent =
-                      itemArtist.toLowerCase() === normalizedCurrentArtist &&
-                      itemSong.toLowerCase() === normalizedCurrentSong;
-
-                    return (
-                      <button
-                        type="button"
-                        key={`${itemArtist}-${itemSong}-${index}`}
-                        className={`presentation-live-setlist-item ${
-                          isCurrent ? "presentation-live-setlist-item-active" : ""
-                        }`}
-                        onClick={() => handleSelectSetlistSong(song)}
-                        aria-current={isCurrent ? "true" : undefined}
-                      >
-                        <span className="presentation-live-setlist-index">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <span className="presentation-live-setlist-copy">
-                          <span className="presentation-live-setlist-song">
-                            {itemSong || "Untitled"}
-                          </span>
-                          <span className="presentation-live-setlist-artist">
-                            {itemArtist || "Unknown artist"}
-                          </span>
-                        </span>
-                        {isCurrent ? (
-                          <span className="presentation-live-setlist-now">
-                            Live
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="presentation-live-setlist-empty">
-                    No songs in this setlist.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
     );
   }
@@ -287,13 +218,16 @@ function PresentationLiveHeader({
               role="group"
               aria-label="Live cifra zoom"
             >
-              <span className="presentation-live-step-label">Zoom</span>
+              <span className="presentation-live-step-label">
+                <IoSearchOutline aria-hidden="true" />
+                Zoom
+              </span>
               <button
                 type="button"
                 onClick={onDecreaseZoom}
                 aria-label="Decrease live cifra zoom"
               >
-                -
+                <IoRemove aria-hidden="true" />
               </button>
               <span>{liveCifraZoomLabel}</span>
               <button
@@ -301,7 +235,7 @@ function PresentationLiveHeader({
                 onClick={onIncreaseZoom}
                 aria-label="Increase live cifra zoom"
               >
-                +
+                <IoAdd aria-hidden="true" />
               </button>
             </div>
             <div
@@ -309,13 +243,16 @@ function PresentationLiveHeader({
               role="group"
               aria-label="Live block spacing"
             >
-              <span className="presentation-live-step-label">Spacing</span>
+              <span className="presentation-live-step-label">
+                <IoResizeOutline aria-hidden="true" />
+                Spacing
+              </span>
               <button
                 type="button"
                 onClick={onDecreaseSpacing}
                 aria-label="Decrease live block spacing"
               >
-                -
+                <IoRemove aria-hidden="true" />
               </button>
               <span>{blockSpacingLabel}</span>
               <button
@@ -323,39 +260,44 @@ function PresentationLiveHeader({
                 onClick={onIncreaseSpacing}
                 aria-label="Increase live block spacing"
               >
-                +
+                <IoAdd aria-hidden="true" />
               </button>
             </div>
           </div>
+          <div className="presentation-live-desktop-button-group">
+            <button
+              type="button"
+              className="presentation-live-desktop-button presentation-live-desktop-button-primary"
+              onClick={handleSetlistButtonClick}
+              aria-label="Open live setlist"
+            >
+              <IoListOutline aria-hidden="true" />
+              Setlist
+            </button>
+            <button
+              type="button"
+              className="presentation-live-desktop-button"
+              disabled={!previousSetlistSong}
+              onClick={() => onGoToSetlistSong(previousSetlistSong)}
+              aria-label="Previous song in selected setlist"
+            >
+              <IoChevronBack aria-hidden="true" />
+              Previous
+            </button>
+            <button
+              type="button"
+              className="presentation-live-desktop-button"
+              disabled={!nextSetlistSong}
+              onClick={() => onGoToSetlistSong(nextSetlistSong)}
+              aria-label="Next song in selected setlist"
+            >
+              Next
+              <IoChevronForward aria-hidden="true" />
+            </button>
+          </div>
           <button
             type="button"
-            className="presentation-live-desktop-button"
-            onClick={() => setSetlistOpen((value) => !value)}
-            aria-label="Open live setlist"
-          >
-            Setlist
-          </button>
-          <button
-            type="button"
-            className="presentation-live-desktop-button"
-            disabled={!previousSetlistSong}
-            onClick={() => onGoToSetlistSong(previousSetlistSong)}
-            aria-label="Previous song in selected setlist"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            className="presentation-live-desktop-button"
-            disabled={!nextSetlistSong}
-            onClick={() => onGoToSetlistSong(nextSetlistSong)}
-            aria-label="Next song in selected setlist"
-          >
-            Next
-          </button>
-          <button
-            type="button"
-            className="presentation-live-desktop-button"
+            className="presentation-live-desktop-button presentation-live-desktop-button-close"
             onClick={onExit}
             aria-label="Close live mode"
           >
@@ -364,69 +306,6 @@ function PresentationLiveHeader({
           </button>
         </div>
       </div>
-      {setlistOpen ? (
-        <div className="presentation-live-setlist-panel presentation-live-setlist-panel-desktop" role="dialog" aria-modal="true" aria-label="Live setlist">
-          <div className="presentation-live-setlist-backdrop" onClick={() => setSetlistOpen(false)} />
-          <div className="presentation-live-setlist-sheet">
-            <div className="presentation-live-setlist-header">
-              <div>
-                <div className="presentation-live-setlist-eyebrow">LIVE</div>
-                <div className="presentation-live-setlist-title">Setlist</div>
-              </div>
-              <button
-                type="button"
-                className="presentation-live-reels-icon-button"
-                onClick={() => setSetlistOpen(false)}
-                aria-label="Close live setlist"
-              >
-                <IoClose aria-hidden="true" />
-              </button>
-            </div>
-            <div className="presentation-live-setlist-list">
-              {hasSetlistSongs ? (
-                setlistSongs.map((song, index) => {
-                  const itemArtist = String(song?.artist || "").trim();
-                  const itemSong = String(song?.song || "").trim();
-                  const isCurrent =
-                    itemArtist.toLowerCase() === normalizedCurrentArtist &&
-                    itemSong.toLowerCase() === normalizedCurrentSong;
-
-                  return (
-                    <button
-                      type="button"
-                      key={`${itemArtist}-${itemSong}-${index}`}
-                      className={`presentation-live-setlist-item ${
-                        isCurrent ? "presentation-live-setlist-item-active" : ""
-                      }`}
-                      onClick={() => handleSelectSetlistSong(song)}
-                      aria-current={isCurrent ? "true" : undefined}
-                    >
-                      <span className="presentation-live-setlist-index">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="presentation-live-setlist-copy">
-                        <span className="presentation-live-setlist-song">
-                          {itemSong || "Untitled"}
-                        </span>
-                        <span className="presentation-live-setlist-artist">
-                          {itemArtist || "Unknown artist"}
-                        </span>
-                      </span>
-                      {isCurrent ? (
-                        <span className="presentation-live-setlist-now">Live</span>
-                      ) : null}
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="presentation-live-setlist-empty">
-                  No songs in this setlist.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

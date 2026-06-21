@@ -95,6 +95,81 @@ function getShouldRestorePreservedLiveMode() {
   return Date.now() - timestamp < 10000;
 }
 
+function PresentationLiveSetlistScreen({
+  artistFromURL,
+  onBackToCifra,
+  onSelectSong,
+  setlistSongs,
+  songFromURL,
+}) {
+  const normalizedCurrentArtist = String(artistFromURL || "")
+    .trim()
+    .toLowerCase();
+  const normalizedCurrentSong = String(songFromURL || "").trim().toLowerCase();
+
+  return (
+    <div className="presentation-live-setlist-screen" aria-label="Live setlist">
+      <div className="presentation-live-setlist-screen-header">
+        <div>
+          <div className="presentation-live-setlist-eyebrow">LIVE</div>
+          <div className="presentation-live-setlist-title">Setlist</div>
+        </div>
+        <button
+          type="button"
+          className="presentation-live-setlist-back-button"
+          onClick={onBackToCifra}
+          aria-label="Back to live cifra"
+        >
+          Cifra
+        </button>
+      </div>
+
+      <div className="presentation-live-setlist-list">
+        {setlistSongs.length ? (
+          setlistSongs.map((song, index) => {
+            const itemArtist = String(song?.artist || "").trim();
+            const itemSong = String(song?.song || "").trim();
+            const isCurrent =
+              itemArtist.toLowerCase() === normalizedCurrentArtist &&
+              itemSong.toLowerCase() === normalizedCurrentSong;
+
+            return (
+              <button
+                type="button"
+                key={`${itemArtist}-${itemSong}-${index}`}
+                className={`presentation-live-setlist-item ${
+                  isCurrent ? "presentation-live-setlist-item-active" : ""
+                }`}
+                onClick={() => onSelectSong(song)}
+                aria-current={isCurrent ? "true" : undefined}
+              >
+                <span className="presentation-live-setlist-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="presentation-live-setlist-copy">
+                  <span className="presentation-live-setlist-song">
+                    {itemSong || "Untitled"}
+                  </span>
+                  <span className="presentation-live-setlist-artist">
+                    {itemArtist || "Unknown artist"}
+                  </span>
+                </span>
+                {isCurrent ? (
+                  <span className="presentation-live-setlist-now">Live</span>
+                ) : null}
+              </button>
+            );
+          })
+        ) : (
+          <div className="presentation-live-setlist-empty">
+            No songs in this setlist.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Presentation() {
   const navigate = useNavigate();
   const {
@@ -282,6 +357,7 @@ function Presentation() {
   const [isPseudoLiveMode, setIsPseudoLiveMode] = useState(() =>
     getShouldRestorePreservedLiveMode(),
   );
+  const [liveView, setLiveView] = useState("cifra");
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [notesModalStatus, setNotesModalStatus] = useState(false);
   const liveModeRootRef = useRef(null);
@@ -511,7 +587,7 @@ function Presentation() {
     setActiveShowProgressionMarkers,
     setIsLiveMode,
     setIsPseudoLiveMode,
-    shouldUseHorizontalColumnFlow,
+    shouldUseHorizontalColumnFlow: shouldUseHorizontalColumnFlow && liveView !== "setlist",
   });
 
   // Função para alternar a visibilidade das tabs
@@ -539,13 +615,21 @@ function Presentation() {
     setActiveShowProgressionMarkers((current) => !current);
   }, [setActiveShowProgressionMarkers]);
 
+  const goToLiveSetlistSong = useCallback(
+    (song) => {
+      goToSetlistSong(song, { preserveLiveMode: true });
+      setLiveView("cifra");
+    },
+    [goToSetlistSong],
+  );
+
   return (
     <div
       ref={liveModeRootRef}
       tabIndex={effectiveLiveMode ? -1 : undefined}
-      className={`flex min-h-0 justify-center ${
-        effectiveLiveMode ? "h-[100dvh]" : "h-full"
-      } ${effectiveLiveMode ? "presentation-live-shell" : ""} ${
+      className={`flex h-full min-h-0 justify-center ${
+        effectiveLiveMode ? "presentation-live-shell" : ""
+      } ${
         isPseudoLiveMode ? "overflow-hidden" : ""
       }`}
       onMouseDown={effectiveLiveMode ? focusLiveViewport : undefined}
@@ -619,9 +703,7 @@ function Presentation() {
         }`}
       >
         <div
-          className={`flex min-h-0 flex-col ${
-            effectiveLiveMode ? "h-[100dvh]" : "h-full"
-          } ${
+          className={`flex h-full min-h-0 flex-col ${
             shouldUseFullBleedLayout
               ? "w-full max-w-none px-0"
               : "w-11/12 2xl:w-9/12 mx-auto"
@@ -659,22 +741,25 @@ function Presentation() {
             artistFromURL={artistFromURL}
             previousSetlistSong={previousSetlistSong}
             nextSetlistSong={nextSetlistSong}
-            setlistSongs={setlistSongs}
+            liveView={liveView}
             liveCifraZoomLabel={liveCifraZoomLabel}
             blockSpacingLabel={blockSpacingLabel}
             onDecreaseZoom={() => adjustLiveCifraZoom(-10)}
             onIncreaseZoom={() => adjustLiveCifraZoom(10)}
             onDecreaseSpacing={() => adjustActiveBlockSpacingStep(-1)}
             onIncreaseSpacing={() => adjustActiveBlockSpacingStep(1)}
-            onGoToSetlistSong={(song) =>
-              goToSetlistSong(song, { preserveLiveMode: true })
-            }
-            onExit={exitLiveMode}
+            onOpenSetlist={() => setLiveView("setlist")}
+            onCloseSetlist={() => setLiveView("cifra")}
+            onGoToSetlistSong={goToLiveSetlistSong}
+            onExit={() => {
+              setLiveView("cifra");
+              exitLiveMode();
+            }}
           />
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
           <PresentationHorizontalNav
-            open={shouldUseHorizontalColumnFlow}
+            open={shouldUseHorizontalColumnFlow && liveView !== "setlist"}
             effectiveLiveMode={effectiveLiveMode}
             onNavigate={scrollExpandedLayout}
           />
@@ -701,11 +786,15 @@ function Presentation() {
                 ? "presentation-live-content-touch"
                 : ""
             } ${
-              shouldUseHorizontalColumnFlow
+              effectiveLiveMode && liveView === "setlist"
+                ? "presentation-live-setlist-content"
+                : ""
+            } ${
+              shouldUseHorizontalColumnFlow && liveView !== "setlist"
                 ? "presentation-expanded-cifra-horizontal"
                 : ""
             } ${
-              shouldUseExpandedVerticalFlow
+              shouldUseExpandedVerticalFlow && liveView !== "setlist"
                 ? "presentation-expanded-cifra-vertical"
                 : ""
             }`}
@@ -727,7 +816,15 @@ function Presentation() {
                 : undefined
             }
           >
-            {isRouteSongLoading || isCurrentInstrumentUnavailable ? (
+            {effectiveLiveMode && liveView === "setlist" ? (
+              <PresentationLiveSetlistScreen
+                artistFromURL={artistFromURL}
+                onBackToCifra={() => setLiveView("cifra")}
+                onSelectSong={goToLiveSetlistSong}
+                setlistSongs={setlistSongs}
+                songFromURL={songFromURL}
+              />
+            ) : isRouteSongLoading || isCurrentInstrumentUnavailable ? (
               <PresentationStatusState
                 mode={isRouteSongLoading ? "loading" : "unavailable"}
                 effectiveLiveMode={effectiveLiveMode}

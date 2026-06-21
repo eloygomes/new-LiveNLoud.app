@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PresentationColumns from "./PresentationColumns";
 import PresentationHorizontalNav from "./PresentationHorizontalNav";
@@ -116,6 +116,7 @@ describe("Presentation extracted components", () => {
 
   it("keeps only zoom controls visible in the touch live header", () => {
     const onGoToSetlistSong = vi.fn();
+    const onOpenSetlist = vi.fn();
 
     render(
       <PresentationLiveHeader
@@ -135,6 +136,7 @@ describe("Presentation extracted components", () => {
         onIncreaseZoom={vi.fn()}
         onDecreaseSpacing={vi.fn()}
         onIncreaseSpacing={vi.fn()}
+        onOpenSetlist={onOpenSetlist}
         onGoToSetlistSong={onGoToSetlistSong}
         onExit={vi.fn()}
       />,
@@ -166,18 +168,7 @@ describe("Presentation extracted components", () => {
     fireEvent.click(
       screen.getAllByRole("button", { name: "Open live setlist" })[0],
     );
-    const setlistDialog = screen.getByRole("dialog", { name: "Live setlist" });
-    expect(setlistDialog).toBeInTheDocument();
-    expect(screen.getByText("Next Song")).toBeInTheDocument();
-
-    fireEvent.click(
-      within(setlistDialog).getByRole("button", { name: /Next Song/i }),
-    );
-
-    expect(onGoToSetlistSong).toHaveBeenLastCalledWith({
-      artist: "Next",
-      song: "Next Song",
-    });
+    expect(onOpenSetlist).toHaveBeenCalled();
   });
 
   it("renders touch video actions", () => {

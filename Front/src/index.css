@@ -386,21 +386,29 @@ main{
 }
 
 .presentation-live-shell {
-  background: #000;
-  width: 100vw;
-  max-width: 100vw;
-  height: 100dvh;
-  min-height: 100dvh;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    #02050b;
+  background-size: 100% 1.45em;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 100%;
   overflow: hidden;
 }
 
 .presentation-live-shell:fullscreen {
-  background: #000;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    #02050b;
+  background-size: 100% 1.45em;
 }
 
 .presentation-live-shell .container {
   width: 100%;
   max-width: none;
+  height: 100%;
+  min-height: 0;
 }
 
 .presentation-live-shell {
@@ -415,7 +423,10 @@ main{
   max-width: none;
   overflow-y: auto;
   padding: 0;
-  background: #000;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    #02050b;
+  background-size: 100% 1.45em;
   color: #fff;
   font-family: "Courier New", Courier, monospace;
   outline: none;
@@ -435,6 +446,54 @@ main{
   padding-bottom: 0;
 }
 
+.presentation-live-setlist-content {
+  overflow: hidden;
+}
+
+.presentation-live-setlist-screen {
+  display: flex;
+  min-height: 100%;
+  height: 100%;
+  flex-direction: column;
+  color: #fff;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.presentation-live-setlist-screen-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(212, 160, 23, 0.32);
+  padding-bottom: 0.85rem;
+}
+
+.presentation-live-setlist-back-button {
+  display: inline-flex;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 160, 23, 0.42);
+  border-radius: 4px;
+  background: rgba(24, 18, 4, 0.86);
+  color: #f7e3a3;
+  padding: 0 1rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.presentation-live-setlist-back-button:hover,
+.presentation-live-setlist-back-button:focus-visible {
+  background: rgba(212, 160, 23, 0.2);
+  border-color: rgba(255, 230, 154, 0.78);
+  color: #fff;
+  outline: none;
+}
+
 .presentation-live-content-touch {
   padding: 5.25rem 4.7rem 12.5rem 0.75rem;
 }
@@ -442,7 +501,8 @@ main{
 .presentation-live-desktop-header {
   flex: 0 0 auto;
   padding: clamp(1.15rem, 2.1vh, 1.65rem) var(--presentation-live-desktop-inline) 0;
-  background: #000;
+  background: #02050b;
+  font-family: "Courier New", Courier, monospace;
 }
 
 .presentation-live-desktop-bar {
@@ -451,7 +511,7 @@ main{
   grid-template-columns: minmax(16rem, 1fr) auto;
   align-items: stretch;
   gap: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(212, 160, 23, 0.34);
   padding-bottom: 0.85rem;
 }
 
@@ -475,6 +535,7 @@ main{
   font-size: clamp(1.45rem, 1.8vw, 2rem);
   font-weight: 900;
   line-height: 1.05;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.16);
 }
 
 .presentation-live-desktop-artist {
@@ -483,6 +544,7 @@ main{
   font-size: clamp(0.95rem, 1.15vw, 1.25rem);
   font-weight: 850;
   line-height: 1.05;
+  text-shadow: 0 0 10px rgba(212, 160, 23, 0.48);
 }
 
 .presentation-live-desktop-actions {
@@ -490,26 +552,69 @@ main{
   min-height: 3.6rem;
   align-items: stretch;
   justify-content: flex-end;
-  gap: 0.45rem;
+  gap: clamp(0.85rem, 1.2vw, 1.45rem);
+}
+
+.presentation-live-desktop-button-group {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
 }
 
 .presentation-live-desktop-button {
   display: inline-flex;
-  min-width: 4.75rem;
+  min-width: 6.25rem;
   height: 3.6rem;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
-  color: #fff;
-  padding: 0 1rem;
-  font-size: 0.72rem;
+  gap: 0.6rem;
+  border: 1px solid rgba(212, 160, 23, 0.38);
+  border-radius: 4px;
+  background: rgba(4, 15, 28, 0.86);
+  color: #f7e3a3;
+  padding: 0 1.15rem;
+  font-size: 0.9rem;
   font-weight: 900;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 0 18px rgba(212, 160, 23, 0.08);
+}
+
+.presentation-live-desktop-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+}
+
+.presentation-live-desktop-button:hover,
+.presentation-live-desktop-button:focus-visible {
+  background: rgba(212, 160, 23, 0.3);
+  border-color: rgba(255, 230, 154, 0.78);
+  color: #fff;
+  outline: none;
+}
+
+.presentation-live-desktop-button-primary {
+  border-color: rgba(255, 230, 154, 0.95);
+  background: #d4a017;
+  color: #050505;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 0 24px rgba(212, 160, 23, 0.34);
+}
+
+.presentation-live-desktop-button-primary:hover,
+.presentation-live-desktop-button-primary:focus-visible {
+  background: #f5d47a;
+  border-color: #fff1b8;
+  color: #050505;
+}
+
+.presentation-live-desktop-button-close {
+  margin-left: clamp(1.35rem, 1.9vw, 2.5rem);
 }
 
 .presentation-live-desktop-button:disabled {
@@ -523,15 +628,8 @@ main{
   z-index: 45;
   pointer-events: none;
   color: #fff;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.68);
+  font-family: "Courier New", Courier, monospace;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.16);
 }
 
 .presentation-live-reels-overlay button {
@@ -555,11 +653,12 @@ main{
   height: 2.5rem;
   align-items: center;
   justify-content: center;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-  color: #fff;
+  border: 1px solid rgba(212, 160, 23, 0.42);
+  border-radius: 4px;
+  background: rgba(2, 8, 16, 0.76);
+  color: #fff7dc;
   font-size: 2rem;
+  box-shadow: 0 0 18px rgba(212, 160, 23, 0.12);
 }
 
 .presentation-live-reels-tabs {
@@ -569,23 +668,36 @@ main{
   justify-content: center;
   gap: 1rem;
   font-size: clamp(1.35rem, 8vw, 2.15rem);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1;
+  text-transform: uppercase;
 }
 
-.presentation-live-reels-tabs span + span {
-  color: rgba(255, 255, 255, 0.52);
+.presentation-live-reels-tabs span {
+  color: #fff;
+}
+
+.presentation-live-reels-tabs span::before {
+  color: #d4a017;
+  content: "[";
+}
+
+.presentation-live-reels-tabs span::after {
+  color: #d4a017;
+  content: "]";
 }
 
 .presentation-live-reels-setlist-tab {
-  border: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(212, 160, 23, 0.38);
+  border-radius: 4px;
+  background: rgba(2, 8, 16, 0.68);
+  color: #f7e3a3;
   font: inherit;
   font-weight: 800;
   line-height: 1;
-  padding: 0;
+  padding: 0.18rem 0.45rem;
   text-shadow: inherit;
+  text-transform: uppercase;
 }
 
 .presentation-live-reels-setlist-tab:focus-visible {
@@ -607,10 +719,10 @@ main{
   align-items: center;
   justify-content: center;
   margin-left: -0.28rem;
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #d4a017, #111);
-  color: #fff;
+  border: 1px solid rgba(212, 160, 23, 0.64);
+  border-radius: 4px;
+  background: rgba(2, 8, 16, 0.86);
+  color: #d4a017;
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -637,16 +749,20 @@ main{
   justify-content: center;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: #f4f8ff;
   font-size: clamp(1.65rem, 5.6vh, 2.35rem);
   line-height: 1;
+  text-shadow: 0 0 10px rgba(212, 160, 23, 0.32);
 }
 
 .presentation-live-reels-action span {
   margin-top: 0.18rem;
   font-size: 0.78rem;
-  font-weight: 800;
+  color: #f5d47a;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 900;
   line-height: 1;
+  text-transform: uppercase;
 }
 
 .presentation-live-reels-action:disabled {
@@ -668,7 +784,7 @@ main{
   bottom: 0;
   left: 0;
   padding: 0 1.15rem max(1.1rem, env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8) 46%, #090c10 100%);
+  background: linear-gradient(180deg, transparent, rgba(2, 5, 11, 0.8) 42%, #02050b 100%);
 }
 
 .presentation-live-reels-meta {
@@ -684,9 +800,10 @@ main{
   height: 2.3rem;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #d4a017, #101010);
+  border: 1px solid rgba(212, 160, 23, 0.68);
+  border-radius: 4px;
+  background: rgba(2, 8, 16, 0.86);
+  color: #d4a017;
   font-weight: 900;
 }
 
@@ -706,7 +823,7 @@ main{
 
 .presentation-live-reels-artist {
   margin-top: 0.15rem;
-  color: rgba(255, 255, 255, 0.68);
+  color: #f5d47a;
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.05;
@@ -723,9 +840,10 @@ main{
   margin-top: 0.8rem;
   height: 3.6rem;
   max-width: calc(100vw - 2.3rem);
-  border-radius: 999px;
-  background: rgba(18, 22, 27, 0.92);
-  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(212, 160, 23, 0.34);
+  border-radius: 4px;
+  background: rgba(2, 8, 16, 0.92);
+  color: rgba(215, 236, 255, 0.88);
   display: flex;
   align-items: center;
   padding-inline: 1.45rem;
@@ -734,52 +852,14 @@ main{
   text-shadow: none;
 }
 
-.presentation-live-setlist-panel {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: auto;
-  color: #fff;
-  text-shadow: none;
-}
-
-.presentation-live-setlist-backdrop {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.72)),
-    rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(2px);
-}
-
-.presentation-live-setlist-sheet {
-  position: absolute;
-  left: 0.85rem;
-  right: 4.75rem;
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  display: flex;
-  max-height: min(70dvh, 44rem);
-  min-height: min(28rem, 74dvh);
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 1.35rem;
-  background: rgba(10, 13, 18, 0.9);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.58);
-}
-
-.presentation-live-setlist-header {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.presentation-live-reels-comment::before {
+  color: #d4a017;
+  content: "> ";
+  font-weight: 900;
 }
 
 .presentation-live-setlist-eyebrow {
-  color: rgba(245, 212, 122, 0.94);
+  color: #d4a017;
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.2em;
@@ -790,29 +870,39 @@ main{
   font-size: 1.45rem;
   font-weight: 900;
   line-height: 1;
+  text-transform: uppercase;
+}
+
+.presentation-live-setlist-title::before {
+  color: #d4a017;
+  content: "$ ";
 }
 
 .presentation-live-setlist-list {
   flex: 1 1 auto;
   min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0.55rem;
   scrollbar-width: thin;
-  scrollbar-color: rgba(245, 212, 122, 0.65) transparent;
+  scrollbar-color: rgba(212, 160, 23, 0.65) transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 .presentation-live-setlist-item {
   display: grid;
   width: 100%;
-  grid-template-columns: 2.35rem minmax(0, 1fr) auto;
+  grid-template-columns: 4.7rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.7rem;
-  border: 0;
-  border-radius: 0.95rem;
+  gap: 1.15rem;
+  border: 1px solid transparent;
+  border-radius: 2px;
   background: transparent;
-  color: #fff;
-  padding: 0.72rem 0.65rem;
+  color: #f5f7fb;
+  padding: 1.25rem 1rem;
   text-align: left;
+  font-family: "Courier New", Courier, monospace;
 }
 
 .presentation-live-setlist-item + .presentation-live-setlist-item {
@@ -820,15 +910,22 @@ main{
 }
 
 .presentation-live-setlist-item-active {
-  background: rgba(245, 212, 122, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(245, 212, 122, 0.36);
+  background: #d4a017;
+  border-color: #ffe69a;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 18px rgba(212, 160, 23, 0.28);
 }
 
 .presentation-live-setlist-index {
-  color: rgba(255, 255, 255, 0.46);
-  font-size: 0.78rem;
+  color: #f5d47a;
+  font-size: 1.56rem;
   font-weight: 900;
   letter-spacing: 0.08em;
+}
+
+.presentation-live-setlist-index::after {
+  content: ")";
 }
 
 .presentation-live-setlist-copy {
@@ -845,28 +942,42 @@ main{
 }
 
 .presentation-live-setlist-song {
-  font-size: 0.98rem;
+  color: #f5f7fb;
+  font-size: 1.96rem;
   font-weight: 850;
   line-height: 1.1;
 }
 
 .presentation-live-setlist-artist {
-  margin-top: 0.2rem;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.78rem;
+  margin-top: 0.35rem;
+  color: #f5d47a;
+  font-size: 1.56rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .presentation-live-setlist-now {
-  border-radius: 999px;
-  background: rgba(245, 212, 122, 0.92);
-  color: #111;
-  padding: 0.28rem 0.48rem;
-  font-size: 0.62rem;
+  border-radius: 2px;
+  background: #15110a;
+  color: #f5d47a;
+  padding: 0.45rem 0.72rem;
+  font-size: 1.24rem;
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.presentation-live-setlist-item-active .presentation-live-setlist-index,
+.presentation-live-setlist-item-active .presentation-live-setlist-artist,
+.presentation-live-setlist-item-active .presentation-live-setlist-song {
+  color: #fff;
+}
+
+.presentation-live-setlist-item:not(.presentation-live-setlist-item-active):hover,
+.presentation-live-setlist-item:not(.presentation-live-setlist-item-active):focus-visible {
+  border-color: rgba(212, 160, 23, 0.42);
+  background: rgba(212, 160, 23, 0.12);
+  outline: none;
 }
 
 .presentation-live-setlist-empty {
@@ -875,15 +986,6 @@ main{
   font-size: 0.95rem;
   font-weight: 700;
   text-align: center;
-}
-
-.presentation-live-setlist-panel-desktop .presentation-live-setlist-sheet {
-  left: auto;
-  right: 1.5rem;
-  top: 6rem;
-  bottom: 1.5rem;
-  width: min(30rem, calc(100vw - 3rem));
-  max-height: none;
 }
 
 .presentation-live-content .presentation-horizontal-columns {
@@ -1117,21 +1219,25 @@ main{
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .presentation-live-step-control {
   display: inline-grid;
-  grid-template-columns: auto 2.25rem minmax(4rem, auto) 2.25rem;
+  grid-template-columns: auto 2.5rem minmax(4.5rem, auto) 2.5rem;
   height: 3.6rem;
   align-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 0.75rem;
+  border: 1px solid rgba(212, 160, 23, 0.38);
+  border-radius: 4px;
+  background: rgba(4, 15, 28, 0.86);
+  color: #f7e3a3;
+  font-size: 0.9rem;
   font-weight: 700;
+  font-family: "Courier New", Courier, monospace;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 0 18px rgba(212, 160, 23, 0.08);
 }
 
 .presentation-live-step-control button {
@@ -1139,28 +1245,36 @@ main{
   border: none;
   background: transparent;
   color: #f5d47a;
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .presentation-live-step-control button:hover,
 .presentation-live-step-control button:focus-visible {
-  background: rgba(245, 212, 122, 0.14);
+  background: rgba(212, 160, 23, 0.18);
   outline: none;
 }
 
 .presentation-live-step-control span {
-  padding-inline: 0.45rem;
+  padding-inline: 0.55rem;
   text-align: center;
   letter-spacing: 0.03em;
 }
 
 .presentation-live-step-label {
-  color: rgba(245, 212, 122, 0.9);
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #f5d47a;
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
+}
+
+.presentation-live-step-label svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .presentation-live-step-control-touch {
@@ -1175,8 +1289,11 @@ main{
 
 .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns {
   --presentation-live-column-width: clamp(38rem, 46vw, 62rem);
+  box-sizing: border-box;
+  height: 100%;
   width: max-content;
   min-width: 100%;
+  align-items: center;
   column-gap: var(--presentation-block-gap, 2rem);
   row-gap: 0;
   padding:
@@ -1194,6 +1311,18 @@ main{
   width: var(--presentation-live-column-width);
   min-width: min(var(--presentation-live-column-width), calc(100vw - 2rem));
   max-width: 64rem;
+  height: 90%;
+  max-height: 90%;
+}
+
+.presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns .presentation-render-block {
+  height: 100%;
+  max-height: 100%;
+}
+
+.presentation-live-content.presentation-expanded-cifra-horizontal .presentation-progression-block {
+  height: 100%;
+  max-height: 100%;
 }
 
 .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-column {
@@ -1308,6 +1437,7 @@ main{
 .presentation-live-content .notespresentation {
   color: #d4a017;
   font-weight: 700;
+  text-shadow: 0 0 8px rgba(212, 160, 23, 0.34);
 }
 
 .presentation-live-content .presentation-lyrics,
