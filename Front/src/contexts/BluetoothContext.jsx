@@ -16,11 +16,29 @@ const SOURCE = { BLE: "BLE", MIDI: "MIDI" };
 
 const ACTIONS = [
   { value: "none", label: "(nenhuma)" },
+  { value: "back", label: "Voltar (segurar 2s)" },
+  { value: "arrowLeft", label: "Seta ←" },
+  { value: "arrowRight", label: "Seta →" },
+  { value: "enter", label: "Entrar (segurar 2s)" },
   { value: "arrowUp", label: "Seta ↑" },
   { value: "arrowDown", label: "Seta ↓" },
   { value: "pageUp", label: "Page Up" },
   { value: "pageDown", label: "Page Down" },
 ];
+
+const LONG_PRESS_ACTIONS = new Set(["back", "enter"]);
+const LONG_PRESS_MS = 2000;
+
+const KEYBOARD_ACTIONS = {
+  arrowLeft: { key: "ArrowLeft", code: "ArrowLeft" },
+  arrowRight: { key: "ArrowRight", code: "ArrowRight" },
+  arrowUp: { key: "ArrowUp", code: "ArrowUp" },
+  arrowDown: { key: "ArrowDown", code: "ArrowDown" },
+  pageUp: { key: "PageUp", code: "PageUp" },
+  pageDown: { key: "PageDown", code: "PageDown" },
+  enter: { key: "Enter", code: "Enter" },
+  back: { key: "Escape", code: "Escape" },
+};
 
 const LS = {
   actions: "footswitch_actions_v1",
@@ -88,6 +106,29 @@ function getScrollTarget() {
 
 /** Executa a ação de navegação/scroll (sempre no alvo atual) */
 function runGlobalAction(action) {
+  if (hasWindow) {
+    const handledByPresentation = !window.dispatchEvent(
+      new CustomEvent("footswitch:presentation-action", {
+        cancelable: true,
+        detail: { action },
+      })
+    );
+    if (handledByPresentation) return;
+
+    const keyMeta = KEYBOARD_ACTIONS[action];
+    if (keyMeta) {
+      const handledByKeyListener = !window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          bubbles: true,
+          cancelable: true,
+          key: keyMeta.key,
+          code: keyMeta.code,
+        })
+      );
+      if (handledByKeyListener) return;
+    }
+  }
+
   const target = getScrollTarget();
   const h =
     target === window
@@ -100,6 +141,16 @@ function runGlobalAction(action) {
       : target.scrollBy({ top: dy, behavior: "smooth" });
 
   switch (action) {
+    case "arrowLeft":
+      target === window
+        ? window.scrollBy({ left: -160, behavior: "smooth" })
+        : target.scrollBy({ left: -160, behavior: "smooth" });
+      break;
+    case "arrowRight":
+      target === window
+        ? window.scrollBy({ left: 160, behavior: "smooth" })
+        : target.scrollBy({ left: 160, behavior: "smooth" });
+      break;
     case "arrowUp":
       doScroll(-60);
       break;
@@ -111,6 +162,9 @@ function runGlobalAction(action) {
       break;
     case "pageDown":
       doScroll(h * 0.9);
+      break;
+    case "back":
+    case "enter":
       break;
     default:
       break;
@@ -172,6 +226,16 @@ export function BluetoothProvider({ children }) {
   /* Mapeamentos */
   const [controls, setControls] = useState(() => loadJSON(LS.actions, {})); // { id: { source, info, lastValue, action } }
   const controlsRef = useRef(controls);
+  const activePressesRef = useRef({});
+  useEffect(
+    () => () => {
+      Object.values(activePressesRef.current).forEach((activePress) => {
+        window.clearTimeout(activePress.timerId);
+      });
+      activePressesRef.current = {};
+    },
+    []
+  );
   useEffect(() => {
     controlsRef.current = controls;
     saveJSON(LS.actions, controls);
@@ -209,7 +273,14 @@ export function BluetoothProvider({ children }) {
   const setRowAction = (controlId, action) => {
     log("Map:", controlId, "→", action);
     setControls((prev) => ({
-      ...prev,
+      ...Object.fromEntries(
+        Object.entries(prev).map(([key, row]) => [
+          key,
+          action !== "none" && row?.action === action
+            ? { ...row, action: "none" }
+            : row,
+        ]),
+      ),
       [controlId]: { ...(prev[controlId] || {}), action },
     }));
   };
@@ -515,6 +586,7 @@ export function BluetoothProvider({ children }) {
       source,
       info: `Program Change ch${ch}`,
       lastValue: `pc=${pc}`,
+      phase: "press",
     });
   }
   function emitCC(source, ch, cc, val) {
@@ -523,6 +595,7 @@ export function BluetoothProvider({ children }) {
       source,
       info: `CC ch${ch}`,
       lastValue: `cc=${cc} val=${val}`,
+      phase: Number(val) > 0 ? "press" : "release",
     });
   }
   function emitNO(source, ch, note, vel) {
@@ -531,6 +604,7 @@ export function BluetoothProvider({ children }) {
       source,
       info: `Note On ch${ch}`,
       lastValue: `note=${note} vel=${vel}`,
+      phase: Number(vel) > 0 ? "press" : "release",
     });
   }
   function emitNF(source, ch, note, vel) {
@@ -539,6 +613,7 @@ export function BluetoothProvider({ children }) {
       source,
       info: `Note Off ch${ch}`,
       lastValue: `note=${note} vel=${vel}`,
+      phase: "release",
     });
   }
 
@@ -555,19 +630,67 @@ export function BluetoothProvider({ children }) {
     return fallbackEntry?.[1]?.action ?? "none";
   }
 
-  function handleControl({ controlId, source, info, lastValue }) {
+  function clearLongPress(controlId) {
+    const activePress = activePressesRef.current[controlId];
+    if (!activePress) return null;
+
+    window.clearTimeout(activePress.timerId);
+    delete activePressesRef.current[controlId];
+    return activePress;
+  }
+
+  function executeMappedAction(controlId, action) {
+    runGlobalAction(action);
+    log("Ação executada:", action, "por", controlId);
+  }
+
+  function handleMappedAction(controlId, action, phase) {
+    if (action === "none") {
+      log("Ação não mapeada para", controlId);
+      return;
+    }
+
+    if (!LONG_PRESS_ACTIONS.has(action)) {
+      if (phase !== "release") executeMappedAction(controlId, action);
+      return;
+    }
+
+    if (phase === "release") {
+      const activePress = clearLongPress(controlId);
+      if (activePress?.triggered) return;
+      log("Ação longa cancelada:", action, "(solte depois de 2s)");
+      return;
+    }
+
+    const currentPress = activePressesRef.current[controlId];
+    if (currentPress?.action === action) return;
+    clearLongPress(controlId);
+
+    const timerId = window.setTimeout(() => {
+      const activePress = activePressesRef.current[controlId];
+      if (!activePress || activePress.action !== action) return;
+
+      activePress.triggered = true;
+      executeMappedAction(controlId, action);
+      delete activePressesRef.current[controlId];
+    }, LONG_PRESS_MS);
+
+    activePressesRef.current[controlId] = {
+      action,
+      timerId,
+      triggered: false,
+    };
+    log("Ação longa aguardando 2s:", action);
+  }
+
+  function handleControl({ controlId, source, info, lastValue, phase = "press" }) {
     ensureRow(controlId, { source, info });
     updateRowValue(controlId, lastValue);
     setLast({ source, key: controlId, bytes: lastValue, time: now() });
     log("Evento", source, "→", controlId, "|", lastValue);
 
     const action = findMappedAction(controlId);
-    if (action !== "none") {
-      runGlobalAction(action);
-      log("Ação executada:", action);
-    } else {
-      log("Ação não mapeada para", controlId);
-    }
+    handleMappedAction(controlId, action, phase);
   }
 
   /* =============================== Expose =============================== */
@@ -585,6 +708,7 @@ export function BluetoothProvider({ children }) {
       log("Logs limpos.");
     },
     controls,
+    clearControls,
     setRowAction,
     ACTIONS,
     connectBLE,

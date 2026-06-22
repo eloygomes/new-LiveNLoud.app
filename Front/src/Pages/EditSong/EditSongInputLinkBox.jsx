@@ -48,6 +48,7 @@ function EditSongInputLinkBox({
   songData = null,
   onSongDataChange,
   onResolvedInstrumentLink,
+  onRemoveInstrument,
   modalLayout = false,
 }) {
   const [dataFromAPIParsed, setDataFromAPIParsed] = useState(null);
@@ -149,6 +150,16 @@ function EditSongInputLinkBox({
       return;
     }
     notify("Info", selectedFile.originalName || "Guitar Pro file registered.");
+  };
+
+  const removeInstrument = () => {
+    setInstrument("");
+    setProgress(0);
+    onLinkChange?.("");
+    onProgressChange?.(0);
+    onNotesChange?.("");
+    onRemoveInstrument?.();
+    setIsDirty?.(true);
   };
 
   const updateSongGuitarProState = useCallback(
@@ -478,47 +489,61 @@ function EditSongInputLinkBox({
             Link source
           </p>
         ) : null}
-        <input
-          type="text"
-          placeholder="Insert your link here"
-          className={`w-full border border-[goldenrod]/35 bg-white pr-11 text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
-            expandedControls
-              ? "h-14 rounded-[16px] px-4 text-base font-bold"
-              : "h-6 rounded-sm p-1 text-sm"
-          } ${isLocked ? "cursor-default" : ""}`}
-          value={link}
-          readOnly={isLocked}
-          onChange={(e) => {
-            const value = e.target.value;
-            setInstrument(value);
-            onLinkChange?.(value);
-            setIsDirty?.(true);
-          }}
-          onPaste={(e) => {
-            e.preventDefault();
-            const pasted = e.clipboardData.getData("text").trim();
-            routeIncomingLink(pasted);
-          }}
-          onBlur={() => {
-            handledata();
-          }}
-        />
-        {isLocked && (
+        <div className={modalLayout ? "flex items-stretch gap-2" : "relative w-full"}>
+          <div className="relative min-w-0 flex-1">
+            <input
+              type="text"
+              placeholder="Insert your link here"
+              className={`w-full border border-[goldenrod]/35 bg-white pr-11 text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
+                expandedControls
+                  ? "h-14 rounded-[16px] px-4 text-base font-bold"
+                  : "h-6 rounded-sm p-1 text-sm"
+              } ${isLocked ? "cursor-default" : ""}`}
+              value={link}
+              readOnly={isLocked}
+              onChange={(e) => {
+                const value = e.target.value;
+                setInstrument(value);
+                onLinkChange?.(value);
+                setIsDirty?.(true);
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData("text").trim();
+                routeIncomingLink(pasted);
+              }}
+              onBlur={() => {
+                handledata();
+              }}
+            />
+            {!modalLayout && isLocked ? (
+              <button
+                type="button"
+                aria-label={`Remove ${instrumentName} link`}
+                className={`absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-700 ${
+                  expandedControls ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
+                }`}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={removeInstrument}
+              >
+                <FaTrashAlt aria-hidden="true" className="text-sm" />
+              </button>
+            ) : null}
+          </div>
+          {modalLayout ? (
           <button
             type="button"
-            aria-label={`Remove ${instrumentName} link`}
-            className={`absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center text-gray-700 ${
-              expandedControls ? "h-9 w-9 rounded-[12px]" : "text-xs leading-none"
-            }`}
-            onClick={() => {
-              setInstrument("");
-              onLinkChange?.("");
-              setIsDirty?.(true);
-            }}
+            aria-label={`Remove ${instrumentName} instrument`}
+            disabled={!hasLink}
+            className="flex h-14 shrink-0 items-center justify-center gap-2 rounded-[16px] neuphormism-b-btn px-4 text-xs font-bold uppercase tracking-[0.08em] text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={removeInstrument}
           >
-            <FaTrashAlt aria-hidden="true" className="text-sm" />
+            <FaTrashAlt aria-hidden="true" />
+            <span>Remove</span>
           </button>
-        )}
+          ) : null}
+        </div>
       </div>
 
       {expandedControls && !hasLink ? (

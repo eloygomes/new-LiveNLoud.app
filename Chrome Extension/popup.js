@@ -1,6 +1,7 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
 const ADMIN_DESTINATION_EMAIL = "eloy.gomes@icloud.com";
+const EXTENSION_VERSION = "0.63.5.0";
 const DEFAULT_DESTINATION = "sustenido";
 const DESTINATIONS = {
   sustenido: {
@@ -27,14 +28,17 @@ const STORAGE_KEYS = {
   accessToken: "livenloud_access_token",
   refreshToken: "livenloud_refresh_token",
   email: "livenloud_user_email",
+  expiresAt: "livenloud_session_expires_at",
   rememberSession: "livenloud_remember_session",
   destination: "livenloud_destination",
 };
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
 const SESSION_STORAGE_KEYS = [
   STORAGE_KEYS.accessToken,
   STORAGE_KEYS.refreshToken,
   STORAGE_KEYS.email,
+  STORAGE_KEYS.expiresAt,
   STORAGE_KEYS.rememberSession,
 ];
 
@@ -91,6 +95,7 @@ const elements = {
   destinationCard: document.getElementById("destinationCard"),
   destinationLabel: document.getElementById("destinationLabel"),
   destinationToggle: document.getElementById("destinationToggle"),
+  versionBadge: document.getElementById("versionBadge"),
   destinationInputs: Array.from(
     document.querySelectorAll("input[name='destination']"),
   ),
@@ -195,6 +200,12 @@ function renderDestinationControls(email = state.sessionEmail) {
   if (elements.destinationToggle) {
     elements.destinationToggle.classList.toggle("hidden", !canChooseDestination);
   }
+}
+
+function renderExtensionVersion() {
+  if (!elements.versionBadge) return;
+  const manifestVersion = extensionApi.runtime?.getManifest?.().version;
+  elements.versionBadge.textContent = `v${manifestVersion || EXTENSION_VERSION}`;
 }
 
 async function setDestination(destination, options = {}) {
@@ -528,11 +539,17 @@ function resetInstrumentLinkSuggestions() {
 
 function setDetectedInstrumentLinks(pageContext) {
   const suggestions = buildInstrumentLinkSuggestions(pageContext);
+  const previousSelectedInstrumentLinks = state.selectedInstrumentLinks || {};
   state.detectedInstrumentLinks = suggestions;
   state.selectedInstrumentLinks = Object.keys(suggestions).reduce(
     (accumulator, instrumentName) => ({
       ...accumulator,
-      [instrumentName]: true,
+      [instrumentName]: Object.prototype.hasOwnProperty.call(
+        previousSelectedInstrumentLinks,
+        instrumentName,
+      )
+        ? Boolean(previousSelectedInstrumentLinks[instrumentName])
+        : true,
     }),
     {},
   );
@@ -576,6 +593,43 @@ function getConfirmedInstrumentSetlistTags() {
   return Object.keys(getConfirmedInstrumentLinks())
     .map((instrumentName) => getInstrumentSetlistTag(instrumentName))
     .filter(Boolean);
+}
+
+function getAllInstrumentSetlistTags() {
+  return Object.keys(getEmptyInstrumentsMap())
+    .map((instrumentName) => getInstrumentSetlistTag(instrumentName))
+    .filter(Boolean);
+}
+
+function buildPayloadSetlists(confirmedInstrumentSetlistTags = []) {
+  const instrumentTags = new Set(getAllInstrumentSetlistTags());
+  const confirmedTags = new Set(confirmedInstrumentSetlistTags);
+  const nonConfirmedInstrumentTags = new Set(
+    Array.from(instrumentTags).filter((tag) => !confirmedTags.has(tag)),
+  );
+
+  return Array.from(
+    new Set([
+      ...state.selectedSetlists.filter(
+        (tag) => !nonConfirmedInstrumentTags.has(tag),
+      ),
+      ...confirmedInstrumentSetlistTags,
+    ]),
+  );
+}
+
+function finalizeInstrumentBlocksForPayload(instrumentBlocks, confirmedInstrumentLinks) {
+  if (state.saveMode !== "all") return instrumentBlocks;
+
+  return Object.keys(instrumentBlocks).reduce(
+    (blocks, instrumentName) => ({
+      ...blocks,
+      [instrumentName]: confirmedInstrumentLinks[instrumentName]
+        ? instrumentBlocks[instrumentName]
+        : false,
+    }),
+    {},
+  );
 }
 
 function renderInstrumentLinkSuggestions() {
@@ -737,12 +791,13 @@ function getEmptyInstrumentsMap() {
   };
 }
 
-function getStorageArea(persistent = true) {
-  if (!persistent && extensionApi.storage.session) {
-    return extensionApi.storage.session;
-  }
+function getSessionExpiresAtMs(expiresAt) {
+  const timestamp = Date.parse(cleanText(expiresAt));
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
 
-  return extensionApi.storage.local;
+function createSessionExpiresAt() {
+  return new Date(Date.now() + SESSION_TTL_MS).toISOString();
 }
 
 function readFromStorageArea(area, keys) {
@@ -807,12 +862,31 @@ async function readSessionState() {
     Boolean(localData[STORAGE_KEYS.email]);
 
   const activeStorage = rememberSession ? localData : sessionData;
+  const legacySession =
+    !rememberSession &&
+    !activeStorage[STORAGE_KEYS.accessToken] &&
+    localData[STORAGE_KEYS.accessToken] &&
+    localData[STORAGE_KEYS.email];
+  const resolvedStorage = legacySession ? localData : activeStorage;
+  const expiresAt = resolvedStorage[STORAGE_KEYS.expiresAt] || "";
+
+  if (expiresAt && getSessionExpiresAtMs(expiresAt) <= Date.now()) {
+    await clearSessionState();
+    return {
+      accessToken: "",
+      refreshToken: "",
+      email: "",
+      expiresAt: "",
+      rememberSession: false,
+    };
+  }
 
   return {
-    accessToken: activeStorage[STORAGE_KEYS.accessToken] || "",
-    refreshToken: activeStorage[STORAGE_KEYS.refreshToken] || "",
-    email: activeStorage[STORAGE_KEYS.email] || "",
-    rememberSession,
+    accessToken: resolvedStorage[STORAGE_KEYS.accessToken] || "",
+    refreshToken: resolvedStorage[STORAGE_KEYS.refreshToken] || "",
+    email: resolvedStorage[STORAGE_KEYS.email] || "",
+    expiresAt,
+    rememberSession: true,
   };
 }
 
@@ -820,12 +894,13 @@ async function writeSessionState({
   accessToken,
   refreshToken,
   email,
-  rememberSession,
+  expiresAt,
 }) {
   const payload = {
     [STORAGE_KEYS.accessToken]: accessToken,
     [STORAGE_KEYS.refreshToken]: refreshToken || "",
     [STORAGE_KEYS.email]: email,
+    [STORAGE_KEYS.expiresAt]: expiresAt || createSessionExpiresAt(),
   };
 
   await Promise.all([
@@ -841,15 +916,10 @@ async function writeSessionState({
       : Promise.resolve(),
   ]);
 
-  if (rememberSession) {
-    await writeToStorageArea(extensionApi.storage.local, {
-      ...payload,
-      [STORAGE_KEYS.rememberSession]: true,
-    });
-    return;
-  }
-
-  await writeToStorageArea(getStorageArea(false), payload);
+  await writeToStorageArea(extensionApi.storage.local, {
+    ...payload,
+    [STORAGE_KEYS.rememberSession]: true,
+  });
 }
 
 async function clearSessionState() {
@@ -1374,9 +1444,22 @@ function buildSongPayload(
   scrapedDocsByInstrument = {},
 ) {
   const pageContext = state.pageContext;
-  const instrumentName = getSelectedInstrument();
   const confirmedInstrumentLinks = getConfirmedInstrumentLinks();
   const confirmedInstrumentSetlistTags = getConfirmedInstrumentSetlistTags();
+  const isAllInstrumentsMode = state.saveMode === "all";
+  const selectedInstrumentName = getSelectedInstrument();
+  const confirmedInstrumentNames = Object.keys(confirmedInstrumentLinks);
+  const instrumentName =
+    isAllInstrumentsMode &&
+    !confirmedInstrumentLinks[selectedInstrumentName] &&
+    confirmedInstrumentNames.length
+      ? confirmedInstrumentNames[0]
+      : selectedInstrumentName;
+
+  if (isAllInstrumentsMode && !confirmedInstrumentNames.length) {
+    throw new Error("Selecione pelo menos um instrumento para salvar.");
+  }
+
   const mergedSong = cleanText(scrapedDoc?.song || pageContext.song);
   const mergedArtist = cleanText(scrapedDoc?.artist || pageContext.artist);
   const mergedLink = cleanText(scrapedDoc?.link || pageContext.link);
@@ -1385,7 +1468,6 @@ function buildSongPayload(
   const mergedTuning = cleanText(scrapedDoc?.tuning || pageContext.tuning);
   const embedVideos = parseVideoLinks(elements.videosInput.value);
   const progress = getProgressValue();
-  const isAllInstrumentsMode = state.saveMode === "all";
   const today = new Date().toISOString().split("T")[0];
   const selectedInstrumentScrapedDoc =
     withPageLyricsFallback(
@@ -1464,13 +1546,20 @@ function buildSongPayload(
     },
   );
 
-  instruments[instrumentName] = true;
-  instrumentBlocks[instrumentName] = {
-    ...selectedInstrumentPayload,
-    link:
-      confirmedInstrumentLinks[instrumentName] ||
-      selectedInstrumentPayload.link,
-  };
+  if (!isAllInstrumentsMode || confirmedInstrumentLinks[instrumentName]) {
+    instruments[instrumentName] = true;
+    instrumentBlocks[instrumentName] = {
+      ...selectedInstrumentPayload,
+      link:
+        confirmedInstrumentLinks[instrumentName] ||
+        selectedInstrumentPayload.link,
+    };
+  }
+
+  const payloadInstrumentBlocks = finalizeInstrumentBlocksForPayload(
+    instrumentBlocks,
+    confirmedInstrumentLinks,
+  );
 
   return {
     databaseComing: getDestinationConfig().database,
@@ -1484,16 +1573,14 @@ function buildSongPayload(
       instrumentName,
       progressBar: isAllInstrumentsMode ? progress : 0,
       instruments,
-      guitar01: instrumentBlocks.guitar01,
-      guitar02: instrumentBlocks.guitar02,
-      bass: instrumentBlocks.bass,
-      keys: instrumentBlocks.keys,
-      drums: instrumentBlocks.drums,
-      voice: instrumentBlocks.voice,
+      guitar01: payloadInstrumentBlocks.guitar01,
+      guitar02: payloadInstrumentBlocks.guitar02,
+      bass: payloadInstrumentBlocks.bass,
+      keys: payloadInstrumentBlocks.keys,
+      drums: payloadInstrumentBlocks.drums,
+      voice: payloadInstrumentBlocks.voice,
       embedVideos,
-      setlist: Array.from(
-        new Set([...state.selectedSetlists, ...confirmedInstrumentSetlistTags]),
-      ),
+      setlist: buildPayloadSetlists(confirmedInstrumentSetlistTags),
       addedIn: today,
       updateIn: today,
       email,
@@ -1521,6 +1608,17 @@ async function saveSong(payload, session) {
   }
 
   return data;
+}
+
+function shouldAutoCloseAfterProcess(session) {
+  return cleanText(session?.email).toLowerCase() !== ADMIN_DESTINATION_EMAIL;
+}
+
+function scheduleAutoCloseAfterProcess(session) {
+  if (!shouldAutoCloseAfterProcess(session)) return;
+  window.setTimeout(() => {
+    window.close();
+  }, 5000);
 }
 
 async function ensureSession() {
@@ -1595,7 +1693,6 @@ elements.loginForm.addEventListener("submit", async (event) => {
   try {
     const email = cleanText(elements.emailInput.value);
     const password = elements.passwordInput.value;
-    const rememberSession = Boolean(elements.rememberSessionInput.checked);
     state.sessionEmail = email;
 
     if (!isAdminDestinationUser(email)) {
@@ -1606,17 +1703,15 @@ elements.loginForm.addEventListener("submit", async (event) => {
     renderDestinationControls(email);
     const loginData = await loginRequest(email, password);
 
-    await writeSessionState({
+    const nextSession = {
       accessToken: loginData.accessToken,
       refreshToken: loginData.refreshToken || "",
       email,
-      rememberSession,
-    });
+      expiresAt: createSessionExpiresAt(),
+    };
 
-    await loadSongView({
-      accessToken: loginData.accessToken,
-      email,
-    });
+    await writeSessionState(nextSession);
+    await loadSongView(nextSession);
   } catch (error) {
     debugError("Login flow failed", error);
     setStatus(error.message || "Login failed.");
@@ -1728,9 +1823,7 @@ elements.saveButton.addEventListener("click", async () => {
     setNotice(successMessage);
     setNoticeState("success");
     showFinalOnly(successMessage, "success");
-    window.setTimeout(() => {
-      window.close();
-    }, 5000);
+    scheduleAutoCloseAfterProcess(session);
   } catch (error) {
     debugError("Save song failed", error);
     const errorMessage =
@@ -1739,9 +1832,7 @@ elements.saveButton.addEventListener("click", async () => {
     setNotice(errorMessage);
     setNoticeState("error");
     showFinalOnly(errorMessage, "error");
-    window.setTimeout(() => {
-      window.close();
-    }, 5000);
+    scheduleAutoCloseAfterProcess(session);
   }
 });
 
@@ -1762,6 +1853,7 @@ elements.logoutButton.addEventListener("click", async () => {
 });
 
 async function boot() {
+  renderExtensionVersion();
   setStatus("");
   state.destination = await readStoredDestination();
   const storedSession = await readSessionState();
@@ -1774,7 +1866,7 @@ async function boot() {
   }
 
   renderPageContext(initialPageContext);
-  elements.rememberSessionInput.checked = storedSession.rememberSession;
+  elements.rememberSessionInput.checked = true;
   state.selectedInstrument = getSelectedInstrument();
   renderProgressValue();
   hideFinalMessage();

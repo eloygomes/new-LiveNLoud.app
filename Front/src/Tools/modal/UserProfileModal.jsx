@@ -12,22 +12,21 @@ import Bluetooth from "./modalContent/bluetooth/Bluetooth";
 import Invitations from "./modalContent/Invitations";
 import SoftVersion from "../../Pages/Dashboard/SoftVersion";
 
+const USER_HUB_MENU = [
+  { value: "USER INFO", label: "User Info" },
+  { value: "USER DATA", label: "User Data" },
+  { value: "FRIENDS", label: "Friends" },
+  { value: "SETTINGS", label: "Settings" },
+  { value: "BLUETOOTH", label: "Footswitch" },
+  { value: "LOGS", label: "Logs" },
+];
+
 export default function UserProfileModal() {
   const [open, setOpen] = useState(false);
   const [modalOptionChoosen, setModalOptionChoose] = useState("USER INFO");
   const username =
     (typeof window !== "undefined" && localStorage.getItem("username")) ||
     "User";
-
-  const [name, setName] = useState("");
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedName = localStorage.getItem("username");
-      if (storedName) {
-        setName(storedName);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const handleOpenUserHubSection = (event) => {
@@ -96,96 +95,76 @@ export default function UserProfileModal() {
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-[11000] flex items-center justify-center bg-black bg-opacity-50"
+          className="fixed inset-0 z-[11000] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
           onClick={handleClose}
         >
           <div
-            className="w-5/6 h-5/6 relative flex flex-col p-4 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg cursor-pointer"
+            className="relative flex h-[86vh] w-[84vw] min-w-0 max-w-[1600px] flex-col overflow-hidden rounded-[28px] bg-[#ececec] p-4 text-black shadow-[0_24px_80px_rgba(0,0,0,0.36)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-row my-4 neuphormism-b py-2 px-5 justify-between">
-              <div className="flex flex-col">
-                <h1 className="text-4xl font-bold">USER HUB</h1>
-                <h4 className="mr-auto mt-auto text-sm">Hello @{username}</h4>
+            <div className="flex shrink-0 items-center justify-between gap-4 rounded-[22px] neuphormism-b bg-[#ececec] px-5 py-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+                  Account
+                </p>
+                <h1 className="mt-1 text-4xl font-black uppercase leading-none">
+                  User Hub
+                </h1>
+                <h4 className="mt-1 truncate text-sm font-semibold text-gray-600">
+                  Hello @{username}
+                </h4>
               </div>
-              <div>
-                <button
-                  className="top-2 right-2 text-gray-500 hover:text-gray-700 text-4xl"
-                  onClick={handleClose}
-                  aria-label="Close"
-                >
-                  &times;
-                </button>
-              </div>
+              <button
+                type="button"
+                className="neuphormism-b-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-3xl font-light leading-none text-gray-600 hover:text-black"
+                onClick={handleClose}
+                aria-label="Close"
+              >
+                &times;
+              </button>
             </div>
-            <div className="flex flex-row justify-between h-[90%] overflow-hidden">
-              {/* menu */}
-              <div className="w-[20%] h-auto  flex flex-col justify-between  my-2 neuphormism-b py-2 px-5">
-                <ul>
-                  <h1 className="text-xl font-bold">MENU</h1>
-                  <li
-                    className={`my-5 text-xs cursor-pointer ${
-                      modalOptionChoosen === "USER INFO"
-                        ? "neuphormism-b-btn-desactivated "
-                        : "neuphormism-b-btn"
-                    }    p-2`}
-                    onClick={() => setModalOptionChoose("USER INFO")}
-                  >
-                    USER INFO
-                  </li>
-                  <li
-                    className={`my-5  text-xs cursor-pointer ${
-                      modalOptionChoosen === "USER DATA"
-                        ? "neuphormism-b-btn-desactivated "
-                        : "neuphormism-b-btn"
-                    }    p-2`}
-                    onClick={() => setModalOptionChoose("USER DATA")}
-                  >
-                    USER DATA
-                  </li>
-                  <li
-                    className={`my-5  text-xs cursor-pointer ${
-                      modalOptionChoosen === "FRIENDS"
-                        ? "neuphormism-b-btn-desactivated "
-                        : "neuphormism-b-btn"
-                    }    p-2`}
-                    onClick={() => setModalOptionChoose("FRIENDS")}
-                  >
-                    FRIENDS
-                  </li>
-                  <li
-                    className={`my-5  text-xs cursor-pointer ${
-                      modalOptionChoosen === "SETTINGS"
-                        ? "neuphormism-b-btn-desactivated "
-                        : "neuphormism-b-btn"
-                    }    p-2`}
-                    onClick={() => setModalOptionChoose("SETTINGS")}
-                  >
-                    SETTINGS
-                  </li>
-                  <li
-                    className={`my-5  text-xs cursor-pointer ${
-                      modalOptionChoosen === "LOGS"
-                        ? "neuphormism-b-btn-desactivated "
-                        : "neuphormism-b-btn"
-                    }    p-2`}
-                    onClick={() => setModalOptionChoose("LOGS")}
-                  >
-                    LOGS
-                  </li>
-                </ul>
-                <div className="flex flex-col">
+
+            <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(13rem,0.24fr)_minmax(0,1fr)] gap-4 overflow-hidden">
+              <aside className="flex min-h-0 flex-col justify-between rounded-[22px] neuphormism-b bg-[#ececec] p-4">
+                <div className="min-h-0">
+                  <p className="px-1 text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+                    Menu
+                  </p>
+                  <nav className="mt-4 flex flex-col gap-2">
+                    {USER_HUB_MENU.map((item) => {
+                      const active = modalOptionChoosen === item.value;
+                      return (
+                        <button
+                          key={item.value}
+                          type="button"
+                          className={`w-full rounded-[14px] px-3 py-3 text-left text-xs font-black uppercase tracking-[0.12em] transition active:scale-[0.98] ${
+                            active
+                              ? "neuphormism-b-btn-gold text-black"
+                              : "neuphormism-b-btn text-gray-600 hover:text-black"
+                          }`}
+                          onClick={() => setModalOptionChoose(item.value)}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+
+                <div className="mt-4 flex shrink-0 flex-col gap-3">
                   <SoftVersion />
                   <button
-                    className="py-2   text-xs neuphormism-b-btn-gold text-md bottom-0 my-5 cursor-pointer  "
+                    type="button"
+                    className="neuphormism-b-btn-gold rounded-[14px] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-black active:scale-[0.98]"
                     onClick={() => signOut()}
                     aria-label="Sign Out"
                   >
                     Sign Out
                   </button>
                 </div>
-              </div>
-              <div className="w-[78%] flex flex-col my-2 neuphormism-b py-2 px-5 min-h-0 overflow-hidden">
+              </aside>
+
+              <main className="min-h-0 overflow-hidden rounded-[22px] neuphormism-b bg-[#ececec] p-4">
                 {modalOptionChoosen === "USER INFO" ? (
                   <UserInfo />
                 ) : modalOptionChoosen === "USER DATA" ? (
@@ -199,7 +178,7 @@ export default function UserProfileModal() {
                 ) : modalOptionChoosen === "BLUETOOTH" ? (
                   <Bluetooth />
                 ) : null}
-              </div>
+              </main>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "#Sustenido Quick Add",
-  "version": "0.63.2.0",
+  "version": "0.63.5.0",
   "description": "Add the current song page to #Sustenido from the browser toolbar.",
   "permissions": [
     "storage",
@@ -38,6 +38,15 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Q",
+        "mac": "MacCtrl+Q"
+      },
+      "description": "Open #Sustenido Quick Add"
+    }
   },
   "content_scripts": [
     {

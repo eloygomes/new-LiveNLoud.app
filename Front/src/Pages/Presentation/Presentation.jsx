@@ -46,6 +46,7 @@ import {
   moveToAdjacentEditableBlock,
   removeEmptyEditableLine,
 } from "./helpers/editableCifraDom";
+import { findSongIndexInList } from "../shared/setlistNavigation";
 
 function getInitialExpandedCifraState({ artist, song, instrument }) {
   if (typeof window === "undefined") return false;
@@ -81,6 +82,38 @@ function getIsPresentationTouchLayout() {
 
 const PRESERVED_LIVE_NAVIGATION_KEY = "presentation:preserve-live-navigation";
 
+export function useLiveSetlistKeyboardNavigation({
+  effectiveLiveMode,
+  liveView,
+  moveLiveSetlistSelection,
+}) {
+  useEffect(() => {
+    if (!effectiveLiveMode || liveView !== "setlist") return undefined;
+
+    const handleLiveSetlistKeyboard = (event) => {
+      if (event.defaultPrevented) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        event.stopPropagation();
+        moveLiveSetlistSelection(-1);
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        event.stopPropagation();
+        moveLiveSetlistSelection(1);
+      }
+    };
+
+    window.addEventListener("keydown", handleLiveSetlistKeyboard, true);
+    return () => {
+      window.removeEventListener("keydown", handleLiveSetlistKeyboard, true);
+    };
+  }, [effectiveLiveMode, liveView, moveLiveSetlistSelection]);
+}
+
 function getShouldRestorePreservedLiveMode() {
   if (typeof window === "undefined") return false;
 
@@ -98,7 +131,9 @@ function getShouldRestorePreservedLiveMode() {
 function PresentationLiveSetlistScreen({
   artistFromURL,
   onBackToCifra,
+  onHighlightSong,
   onSelectSong,
+  selectedIndex,
   setlistSongs,
   songFromURL,
 }) {
@@ -137,9 +172,16 @@ function PresentationLiveSetlistScreen({
               <button
                 type="button"
                 key={`${itemArtist}-${itemSong}-${index}`}
+                data-live-setlist-index={index}
                 className={`presentation-live-setlist-item ${
                   isCurrent ? "presentation-live-setlist-item-active" : ""
+                } ${
+                  selectedIndex === index
+                    ? "presentation-live-setlist-item-selected"
+                    : ""
                 }`}
+                onFocus={() => onHighlightSong(index)}
+                onMouseEnter={() => onHighlightSong(index)}
                 onClick={() => onSelectSong(song)}
                 aria-current={isCurrent ? "true" : undefined}
               >
@@ -358,9 +400,11 @@ function Presentation() {
     getShouldRestorePreservedLiveMode(),
   );
   const [liveView, setLiveView] = useState("cifra");
+  const [selectedLiveSetlistIndex, setSelectedLiveSetlistIndex] = useState(0);
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [notesModalStatus, setNotesModalStatus] = useState(false);
   const liveModeRootRef = useRef(null);
+  const liveSetlistMoveGuardRef = useRef({ direction: 0, time: 0 });
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
   const shouldUseFullBleedLayout =
     effectiveLiveMode || (!isTouchLayout && isExpandedCifra);
@@ -508,6 +552,11 @@ function Presentation() {
     songFromURL,
   });
 
+  const currentLiveSetlistIndex = useMemo(
+    () => findSongIndexInList(setlistSongs, artistFromURL, songFromURL),
+    [artistFromURL, setlistSongs, songFromURL],
+  );
+
   useEffect(() => {
     resetTransientPresentationState();
   }, [presentationRouteKey, resetTransientPresentationState]);
@@ -622,6 +671,108 @@ function Presentation() {
     },
     [goToSetlistSong],
   );
+
+  const moveLiveSetlistSelection = useCallback(
+    (direction) => {
+      if (!setlistSongs.length) return;
+
+      const now = Date.now();
+      const previousMove = liveSetlistMoveGuardRef.current;
+      if (
+        previousMove.direction === direction &&
+        now - previousMove.time < 180
+      ) {
+        return;
+      }
+      liveSetlistMoveGuardRef.current = { direction, time: now };
+
+      setSelectedLiveSetlistIndex((current) =>
+        Math.min(setlistSongs.length - 1, Math.max(0, current + direction)),
+      );
+    },
+    [setlistSongs.length],
+  );
+
+  useEffect(() => {
+    if (liveView !== "setlist") return;
+
+    setSelectedLiveSetlistIndex((current) => {
+      if (!setlistSongs.length) return 0;
+      if (currentLiveSetlistIndex >= 0) return currentLiveSetlistIndex;
+      return Math.min(setlistSongs.length - 1, Math.max(0, current));
+    });
+  }, [currentLiveSetlistIndex, liveView, setlistSongs.length]);
+
+  useEffect(() => {
+    if (liveView !== "setlist" || !setlistSongs.length) return;
+
+    const target = presentationContentRef.current?.querySelector(
+      `[data-live-setlist-index="${selectedLiveSetlistIndex}"]`,
+    );
+    target?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  }, [liveView, selectedLiveSetlistIndex, setlistSongs.length]);
+
+  useEffect(() => {
+    const handleFootswitchPresentationAction = (event) => {
+      const action = event.detail?.action;
+      if (!action || !effectiveLiveMode) return;
+
+      if (action === "back") {
+        event.preventDefault();
+        setSelectedLiveSetlistIndex(
+          currentLiveSetlistIndex >= 0 ? currentLiveSetlistIndex : 0,
+        );
+        setLiveView("setlist");
+        return;
+      }
+
+      if (liveView !== "setlist") return;
+
+      if (action === "enter") {
+        event.preventDefault();
+        const selectedSong = setlistSongs[selectedLiveSetlistIndex];
+        if (selectedSong) goToLiveSetlistSong(selectedSong);
+        return;
+      }
+
+      if (
+        action === "arrowUp" ||
+        action === "arrowDown" ||
+        action === "arrowLeft" ||
+        action === "arrowRight"
+      ) {
+        event.preventDefault();
+        moveLiveSetlistSelection(
+          action === "arrowUp" || action === "arrowLeft" ? -1 : 1,
+        );
+      }
+    };
+
+    window.addEventListener(
+      "footswitch:presentation-action",
+      handleFootswitchPresentationAction,
+    );
+    return () => {
+      window.removeEventListener(
+        "footswitch:presentation-action",
+        handleFootswitchPresentationAction,
+      );
+    };
+  }, [
+    currentLiveSetlistIndex,
+    effectiveLiveMode,
+    goToLiveSetlistSong,
+    liveView,
+    moveLiveSetlistSelection,
+    selectedLiveSetlistIndex,
+    setlistSongs,
+  ]);
+
+  useLiveSetlistKeyboardNavigation({
+    effectiveLiveMode,
+    liveView,
+    moveLiveSetlistSelection,
+  });
 
   return (
     <div
@@ -820,7 +971,9 @@ function Presentation() {
               <PresentationLiveSetlistScreen
                 artistFromURL={artistFromURL}
                 onBackToCifra={() => setLiveView("cifra")}
+                onHighlightSong={setSelectedLiveSetlistIndex}
                 onSelectSong={goToLiveSetlistSong}
+                selectedIndex={selectedLiveSetlistIndex}
                 setlistSongs={setlistSongs}
                 songFromURL={songFromURL}
               />

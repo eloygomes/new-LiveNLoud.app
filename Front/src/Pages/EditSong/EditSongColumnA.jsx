@@ -57,12 +57,17 @@ const instrumentBlockHasContent = (block) => {
   ].some(hasStoredValue) || hasPresentationLayoutContent(block.presentationLayouts);
 };
 
-const isInstrumentActive = (block) =>
-  Boolean(
+const isInstrumentActive = (block) => {
+  if (block === false || block?.active === false || block?.active === "false") {
+    return false;
+  }
+
+  return Boolean(
     block?.active === true ||
       block?.active === "true" ||
       instrumentBlockHasContent(block),
   );
+};
 
 function EditSongColumnA({
   dataFromAPI,
@@ -170,34 +175,46 @@ function EditSongColumnA({
     if (!registerInstrumentUpdaters) return;
 
     registerInstrumentUpdaters("guitar01", {
+      setActive: setInstrActiveStatusguitar01,
       setLink: setInstLinkguitar01,
       setProgress: setInstProgressBarguitar01,
       setNotes: setInstNotesguitar01,
+      setSongCifra: setSongCifraguitar01,
     });
     registerInstrumentUpdaters("guitar02", {
+      setActive: setInstrActiveStatusguitar02,
       setLink: setInstLinkguitar02,
       setProgress: setInstProgressBarguitar02,
       setNotes: setInstNotesguitar02,
+      setSongCifra: setSongCifraguitar02,
     });
     registerInstrumentUpdaters("bass", {
+      setActive: setInstrActiveStatusbass,
       setLink: setInstLinkbass,
       setProgress: setInstProgressBarbass,
       setNotes: setInstNotesbass,
+      setSongCifra: setSongCifrabass,
     });
     registerInstrumentUpdaters("keys", {
+      setActive: setInstrActiveStatuskeyboard,
       setLink: setInstLinkkeyboard,
       setProgress: setInstProgressBarkeyboard,
       setNotes: setInstNoteskeyboard,
+      setSongCifra: setSongCifrakeyboard,
     });
     registerInstrumentUpdaters("drums", {
+      setActive: setInstrActiveStatusdrums,
       setLink: setInstLinkdrums,
       setProgress: setInstProgressBardrums,
       setNotes: setInstNotesdrums,
+      setSongCifra: setSongCifradrums,
     });
     registerInstrumentUpdaters("voice", {
+      setActive: setInstrActiveStatusvoice,
       setLink: setInstLinkvoice,
       setProgress: setInstProgressBarvoice,
       setNotes: setInstNotesvoice,
+      setSongCifra: setSongCifravoice,
     });
   }, [
     registerInstrumentUpdaters,
@@ -281,8 +298,15 @@ function EditSongColumnA({
         const parsedData = JSON.parse(dataFromAPI);
         // console.log("Parsed data:", parsedData);
         const getInstrumentBlock = (instrument) => {
+          const nestedValue = parsedData.instruments?.[instrument];
+          if (nestedValue === false || nestedValue === "false") return false;
+
           const directBlock = parsedData[instrument];
-          const nestedBlock = parsedData.instruments?.[instrument];
+          if (directBlock === false || directBlock?.active === false || directBlock?.active === "false") {
+            return false;
+          }
+
+          const nestedBlock = nestedValue;
           return directBlock && typeof directBlock === "object"
             ? directBlock
             : nestedBlock && typeof nestedBlock === "object"
@@ -291,7 +315,17 @@ function EditSongColumnA({
         };
         const hydrateInstrument = (instrument, setters) => {
           const block = getInstrumentBlock(instrument);
-          if (!isInstrumentActive(block)) return;
+          if (!isInstrumentActive(block)) {
+            setters.setSongCifra("");
+            setters.setActive(false);
+            setters.setCapo("");
+            setters.setTuning("");
+            setters.setLastPlayed("");
+            setters.setLink("");
+            setters.setProgress(0);
+            setters.setNotes("");
+            return;
+          }
 
           setters.setSongCifra(block.songCifra || "");
           setters.setActive(true);

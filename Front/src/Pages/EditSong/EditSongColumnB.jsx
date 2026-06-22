@@ -812,6 +812,15 @@ function InstrumentInputBox({ config, props, includeOnLinkAdded }) {
       props[targetConfig.setterName]?.(nextLink);
       notifyInstrument(props, targetConfig.instrumentName, { link: nextLink });
     },
+    onRemoveInstrument: () => {
+      notifyInstrument(props, config.instrumentName, {
+        active: false,
+        link: "",
+        progress: 0,
+        notes: "",
+        songCifra: "",
+      });
+    },
   };
 
   if (includeOnLinkAdded) {
@@ -831,9 +840,19 @@ function notifyInstrument(props, instrumentName, payload) {
   const hasLink = Object.prototype.hasOwnProperty.call(payload, "link");
   const hasProgress = Object.prototype.hasOwnProperty.call(payload, "progress");
   const hasNotes = Object.prototype.hasOwnProperty.call(payload, "notes");
+  const hasActive = Object.prototype.hasOwnProperty.call(payload, "active");
+  const hasSongCifra = Object.prototype.hasOwnProperty.call(payload, "songCifra");
+
+  if (hasActive && typeof updater.setActive === "function") {
+    updater.setActive(payload.active);
+    props.setIsDirty?.(true);
+  }
 
   if (hasLink && typeof updater.setLink === "function") {
     updater.setLink(payload.link);
+    if (payload.link && typeof updater.setActive === "function") {
+      updater.setActive(true);
+    }
     props.setIsDirty?.(true);
   }
 
@@ -844,6 +863,11 @@ function notifyInstrument(props, instrumentName, payload) {
 
   if (hasNotes && typeof updater.setNotes === "function") {
     updater.setNotes(payload.notes);
+    props.setIsDirty?.(true);
+  }
+
+  if (hasSongCifra && typeof updater.setSongCifra === "function") {
+    updater.setSongCifra(payload.songCifra);
     props.setIsDirty?.(true);
   }
 }

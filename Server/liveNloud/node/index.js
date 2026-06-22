@@ -1298,6 +1298,10 @@ app.post("/api/v1/createMusic", async (req, res) => {
           ...incoming.instruments,
         },
       });
+      const mergedSetlist = normalizeSetlistForInstrumentFlags(
+        [...(existing.setlist || []), ...(incoming.setlist || [])],
+        mergedInstruments,
+      );
 
       const update = {
         $set: {
@@ -1309,11 +1313,11 @@ app.post("/api/v1/createMusic", async (req, res) => {
           keys: mergedBlocks.keys,
           drums: mergedBlocks.drums,
           voice: mergedBlocks.voice,
+          setlist: mergedSetlist,
           updateIn: incoming.updateIn,
         },
         $addToSet: {
           embedVideos: { $each: incoming.embedVideos },
-          setlist: { $each: incoming.setlist },
         },
       };
 
@@ -1325,8 +1329,11 @@ app.post("/api/v1/createMusic", async (req, res) => {
     }
 
     // ---------- se não existe -> cria novo documento ---------------
+    const newInstruments = normalizeInstrumentFlags(incoming);
     const newMusic = {
       ...incoming,
+      instruments: newInstruments,
+      setlist: normalizeSetlistForInstrumentFlags(incoming.setlist, newInstruments),
       addedIn: new Date().toISOString().split("T")[0],
     };
 
@@ -1897,10 +1904,17 @@ function renderApprovalHtml({ title, message }) {
 }
 
 // Helpers
+const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || "24h";
+const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || "7d";
+
 const genAccessToken = (id) =>
-  jwt.sign({ userId: id }, process.env.ACCESS_SECRET, { expiresIn: "1h" });
+  jwt.sign({ userId: id }, process.env.ACCESS_SECRET, {
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+  });
 const genRefreshToken = (id) =>
-  jwt.sign({ userId: id }, process.env.REFRESH_SECRET, { expiresIn: "7d" });
+  jwt.sign({ userId: id }, process.env.REFRESH_SECRET, {
+    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+  });
 
 // Rota de cadastro
 app.post("/api/v1/auth/signup", async (req, res) => {
@@ -3938,6 +3952,14 @@ const SONG_INSTRUMENT_KEYS = [
   "drums",
   "voice",
 ];
+const INSTRUMENT_SETLIST_TAGS = {
+  guitar01: "guitar",
+  guitar02: "guitar",
+  bass: "bass",
+  keys: "keys",
+  drums: "drums",
+  voice: "voice",
+};
 
 function uniqueArray(values = []) {
   return Array.from(
@@ -4024,6 +4046,16 @@ function normalizeInstrumentFlags(entry = {}) {
   return SONG_INSTRUMENT_KEYS.reduce((flags, key) => {
     const currentFlag = entry.instruments?.[key];
     const block = entry[key];
+    if (
+      isExplicitFalse(currentFlag) ||
+      isExplicitFalse(currentFlag?.active) ||
+      isExplicitFalse(block) ||
+      isExplicitFalse(block?.active)
+    ) {
+      flags[key] = false;
+      return flags;
+    }
+
     flags[key] = Boolean(
       isExplicitTrue(currentFlag) ||
       isExplicitTrue(currentFlag?.active) ||
@@ -4034,6 +4066,19 @@ function normalizeInstrumentFlags(entry = {}) {
   }, {});
 }
 
+function normalizeSetlistForInstrumentFlags(setlist = [], instruments = {}) {
+  const activeInstrumentTags = new Set(
+    SONG_INSTRUMENT_KEYS.filter((key) => instruments?.[key]).map(
+      (key) => INSTRUMENT_SETLIST_TAGS[key],
+    ),
+  );
+  const instrumentTags = new Set(Object.values(INSTRUMENT_SETLIST_TAGS));
+
+  return uniqueArray(setlist).filter(
+    (tag) => !instrumentTags.has(tag) || activeInstrumentTags.has(tag),
+  );
+}
+
 function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
   if (!incomingBlock) {
     return ensurePresentationLayoutsForInstrument(existingBlock || {});
@@ -4041,10 +4086,14 @@ function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
 
   if (incomingBlock === false) {
     return {
-      ...(existingBlock || {}),
       active: false,
       link: "",
       progress: 0,
+      songCifra: "",
+      songTabs: "",
+      songChords: "",
+      songLyrics: "",
+      presentationLayouts: undefined,
     };
   }
 
@@ -4140,6 +4189,10 @@ function mergeSongEntries(...entries) {
   }, {});
 
   merged.instruments = normalizeInstrumentFlags(merged);
+  merged.setlist = normalizeSetlistForInstrumentFlags(
+    merged.setlist,
+    merged.instruments,
+  );
   merged.guitarProFiles = Array.isArray(merged.guitarProFiles)
     ? merged.guitarProFiles
     : [];
@@ -4154,6 +4207,20 @@ async function hydrateUserdataFromGeneralCifra(userdata = {}) {
   const hydrated = { ...userdata };
 
   for (const instrument of SONG_INSTRUMENT_KEYS) {
+    if (
+      isExplicitFalse(hydrated[instrument]) ||
+      isExplicitFalse(hydrated[instrument]?.active) ||
+      isExplicitFalse(hydrated.instruments?.[instrument]) ||
+      isExplicitFalse(hydrated.instruments?.[instrument]?.active)
+    ) {
+      hydrated[instrument] = false;
+      hydrated.instruments = {
+        ...(hydrated.instruments || {}),
+        [instrument]: false,
+      };
+      continue;
+    }
+
     const nestedInstrumentPayload = isPlainObject(hydrated.instruments?.[instrument])
       ? hydrated.instruments[instrument]
       : null;
