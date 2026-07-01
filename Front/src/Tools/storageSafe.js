@@ -38,13 +38,16 @@ export function setLocalStorageItemSafe(key, value, options = {}) {
     window.localStorage.setItem(key, value);
     return true;
   } catch (error) {
-    console.error(`Erro ao salvar "${key}" no localStorage:`, error);
-
     if (!isQuotaExceededError(error)) {
+      console.error(`Erro ao salvar "${key}" no localStorage:`, error);
       return false;
     }
 
+    console.warn(`Cache local cheio ao salvar "${key}". Limpando dados opcionais.`);
     clearOptionalLargeStorage(key);
+    if (OPTIONAL_LARGE_STORAGE_KEYS.includes(key)) {
+      window.localStorage.removeItem(key);
+    }
 
     if (options.retryAfterCleanup === false) {
       return false;
@@ -53,8 +56,10 @@ export function setLocalStorageItemSafe(key, value, options = {}) {
     try {
       window.localStorage.setItem(key, value);
       return true;
-    } catch (retryError) {
-      console.error(`Erro ao salvar "${key}" após limpar cache local:`, retryError);
+    } catch {
+      console.warn(
+        `Nao foi possivel salvar "${key}" no cache local apos limpar dados opcionais. Cache local ignorado.`,
+      );
       return false;
     }
   }

@@ -61,7 +61,6 @@ export function usePresentationLayoutStorageSync({
     }
 
     lastHydratedLayoutIdentityRef.current = presentationLayoutIdentity;
-    skipNextLayoutPersistRef.current = true;
 
     if (typeof window === "undefined") return;
 
@@ -70,12 +69,15 @@ export function usePresentationLayoutStorageSync({
         presentationLayoutStorageKey,
       );
       if (!rawStoredLayouts) {
+        skipNextLayoutPersistRef.current = false;
         logPresentationDebug("localStorage:hydrate:empty", {
           identity: presentationLayoutIdentity,
           key: presentationLayoutStorageKey,
         });
         return;
       }
+
+      skipNextLayoutPersistRef.current = true;
 
       const parsedStoredLayouts = JSON.parse(rawStoredLayouts);
       logPresentationDebug("localStorage:hydrate:read", {

@@ -19,6 +19,7 @@ import PresentationStatusState from "./components/PresentationStatusState";
 import PresentationLiveHeader from "./components/PresentationLiveHeader";
 import PresentationTopBar from "./components/PresentationTopBar";
 import PresentationColumns from "./components/PresentationColumns";
+import InformationChannel from "./components/InformationChannel";
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 import {
   getPresentationLayoutModeStorageKey,
@@ -42,6 +43,7 @@ import { usePresentationRouteData } from "./hooks/usePresentationRouteData";
 import { usePresentationSongData } from "./hooks/usePresentationSongData";
 import { usePresentationVisualScale } from "./hooks/usePresentationVisualScale";
 import {
+  deleteSelectedEditableContent,
   moveEnterToNextEditableBlock,
   moveToAdjacentEditableBlock,
   removeEmptyEditableLine,
@@ -819,6 +821,7 @@ function Presentation() {
           setTransposeSteps={setTransposeSteps}
           displayKey={displayKey}
           showProgressionMarkers={showProgressionMarkers}
+          isExpandedCifra={isExpandedCifra}
           isTouchLayout={isTouchLayout}
           touchFontSizeLabel={touchFontSizeLabel}
           decreaseTouchFontSize={() => adjustActiveFontSizeStep(-1)}
@@ -860,6 +863,7 @@ function Presentation() {
               : "w-11/12 2xl:w-9/12 mx-auto"
           }`}
         >
+          <InformationChannel visible={!effectiveLiveMode && isEditing} />
           <PresentationTopBar
             visible={!effectiveLiveMode}
             isTouchLayout={isTouchLayout}
@@ -872,7 +876,9 @@ function Presentation() {
             toolBoxBtnStatus={toolBoxBtnStatus}
             isEditing={isEditing}
             isVideoModalOpen={isVideoModalOpen}
-            openEditorToolBox={openEditorToolBox}
+            openEditorToolBox={
+              isEditing ? handleDiscardDraft : openEditorToolBox
+            }
             onToggleToolBox={() =>
               toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
             }
@@ -918,14 +924,6 @@ function Presentation() {
           <div
             ref={presentationContentRef}
             tabIndex={effectiveLiveMode ? 0 : -1}
-            title={
-              !effectiveLiveMode &&
-              !isEditing &&
-              !activeChordTooltip &&
-              ["default", "full"].includes(selectContenttoShow)
-                ? "Double-click to edit"
-                : undefined
-            }
             className={`min-h-0 flex-1 ${
               effectiveLiveMode
                 ? "presentation-live-content"
@@ -959,13 +957,6 @@ function Presentation() {
                   : `${presentationFontScale}rem`,
               lineHeight: 1.45,
             }}
-            onDoubleClick={
-              !effectiveLiveMode &&
-              !isEditing &&
-              ["default", "full"].includes(selectContenttoShow)
-                ? startEditingCifra
-                : undefined
-            }
           >
             {effectiveLiveMode && liveView === "setlist" ? (
               <PresentationLiveSetlistScreen
@@ -1013,6 +1004,10 @@ function Presentation() {
                 onKeyDown={
                   isEditing
                     ? (event) => {
+                        if (deleteSelectedEditableContent(event)) {
+                          setHasEditedCifraContent(true);
+                          return;
+                        }
                         if (moveToAdjacentEditableBlock(event)) {
                           setHasEditedCifraContent(true);
                           return;

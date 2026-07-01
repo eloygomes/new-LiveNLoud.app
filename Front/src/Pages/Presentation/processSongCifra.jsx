@@ -30,6 +30,8 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     if (!match) return null;
 
     const rawSectionName = match[1].trim();
+    if (isChord(rawSectionName)) return null;
+
     const restOfLine = match[2]; // pode conter acordes extras
     return { sectionName: rawSectionName, restOfLine };
   }
@@ -108,8 +110,9 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
   const chordRegexString =
     "([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?(?:\\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?)?)";
   const chordValidationRegex = new RegExp("^" + chordRegexString + "$");
+  const bracketedChordPattern = /\[\s*([^\]]+?)\s*\]/g;
   const chordPattern = new RegExp(
-    "(\\b|\\s|[-:])" + chordRegexString + "(?=\\s|$)",
+    "(\\b|\\s|[-:(])" + chordRegexString + "(?=\\s|\\)|$)",
     "g"
   );
 
@@ -118,8 +121,15 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     return chordValidationRegex.test(word);
   }
 
+  function normalizeBracketedChordTokens(line) {
+    return line.replace(bracketedChordPattern, (match, chord) => {
+      const normalizedChord = String(chord || "").trim();
+      return isChord(normalizedChord) ? ` ${normalizedChord} ` : match;
+    });
+  }
+
   function isChordLine(line) {
-    const words = line.trim().split(/\s+/);
+    const words = normalizeBracketedChordTokens(line).trim().split(/\s+/);
     let chordCount = 0;
     for (const w of words) {
       if (isChord(w)) chordCount++;
@@ -128,22 +138,34 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
   }
 
   function containsChord(line) {
-    const words = line.trim().split(/\s+/);
+    const words = normalizeBracketedChordTokens(line).trim().split(/\s+/);
     return words.some((w) => isChord(w));
   }
 
-  function addClassToChords(line) {
-    return line.replace(chordPattern, (match, p1) => {
-      const chord = match.trim();
+  function renderChordSpan(chord) {
+    const occurrenceId = `chord-${chordOccurrenceId++}`;
+    return `<span class="notespresentation" data-chord="${chord}" data-chord-id="${occurrenceId}">${chord}</span>`;
+  }
+
+  function addClassToBracketedChords(line) {
+    return line.replace(bracketedChordPattern, (match, chord) => {
+      const normalizedChord = String(chord || "").trim();
+      return isChord(normalizedChord) ? renderChordSpan(normalizedChord) : match;
+    });
+  }
+
+  function addClassToBareChords(line) {
+    return line.replace(chordPattern, (match, p1, matchedChord) => {
+      const chord = String(matchedChord || match).trim();
       if (isChord(chord)) {
-        const occurrenceId = `chord-${chordOccurrenceId++}`;
-        return (
-          p1 +
-          `<span class="notespresentation" data-chord="${chord}" data-chord-id="${occurrenceId}">${chord}</span>`
-        );
+        return p1 + renderChordSpan(chord);
       }
       return match;
     });
+  }
+
+  function addClassToChords(line) {
+    return addClassToBracketedChords(addClassToBareChords(line));
   }
 
   // Processa 1 linha “isolada”
@@ -228,7 +250,7 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     } else {
       // Linha “normal” (lyrics etc.)
       return {
-        html: `<pre id="line-${index}" class="mt-1 presentation-lyrics">${line}</pre>`,
+        html: `<pre id="line-${index}" class="mt-1 presentation-lyrics">${addClassToBracketedChords(line)}</pre>`,
         nextIndex: index,
       };
     }

@@ -147,6 +147,8 @@ export function usePresentationCifraEditor({
 
     setDraftCifra(editOriginalCifraRef.current || editableSongCifra);
     setIsEditing(false);
+    setToolBoxBtnStatus(false);
+    setToolBoxRequestedPanel(null);
     updateEditedCifraContent(false);
     setHasEditedLayoutContent(false);
     editOriginalLayoutsRef.current = null;
@@ -160,6 +162,8 @@ export function usePresentationCifraEditor({
     setHasEditedLayoutContent,
     setIsEditing,
     setSongDataFetched,
+    setToolBoxBtnStatus,
+    setToolBoxRequestedPanel,
     updateEditedCifraContent,
   ]);
 
@@ -320,6 +324,8 @@ export function usePresentationCifraEditor({
         });
       });
       setIsEditing(false);
+      setToolBoxBtnStatus(false);
+      setToolBoxRequestedPanel(null);
       updateEditedCifraContent(false);
       setHasEditedLayoutContent(false);
       editOriginalLayoutsRef.current = null;
@@ -355,6 +361,8 @@ export function usePresentationCifraEditor({
     setHasEditedLayoutContent,
     setIsEditing,
     setSongDataFetched,
+    setToolBoxBtnStatus,
+    setToolBoxRequestedPanel,
     shouldUseHorizontalColumnFlow,
     songDataFetched,
     updateEditedCifraContent,

@@ -4,7 +4,7 @@ import { FaChevronDown, FaChevronUp, FaListUl, FaTimes, FaVideo } from "react-ic
 import EditSongEmbed from "./EditSongEmbed";
 import EditSongSongData from "./EditSongSongData";
 import GuitarProFileBox from "../shared/GuitarProFileBox";
-import { deleteOneSong, updateSongData } from "../../Tools/Controllers"; // Sua função que salva/atualiza no backend
+import { deleteOneSong, updateSongEntry } from "../../Tools/Controllers"; // Sua função que salva/atualiza no backend
 import { useNavigate } from "react-router-dom";
 import EditSongSetlist from "./EditSongSetlist";
 import { getAllUserSetlists } from "../../Tools/Controllers";
@@ -524,6 +524,35 @@ function EditSongColumnA({
   const hasPendingChanges = Boolean(initialSnapshotRef.current) &&
     currentSnapshot !== initialSnapshotRef.current;
 
+  const verifySavedVideos = (response, expectedVideos = []) => {
+    const savedVideos = Array.isArray(response?.song?.embedVideos)
+      ? response.song.embedVideos
+      : [];
+    const expected = Array.isArray(expectedVideos) ? expectedVideos : [];
+    const missingVideos = expected.filter((url) => !savedVideos.includes(url));
+    const unexpectedVideos = savedVideos.filter((url) => !expected.includes(url));
+
+    if (missingVideos.length || unexpectedVideos.length) {
+      throw new Error("The song was updated, but the video link was not saved.");
+    }
+  };
+
+  const persistVideoLinks = async (nextLinks = []) => {
+    const userEmail = localStorage.getItem("userEmail");
+    const videoLinks = Array.isArray(nextLinks) ? nextLinks : [];
+    const response = await updateSongEntry({
+      song: songName,
+      artist: artistName,
+      embedVideos: videoLinks,
+      updateIn: new Date().toISOString().split("T")[0],
+      email: userEmail,
+    });
+
+    verifySavedVideos(response, videoLinks);
+    console.log("Video links saved successfully.");
+    return response;
+  };
+
   // Atualiza no banco
   const handleUpdate = async () => {
     try {
@@ -613,11 +642,23 @@ function EditSongColumnA({
         email: userEmail,
       };
 
-      await updateSongData(updatedData);
+      const response = await updateSongEntry(updatedData);
+      verifySavedVideos(response, embedLink);
+
       console.log("Song data updated successfully.");
+      setSnackbarMessage?.({
+        title: "Saved",
+        message: "Song data updated successfully.",
+      });
+      setShowSnackBar?.(true);
       navigate("/");
     } catch (error) {
       console.error("Error updating song data:", error);
+      setSnackbarMessage?.({
+        title: "Error",
+        message: error?.message || "Could not update this song.",
+      });
+      setShowSnackBar?.(true);
     }
   };
 
@@ -639,7 +680,7 @@ function EditSongColumnA({
       onDelete: handleDelete,
       onUpdate: handleUpdate,
     });
-  }, [hasPendingChanges, isDirty, songName, artistName, geralPercentage, setlist]);
+  }, [currentSnapshot, hasPendingChanges, isDirty, onPageActionsChange]);
 
   return touchLayout ? (
     <>
@@ -713,6 +754,9 @@ function EditSongColumnA({
                     return nextLinks;
                   });
                 }}
+                setShowSnackBar={setShowSnackBar}
+                setSnackbarMessage={setSnackbarMessage}
+                onSaveVideos={persistVideoLinks}
               />
             </div>
           </div>
@@ -928,6 +972,9 @@ function EditSongColumnA({
                 return nextLinks;
               });
             }}
+            setShowSnackBar={setShowSnackBar}
+            setSnackbarMessage={setSnackbarMessage}
+            onSaveVideos={persistVideoLinks}
           />
           <EditSongSetlist
             setlist={setlist}

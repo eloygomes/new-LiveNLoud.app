@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation, NavLink } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FaFilter,
   FaListUl,
@@ -26,6 +26,7 @@ export default function RootLayouts() {
     () => loadSelectedSetlists().length > 0,
   );
   const [newSongChoiceOpen, setNewSongChoiceOpen] = useState(false);
+  const searchInputRef = useRef(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -165,10 +166,41 @@ export default function RootLayouts() {
     return lockPageScroll();
   }, [isDashboardRoute, isSearchOpen]);
 
-  const openSearch = () => {
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+  }, []);
+
+  const openSearch = useCallback(() => {
     window.dispatchEvent(new CustomEvent("close-all-modals"));
     setIsSearchOpen(true);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isDashboardRoute || !isSearchOpen) return undefined;
+
+    const focusTimer = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }, 0);
+
+    return () => window.clearTimeout(focusTimer);
+  }, [isDashboardRoute, isSearchOpen]);
+
+  useEffect(() => {
+    const handleSearchShortcut = (event) => {
+      if (!isDashboardRoute) return;
+
+      const isSearchShortcut =
+        event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey);
+      if (!isSearchShortcut) return;
+
+      event.preventDefault();
+      openSearch();
+    };
+
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, [isDashboardRoute, openSearch]);
 
   const openFilter = () => {
     window.dispatchEvent(new CustomEvent("close-all-modals"));
@@ -308,21 +340,25 @@ export default function RootLayouts() {
               type="button"
               className="absolute inset-0"
               aria-label="Close search"
-              onClick={() => setIsSearchOpen(false)}
+              onClick={closeSearch}
             />
             <SearchBox
+              ref={searchInputRef}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              onClose={() => setIsSearchOpen(false)}
+              onClose={closeSearch}
+              onEscape={closeSearch}
               autoFocus
               className="relative z-[12101] w-full max-w-[420px] rounded-[18px] bg-[#f0f0f0] pb-5 shadow-[0_24px_60px_rgba(0,0,0,0.2)] my-5"
             />
           </div>
         ) : (
           <SearchBox
+            ref={searchInputRef}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            onClose={() => setIsSearchOpen(false)}
+            onClose={closeSearch}
+            onEscape={closeSearch}
             autoFocus
             className="fixed right-[12.5rem] top-[1.0rem] z-[12100] w-[360px] rounded-lg bg-[#f0f0f0] pb-4 shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
           />

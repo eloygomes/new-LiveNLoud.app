@@ -5,16 +5,6 @@ import {
 } from "../helpers/presentationConstants";
 import { getLiveColumnDisplayState } from "../presentationLayoutHelpers";
 
-function showEditableChordBrackets(html = "") {
-  return String(html || "").replace(
-    /(<span\b[^>]*\bclass="[^"]*\bnotespresentation\b[^"]*"[^>]*>)([^<]*)(<\/span>)/g,
-    (match, openTag, chordText, closeTag) => {
-      if (/^\[[^\]]+\]$/.test(chordText.trim())) return match;
-      return `${openTag}[${chordText}]${closeTag}`;
-    },
-  );
-}
-
 function PresentationColumns({
   columns,
   selectContenttoShow,
@@ -59,9 +49,6 @@ function PresentationColumns({
         selectedBlockKeys.includes(blockKey),
       );
       const contentBlockHtml = blocks.map((entry) => entry.block).join("\n");
-      const renderedContentBlockHtml = isEditing
-        ? showEditableChordBrackets(contentBlockHtml)
-        : contentBlockHtml;
       const liveColumnState = getLiveColumnDisplayState({
         columnKey: groupKey,
         activeColumnKey: activeLiveColumnKey,
@@ -139,7 +126,7 @@ function PresentationColumns({
                 className="presentation-render-content-block"
                 data-block-keys={blockKeys.join(",")}
                 data-original-block-index={originalBlockIndex}
-                dangerouslySetInnerHTML={{ __html: renderedContentBlockHtml }}
+                dangerouslySetInnerHTML={{ __html: contentBlockHtml }}
               />
             </div>
           </div>

@@ -14,7 +14,6 @@ import {
   IoChevronBack,
   IoChevronForward,
   IoDocumentText,
-  IoGrid,
   IoMusicalNotes,
   IoPlayCircle,
   IoSwapVertical,
@@ -75,6 +74,7 @@ export default function TollBoxAcoord({
   setTransposeSteps,
   displayKey = "--",
   showProgressionMarkers = false,
+  isExpandedCifra = false,
   isTouchLayout = false,
   closeToolBox,
   closeToolBoxWithoutDiscard,
@@ -134,11 +134,9 @@ export default function TollBoxAcoord({
   // Montamos um array de arrays, cada subarray com 2 instrumentos (exemplo)
   const chunkedInstruments = chunkArray(instrumentLabels, 2);
 
-  const openTouchEditorDetails = () => {
+  const openEditorDetails = () => {
     if (!isEditing && songCifraData) {
       startEditingCifra();
-      closeToolBoxWithoutDiscard?.();
-      return;
     }
 
     setActiveTouchPanel?.("panel-editor");
@@ -287,18 +285,21 @@ export default function TollBoxAcoord({
   );
 
   const renderEditorContent = () => (
-    <ToolBoxEditControls
-      isEditing={isEditing}
-      isSavingCifra={isSavingCifra}
-      hasDraftChanges={hasDraftChanges}
-      songCifraData={songCifraData}
-      handleSaveCifra={isTouchLayout ? handleTouchSave : handleSaveCifra}
-      handleDiscardDraft={
-        isTouchLayout ? handleTouchDiscard : handleDiscardDraft
-      }
-      startEditingCifra={startEditingCifra}
-      isTouchLayout={isTouchLayout}
-    />
+    <div className={isTouchLayout ? "space-y-3" : "space-y-4"}>
+      <div className={isTouchLayout ? "space-y-2" : "space-y-3"}>
+        {renderLayoutContent()}
+      </div>
+      <ToolBoxEditControls
+        isEditing={isEditing}
+        isSavingCifra={isSavingCifra}
+        hasDraftChanges={hasDraftChanges}
+        handleSaveCifra={isTouchLayout ? handleTouchSave : handleSaveCifra}
+        handleDiscardDraft={
+          isTouchLayout ? handleTouchDiscard : handleDiscardDraft
+        }
+        isTouchLayout={isTouchLayout}
+      />
+    </div>
   );
 
   const renderInstrumentsContent = () => {
@@ -542,39 +543,25 @@ export default function TollBoxAcoord({
     </div>
   );
 
-  const renderNotesContent = () => (
-    <div className={isTouchLayout ? "" : "my-3"}>
-      <button
-        type="button"
-        className={
-          isTouchLayout
-            ? "w-full rounded-[14px] bg-white px-3 py-3 text-left text-sm font-bold text-black"
-            : "neuphormism-b-btn-gold w-full rounded-[14px] bg-[goldenrod] px-3 py-3 text-center text-sm font-bold text-black"
-        }
-        onClick={() => {
-          if (isTouchLayout) {
-            setActiveTouchPanel?.("panel-notes");
-            return;
-          }
-          if (typeof onOpenInstrumentNotes === "function") {
-            onOpenInstrumentNotes();
-            return;
-          }
-          setNotesModalStatus?.(true);
-        }}
-      >
-        Open Notes
-      </button>
-    </div>
-  );
-
   const hasVideos = embedLinks.length > 0;
-  const sections = [
-    {
-      id: "panel-editor",
-      label: "Editor",
-      content: renderEditorContent(),
-    },
+  const openNotesWindow = () => {
+    if (isTouchLayout) {
+      setActiveTouchPanel?.("panel-notes");
+      return;
+    }
+    if (typeof onOpenInstrumentNotes === "function") {
+      onOpenInstrumentNotes();
+      return;
+    }
+    setNotesModalStatus?.(true);
+  };
+  const editorSection = {
+    id: "panel-editor",
+    label: "Editor",
+    content: renderEditorContent(),
+    open: openEditorDetails,
+  };
+  const menuSections = [
     {
       id: "panel-transpose",
       label: "Transpose",
@@ -583,6 +570,7 @@ export default function TollBoxAcoord({
     {
       id: "panel-notes",
       label: "Notes",
+      action: openNotesWindow,
       content: isTouchLayout ? (
         <SongInstrumentNotes
           instrumentName={instrumentSelected}
@@ -593,36 +581,32 @@ export default function TollBoxAcoord({
           isSaving={isSavingNotes}
           mobile
         />
-      ) : (
-        renderNotesContent()
-      ),
+      ) : null,
     },
     {
       id: "panel1",
       label: "Instruments",
       content: renderInstrumentsContent(),
     },
-    {
-      id: "panel-layout",
-      label: "Layout",
-      content: renderLayoutContent(),
-    },
     ...(hasVideos
       ? [{ id: "panel2", label: "Videos", content: renderVideosContent() }]
       : []),
-    { id: "panel6", label: "Scrolling", content: renderScrollingContent() },
+    ...(isExpandedCifra
+      ? []
+      : [{ id: "panel6", label: "Scrolling", content: renderScrollingContent() }]),
   ];
+  const sections = [editorSection, ...menuSections];
 
   if (isTouchLayout) {
     const touchMenuIconClass = "h-4 w-4";
-    const touchSections = [
-      {
-        id: "panel-editor",
-        label: "Editor",
-        icon: <FaFilePen className={touchMenuIconClass} />,
-        content: renderEditorContent(),
-        open: openTouchEditorDetails,
-      },
+    const editorTouchSection = {
+      id: "panel-editor",
+      label: "Editor",
+      icon: <FaFilePen className={touchMenuIconClass} />,
+      content: renderEditorContent(),
+      open: openEditorDetails,
+    };
+    const menuTouchSections = [
       ...(typeof onGoToEditSong === "function"
         ? [
             {
@@ -676,12 +660,6 @@ export default function TollBoxAcoord({
         content: renderTransposeContent(),
       },
       {
-        id: "panel-layout",
-        label: "Layout",
-        icon: <IoGrid className={touchMenuIconClass} />,
-        content: renderLayoutContent(),
-      },
-      {
         id: "panel-notes",
         label: "Notes",
         icon: <IoDocumentText className={touchMenuIconClass} />,
@@ -713,13 +691,18 @@ export default function TollBoxAcoord({
             },
           ]
         : []),
-      {
-        id: "panel6",
-        label: "Scrolling",
-        icon: <IoArrowDownCircle className={touchMenuIconClass} />,
-        content: renderScrollingContent(),
-      },
+      ...(isExpandedCifra
+        ? []
+        : [
+            {
+              id: "panel6",
+              label: "Scrolling",
+              icon: <IoArrowDownCircle className={touchMenuIconClass} />,
+              content: renderScrollingContent(),
+            },
+          ]),
     ];
+    const touchSections = [editorTouchSection, ...menuTouchSections];
 
     const activeSection = touchSections.find(
       (section) => section.id === activeTouchPanel,
@@ -731,7 +714,7 @@ export default function TollBoxAcoord({
 
     return (
       <div className="space-y-2">
-        {touchSections.map((section) => {
+        {menuTouchSections.map((section) => {
           const shouldBlinkEditor =
             section.id === "panel-editor" &&
             isEditing &&
@@ -741,7 +724,7 @@ export default function TollBoxAcoord({
               <button
                 type="button"
                 disabled={section.disabled}
-                className={`neuphormism-b-btn flex min-h-10 w-full items-center justify-between rounded-[12px] px-2.5 py-1.5 text-left text-[0.82rem] font-bold text-black shadow-[0_3px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:opacity-45 ${
+                className={`neuphormism-b-btn flex min-h-[3.35rem] w-full items-center justify-between rounded-[14px] px-3.5 py-2.5 text-left text-[0.95rem] font-bold text-black shadow-[0_6px_14px_rgba(0,0,0,0.06)] disabled:cursor-not-allowed disabled:opacity-45 ${
                   section.tone === "gold"
                     ? "!bg-[goldenrod] !text-black"
                     : "bg-[#ececec]"
@@ -809,12 +792,16 @@ export default function TollBoxAcoord({
           </div>
         </div>
       ) : (
-        sections.map((section) => (
+        menuSections.map((section) => (
           <button
             key={section.id}
             type="button"
-            className="neuphormism-b flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-sm font-semibold text-black"
+            className="neuphormism-b flex min-h-[4.25rem] w-full items-center justify-between rounded-[16px] px-5 py-4 text-left text-base font-bold text-black shadow-[0_8px_18px_rgba(0,0,0,0.06)] transition active:scale-[0.99]"
             onClick={() => {
+              if (section.action) {
+                section.action();
+                return;
+              }
               section.open?.();
               setActiveDesktopPanel(section.id);
             }}

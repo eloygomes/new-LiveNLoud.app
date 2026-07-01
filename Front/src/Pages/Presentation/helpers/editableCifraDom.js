@@ -4,7 +4,7 @@ const EDITABLE_LINE_SELECTOR =
   ".presentation-render-content-block pre, .presentation-render-content-block p, .presentation-render-content-block > div";
 const MOVABLE_LINE_SELECTOR = "pre, p";
 const ZERO_WIDTH_CHARACTERS_REGEX = /[\u200b\u200c\u200d\u2060\ufeff]/g;
-const EDITABLE_BRACKETED_CHORD_REGEX = /\[([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\([^)]+\))?(?:\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\([^)]+\))?)?)\]/g;
+const EDITABLE_BRACKETED_CHORD_REGEX = /\[\s*([^\]]+?)\s*\]/g;
 const SECTION_LINE_CLASSES = new Set([
   "intro",
   "chorus",
@@ -21,7 +21,18 @@ function sanitizeEditableText(text = "") {
 }
 
 function isRenderedSectionLabelLine(node, text = "") {
-  if (!node?.classList || !/^\s*\[[^\]]+\]\s*$/.test(text)) return false;
+  if (!/^\s*\[[^\]]+\]\s*$/.test(text)) return false;
+
+  const bracketContent = text.replace(/^\s*\[|\]\s*$/g, "").toLowerCase();
+  if (
+    /\b(intro|verse|parte|chorus|refr[aã]o|solo|bridge|ponte)\b/.test(
+      bracketContent,
+    )
+  ) {
+    return true;
+  }
+
+  if (!node?.classList) return false;
 
   return Array.from(node.classList).some((className) =>
     SECTION_LINE_CLASSES.has(className),
@@ -37,11 +48,54 @@ function normalizeEditedLineText(node, text = "") {
 
   return sanitizedText.replace(
     EDITABLE_BRACKETED_CHORD_REGEX,
-    (_, chord) => chord,
+    (match, chord, offset, fullText) => {
+      const normalizedChord = String(chord || "").trim();
+      const previousCharacter = fullText[offset - 1] || "";
+      const nextCharacter = fullText[offset + match.length] || "";
+      const needsLeadingSpace =
+        previousCharacter !== "" && !/[\s([\]]/.test(previousCharacter);
+      const needsTrailingSpace = nextCharacter === "[";
+      const needsLineBreak =
+        !needsTrailingSpace &&
+        nextCharacter !== "" &&
+        !/[\s\])]/.test(nextCharacter);
+
+      return `${needsLeadingSpace ? " " : ""}[${normalizedChord}]${
+        needsLineBreak ? "\n" : needsTrailingSpace ? " " : ""
+      }`;
+    },
   );
 }
 
+function getEditableNodeStructuredText(node) {
+  if (!node) return "";
+
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || "";
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return node.textContent || "";
+  }
+
+  if (
+    node.classList?.contains("notespresentation") &&
+    node.dataset?.chord
+  ) {
+    const chordText = sanitizeEditableText(node.textContent || "").trim();
+    const normalizedChordText = chordText.replace(/^\[|\]$/g, "");
+    return `[${normalizedChordText || node.dataset.chord}]`;
+  }
+
+  return Array.from(node.childNodes || [])
+    .map((childNode) => getEditableNodeStructuredText(childNode))
+    .join("");
+}
+
 function getEditableNodeText(node) {
+  const structuredText = getEditableNodeStructuredText(node);
+  if (structuredText) return structuredText;
+
   if (typeof node?.innerText === "string" && node.innerText !== "") {
     return node.innerText;
   }
@@ -88,6 +142,44 @@ function getEditableContentBlocks(contentNode) {
   return Array.from(
     contentNode.querySelectorAll(".presentation-render-content-block"),
   );
+}
+
+function getEditableBlockContainer(contentBlock) {
+  return (
+    contentBlock?.closest(".presentation-column") ||
+    contentBlock?.closest(".presentation-render-block")
+  );
+}
+
+function isEditableBlockMeaningful(contentBlock) {
+  if (!contentBlock) return false;
+
+  return (
+    hasMeaningfulEditableText(readEditableBlockText(contentBlock)) ||
+    hasPreservedBlankLine(contentBlock)
+  );
+}
+
+export function compactEmptyEditableBlocks(contentNode) {
+  const contentBlocks = getEditableContentBlocks(contentNode);
+  if (contentBlocks.length <= 1) return false;
+
+  let removedAny = false;
+
+  contentBlocks.forEach((contentBlock) => {
+    const currentBlocks = getEditableContentBlocks(contentNode);
+    if (currentBlocks.length <= 1) return;
+    if (!currentBlocks.includes(contentBlock)) return;
+    if (isEditableBlockMeaningful(contentBlock)) return;
+
+    const container = getEditableBlockContainer(contentBlock);
+    if (container?.parentElement) {
+      container.remove();
+      removedAny = true;
+    }
+  });
+
+  return removedAny;
 }
 
 function getContentBlockKeys(block) {
@@ -178,6 +270,8 @@ export function collectEditedPresentationBlocksFromNode({
   persistVisualColumnBreaks = false,
   sourceBlocks = [],
 }) {
+  compactEmptyEditableBlocks(contentNode);
+
   const excludedKeys = new Set(excludedBlockKeys);
   const contentBlocks = getEditableContentBlocks(contentNode).filter((block) => {
     if (!excludedKeys.size) return true;
@@ -252,6 +346,42 @@ export function removeEmptyEditableLine(event) {
   return false;
 }
 
+export function deleteSelectedEditableContent(event) {
+  if (event.key !== "Backspace" && event.key !== "Delete") return false;
+
+  const selection = window.getSelection?.();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    return false;
+  }
+
+  const targetBlock = event.currentTarget;
+  const range = selection.getRangeAt(0);
+  const anchorNode = selection.anchorNode;
+  const focusNode = selection.focusNode;
+  const anchorElement =
+    anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement;
+  const focusElement =
+    focusNode instanceof HTMLElement ? focusNode : focusNode?.parentElement;
+
+  if (
+    !anchorElement ||
+    !focusElement ||
+    !targetBlock.contains(anchorElement) ||
+    !targetBlock.contains(focusElement)
+  ) {
+    return false;
+  }
+
+  event.preventDefault();
+  range.deleteContents();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  pruneEmptyLayoutContainers(targetBlock);
+  compactEmptyEditableBlocks(targetBlock);
+  targetBlock.focus?.({ preventScroll: true });
+  return true;
+}
+
 function focusEditableBlockStart(contentBlock) {
   if (!contentBlock) return false;
 
@@ -282,7 +412,7 @@ function focusEditableBlockStart(contentBlock) {
   contentBlock
     .closest(".presentation-content-flow")
     ?.focus({ preventScroll: true });
-  contentBlock.scrollIntoView({ block: "nearest", inline: "nearest" });
+  contentBlock.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   return true;
 }
 
@@ -320,7 +450,7 @@ function focusEditableBlockEnd(contentBlock) {
   contentBlock
     .closest(".presentation-content-flow")
     ?.focus({ preventScroll: true });
-  contentBlock.scrollIntoView({ block: "nearest", inline: "nearest" });
+  contentBlock.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   return true;
 }
 
@@ -328,19 +458,31 @@ function fragmentHasText(fragment) {
   return sanitizeEditableText(fragment?.textContent || "").length > 0;
 }
 
-function rangeTextBeforeCaret(contentBlock, range) {
-  if (!contentBlock || !range) return "";
-
-  const leadingRange = range.cloneRange();
-  leadingRange.selectNodeContents(contentBlock);
-
-  try {
-    leadingRange.setEnd(range.startContainer, range.startOffset);
-  } catch {
-    return "";
+function removeWhitespaceTextSeparators(node) {
+  if (!node) return;
+  if (
+    node.nodeType === Node.ELEMENT_NODE &&
+    ["pre", "p"].includes(node.tagName?.toLowerCase())
+  ) {
+    return;
   }
 
-  return sanitizeEditableText(leadingRange.toString()).trim();
+  Array.from(node.childNodes || []).forEach((childNode) => {
+    const parentTagName = childNode.parentElement?.tagName?.toLowerCase();
+    if (["pre", "p"].includes(parentTagName)) return;
+
+    if (
+      childNode.nodeType === Node.TEXT_NODE &&
+      sanitizeEditableText(childNode.textContent || "").trim() === ""
+    ) {
+      childNode.remove();
+      return;
+    }
+
+    if (childNode.nodeType === Node.ELEMENT_NODE) {
+      removeWhitespaceTextSeparators(childNode);
+    }
+  });
 }
 
 function blockHasOverflow(contentBlock) {
@@ -387,6 +529,41 @@ function prependMovedLine(targetBlock, lineNode) {
   targetBlock.insertBefore(lineNode, targetBlock.firstChild);
 }
 
+function createEditableBlockAfter(currentContentBlock, index) {
+  if (!currentContentBlock) return null;
+
+  const currentColumn = currentContentBlock.closest(".presentation-column");
+  if (!currentColumn?.parentElement) return null;
+
+  const nextColumn = currentColumn.cloneNode(true);
+  const nextContentBlock = nextColumn.querySelector(
+    ".presentation-render-content-block",
+  );
+
+  if (!nextContentBlock) return null;
+
+  const newBlockKey = `editor-new-block-${Date.now()}-${index}`;
+  nextColumn.classList.remove(
+    "presentation-progression-column",
+    "presentation-progression-column-selected",
+  );
+  nextColumn
+    .querySelector(".presentation-render-block")
+    ?.classList.remove(
+      "presentation-progression-block",
+      "presentation-progression-block-selected",
+    );
+  nextColumn
+    .querySelector(".presentation-column-header")
+    ?.setAttribute("aria-hidden", "true");
+  nextContentBlock.dataset.blockKeys = newBlockKey;
+  nextContentBlock.dataset.originalBlockIndex = String(index);
+  nextContentBlock.replaceChildren();
+
+  currentColumn.parentElement.insertBefore(nextColumn, currentColumn.nextSibling);
+  return nextContentBlock;
+}
+
 function rebalanceOverflowToRight(contentBlocks, startIndex) {
   for (
     let blockIndex = Math.max(0, startIndex);
@@ -430,10 +607,6 @@ function moveTrailingContentToBlockStart({
     range.collapse(true);
   }
 
-  if (rangeTextBeforeCaret(currentContentBlock, range) === "") {
-    return true;
-  }
-
   const trailingRange = range.cloneRange();
   trailingRange.selectNodeContents(currentContentBlock);
 
@@ -444,22 +617,13 @@ function moveTrailingContentToBlockStart({
   }
 
   const trailingFragment = trailingRange.extractContents();
+  removeWhitespaceTextSeparators(trailingFragment);
   const hasTrailingContent = fragmentHasText(trailingFragment);
-  const nextBlockHasContent = sanitizeEditableText(
-    nextContentBlock.textContent || "",
-  ).trimEnd();
-
-  range.insertNode(ownerDocument.createTextNode("\n"));
-  range.collapse(false);
 
   if (hasTrailingContent) {
     const nextInsertionRange = ownerDocument.createRange();
     nextInsertionRange.selectNodeContents(nextContentBlock);
     nextInsertionRange.collapse(true);
-
-    if (nextBlockHasContent) {
-      trailingFragment.appendChild(ownerDocument.createTextNode("\n"));
-    }
 
     nextInsertionRange.insertNode(trailingFragment);
   }
@@ -499,27 +663,14 @@ function moveTrailingContentToBlockEnd({
   }
 
   const trailingFragment = trailingRange.extractContents();
+  removeWhitespaceTextSeparators(trailingFragment);
   const hasTrailingContent = fragmentHasText(trailingFragment);
-  const previousBlockHasContent = sanitizeEditableText(
-    previousContentBlock.textContent || "",
-  ).trimEnd();
-
-  range.insertNode(ownerDocument.createTextNode("\n"));
-  range.collapse(false);
 
   if (hasTrailingContent) {
     const previousInsertionRange = ownerDocument.createRange();
     previousInsertionRange.selectNodeContents(previousContentBlock);
     previousInsertionRange.collapse(false);
-
-    if (previousBlockHasContent) {
-      const insertionFragment = ownerDocument.createDocumentFragment();
-      insertionFragment.appendChild(ownerDocument.createTextNode("\n"));
-      insertionFragment.appendChild(trailingFragment);
-      previousInsertionRange.insertNode(insertionFragment);
-    } else {
-      previousInsertionRange.insertNode(trailingFragment);
-    }
+    previousInsertionRange.insertNode(trailingFragment);
   }
 
   return true;
@@ -559,7 +710,14 @@ export function moveToAdjacentEditableBlock(event) {
   const contentBlocks = getEditableContentBlocks(targetBlock);
   const currentIndex = contentBlocks.indexOf(currentContentBlock);
   const targetIndex = shouldMoveRight ? currentIndex + 1 : currentIndex - 1;
-  const targetContentBlock = contentBlocks[targetIndex];
+  let targetContentBlock = contentBlocks[targetIndex];
+
+  if (!targetContentBlock && shouldMoveRight) {
+    targetContentBlock = createEditableBlockAfter(
+      currentContentBlock,
+      currentIndex + 1,
+    );
+  }
 
   if (!targetContentBlock) return false;
 

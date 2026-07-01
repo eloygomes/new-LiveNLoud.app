@@ -1,24 +1,41 @@
 import { useState, useEffect } from "react";
 
 /* eslint-disable react/prop-types */
-const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
+const EditSongEmbed = ({
+  ytEmbedSongList = [],
+  setEmbedLink,
+  setShowSnackBar,
+  setSnackbarMessage,
+  onSaveVideos,
+}) => {
   const [inputValue, setInputValue] = useState("");
   const [videoItems, setVideoItems] = useState([]);
   const [error, setError] = useState(null);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const notify = (title, message) => {
+    setSnackbarMessage?.({ title, message });
+    setShowSnackBar?.(true);
+  };
+
+  const ensureProtocol = (url) => {
+    const trimmedUrl = String(url || "").trim();
+    if (!trimmedUrl) return "";
+    return /^https?:\/\//i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
+  };
 
   const isValidYouTubeLink = (url) => {
-    const regex = /^(https?:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/;
-    return regex.test(url);
+    return Boolean(getVideoId(url));
   };
 
   const getVideoId = (url) => {
     try {
-      const parsedUrl = new URL(url);
+      const parsedUrl = new URL(ensureProtocol(url));
       const host = parsedUrl.hostname.replace("www.", "");
 
       if (host === "youtu.be") {
-        return parsedUrl.pathname.slice(1) || null;
+        return parsedUrl.pathname.slice(1).split("/")[0] || null;
       }
 
       if (host === "youtube.com" || host === "m.youtube.com") {
@@ -92,35 +109,78 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
   }, [ytEmbedSongList]);
 
   const handleAddVideo = async () => {
-    const normalizedUrl = normalizeYouTubeUrl(inputValue.trim());
+    const rawInput = inputValue.trim();
+    const normalizedUrl = normalizeYouTubeUrl(rawInput);
+    const currentLinks = Array.isArray(ytEmbedSongList) ? ytEmbedSongList : [];
 
     if (!normalizedUrl || !isValidYouTubeLink(normalizedUrl)) {
       setError("Insert a valid YouTube link.");
+      notify("Error", "Insert a valid YouTube link.");
       return;
     }
 
-    if (ytEmbedSongList.includes(normalizedUrl)) {
+    if (currentLinks.includes(normalizedUrl)) {
       setError("This video is already in the list.");
+      notify("Error", "This video is already in the list.");
       return;
     }
+
+    const nextLinks = [...currentLinks, normalizedUrl];
 
     setError(null);
-    setEmbedLink((prevLinks = []) => [...prevLinks, normalizedUrl]);
+    setEmbedLink(nextLinks);
     setInputValue("");
+
+    if (!onSaveVideos) {
+      notify("Valid link", "YouTube link added. Click Update to save the song.");
+      return;
+    }
+
+    setIsSaving(true);
+    notify("Saving", "Saving YouTube link...");
+
+    try {
+      await onSaveVideos(nextLinks);
+      notify("Saved", "YouTube link saved.");
+    } catch (saveError) {
+      setEmbedLink(currentLinks);
+      setInputValue(rawInput);
+      setError(saveError?.message || "Could not save this video link.");
+      notify("Error", saveError?.message || "Could not save this video link.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePlayClick = (url) => {
     setSelectedVideo(url); // Define o vídeo selecionado para ser exibido
   };
 
-  const handleDeleteVideo = (urlToDelete) => {
+  const handleDeleteVideo = async (urlToDelete) => {
     if (!window.confirm("Delete this video from the song?")) return;
-    setEmbedLink((prevLinks = []) =>
-      prevLinks.filter((link) => link !== urlToDelete),
-    );
+    const currentLinks = Array.isArray(ytEmbedSongList) ? ytEmbedSongList : [];
+    const nextLinks = currentLinks.filter((link) => link !== urlToDelete);
+
+    setEmbedLink(nextLinks);
 
     if (selectedVideo === urlToDelete) {
       setSelectedVideo(null);
+    }
+
+    if (!onSaveVideos) return;
+
+    setIsSaving(true);
+    notify("Saving", "Removing YouTube link...");
+
+    try {
+      await onSaveVideos(nextLinks);
+      notify("Saved", "YouTube link removed.");
+    } catch (saveError) {
+      setEmbedLink(currentLinks);
+      setError(saveError?.message || "Could not remove this video link.");
+      notify("Error", saveError?.message || "Could not remove this video link.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -163,6 +223,7 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
           placeholder="Insert your link here"
           className="w-full p-1 border border-gray-300 rounded-md text-sm"
           value={inputValue}
+          disabled={isSaving}
           onChange={(e) => {
             setInputValue(e.target.value);
             if (error) setError(null);
@@ -178,8 +239,9 @@ const EditSongEmbed = ({ ytEmbedSongList = [], setEmbedLink }) => {
           type="button"
           className="neuphormism-b-btn flex h-9 min-w-[4.5rem] items-center justify-center rounded-[12px] px-3 text-xs font-bold uppercase text-black"
           onClick={handleAddVideo}
+          disabled={isSaving}
         >
-          Add
+          {isSaving ? "Saving" : "Add"}
         </button>
       </div>
       {error && <p className="text-red-500 text-xs mt-2">{error}</p>}

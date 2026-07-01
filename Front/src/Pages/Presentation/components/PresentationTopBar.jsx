@@ -155,10 +155,15 @@ function PresentationTopBar({
             <div className="flex flex-row items-stretch gap-3">
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
+                className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-black ${
+                  isEditing
+                    ? "neuphormism-b-btn-gold bg-[goldenrod] shadow-[0_10px_24px_rgba(218,165,32,0.35)]"
+                    : "neuphormism-b-btn"
+                }`}
                 onClick={openEditorToolBox}
-                aria-label="Open cifra editor"
-                title="Open cifra editor"
+                aria-label={isEditing ? "Close cifra editor" : "Open cifra editor"}
+                title={isEditing ? "Close cifra editor" : "Open cifra editor"}
+                aria-pressed={isEditing ? "true" : "false"}
               >
                 <FaFilePen className="h-5 w-5" />
                 <span className="sr-only">Editor</span>

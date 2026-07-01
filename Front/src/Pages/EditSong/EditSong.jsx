@@ -267,10 +267,14 @@ function EditSong() {
               registerInstrumentUpdaters={registerInstrumentUpdaters}
               isDirty={isDirty}
               setIsDirty={setIsDirty}
+              setShowSnackBar={setShowSnackBar}
+              setSnackbarMessage={setSnackbarMessage}
               touchLayout
               touchInlineMedia
               songDataOpen={songDataOpen}
               onToggleSongData={() => setSongDataOpen((current) => !current)}
+              songData={songData}
+              onSongDataChange={handleSongDataChange}
               onPageActionsChange={setPageActions}
             />
           </div>

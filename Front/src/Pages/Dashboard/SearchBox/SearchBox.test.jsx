@@ -61,6 +61,24 @@ describe("SearchBox", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("calls onEscape without clearing the search text", () => {
+    const onEscape = vi.fn();
+    const setSearchTerm = vi.fn();
+
+    renderSearchBox({
+      searchTerm: "ludov",
+      setSearchTerm,
+      onEscape,
+    });
+
+    fireEvent.keyDown(screen.getByPlaceholderText("Buscar música ou artista..."), {
+      key: "Escape",
+    });
+
+    expect(onEscape).toHaveBeenCalledTimes(1);
+    expect(setSearchTerm).not.toHaveBeenCalled();
+  });
+
   it("does not render the close button when onClose is not provided", () => {
     renderSearchBox();
 

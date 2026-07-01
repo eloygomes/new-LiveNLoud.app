@@ -216,7 +216,7 @@ describe("Presentation extracted components", () => {
     expect(screen.getByText("C G")).toBeInTheDocument();
   });
 
-  it("shows chord brackets only while editing presentation columns", () => {
+  it("keeps chord spacing stable while editing presentation columns", () => {
     const columns = [
       {
         groupKey: "column-1",
@@ -263,8 +263,9 @@ describe("Presentation extracted components", () => {
       />,
     );
 
-    expect(screen.getByText("[C]")).toBeInTheDocument();
-    expect(screen.getByText("[D/F#]")).toBeInTheDocument();
+    expect(screen.getByText("C")).toBeInTheDocument();
+    expect(screen.getByText("D/F#")).toBeInTheDocument();
+    expect(screen.queryByText("[C]")).not.toBeInTheDocument();
   });
 
   it("renders top bar actions", () => {
@@ -312,6 +313,43 @@ describe("Presentation extracted components", () => {
       artist: "Next",
       song: "Next Song",
     });
+  });
+
+  it("shows active edit button state while editing", () => {
+    const openEditorToolBox = vi.fn();
+
+    render(
+      <PresentationTopBar
+        visible
+        isTouchLayout={false}
+        isTouchVideoActive={false}
+        songFromURL="Song"
+        artistFromURL="Artist"
+        activeLayoutLabel="Default layout"
+        toolBoxBtnStatus={false}
+        isEditing
+        isVideoModalOpen={false}
+        openEditorToolBox={openEditorToolBox}
+        onToggleToolBox={vi.fn()}
+        isExpandedCifra={false}
+        onToggleExpanded={vi.fn()}
+        onGoToEditSong={vi.fn()}
+        instrumentSelected="keys"
+        canOpenGuitarPro={false}
+        onOpenGuitarProViewer={vi.fn()}
+        onEnterLiveMode={vi.fn()}
+        onGoToSetlistSong={vi.fn()}
+      />,
+    );
+
+    const editButton = screen.getByRole("button", {
+      name: "Close cifra editor",
+    });
+    expect(editButton).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(editButton);
+
+    expect(openEditorToolBox).toHaveBeenCalled();
   });
 
   it("keeps only options and song navigation in the touch top bar", () => {

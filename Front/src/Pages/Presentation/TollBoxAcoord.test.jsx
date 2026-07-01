@@ -48,23 +48,31 @@ const baseProps = {
 };
 
 describe("TollBoxAcoord", () => {
-  it("uses the shared marks toggle callback inside the layout panel", () => {
+  it("does not expose editor in the generic toolbox menu", () => {
+    render(<TollBoxAcoord {...baseProps} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Editor" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses the shared marks toggle callback inside the requested editor panel", () => {
     const onToggleMarksVisibility = vi.fn();
 
     render(
       <TollBoxAcoord
         {...baseProps}
         onToggleMarksVisibility={onToggleMarksVisibility}
+        requestedPanel={{ id: "panel-editor", requestId: 1 }}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Layout" }));
     fireEvent.click(screen.getByRole("button", { name: "On" }));
 
     expect(onToggleMarksVisibility).toHaveBeenCalledTimes(1);
   });
 
-  it("exposes font size and block spacing controls inside the layout panel", () => {
+  it("exposes font size and block spacing controls inside the requested editor panel", () => {
     const decreaseTouchFontSize = vi.fn();
     const increaseTouchFontSize = vi.fn();
     const decreaseBlockSpacing = vi.fn();
@@ -73,6 +81,7 @@ describe("TollBoxAcoord", () => {
     render(
       <TollBoxAcoord
         {...baseProps}
+        requestedPanel={{ id: "panel-editor", requestId: 1 }}
         decreaseTouchFontSize={decreaseTouchFontSize}
         increaseTouchFontSize={increaseTouchFontSize}
         decreaseBlockSpacing={decreaseBlockSpacing}
@@ -80,7 +89,6 @@ describe("TollBoxAcoord", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Layout" }));
     fireEvent.click(screen.getByLabelText("Decrease font size"));
     fireEvent.click(screen.getByLabelText("Increase font size"));
     fireEvent.click(screen.getByLabelText("Decrease block spacing"));
@@ -92,22 +100,30 @@ describe("TollBoxAcoord", () => {
     expect(increaseBlockSpacing).toHaveBeenCalledTimes(1);
   });
 
-  it("starts editing and hides the touch sheet when opening editor on touch", () => {
-    const startEditingCifra = vi.fn();
-    const closeToolBoxWithoutDiscard = vi.fn();
+  it("opens the editor panel on touch when requested by the presentation edit button", () => {
+    const setActiveTouchPanel = vi.fn();
 
-    render(
+    const { rerender } = render(
       <TollBoxAcoord
         {...baseProps}
         isTouchLayout
-        startEditingCifra={startEditingCifra}
-        closeToolBoxWithoutDiscard={closeToolBoxWithoutDiscard}
+        setActiveTouchPanel={setActiveTouchPanel}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Editor/i }));
+    expect(
+      screen.queryByRole("button", { name: /Editor/i }),
+    ).not.toBeInTheDocument();
 
-    expect(startEditingCifra).toHaveBeenCalledTimes(1);
-    expect(closeToolBoxWithoutDiscard).toHaveBeenCalledTimes(1);
+    rerender(
+      <TollBoxAcoord
+        {...baseProps}
+        isTouchLayout
+        setActiveTouchPanel={setActiveTouchPanel}
+        requestedPanel={{ id: "panel-editor", requestId: 1 }}
+      />,
+    );
+
+    expect(setActiveTouchPanel).toHaveBeenCalledWith("panel-editor");
   });
 });

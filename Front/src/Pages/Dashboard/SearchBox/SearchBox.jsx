@@ -1,13 +1,18 @@
 /* eslint-disable react/prop-types */
+import { forwardRef } from "react";
 import { IoClose } from "react-icons/io5";
 
-function SearchBox({
-  searchTerm,
-  setSearchTerm,
-  onClose,
-  className = "neuphormism-b m-2 pb-5",
-  autoFocus = false,
-}) {
+const SearchBox = forwardRef(function SearchBox(
+  {
+    searchTerm,
+    setSearchTerm,
+    onClose,
+    className = "neuphormism-b m-2 pb-5",
+    autoFocus = false,
+    onEscape,
+  },
+  inputRef,
+) {
   return (
     <div className={className}>
       <div className="flex items-center justify-between  px-5 my-2  ">
@@ -42,9 +47,16 @@ function SearchBox({
               </svg>
             </span>
             <input
+              ref={inputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  onEscape?.();
+                }
+              }}
               placeholder="Buscar música ou artista..."
               autoFocus={autoFocus}
               className="w-full rounded-md border border-gray-300 bg-white/80 py-2 pl-10 pr-10 text-[16px] text-gray-900 shadow-sm focus:border-[goldenrod] focus:outline-none focus:ring-2 focus:ring-[goldenrod] md:text-sm"
@@ -64,6 +76,6 @@ function SearchBox({
       </div>
     </div>
   );
-}
+});
 
 export default SearchBox;

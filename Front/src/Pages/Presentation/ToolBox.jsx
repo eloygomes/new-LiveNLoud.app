@@ -44,6 +44,7 @@ function ToolBox({
   setTransposeSteps,
   displayKey,
   showProgressionMarkers,
+  isExpandedCifra = false,
   isTouchLayout = false,
   touchFontSizeLabel,
   decreaseTouchFontSize,
@@ -236,6 +237,7 @@ function ToolBox({
               setTransposeSteps={setTransposeSteps}
               displayKey={displayKey}
               showProgressionMarkers={showProgressionMarkers}
+              isExpandedCifra={isExpandedCifra}
               isTouchLayout
               touchFontSizeLabel={touchFontSizeLabel}
               decreaseTouchFontSize={decreaseTouchFontSize}
@@ -317,6 +319,7 @@ function ToolBox({
                 setTransposeSteps={setTransposeSteps}
                 displayKey={displayKey}
                 showProgressionMarkers={showProgressionMarkers}
+                isExpandedCifra={isExpandedCifra}
                 touchFontSizeLabel={touchFontSizeLabel}
                 decreaseTouchFontSize={decreaseTouchFontSize}
                 increaseTouchFontSize={increaseTouchFontSize}

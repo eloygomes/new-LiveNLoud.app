@@ -1423,9 +1423,9 @@ main{
 }
 
 .presentation-content-flow[contenteditable="true"] {
-  caret-color: #dc2626;
+  caret-color: #ff0000;
+  caret-shape: block;
   outline: none;
-  text-shadow: 0.35px 0 0 currentColor;
 }
 
 .presentation-content-flow[contenteditable="true"] .presentation-render-block {
@@ -1438,7 +1438,48 @@ main{
 
 .presentation-content-flow[contenteditable="true"] .presentation-render-content-block::selection,
 .presentation-content-flow[contenteditable="true"] .presentation-render-content-block *::selection {
-  background: rgba(220, 38, 38, 0.18);
+  background: rgba(220, 38, 38, 0.34);
+  color: #050505;
+}
+
+.presentation-content-flow[contenteditable="true"] .notespresentation::before,
+.presentation-content-flow[contenteditable="true"] .notespresentation::after {
+  position: absolute;
+  top: 0;
+  color: goldenrod;
+  pointer-events: none;
+}
+
+.presentation-content-flow[contenteditable="true"] .notespresentation {
+  display: inline-block;
+  margin-inline: -1ch;
+  padding-inline: 1ch;
+}
+
+.presentation-content-flow[contenteditable="true"] .notespresentation::before {
+  content: "[ ";
+  left: 0;
+}
+
+.presentation-content-flow[contenteditable="true"] .notespresentation::after {
+  content: " ]";
+  right: 0;
+}
+
+.presentation-content-flow[contenteditable="true"] .presentation-tom,
+.presentation-content-flow[contenteditable="true"] .presentation-lyrics,
+.presentation-content-flow[contenteditable="true"] .presentation-chords,
+.presentation-content-flow[contenteditable="true"] .presentation-chord-lyrics,
+.presentation-content-flow[contenteditable="true"] .presentation-combined-tab-chords,
+.presentation-content-flow[contenteditable="true"] .presentation-tab,
+.presentation-content-flow[contenteditable="true"] .presentation-tab-section,
+.presentation-content-flow[contenteditable="true"] .intro pre,
+.presentation-content-flow[contenteditable="true"] .verse pre,
+.presentation-content-flow[contenteditable="true"] .chorus pre,
+.presentation-content-flow[contenteditable="true"] .solo pre,
+.presentation-content-flow[contenteditable="true"] .bridge pre,
+.presentation-content-flow[contenteditable="true"] .section pre {
+  overflow: visible;
 }
 
 .presentation-live-content pre,
