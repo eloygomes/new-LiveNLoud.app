@@ -194,6 +194,9 @@ describe("usePresentationCifraEditor", () => {
           }),
         }),
       }),
+      expect.objectContaining({
+        replaceEmptyInstrumentFields: { keys: ["songCifra"] },
+      }),
     );
   });
 
@@ -252,7 +255,97 @@ describe("usePresentationCifraEditor", () => {
           }),
         }),
       }),
+      expect.objectContaining({
+        replaceEmptyInstrumentFields: { keys: ["songCifra"] },
+      }),
     );
+  });
+
+  it("allows intentionally saving an empty cifra after the editor content was deleted", async () => {
+    const presentationContent = document.createElement("div");
+    presentationContent.innerHTML = `
+      <div class="presentation-render-content-block" data-block-keys="block-0">
+        <pre></pre>
+      </div>
+    `;
+
+    const props = makeProps({
+      editableSongCifra: "original cifra",
+      hasEditedCifraContent: true,
+      isEditing: true,
+      presentationContentRef: { current: presentationContent },
+      currentInstrumentData: {
+        songCifra: "original cifra",
+        presentationLayouts: {
+          default: { songCifra: "original cifra" },
+          expanded: { songCifra: "expanded cifra" },
+        },
+      },
+      instrumentPresentationLayouts: {
+        default: { songCifra: "original cifra" },
+        expanded: { songCifra: "expanded cifra" },
+      },
+      songDataFetched: {
+        artist: "Artist",
+        song: "Song",
+        keys: {
+          songCifra: "original cifra",
+          presentationLayouts: {
+            default: { songCifra: "original cifra" },
+            expanded: { songCifra: "expanded cifra" },
+          },
+        },
+      },
+      visibleContentBlocks: [{ blockKey: "block-0" }],
+    });
+
+    const { result } = renderHook(() => usePresentationCifraEditor(props));
+
+    await act(async () => {
+      await result.current.handleSaveCifra();
+    });
+
+    expect(updateSongEntryMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keys: expect.objectContaining({
+          songCifra: "",
+          presentationLayouts: expect.objectContaining({
+            default: expect.objectContaining({
+              songCifra: "",
+            }),
+          }),
+        }),
+      }),
+      expect.objectContaining({
+        replaceEmptyInstrumentFields: { keys: ["songCifra"] },
+      }),
+    );
+  });
+
+  it("syncs the current editor DOM before layout updates rerender content", () => {
+    const presentationContent = document.createElement("div");
+    presentationContent.innerHTML = `
+      <div class="presentation-render-content-block" data-block-keys="block-0">
+        <pre>edited before layout update</pre>
+      </div>
+    `;
+    const setHasEditedCifraContent = vi.fn();
+    const props = makeProps({
+      isEditing: true,
+      presentationContentRef: { current: presentationContent },
+      setHasEditedCifraContent,
+      visibleContentBlocks: [{ blockKey: "block-0" }],
+    });
+
+    const { result } = renderHook(() => usePresentationCifraEditor(props));
+
+    let syncedContent = null;
+    act(() => {
+      syncedContent = result.current.syncEditingCifraBeforeLayoutUpdate();
+    });
+
+    expect(syncedContent).toBe("edited before layout update");
+    expect(setHasEditedCifraContent).toHaveBeenCalledWith(true);
   });
 
   it("collects horizontal editor DOM even when the edited-content flag was not raised", async () => {

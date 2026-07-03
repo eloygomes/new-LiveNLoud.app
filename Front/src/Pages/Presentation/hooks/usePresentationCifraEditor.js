@@ -203,7 +203,11 @@ export function usePresentationCifraEditor({
     const currentSummary = getPresentationContentDebugSummary(currentCifra);
     const nextSummary = getPresentationContentDebugSummary(nextCifra);
 
-    if (currentCifra.trim() && !String(nextCifra || "").trim()) {
+    if (
+      currentCifra.trim() &&
+      !String(nextCifra || "").trim() &&
+      !hasEditedCifraContent
+    ) {
       console.warn(
         "Edição ignorada: coleta do conteúdo retornou vazio para uma cifra existente.",
       );
@@ -226,7 +230,29 @@ export function usePresentationCifraEditor({
     collectEditedPresentationBlocks,
     draftCifra,
     editableSongCifra,
+    hasEditedCifraContent,
     presentationLayoutIdentity,
+  ]);
+
+  const syncEditingCifraBeforeLayoutUpdate = useCallback(() => {
+    if (!isEditing || !presentationContentRef.current) return null;
+
+    const nextCifra = collectSafeEditedPresentationBlocks();
+    setDraftCifra(nextCifra);
+    updateEditedCifraContent(true);
+
+    logPresentationDebug("content:sync-before-layout-update", {
+      identity: presentationLayoutIdentity,
+      content: getPresentationContentDebugSummary(nextCifra),
+    });
+
+    return nextCifra;
+  }, [
+    collectSafeEditedPresentationBlocks,
+    isEditing,
+    presentationContentRef,
+    presentationLayoutIdentity,
+    updateEditedCifraContent,
   ]);
 
   const handleSaveCifra = useCallback(async () => {
@@ -276,7 +302,11 @@ export function usePresentationCifraEditor({
     });
 
     try {
-      const saveResult = await updateSongEntry(nextSongData);
+      const saveResult = await updateSongEntry(nextSongData, {
+        replaceEmptyInstrumentFields: {
+          [instrumentSelected]: ["songCifra"],
+        },
+      });
       logPresentationDebug("save:response", {
         identity: presentationLayoutIdentity,
         queued: Boolean(saveResult?.queued),
@@ -397,5 +427,6 @@ export function usePresentationCifraEditor({
     setDraftCifra,
     setSaveError,
     startEditingCifra,
+    syncEditingCifraBeforeLayoutUpdate,
   };
 }

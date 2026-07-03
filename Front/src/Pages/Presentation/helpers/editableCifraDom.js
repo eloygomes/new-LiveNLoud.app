@@ -40,7 +40,7 @@ function isRenderedSectionLabelLine(node, text = "") {
 }
 
 function normalizeEditedLineText(node, text = "") {
-  const sanitizedText = sanitizeEditableText(text);
+  const sanitizedText = sanitizeEditableText(text).replace(/^\n+/, "");
 
   if (isRenderedSectionLabelLine(node, sanitizedText)) {
     return sanitizedText;
@@ -84,7 +84,8 @@ function getEditableNodeStructuredText(node) {
   ) {
     const chordText = sanitizeEditableText(node.textContent || "").trim();
     const normalizedChordText = chordText.replace(/^\[|\]$/g, "");
-    return `[${normalizedChordText || node.dataset.chord}]`;
+    if (!normalizedChordText.trim()) return "";
+    return `[${normalizedChordText}]`;
   }
 
   return Array.from(node.childNodes || [])

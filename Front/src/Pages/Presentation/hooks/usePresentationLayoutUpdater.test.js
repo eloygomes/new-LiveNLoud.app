@@ -94,4 +94,47 @@ describe("usePresentationLayoutUpdater", () => {
         .default.blockSpacingStep,
     ).toBe(-4);
   });
+
+  it("preserves pending edited cifra content before applying a layout update", () => {
+    const setSongDataFetched = vi.fn();
+    const getPendingCifraContent = vi.fn(() => "edited visible cifra");
+    const initialSongData = {
+      keys: {
+        songCifra: "original",
+        presentationLayouts: {
+          default: {
+            songCifra: "original",
+            fontSizeStep: 0,
+            showProgressionMarkers: false,
+          },
+        },
+      },
+    };
+
+    const { result } = renderHook(() =>
+      usePresentationLayoutUpdater({
+        activeLayoutVariant: "default",
+        getPendingCifraContent,
+        instrumentSelected: "keys",
+        presentationLayoutIdentity: "artist::song::keys",
+        setHasEditedLayoutContent: vi.fn(),
+        setSongDataFetched,
+      }),
+    );
+
+    act(() => {
+      result.current.setActiveShowProgressionMarkers(true);
+    });
+
+    const nextSongData = runStateUpdate(setSongDataFetched, initialSongData);
+
+    expect(getPendingCifraContent).toHaveBeenCalledTimes(1);
+    expect(nextSongData.keys.presentationLayouts.default.songCifra).toBe(
+      "edited visible cifra",
+    );
+    expect(nextSongData.keys.songCifra).toBe("edited visible cifra");
+    expect(nextSongData.keys.presentationLayouts.default.showProgressionMarkers).toBe(
+      true,
+    );
+  });
 });

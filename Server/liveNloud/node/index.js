@@ -3960,6 +3960,13 @@ const INSTRUMENT_SETLIST_TAGS = {
   drums: "drums",
   voice: "voice",
 };
+const REPLACEABLE_EMPTY_INSTRUMENT_FIELDS = new Set([
+  "songCifra",
+  "songTabs",
+  "songChords",
+  "songLyrics",
+  "notes",
+]);
 
 function uniqueArray(values = []) {
   return Array.from(
@@ -4197,6 +4204,40 @@ function mergeSongEntries(...entries) {
     ? merged.guitarProFiles
     : [];
   return merged;
+}
+
+function applyReplaceEmptyInstrumentFields(
+  entry = {},
+  incomingSong = {},
+  replaceEmptyInstrumentFields = {},
+) {
+  if (!isPlainObject(replaceEmptyInstrumentFields)) return entry;
+
+  SONG_INSTRUMENT_KEYS.forEach((instrument) => {
+    const fields = Array.isArray(replaceEmptyInstrumentFields[instrument])
+      ? replaceEmptyInstrumentFields[instrument]
+      : [];
+    if (!fields.length || !isPlainObject(incomingSong?.[instrument])) return;
+
+    const incomingBlock = incomingSong[instrument];
+    const currentBlock = isPlainObject(entry[instrument])
+      ? entry[instrument]
+      : {};
+
+    fields.forEach((field) => {
+      if (!REPLACEABLE_EMPTY_INSTRUMENT_FIELDS.has(field)) return;
+      if (!Object.prototype.hasOwnProperty.call(incomingBlock, field)) return;
+      if (hasStoredValue(incomingBlock[field])) return;
+
+      entry[instrument] = {
+        ...currentBlock,
+        ...(entry[instrument] || {}),
+        [field]: incomingBlock[field],
+      };
+    });
+  });
+
+  return entry;
 }
 
 async function hydrateUserdataFromGeneralCifra(userdata = {}) {
@@ -4469,7 +4510,7 @@ app.get("/api/v1/generalCifra", async (req, res) => {
 
 app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
   try {
-    const { email, updatedSong } = req.body;
+    const { email, updatedSong, replaceEmptyInstrumentFields } = req.body;
     const ownerEmail = await requireSameUserEmail(
       req,
       res,
@@ -4513,7 +4554,11 @@ app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
     const duplicateEntries = matchingIndexes.map(
       (index) => userDoc.userdata[index],
     );
-    const mergedEntry = mergeSongEntries(...duplicateEntries, updatedSong);
+    const mergedEntry = applyReplaceEmptyInstrumentFields(
+      mergeSongEntries(...duplicateEntries, updatedSong),
+      updatedSong,
+      replaceEmptyInstrumentFields,
+    );
     mergedEntry.id = userDoc.userdata[songIndex].id || songIndex + 1;
 
     const nextUserdata = userDoc.userdata.filter(

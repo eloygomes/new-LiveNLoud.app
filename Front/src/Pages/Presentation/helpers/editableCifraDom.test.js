@@ -212,6 +212,46 @@ describe("editableCifraDom", () => {
     expect(serialized).not.toContain("[B5][C5][B5][C5]");
   });
 
+  it("does not restore deleted rendered chord text from the original data-chord attribute", () => {
+    const contentNode = document.createElement("div");
+    contentNode.innerHTML = `
+      <div class="presentation-render-content-block">
+        <div class="verse">
+          <pre class="presentation-chord-lyrics"><span class="notespresentation" data-chord="Am"></span>
+De tarde quero descansar</pre>
+        </div>
+      </div>
+    `;
+
+    const serialized = collectEditedPresentationBlocksFromNode({
+      contentNode,
+      fallbackCifra: "",
+    });
+
+    expect(serialized).toBe("De tarde quero descansar");
+    expect(serialized).not.toContain("[Am]");
+  });
+
+  it("treats an emptied rendered chord token as deleted instead of restoring its old chord", () => {
+    const contentNode = document.createElement("div");
+    contentNode.innerHTML = `
+      <div class="presentation-render-content-block">
+        <div class="verse">
+          <pre class="presentation-chord-lyrics"><span class="notespresentation" data-chord="Am">[]</span>
+De tarde quero descansar</pre>
+        </div>
+      </div>
+    `;
+
+    const serialized = collectEditedPresentationBlocksFromNode({
+      contentNode,
+      fallbackCifra: "",
+    });
+
+    expect(serialized).toBe("De tarde quero descansar");
+    expect(serialized).not.toContain("[Am]");
+  });
+
   it("preserves rendered section labels while applying editor chord brackets elsewhere", () => {
     const contentNode = document.createElement("div");
     contentNode.innerHTML = `

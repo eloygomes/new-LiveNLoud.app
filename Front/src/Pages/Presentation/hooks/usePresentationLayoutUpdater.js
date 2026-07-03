@@ -11,6 +11,7 @@ import { logPresentationDebug } from "../helpers/presentationUtils";
 
 export function usePresentationLayoutUpdater({
   activeLayoutVariant,
+  getPendingCifraContent,
   instrumentSelected,
   presentationLayoutIdentity,
   setHasEditedLayoutContent,
@@ -19,6 +20,12 @@ export function usePresentationLayoutUpdater({
   const updatePresentationLayoutVariant = useCallback(
     (variantKey, update) => {
       setHasEditedLayoutContent(true);
+      const pendingCifraContent =
+        typeof getPendingCifraContent === "function"
+          ? getPendingCifraContent()
+          : null;
+      const hasPendingCifraContent = typeof pendingCifraContent === "string";
+
       setSongDataFetched((prev) => {
         if (!prev || !instrumentSelected) return prev;
 
@@ -26,20 +33,28 @@ export function usePresentationLayoutUpdater({
         const currentLayouts =
           buildInstrumentPresentationLayouts(currentInstrument);
         const currentVariantLayout = currentLayouts[variantKey];
+        const baseVariantLayout = {
+          ...currentVariantLayout,
+          ...(hasPendingCifraContent
+            ? { songCifra: pendingCifraContent }
+            : {}),
+        };
         const nextVariantLayoutInput =
           typeof update === "function"
-            ? update(currentVariantLayout, currentLayouts)
+            ? update(baseVariantLayout, currentLayouts)
             : {
-                ...currentVariantLayout,
+                ...baseVariantLayout,
                 ...(update || {}),
               };
         const nextVariantLayout = normalizePresentationLayoutVariant(
           nextVariantLayoutInput,
           {
             fallbackSongCifra:
-              currentVariantLayout?.songCifra ||
-              currentInstrument.songCifra ||
-              "",
+              hasPendingCifraContent
+                ? pendingCifraContent
+                : currentVariantLayout?.songCifra ||
+                  currentInstrument.songCifra ||
+                  "",
             defaultTwoColumns: variantKey === "expanded",
           },
         );
@@ -68,6 +83,7 @@ export function usePresentationLayoutUpdater({
       });
     },
     [
+      getPendingCifraContent,
       instrumentSelected,
       presentationLayoutIdentity,
       setHasEditedLayoutContent,

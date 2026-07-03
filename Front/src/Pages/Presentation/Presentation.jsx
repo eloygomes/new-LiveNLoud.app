@@ -452,18 +452,6 @@ function Presentation() {
   });
 
   const {
-    adjustActiveBlockSpacingStep,
-    adjustActiveFontSizeStep,
-    setActiveShowProgressionMarkers,
-  } = usePresentationLayoutUpdater({
-    activeLayoutVariant,
-    instrumentSelected,
-    presentationLayoutIdentity,
-    setHasEditedLayoutContent,
-    setSongDataFetched,
-  });
-
-  const {
     activeProgressionRenderColumns,
     displayKey,
     shouldUseExpandedVerticalFlow,
@@ -489,6 +477,7 @@ function Presentation() {
     saveError,
     setSaveError,
     startEditingCifra,
+    syncEditingCifraBeforeLayoutUpdate,
   } = usePresentationCifraEditor({
     activeLayoutVariant,
     activeProgressionRenderColumns,
@@ -515,6 +504,19 @@ function Presentation() {
     shouldUseHorizontalColumnFlow,
     songDataFetched,
     visibleContentBlocks,
+  });
+
+  const {
+    adjustActiveBlockSpacingStep,
+    adjustActiveFontSizeStep,
+    setActiveShowProgressionMarkers,
+  } = usePresentationLayoutUpdater({
+    activeLayoutVariant,
+    getPendingCifraContent: syncEditingCifraBeforeLayoutUpdate,
+    instrumentSelected,
+    presentationLayoutIdentity,
+    setHasEditedLayoutContent,
+    setSongDataFetched,
   });
 
   const resetTransientPresentationState = useCallback(() => {

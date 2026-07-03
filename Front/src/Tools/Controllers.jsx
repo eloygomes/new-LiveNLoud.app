@@ -710,7 +710,7 @@ export const updateSongData = async (updatedData) => {
   }
 };
 
-export const updateSongEntry = async (updatedSong = {}) => {
+export const updateSongEntry = async (updatedSong = {}, options = {}) => {
   const email = getUserEmail();
   if (!email) {
     throw new Error("Usuário não autenticado (sem userEmail no localStorage).");
@@ -723,6 +723,7 @@ export const updateSongEntry = async (updatedSong = {}) => {
     const { data } = await fetchApi.put("/api/v1/song/updateExact", {
       email,
       updatedSong,
+      replaceEmptyInstrumentFields: options.replaceEmptyInstrumentFields,
     });
     mergeSongIntoCache(updatedSong);
     setOfflineModeEnabled(false);
@@ -736,6 +737,7 @@ export const updateSongEntry = async (updatedSong = {}) => {
         artist: updatedSong.artist,
         song: updatedSong.song,
         userdata: updatedSong,
+        replaceEmptyInstrumentFields: options.replaceEmptyInstrumentFields,
       }),
     );
     setOfflineModeEnabled(true);
