@@ -46,7 +46,10 @@ import {
   deleteSelectedEditableContent,
   moveEnterToNextEditableBlock,
   moveToAdjacentEditableBlock,
+  pasteEditableContentAcrossBlocks,
   removeEmptyEditableLine,
+  replaceSelectedEditableContentWithText,
+  selectAllEditableContent,
 } from "./helpers/editableCifraDom";
 import { findSongIndexInList } from "../shared/setlistNavigation";
 
@@ -245,9 +248,6 @@ function Presentation() {
     useState(decodedRouteInstrument);
   const [embedLinks, setEmbedLinks] = useState([]);
 
-  const [hideTabs, setHideTabs] = useState(false); // Estado para controlar a visibilidade das tabs
-  const [hideChords, setHideChords] = useState(false); // Estado para controlar a visibilidade dos acordes
-
   const [transposeSteps, setTransposeSteps] = useState(0);
   const [isExpandedCifra, setIsExpandedCifra] = useState(() =>
     getInitialExpandedCifraState({
@@ -257,10 +257,10 @@ function Presentation() {
     }),
   );
 
-  const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [isEditing, setIsEditing] = useState(false);
   const [hasEditedCifraContent, setHasEditedCifraContent] = useState(false);
   const [hasEditedLayoutContent, setHasEditedLayoutContent] = useState(false);
+  const [activeToolBoxPanel, setActiveToolBoxPanel] = useState(null);
   const [toolBoxRequestedPanel, setToolBoxRequestedPanel] = useState(null);
   const [setlistSongs, setSetlistSongs] = useState([]);
   const [isRouteSongLoading, setIsRouteSongLoading] = useState(false);
@@ -353,7 +353,6 @@ function Presentation() {
     instrumentSelected,
     isExpandedCifra,
     normalizeCifra,
-    selectContenttoShow,
     songDataFetched,
   });
   const isTouchLayout = getIsPresentationTouchLayout();
@@ -407,6 +406,7 @@ function Presentation() {
   const [notesModalStatus, setNotesModalStatus] = useState(false);
   const liveModeRootRef = useRef(null);
   const liveSetlistMoveGuardRef = useRef({ direction: 0, time: 0 });
+  const wasEditingRef = useRef(false);
   const effectiveLiveMode = isLiveMode || isPseudoLiveMode;
   const shouldUseFullBleedLayout =
     effectiveLiveMode || (!isTouchLayout && isExpandedCifra);
@@ -460,7 +460,6 @@ function Presentation() {
     visibleContentBlocks,
   } = usePresentationRenderModel({
     contentSelected,
-    hideTabs,
     isExpandedCifra,
     isTwoColumns,
     progressionMarkOverrides,
@@ -478,6 +477,7 @@ function Presentation() {
     setSaveError,
     startEditingCifra,
     syncEditingCifraBeforeLayoutUpdate,
+    syncRenderedCifraToDraft,
   } = usePresentationCifraEditor({
     activeLayoutVariant,
     activeProgressionRenderColumns,
@@ -522,6 +522,7 @@ function Presentation() {
   const resetTransientPresentationState = useCallback(() => {
     hideTooltip();
     setToolBoxBtnStatus(false);
+    setActiveToolBoxPanel(null);
     setNotesModalStatus(false);
     resetMediaControls();
     setIsEditing(false);
@@ -628,25 +629,18 @@ function Presentation() {
     activeProgressionRenderColumns,
     closeTouchVideo,
     effectiveLiveMode,
-    hideChords,
     hideTooltip,
     isEditing,
     isTouchLayout,
     liveModeRootRef,
     presentationContentRef,
     pushSnackbarMessage,
-    selectContenttoShow,
     setActiveLiveColumnKey,
     setActiveShowProgressionMarkers,
     setIsLiveMode,
     setIsPseudoLiveMode,
     shouldUseHorizontalColumnFlow: shouldUseHorizontalColumnFlow && liveView !== "setlist",
   });
-
-  // Função para alternar a visibilidade das tabs
-  const toggleTabsVisibility = () => {
-    setHideTabs(!hideTabs);
-  };
 
   const {
     handleInstrumentNotesChange,
@@ -667,6 +661,48 @@ function Presentation() {
   const toggleMarksVisibility = useCallback(() => {
     setActiveShowProgressionMarkers((current) => !current);
   }, [setActiveShowProgressionMarkers]);
+
+  useEffect(() => {
+    if (isEditing) {
+      wasEditingRef.current = true;
+      setActiveShowProgressionMarkers(true);
+      return;
+    }
+
+    if (wasEditingRef.current) {
+      wasEditingRef.current = false;
+      setActiveShowProgressionMarkers(false);
+    }
+  }, [isEditing, setActiveShowProgressionMarkers]);
+
+  const toggleToolBoxPanel = useCallback(
+    (panelId) => {
+      setNotesModalStatus(false);
+      setActiveToolBoxPanel((currentPanel) => {
+        if (toolBoxBtnStatus && currentPanel === panelId) {
+          setToolBoxBtnStatus(false);
+          return null;
+        }
+
+        setToolBoxRequestedPanel({ id: panelId, requestedAt: Date.now() });
+        setToolBoxBtnStatus(true);
+        return panelId;
+      });
+    },
+    [toolBoxBtnStatus],
+  );
+
+  const toggleNotesWindow = useCallback(() => {
+    setToolBoxBtnStatus(false);
+    setActiveToolBoxPanel(null);
+    setNotesModalStatus((current) => {
+      const nextValue = !current;
+      if (nextValue) {
+        openInstrumentNotesWindow();
+      }
+      return nextValue;
+    });
+  }, [openInstrumentNotesWindow]);
 
   const goToLiveSetlistSong = useCallback(
     (song) => {
@@ -806,11 +842,6 @@ function Presentation() {
           artistFromURL={artistFromURL}
           instrumentSelected={instrumentSelected}
           songDataFetched={songDataFetched}
-          toggleTabsVisibility={toggleTabsVisibility}
-          hideChords={hideChords}
-          setHideChords={setHideChords}
-          selectContenttoShow={selectContenttoShow}
-          setSelectContenttoShow={setSelectContenttoShow}
           isEditing={isEditing}
           isSavingCifra={isSavingCifra}
           hasDraftChanges={hasDraftChanges}
@@ -851,18 +882,21 @@ function Presentation() {
           isTouchVideoActive={isTouchVideoActive}
           onCloseTouchVideo={closeTouchVideo}
           requestedPanel={toolBoxRequestedPanel}
+          onRequestClose={() => setActiveToolBoxPanel(null)}
         />
       )}
       <div
         className={`container mx-auto h-full min-h-0 ${
-          shouldUseFullBleedLayout ? "max-w-none px-0" : ""
+          shouldUseFullBleedLayout || !isExpandedCifra ? "max-w-none px-0" : ""
         }`}
       >
         <div
           className={`flex h-full min-h-0 flex-col ${
             shouldUseFullBleedLayout
               ? "w-full max-w-none px-0"
-              : "w-11/12 2xl:w-9/12 mx-auto"
+              : isExpandedCifra
+                ? "w-11/12 2xl:w-9/12 mx-auto"
+                : "w-[96%] 2xl:w-[90%] mx-auto"
           }`}
         >
           <InformationChannel visible={!effectiveLiveMode && isEditing} />
@@ -890,6 +924,13 @@ function Presentation() {
             instrumentSelected={instrumentSelected}
             canOpenGuitarPro={canOpenGuitarPro}
             onOpenGuitarProViewer={openGuitarProViewer}
+            hasVideos={embedLinks.length > 0}
+            isScrollingAvailable={!isExpandedCifra}
+            onOpenTranspose={() => toggleToolBoxPanel("panel-transpose")}
+            onOpenNotes={toggleNotesWindow}
+            onOpenInstruments={() => toggleToolBoxPanel("panel1")}
+            onOpenVideos={() => toggleToolBoxPanel("panel2")}
+            onOpenScrolling={() => toggleToolBoxPanel("panel6")}
             onEnterLiveMode={enterLiveMode}
             onGoToSetlistSong={goToSetlistSong}
           />
@@ -930,8 +971,6 @@ function Presentation() {
               effectiveLiveMode
                 ? "presentation-live-content"
                 : `presentation-scroll-content neuphormism-b overflow-y-auto ${isTouchLayout ? "p-4" : "px-10 py-5"}`
-            } ${hideChords ? "hide-chords" : ""} ${
-              selectContenttoShow === "tabs" ? "presentation-tabs-only" : ""
             } ${
               effectiveLiveMode && isTouchLayout
                 ? "presentation-live-content-touch"
@@ -993,32 +1032,60 @@ function Presentation() {
                 style={{
                   "--presentation-block-gap": `${blockSpacingPx}px`,
                 }}
-                contentEditable={isEditing}
+                data-editing={isEditing ? "true" : undefined}
                 suppressContentEditableWarning
-                onBeforeInput={isEditing ? markCifraContentAsEdited : undefined}
                 onInput={isEditing ? markCifraContentAsEdited : undefined}
                 onPaste={
-                  isEditing ? () => setHasEditedCifraContent(true) : undefined
+                  isEditing
+                    ? (event) => {
+                        setHasEditedCifraContent(true);
+                        pasteEditableContentAcrossBlocks(event);
+                        window.requestAnimationFrame(() => {
+                          syncRenderedCifraToDraft();
+                        });
+                      }
+                    : undefined
                 }
                 onCut={
-                  isEditing ? () => setHasEditedCifraContent(true) : undefined
+                  isEditing
+                    ? () => {
+                        setHasEditedCifraContent(true);
+                        window.requestAnimationFrame(() => {
+                          syncRenderedCifraToDraft();
+                        });
+                      }
+                    : undefined
                 }
                 onKeyDown={
                   isEditing
                     ? (event) => {
+                        if (selectAllEditableContent(event)) {
+                          return;
+                        }
+                        if (
+                          event.key === "ArrowUp" ||
+                          event.key === "ArrowDown"
+                        ) {
+                          event.stopPropagation();
+                          return;
+                        }
                         if (deleteSelectedEditableContent(event)) {
-                          setHasEditedCifraContent(true);
+                          syncRenderedCifraToDraft();
+                          return;
+                        }
+                        if (replaceSelectedEditableContentWithText(event)) {
+                          syncRenderedCifraToDraft();
                           return;
                         }
                         if (moveToAdjacentEditableBlock(event)) {
-                          setHasEditedCifraContent(true);
+                          syncRenderedCifraToDraft();
                           return;
                         }
                         if (moveEnterToNextEditableBlock(event)) {
                           return;
                         }
                         if (removeEmptyEditableLine(event)) {
-                          setHasEditedCifraContent(true);
+                          syncRenderedCifraToDraft();
                         }
                       }
                     : undefined
@@ -1026,7 +1093,6 @@ function Presentation() {
               >
                 <PresentationColumns
                   columns={activeProgressionRenderColumns}
-                  selectContenttoShow={selectContenttoShow}
                   showProgressionMarkers={showProgressionMarkers}
                   effectiveLiveMode={effectiveLiveMode}
                   shouldUseHorizontalColumnFlow={shouldUseHorizontalColumnFlow}

@@ -5,7 +5,6 @@ export function usePresentationSongData({
   instrumentSelected,
   isExpandedCifra,
   normalizeCifra,
-  selectContenttoShow,
   songDataFetched,
 }) {
   const currentInstrumentData = useMemo(() => {
@@ -21,9 +20,6 @@ export function usePresentationSongData({
   const activePresentationLayout =
     instrumentPresentationLayouts[activeLayoutVariant];
   const songCifraData = activePresentationLayout?.songCifra || "";
-  const songLyrics = currentInstrumentData?.songLyrics || "";
-  const songChords = currentInstrumentData?.songChords || "";
-  const songTabs = currentInstrumentData?.songTabs || "";
   const isTwoColumns = isExpandedCifra;
   const showProgressionMarkers = Boolean(
     activePresentationLayout?.showProgressionMarkers,
@@ -42,29 +38,7 @@ export function usePresentationSongData({
   );
   const editableSongCifra = normalizedSongCifra;
 
-  const contentSelected = useMemo(() => {
-    const defaultContent =
-      normalizedSongCifra || songChords || songTabs || songLyrics || "";
-
-    switch (selectContenttoShow) {
-      case "tabs":
-        return songTabs;
-      case "chords":
-        return songChords;
-      case "lyrics":
-        return songLyrics;
-      case "full":
-        return defaultContent;
-      default:
-        return defaultContent;
-    }
-  }, [
-    selectContenttoShow,
-    normalizedSongCifra,
-    songLyrics,
-    songChords,
-    songTabs,
-  ]);
+  const contentSelected = normalizedSongCifra;
 
   return {
     activeLayoutLabel,

@@ -203,7 +203,6 @@ describe("Presentation extracted components", () => {
             displayPosition: 1,
           },
         ]}
-        selectContenttoShow="default"
         showProgressionMarkers
         effectiveLiveMode
         shouldUseHorizontalColumnFlow
@@ -237,7 +236,6 @@ describe("Presentation extracted components", () => {
     const { rerender } = render(
       <PresentationColumns
         columns={columns}
-        selectContenttoShow="default"
         showProgressionMarkers={false}
         effectiveLiveMode={false}
         shouldUseHorizontalColumnFlow={false}
@@ -253,7 +251,6 @@ describe("Presentation extracted components", () => {
     rerender(
       <PresentationColumns
         columns={columns}
-        selectContenttoShow="default"
         showProgressionMarkers={false}
         effectiveLiveMode={false}
         shouldUseHorizontalColumnFlow={false}

@@ -68,7 +68,7 @@ describe("progressionRenderModel", () => {
     expect(model.activeColumns[1].blockKeys).toEqual(["block-2"]);
   });
 
-  it("continues oversized explicit columns to the next visual block", () => {
+  it("keeps oversized explicit columns intact after save", () => {
     const visibleContentBlocks = [
       ...Array.from({ length: 30 }, (_, index) =>
         makeBlock(index, `left line ${index + 1}`),
@@ -82,14 +82,11 @@ describe("progressionRenderModel", () => {
       shouldUseHorizontalColumnFlow: true,
     });
 
-    expect(model.activeColumns).toHaveLength(3);
+    expect(model.activeColumns).toHaveLength(2);
     expect(model.activeColumns[0].blockKeys).toEqual(
-      Array.from({ length: 24 }, (_, index) => `block-${index}`),
+      Array.from({ length: 30 }, (_, index) => `block-${index}`),
     );
-    expect(model.activeColumns[1].blockKeys).toEqual(
-      Array.from({ length: 6 }, (_, index) => `block-${index + 24}`),
-    );
-    expect(model.activeColumns[2].blockKeys).toEqual(["block-31"]);
+    expect(model.activeColumns[1].blockKeys).toEqual(["block-31"]);
   });
 
   it("splits a single oversized pre block into continuation columns", () => {
@@ -138,5 +135,45 @@ describe("progressionRenderModel", () => {
         ),
       ),
     ).toBe(false);
+  });
+
+  it("keeps a moved tab inside the explicit saved column", () => {
+    const savedCifra = [
+      "[Intro]",
+      "C G",
+      PRESENTATION_COLUMN_BREAK_MARKER,
+      "Parte 5 de 5",
+      "[C]",
+      "E|-------------------------------------|",
+      "B|-0h1-----1-3---0---1--0h1-----1-3---0-|",
+      "G|-----0---------0-2---------0----------|",
+      "D|---0------0----2-----0----------------|",
+      "A|---------------0----------------------|",
+      "E|--------------------------------------|",
+      PRESENTATION_COLUMN_BREAK_MARKER,
+      "[Am]",
+      "De tarde quero descansar",
+    ].join("\n");
+    const visibleContentBlocks = buildProgressionBlocks(
+      processSongCifra(savedCifra).htmlBlocks,
+      { dropBlankLines: true },
+    );
+
+    const model = buildProgressionRenderModel({
+      visibleContentBlocks,
+      shouldUseHorizontalColumnFlow: true,
+    });
+
+    const secondColumnHtml = model.activeColumns[1].blocks
+      .map((block) => block.block)
+      .join("\n");
+    const thirdColumnHtml = model.activeColumns[2].blocks
+      .map((block) => block.block)
+      .join("\n");
+
+    expect(model.activeColumns).toHaveLength(3);
+    expect(secondColumnHtml).toContain("Parte 5 de 5");
+    expect(secondColumnHtml).toContain("0h1");
+    expect(thirdColumnHtml).not.toContain("0h1");
   });
 });

@@ -77,6 +77,7 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
 
     try {
@@ -134,6 +135,12 @@ function Login() {
     }
   };
 
+  const handleLoginKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    handleLogin(e);
+  };
+
   const handlePasswordReset = async () => {
     if (userEmail) {
       navigate(`/newpassword?email=${encodeURIComponent(userEmail)}`);
@@ -182,7 +189,12 @@ function Login() {
       <div className={`${showSnackBar ? "block opacity-100" : "hidden"}`}>
         <SnackBar snackbarMessage={snackbarMessage} />
       </div>
-      <form className="space-y-5" noValidate onSubmit={handleLogin}>
+      <form
+        className="space-y-5"
+        noValidate
+        onSubmit={handleLogin}
+        onKeyDown={handleLoginKeyDown}
+      >
         <div className="space-y-2">
           <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
             Email

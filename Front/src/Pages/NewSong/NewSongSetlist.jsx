@@ -116,18 +116,21 @@ function NewSongSetlist({
   // console.log("setlistOptions", setlistOptions);
 
   return (
-    <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
+    <div className="my-5 rounded-[16px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Setlist
+          </p>
+          <p className="mt-2 text-sm font-medium text-gray-500">
+            Available setlists
           </p>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setIsCreating((current) => !current)}
-            className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+            className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
           >
             +
           </button>
@@ -135,7 +138,7 @@ function NewSongSetlist({
             <button
               type="button"
               onClick={startEditing}
-              className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+              className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
             >
               Edit
             </button>
@@ -144,14 +147,14 @@ function NewSongSetlist({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+                className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveChanges}
-                className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn disabled:opacity-60"
+                className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn disabled:opacity-60"
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -186,7 +189,7 @@ function NewSongSetlist({
           />
           <button
             type="button"
-            className="rounded-[12px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
+            className="rounded-[8px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
             onClick={handleAddNew}
           >
             +
@@ -195,10 +198,7 @@ function NewSongSetlist({
       </div>
       ) : null}
 
-      <div className="mt-5">
-        <h1 className="px-0 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
-          Available setlists
-        </h1>
+      <div className="mt-7">
         <div className="w-full pr-2">
           {setlistOptions.length === 0 ? (
             <p className="mt-3 italic text-sm text-gray-500">
@@ -209,45 +209,28 @@ function NewSongSetlist({
               {setlistOptions.map((tag, index) => {
                 const isActive = setlist.includes(tag);
                 const willRemove = pendingRemovals.includes(tag);
-                const backgroundColor = willRemove
-                  ? "#dc2626"
-                  : isActive
-                    ? "goldenrod"
-                    : "#9ca3af";
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={index}
-                    className={`neuphormism-b-btn flex items-center gap-1 ${
-                      willRemove ? "opacity-60 ring-2 ring-red-400" : ""
-                    } ${isEditing ? "cursor-default" : ""}`}
+                    className={`setlist-tag-button ${
+                      isActive ? "setlist-tag-button-active" : ""
+                    } ${
+                      willRemove
+                        ? "setlist-tag-button-removing opacity-60 ring-2 ring-red-400"
+                        : ""
+                    } ${isEditing ? "setlist-tag-button-editing" : ""}`}
+                    onClick={() => toggleTag(tag)}
+                    title={
+                      isActive
+                        ? "Clique para remover este filtro"
+                        : "Clique para adicionar este filtro"
+                    }
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "10px 20px",
-                      borderRadius: "22px",
-                      margin: "2px",
-                      cursor: isEditing ? "default" : "pointer",
-                      fontSize: "12px",
-                      backgroundColor: willRemove ? "#f3d4d4" : isActive ? "goldenrod" : "#efefef",
-                      border: willRemove
-                        ? "1px solid #dc2626"
-                        : "1px solid rgba(255,255,255,0.72)",
-                      color: isActive ? "#000" : "#6b7280",
-                      boxShadow: "8px 8px 18px #bebebe, -8px -8px 18px #ffffff",
-                      userSelect: "none",
                       ...tagAnimationStyle,
                     }}
                   >
-                    <span
-                      onClick={() => toggleTag(tag)}
-                      title={
-                        isActive
-                          ? "Clique para remover este filtro"
-                          : "Clique para adicionar este filtro"
-                      }
-                    >
-                      {tag}
-                    </span>
+                    <span>{tag}</span>
                     {isEditing && (
                       <RiDeleteBin6Line
                         className={`w-4 h-4 ml-1 ${willRemove ? "text-red-500" : ""}`}
@@ -262,7 +245,7 @@ function NewSongSetlist({
                         }}
                       />
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>

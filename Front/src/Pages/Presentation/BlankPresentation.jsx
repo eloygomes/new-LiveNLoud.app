@@ -51,8 +51,6 @@ export default function BlankPresentation() {
     id: "panel-editor",
     nonce: 0,
   });
-  const [hideChords, setHideChords] = useState(false);
-  const [selectContenttoShow, setSelectContenttoShow] = useState("default");
   const [transposeSteps, setTransposeSteps] = useState(0);
   const [showProgressionMarkers, setShowProgressionMarkers] = useState(false);
   const [lastSavedProgressionMarkers, setLastSavedProgressionMarkers] =
@@ -198,11 +196,6 @@ export default function BlankPresentation() {
         artistFromURL={artist}
         instrumentSelected={instrument}
         songDataFetched={songDataFetched}
-        toggleTabsVisibility={() => {}}
-        hideChords={hideChords}
-        setHideChords={setHideChords}
-        selectContenttoShow={selectContenttoShow}
-        setSelectContenttoShow={setSelectContenttoShow}
         isEditing
         isSavingCifra={isSavingCifra}
         hasDraftChanges={hasDraftChanges}

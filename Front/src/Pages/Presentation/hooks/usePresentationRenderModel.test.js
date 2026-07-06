@@ -7,7 +7,6 @@ describe("usePresentationRenderModel", () => {
     const { result } = renderHook(() =>
       usePresentationRenderModel({
         contentSelected: "[Verse]\n[C]Hello [G]world",
-        hideTabs: false,
         isExpandedCifra: true,
         isTwoColumns: true,
         progressionMarkOverrides: {},
@@ -27,7 +26,6 @@ describe("usePresentationRenderModel", () => {
     const { result } = renderHook(() =>
       usePresentationRenderModel({
         contentSelected: "Loading...",
-        hideTabs: false,
         isExpandedCifra: false,
         isTwoColumns: false,
         progressionMarkOverrides: {},

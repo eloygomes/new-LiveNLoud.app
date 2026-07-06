@@ -14,7 +14,7 @@ describe("usePresentationInstrumentAvailability", () => {
         songCifra: "C G\nKeys part",
       },
       guitar01: {
-        songLyrics: "Guitar lyric cue",
+        songLyrics: "Legacy lyric cue",
       },
       bass: {
         songCifra: "",
@@ -29,7 +29,6 @@ describe("usePresentationInstrumentAvailability", () => {
     );
 
     expect(result.current.availableInstrumentOptions.map(({ key }) => key)).toEqual([
-      "guitar01",
       "keys",
     ]);
     expect(result.current.isCurrentInstrumentUnavailable).toBe(false);
@@ -45,9 +44,9 @@ describe("usePresentationInstrumentAvailability", () => {
           },
           drums: {
             songCifra: "",
-            songChords: "",
-            songTabs: "",
-            songLyrics: "",
+            songChords: "Legacy chords",
+            songTabs: "Legacy tabs",
+            songLyrics: "Legacy lyrics",
           },
         },
       }),

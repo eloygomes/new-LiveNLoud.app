@@ -5,9 +5,6 @@ import { usePresentationSongData } from "./usePresentationSongData";
 const makeSongData = () => ({
   keys: {
     songCifra: "legacy cifra",
-    songLyrics: "lyrics only",
-    songChords: "C G",
-    songTabs: "tab line",
     presentationLayouts: {
       default: {
         songCifra: "default cifra",
@@ -37,7 +34,6 @@ describe("usePresentationSongData", () => {
         instrumentSelected: "keys",
         isExpandedCifra: false,
         normalizeCifra,
-        selectContenttoShow: "default",
         songDataFetched: makeSongData(),
       }),
     );
@@ -55,13 +51,12 @@ describe("usePresentationSongData", () => {
     });
   });
 
-  it("selects expanded layout data and honors explicit content tabs", () => {
+  it("selects expanded layout data and keeps the layout cifra as content", () => {
     const { result } = renderHook(() =>
       usePresentationSongData({
         instrumentSelected: "keys",
         isExpandedCifra: true,
         normalizeCifra: (value) => value,
-        selectContenttoShow: "tabs",
         songDataFetched: makeSongData(),
       }),
     );
@@ -69,7 +64,7 @@ describe("usePresentationSongData", () => {
     expect(result.current.activeLayoutVariant).toBe("expanded");
     expect(result.current.activeLayoutLabel).toBe("Expanded layout");
     expect(result.current.songCifraData).toBe("expanded cifra");
-    expect(result.current.contentSelected).toBe("tab line");
+    expect(result.current.contentSelected).toBe("expanded cifra");
     expect(result.current.isTwoColumns).toBe(true);
     expect(result.current.touchFontSizeStep).toBe(3);
     expect(result.current.blockSpacingStep).toBe(-1);

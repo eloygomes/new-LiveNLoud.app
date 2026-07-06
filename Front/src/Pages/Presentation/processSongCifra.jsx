@@ -142,15 +142,21 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     return words.some((w) => isChord(w));
   }
 
-  function renderChordSpan(chord) {
+  function renderChordSpan(chord, { leadingBracketed = false } = {}) {
     const occurrenceId = `chord-${chordOccurrenceId++}`;
-    return `<span class="notespresentation" data-chord="${chord}" data-chord-id="${occurrenceId}">${chord}</span>`;
+    const className = `notespresentation${leadingBracketed ? " presentation-leading-bracketed-chord" : ""}`;
+    return `<span class="${className}" data-chord="${chord}" data-chord-id="${occurrenceId}"><span class="presentation-edit-chord-bracket">[</span>${chord}<span class="presentation-edit-chord-bracket">]</span></span>`;
   }
 
   function addClassToBracketedChords(line) {
-    return line.replace(bracketedChordPattern, (match, chord) => {
+    return line.replace(bracketedChordPattern, (match, chord, offset) => {
       const normalizedChord = String(chord || "").trim();
-      return isChord(normalizedChord) ? renderChordSpan(normalizedChord) : match;
+      const isLeadingBracketed = String(line || "").slice(0, offset).trim() === "";
+      return isChord(normalizedChord)
+        ? renderChordSpan(normalizedChord, {
+            leadingBracketed: isLeadingBracketed,
+          })
+        : match;
     });
   }
 

@@ -257,7 +257,7 @@ export const splitBlocksIntoColumnChunks = (
 
 export const buildProgressionBlocks = (
   htmlBlocks,
-  { hideTabs = false, dropBlankLines = false } = {},
+  { dropBlankLines = false } = {},
 ) => {
   let progressionCounter = 0;
 
@@ -270,16 +270,6 @@ export const buildProgressionBlocks = (
     const isColumnBreakBlock =
       classes.includes("presentation-column-break") ||
       block.includes('data-column-break="true"');
-
-    const shouldHideTabBlock =
-      hideTabs &&
-      (classes.includes("presentation-combined-tab-chords") ||
-        classes.includes("presentation-tab") ||
-        classes.includes("presentation-tab-section"));
-
-    if (shouldHideTabBlock) {
-      return blocksToRender;
-    }
 
     if (isColumnBreakBlock) {
       blocksToRender.push({
@@ -355,14 +345,11 @@ export const instrumentHasPresentationContent = (instrumentData) => {
     return true;
   }
 
-  return ["songCifra", "songChords", "songTabs", "songLyrics"].some((field) => {
-    const value = instrumentData[field];
-    return (
-      typeof value === "string" &&
-      value.trim() !== "" &&
-      value !== "Loading..."
-    );
-  });
+  return (
+    typeof instrumentData.songCifra === "string" &&
+    instrumentData.songCifra.trim() !== "" &&
+    instrumentData.songCifra !== "Loading..."
+  );
 };
 
 export const isInstrumentRegistered = (songData, instrumentKey) =>

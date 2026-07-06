@@ -27,11 +27,6 @@ function ToolBox({
   artistFromURL,
   instrumentSelected,
   songDataFetched,
-  toggleTabsVisibility,
-  hideChords,
-  setHideChords,
-  selectContenttoShow,
-  setSelectContenttoShow,
   isEditing,
   isSavingCifra,
   hasDraftChanges,
@@ -72,6 +67,7 @@ function ToolBox({
   isTouchVideoActive = false,
   onCloseTouchVideo,
   requestedPanel,
+  onRequestClose,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -98,6 +94,7 @@ function ToolBox({
       handleDiscardDraft();
     }
     setActiveTouchPanel(null);
+    onRequestClose?.();
     toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus);
   };
 
@@ -220,11 +217,6 @@ function ToolBox({
               artistFromURL={artistFromURL}
               instrumentSelected={instrumentSelected}
               songDataFetched={songDataFetched}
-              toggleTabsVisibility={toggleTabsVisibility}
-              hideChords={hideChords}
-              setHideChords={setHideChords}
-              selectContenttoShow={selectContenttoShow}
-              setSelectContenttoShow={setSelectContenttoShow}
               isEditing={isEditing}
               isSavingCifra={isSavingCifra}
               hasDraftChanges={hasDraftChanges}
@@ -302,11 +294,6 @@ function ToolBox({
                 artistFromURL={artistFromURL}
                 instrumentSelected={instrumentSelected}
                 songDataFetched={songDataFetched}
-                toggleTabsVisibility={toggleTabsVisibility}
-                hideChords={hideChords}
-                setHideChords={setHideChords}
-                selectContenttoShow={selectContenttoShow}
-                setSelectContenttoShow={setSelectContenttoShow}
                 isEditing={isEditing}
                 isSavingCifra={isSavingCifra}
                 hasDraftChanges={hasDraftChanges}

@@ -7,7 +7,6 @@ import { buildProgressionRenderModel } from "../helpers/progressionRenderModel";
 
 export function usePresentationRenderModel({
   contentSelected,
-  hideTabs,
   isExpandedCifra,
   isTwoColumns,
   progressionMarkOverrides,
@@ -49,10 +48,9 @@ export function usePresentationRenderModel({
   const visibleContentBlocks = useMemo(
     () =>
       buildProgressionBlocks(htmlBlocks, {
-        hideTabs,
         dropBlankLines: shouldDropBlankLinesForHorizontalFlow,
       }),
-    [hideTabs, htmlBlocks, shouldDropBlankLinesForHorizontalFlow],
+    [htmlBlocks, shouldDropBlankLinesForHorizontalFlow],
   );
 
   const progressionRenderModel = useMemo(

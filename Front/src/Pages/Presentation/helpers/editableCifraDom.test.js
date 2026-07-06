@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   collectEditedPresentationBlocksFromNode,
+  deleteSelectedEditableContent,
   moveToAdjacentEditableBlock,
+  replaceSelectedEditableContentWithText,
 } from "./editableCifraDom";
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./presentationConstants";
 
@@ -332,7 +334,7 @@ De tarde quero descansar</pre>
     );
   });
 
-  it("creates a new right-side block when shift enter is used on the last block", () => {
+  it("does not create React-owned columns when shift enter is used on the last block", () => {
     const contentNode = document.createElement("div");
     contentNode.className = "presentation-content-flow";
     contentNode.innerHTML = `
@@ -371,15 +373,10 @@ De tarde quero descansar</pre>
     const blocks = contentNode.querySelectorAll(
       ".presentation-render-content-block",
     );
-    expect(handled).toBe(true);
-    expect(blocks).toHaveLength(2);
+    expect(handled).toBe(false);
+    expect(blocks).toHaveLength(1);
     expect(blocks[0].textContent).toContain("First line");
-    expect(blocks[1].textContent).toContain("Second line");
-    expect(
-      Array.from(blocks[1].childNodes).some(
-        (node) => node.nodeType === Node.TEXT_NODE,
-      ),
-    ).toBe(false);
+    expect(blocks[0].textContent).toContain("Second line");
 
     document.body.removeChild(contentNode);
   });
@@ -440,6 +437,110 @@ De tarde quero descansar</pre>
     expect(blocks[1].textContent).toContain("E          D          A");
     expect(serialized).toContain("[E]          [D]          [A]    [Asus4] [A]");
     expect(serialized).not.toContain("[E][D][Asus4][A]");
+
+    document.body.removeChild(contentNode);
+  });
+
+  it("deletes a selection spanning multiple editable blocks", () => {
+    const contentNode = document.createElement("div");
+    contentNode.className = "presentation-content-flow";
+    contentNode.innerHTML = `
+      <div class="presentation-column">
+        <div class="presentation-render-block">
+          <div class="presentation-column-body">
+            <div class="presentation-render-content-block" data-block-keys="block-0" data-original-block-index="0">
+              <pre>First block</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="presentation-column">
+        <div class="presentation-render-block">
+          <div class="presentation-column-body">
+            <div class="presentation-render-content-block" data-block-keys="block-1" data-original-block-index="1">
+              <pre>Second block</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(contentNode);
+
+    const blocks = contentNode.querySelectorAll(
+      ".presentation-render-content-block",
+    );
+    const range = document.createRange();
+    range.setStartBefore(blocks[0]);
+    range.setEndAfter(blocks[1]);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+
+    const handled = deleteSelectedEditableContent({
+      key: "Backspace",
+      currentTarget: contentNode,
+      preventDefault: () => {},
+      stopPropagation: () => {},
+    });
+
+    expect(handled).toBe(true);
+    expect(contentNode.textContent).not.toContain("First block");
+    expect(contentNode.textContent).not.toContain("Second block");
+    expect(
+      contentNode.querySelectorAll(".presentation-render-content-block"),
+    ).toHaveLength(2);
+
+    document.body.removeChild(contentNode);
+  });
+
+  it("replaces a multi-block selection with typed text", () => {
+    const contentNode = document.createElement("div");
+    contentNode.className = "presentation-content-flow";
+    contentNode.innerHTML = `
+      <div class="presentation-column">
+        <div class="presentation-render-block">
+          <div class="presentation-column-body">
+            <div class="presentation-render-content-block" data-block-keys="block-0" data-original-block-index="0">
+              <pre>First block</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="presentation-column">
+        <div class="presentation-render-block">
+          <div class="presentation-column-body">
+            <div class="presentation-render-content-block" data-block-keys="block-1" data-original-block-index="1">
+              <pre>Second block</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(contentNode);
+
+    const blocks = contentNode.querySelectorAll(
+      ".presentation-render-content-block",
+    );
+    const range = document.createRange();
+    range.setStartBefore(blocks[0]);
+    range.setEndAfter(blocks[1]);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+
+    const handled = replaceSelectedEditableContentWithText({
+      key: "X",
+      isComposing: false,
+      metaKey: false,
+      ctrlKey: false,
+      altKey: false,
+      currentTarget: contentNode,
+      preventDefault: () => {},
+      stopPropagation: () => {},
+    });
+
+    expect(handled).toBe(true);
+    expect(contentNode.textContent).toContain("X");
+    expect(contentNode.textContent).not.toContain("First block");
+    expect(contentNode.textContent).not.toContain("Second block");
 
     document.body.removeChild(contentNode);
   });

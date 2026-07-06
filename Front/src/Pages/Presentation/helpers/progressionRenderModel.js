@@ -124,15 +124,40 @@ export function getActiveProgressionRenderColumns({
   shouldUseHorizontalColumnFlow = false,
 }) {
   if (shouldUseHorizontalColumnFlow) {
-    // Layout contract: once horizontal editor columns are saved as explicit
-    // breaks, render must honor those break boundaries. Still keep the
-    // line-unit pagination active inside each boundary: if a saved/edit column
-    // becomes taller than the visual block, the overflow must continue in the
-    // next block to the right instead of being clipped.
-    return splitBlocksIntoColumnChunks(
-      visibleContentBlocks,
-      HORIZONTAL_EXPANDED_COLUMN_LINE_UNITS,
-    )
+    const hasExplicitColumnBreaks = visibleContentBlocks.some(
+      (block) => block.isColumnBreak,
+    );
+    const columnChunks = hasExplicitColumnBreaks
+      ? visibleContentBlocks.reduce(
+          (chunks, block) => {
+            if (block.isColumnBreak) {
+              if (chunks.current.length) {
+                chunks.columns.push(chunks.current);
+                chunks.current = [];
+              }
+              return chunks;
+            }
+
+            chunks.current.push(block);
+            return chunks;
+          },
+          { columns: [], current: [] },
+        )
+      : null;
+    const chunks = hasExplicitColumnBreaks
+      ? [
+          ...columnChunks.columns,
+          ...(columnChunks.current.length ? [columnChunks.current] : []),
+        ]
+      : splitBlocksIntoColumnChunks(
+          visibleContentBlocks,
+          HORIZONTAL_EXPANDED_COLUMN_LINE_UNITS,
+        );
+
+    // Layout contract: explicit column breaks are authored layout. When they
+    // exist, do not repaginate inside the saved columns or a moved tab can jump
+    // back to the previous visual position after save.
+    return chunks
       .filter((blocksChunk) =>
         blocksChunk.some(
           (block) =>

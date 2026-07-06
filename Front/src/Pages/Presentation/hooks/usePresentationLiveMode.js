@@ -26,14 +26,12 @@ export function usePresentationLiveMode({
   activeProgressionRenderColumns,
   closeTouchVideo,
   effectiveLiveMode,
-  hideChords,
   hideTooltip,
   isEditing,
   isTouchLayout,
   liveModeRootRef,
   presentationContentRef,
   pushSnackbarMessage,
-  selectContenttoShow,
   setActiveLiveColumnKey,
   setActiveShowProgressionMarkers,
   setIsLiveMode,
@@ -193,10 +191,8 @@ export function usePresentationLiveMode({
     };
   }, [
     effectiveLiveMode,
-    hideChords,
     isEditing,
     presentationContentRef,
-    selectContenttoShow,
   ]);
 
   useEffect(() => {
@@ -376,6 +372,7 @@ export function usePresentationLiveMode({
 
     const handleLiveNavigation = (event) => {
       if (event.defaultPrevented) return;
+      if (isTextNavigationTarget(event.target)) return;
 
       const contentNode = presentationContentRef.current;
       if (!contentNode) return;

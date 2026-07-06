@@ -7,7 +7,6 @@ import { getLiveColumnDisplayState } from "../presentationLayoutHelpers";
 
 function PresentationColumns({
   columns,
-  selectContenttoShow,
   showProgressionMarkers,
   effectiveLiveMode,
   shouldUseHorizontalColumnFlow,
@@ -66,8 +65,6 @@ function PresentationColumns({
         <div
           key={groupKey}
           className={`presentation-column ${
-            selectContenttoShow === "tabs" ? "presentation-tab-filter-block" : ""
-          } ${
             showProgressionMarkers && isProgressionEligible
               ? "presentation-progression-column"
               : ""
@@ -126,6 +123,8 @@ function PresentationColumns({
                 className="presentation-render-content-block"
                 data-block-keys={blockKeys.join(",")}
                 data-original-block-index={originalBlockIndex}
+                contentEditable={isEditing}
+                suppressContentEditableWarning
                 dangerouslySetInnerHTML={{ __html: contentBlockHtml }}
               />
             </div>

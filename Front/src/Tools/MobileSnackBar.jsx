@@ -24,7 +24,7 @@ function MobileSnackBar({ snackbarMessage }) {
 
   return (
     <div
-      className={`fixed left-3 right-3 top-3 z-[140] transition-all duration-300 ease-out ${
+      className={`fixed left-3 right-3 top-3 z-[13000] transition-all duration-300 ease-out ${
         visible ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"
       }`}
       role="alert"

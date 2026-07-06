@@ -2,9 +2,14 @@ import {
   FaDownLeftAndUpRightToCenter,
   FaFilePen,
   FaGear,
-  FaSliders,
   FaUpRightAndDownLeftFromCenter,
 } from "react-icons/fa6";
+import {
+  IoArrowDownCircle,
+  IoDocumentText,
+  IoVideocam,
+} from "react-icons/io5";
+import { GiGuitar } from "react-icons/gi";
 import GuitarProIcon from "../../../components/GuitarPro/GuitarProIcon";
 
 function PresentationTopBar({
@@ -27,6 +32,13 @@ function PresentationTopBar({
   instrumentSelected,
   canOpenGuitarPro,
   onOpenGuitarProViewer,
+  hasVideos = false,
+  isScrollingAvailable = true,
+  onOpenTranspose,
+  onOpenNotes,
+  onOpenInstruments,
+  onOpenVideos,
+  onOpenScrolling,
   onEnterLiveMode,
   onGoToSetlistSong,
 }) {
@@ -109,7 +121,7 @@ function PresentationTopBar({
 
   return (
     <div
-      className="relative my-5 flex min-h-[7.25rem] shrink-0 flex-row items-center justify-between neuphormism-b px-10 pb-4 pt-8"
+      className="relative my-5 flex min-h-[7.25rem] shrink-0 flex-col items-stretch justify-between gap-4 neuphormism-b px-10 pb-4 pt-8 xl:flex-row xl:items-center"
     >
       <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
         <span>Presentation</span>
@@ -129,7 +141,7 @@ function PresentationTopBar({
           {artistFromURL}
         </h1>
       </div>
-      <div className="flex flex-col items-stretch gap-3 pt-2">
+      <div className="flex w-full flex-col items-stretch gap-3 pt-2 xl:w-auto">
         <div className="flex flex-col gap-2">
           <div className="order-2 mt-3 grid grid-cols-2 gap-2 opacity-80">
             <button
@@ -152,7 +164,7 @@ function PresentationTopBar({
             </button>
           </div>
           <div className="order-1 flex flex-col items-stretch gap-2">
-            <div className="flex flex-row items-stretch gap-3">
+            <div className="flex flex-row flex-wrap items-stretch justify-end gap-3">
               <button
                 type="button"
                 className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-black ${
@@ -170,19 +182,71 @@ function PresentationTopBar({
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black ${
-                  toolBoxBtnStatus ||
-                  isEditing ||
-                  (!toolBoxBtnStatus && (isVideoModalOpen || isTouchVideoActive))
-                    ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
-                    : ""
-                } px-4 py-3 text-sm`}
-                onClick={onToggleToolBox}
-                aria-label="Options"
-                title="Open presentation options"
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
+                onClick={onOpenTranspose}
+                aria-label="Transpose"
+                title="Transpose"
               >
-                <FaGear className="h-6 w-6" />
-                <span className="sr-only">Options</span>
+                <span className="relative flex h-6 w-7 items-center justify-center text-[0.65rem] font-black leading-none">
+                  <span>TOM</span>
+                  <span className="absolute -right-0.5 -top-1 text-[0.55rem] leading-none">+</span>
+                  <span className="absolute -bottom-1 -left-0.5 text-[0.7rem] leading-none">-</span>
+                </span>
+                <span className="sr-only">Transpose</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
+                onClick={onOpenNotes}
+                aria-label="Notes"
+                title="Notes"
+              >
+                <IoDocumentText className="h-5 w-5" />
+                <span className="sr-only">Notes</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
+                onClick={onOpenInstruments}
+                aria-label="Instruments"
+                title="Instruments"
+              >
+                <GiGuitar className="h-5 w-5" />
+                <span className="sr-only">Instruments</span>
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold ${
+                  hasVideos
+                    ? "text-black"
+                    : "cursor-not-allowed text-gray-400 opacity-60"
+                } px-4 py-3 text-sm`}
+                onClick={onOpenVideos}
+                disabled={!hasVideos}
+                aria-label="Videos"
+                title={hasVideos ? "Videos" : "No videos available"}
+              >
+                <IoVideocam className="h-5 w-5" />
+                <span className="sr-only">Videos</span>
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center gap-2 neuphormism-b-btn font-bold ${
+                  isScrollingAvailable
+                    ? "text-black"
+                    : "cursor-not-allowed text-gray-400 opacity-60"
+                } px-4 py-3 text-sm`}
+                onClick={onOpenScrolling}
+                disabled={!isScrollingAvailable}
+                aria-label="Scrolling"
+                title={
+                  isScrollingAvailable
+                    ? "Scrolling"
+                    : "Scrolling is unavailable in expanded layout"
+                }
+              >
+                <IoArrowDownCircle className="h-5 w-5" />
+                <span className="sr-only">Scrolling</span>
               </button>
               <button
                 type="button"
@@ -205,7 +269,7 @@ function PresentationTopBar({
                 aria-label="Song settings"
                 title="Open song settings"
               >
-                <FaSliders className="h-5 w-5" />
+                <FaGear className="h-5 w-5" />
                 <span className="sr-only">Song Settings</span>
               </button>
               {instrumentSelected !== "voice" ? (

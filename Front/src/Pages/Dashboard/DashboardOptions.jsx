@@ -4,7 +4,28 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiFileText } from "react-icons/fi";
 import { VscJson } from "react-icons/vsc";
 import { IoClose } from "react-icons/io5";
-import { FaArrowDown, FaArrowUp } from "react-icons/fa";
+import {
+  FaArrowDown,
+  FaArrowUp,
+  FaCalendarAlt,
+  FaChartLine,
+  FaClock,
+  FaDatabase,
+  FaGuitar,
+  FaHashtag,
+  FaListOl,
+  FaMusic,
+  FaStickyNote,
+  FaVideo,
+  FaWifi,
+} from "react-icons/fa";
+import {
+  GiDrumKit,
+  GiGuitar,
+  GiGuitarBassHead,
+  GiMicrophone,
+  GiPianoKeys,
+} from "react-icons/gi";
 
 import {
   fetchDistinctSetlists,
@@ -42,6 +63,28 @@ const columnOptions = [
   { key: "lastPlay", label: "Last play" },
 ];
 
+const itemColumnOptions = columnOptions.filter(
+  ({ key }) => !key.endsWith("Progression") || key === "progression",
+);
+const instrumentProgressionColumnOptions = columnOptions.filter(
+  ({ key }) => key.endsWith("Progression") && key !== "progression",
+);
+const columnIcons = {
+  progression: FaChartLine,
+  guitarPro: FaGuitar,
+  tags: FaHashtag,
+  videos: FaVideo,
+  notes: FaStickyNote,
+  addedDate: FaCalendarAlt,
+  lastPlay: FaClock,
+  guitar01Progression: GiGuitar,
+  guitar02Progression: GiGuitar,
+  bassProgression: GiGuitarBassHead,
+  keysProgression: GiPianoKeys,
+  drumsProgression: GiDrumKit,
+  voiceProgression: GiMicrophone,
+};
+
 function OfflineContentCard({
   offlineInfo = {},
   offlineLoading = false,
@@ -68,16 +111,24 @@ function OfflineContentCard({
         )
       : Number(offlineInfo.offlineEnabledCount || 0);
 
+  const estimatedOfflineMb = Math.max(downloadedSongsCount * 1.8, 0).toFixed(1);
+  const estimatedIndexKb = Math.max(downloadedSongsCount * 42, 0);
+
   return (
-    <section className="neuphormism-b h-full w-full p-4">
+    <section className="neuphormism-b flex h-full w-full flex-col p-4">
       <div
         className={`flex ${compact ? "flex-col gap-3" : "items-start justify-between gap-4"}`}
       >
-        <div>
-          <h1 className="text-sm font-bold uppercase">Offline Content</h1>
-          <p className="mt-1 text-[11px] font-semibold text-gray-500">
-            Download songs and allow offline access on this device.
-          </p>
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]  text-black shadow-[0_8px_18px_rgba(218,165,32,0.22)]">
+            <FaDatabase className="h-4 w-4" />
+          </span>
+          <div>
+            <h1 className="text-sm font-bold uppercase">Offline Content</h1>
+            <p className="mt-1 text-[11px] font-semibold text-gray-500">
+              Download songs and allow offline access on this device.
+            </p>
+          </div>
         </div>
         <label
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
@@ -103,7 +154,31 @@ function OfflineContentCard({
         </label>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase">
+      <div className="mt-4 grid gap-2 text-[11px] font-bold text-gray-700">
+        <div className="input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2">
+          <span className="flex items-center gap-2">
+            <FaMusic className="h-3.5 w-3.5 text-gray-500" />
+            Cached songs
+          </span>
+          <span>{downloadedSongsCount}</span>
+        </div>
+        <div className="input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2">
+          <span className="flex items-center gap-2">
+            <FaDatabase className="h-3.5 w-3.5 text-gray-500" />
+            Mock storage
+          </span>
+          <span>{estimatedOfflineMb} MB</span>
+        </div>
+        <div className="input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2">
+          <span className="flex items-center gap-2">
+            <FaWifi className="h-3.5 w-3.5 text-gray-500" />
+            Mock index
+          </span>
+          <span>{estimatedIndexKb} KB</span>
+        </div>
+      </div>
+
+      <div className="mt-auto flex flex-wrap gap-2 pt-4 text-[10px] font-bold uppercase">
         {isContentEnabled ? (
           <span className="rounded-full bg-white px-2 py-1 text-gray-800 shadow-[0_6px_14px_rgba(0,0,0,0.06)]">
             offline ready
@@ -168,94 +243,115 @@ function ColumnsData({
   const maxColumnsReached =
     !canSelectAllColumns &&
     selectedConfigurableColumns.length >= maxSelectableColumns;
-  const orderedColumnOptions = [
-    ...visibleColumns
-      .map((key) => columnOptions.find((option) => option.key === key))
-      .filter(Boolean),
-    ...columnOptions.filter((option) => !visibleColumns.includes(option.key)),
-  ];
+  const renderColumnRow = ({ key, label }) => {
+    const checked = visibleColumns.includes(key);
+    const disabled = !checked && (allColumnsSelected || maxColumnsReached);
+    const visibleIndex = visibleColumns.indexOf(key);
+    const Icon = columnIcons[key] || FaListOl;
+
+    return (
+      <div
+        key={key}
+        className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
+          disabled ? "opacity-50" : ""
+        }`}
+      >
+        <label
+          className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${
+            disabled ? "" : "cursor-pointer"
+          }`}
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <Icon className="h-3.5 w-3.5 shrink-0 text-gray-600" />
+            <span className="truncate text-[12px] font-bold uppercase text-gray-700">
+              {label}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            className="sr-only"
+            checked={checked}
+            disabled={disabled}
+            onChange={() => onToggleColumn(key)}
+          />
+          <span
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
+              checked ? "bg-[goldenrod]" : "bg-gray-400"
+            }`}
+          >
+            <span
+              className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                checked ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </span>
+        </label>
+
+        {checked ? (
+          <div className="ml-3 flex shrink-0 items-center gap-1">
+            <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-[goldenrod] px-2 text-[11px] font-black text-black">
+              {visibleIndex + 1}
+            </span>
+            <button
+              type="button"
+              className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
+              disabled={visibleIndex <= 0}
+              onClick={() => onMoveColumn(key, -1)}
+              aria-label={`Move ${label} earlier`}
+            >
+              <FaArrowUp />
+            </button>
+            <button
+              type="button"
+              className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
+              disabled={visibleIndex === visibleColumns.length - 1}
+              onClick={() => onMoveColumn(key, 1)}
+              aria-label={`Move ${label} later`}
+            >
+              <FaArrowDown />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <section className="neuphormism-b p-4">
-      <div>
-        <h1 className="text-sm font-bold uppercase">Columns Data</h1>
-        <p className="mt-1 text-[11px] font-semibold text-gray-500">
-          Select which columns to display in the dashboard.
-          {!canSelectAllColumns ? ` Limit: ${maxSelectableColumns}.` : ""}
-        </p>
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]  text-black shadow-[0_8px_18px_rgba(218,165,32,0.22)]">
+          <FaListOl className="h-4 w-4" />
+        </span>
+        <div>
+          <h1 className="text-sm font-bold uppercase">Columns Data</h1>
+          <p className="mt-1 text-[11px] font-semibold text-gray-500">
+            Select columns and reorder their sequence number.
+            {!canSelectAllColumns ? ` Limit: ${maxSelectableColumns}.` : ""}
+          </p>
+        </div>
       </div>
 
       <div
-        className={`mt-4 grid gap-2 ${
+        className={`mt-4 grid gap-4 ${
           isColumnLimitedLayout ? "grid-cols-1" : "sm:grid-cols-2"
         }`}
       >
-        {orderedColumnOptions.map(({ key, label }) => {
-          const checked = visibleColumns.includes(key);
-          const disabled =
-            !checked && (allColumnsSelected || maxColumnsReached);
-          const visibleIndex = visibleColumns.indexOf(key);
-
-          return (
-            <div
-              key={key}
-              className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
-                disabled ? "opacity-50" : ""
-              }`}
-            >
-              <label
-                className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${
-                  disabled ? "" : "cursor-pointer"
-                }`}
-              >
-                <span className="truncate text-[12px] font-bold uppercase text-gray-700">
-                  {label}
-                </span>
-                <input
-                  type="checkbox"
-                  className="sr-only"
-                  checked={checked}
-                  disabled={disabled}
-                  onChange={() => onToggleColumn(key)}
-                />
-                <span
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
-                    checked ? "bg-[goldenrod]" : "bg-gray-400"
-                  }`}
-                >
-                  <span
-                    className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                      checked ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </span>
-              </label>
-
-              {checked ? (
-                <div className="ml-3 flex shrink-0 gap-1">
-                  <button
-                    type="button"
-                    className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
-                    disabled={visibleIndex <= 0}
-                    onClick={() => onMoveColumn(key, -1)}
-                    aria-label={`Move ${label} left`}
-                  >
-                    <FaArrowUp />
-                  </button>
-                  <button
-                    type="button"
-                    className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
-                    disabled={visibleIndex === visibleColumns.length - 1}
-                    onClick={() => onMoveColumn(key, 1)}
-                    aria-label={`Move ${label} right`}
-                  >
-                    <FaArrowDown />
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+        <div>
+          <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
+            Items
+          </h2>
+          <div className="grid gap-2">
+            {itemColumnOptions.map(renderColumnRow)}
+          </div>
+        </div>
+        <div>
+          <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
+            Instrument Progression
+          </h2>
+          <div className="grid gap-2">
+            {instrumentProgressionColumnOptions.map(renderColumnRow)}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -608,6 +704,7 @@ export default function DashboardOptions({
                 <Tags
                   setlists={setlists}
                   selectedSetlists={selectedSetlists}
+                  visibleSongsCount={visibleSongs.length}
                   toggleTag={toggleTag}
                   handleDeleteSetlist={handleDeleteSetlist}
                   handleAddSetlist={handleAddSetlist}
@@ -664,6 +761,7 @@ export default function DashboardOptions({
                     <Tags
                       setlists={setlists}
                       selectedSetlists={selectedSetlists}
+                      visibleSongsCount={visibleSongs.length}
                       toggleTag={toggleTag}
                       handleDeleteSetlist={handleDeleteSetlist}
                       handleAddSetlist={handleAddSetlist}

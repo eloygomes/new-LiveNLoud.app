@@ -19,10 +19,21 @@ export function buildCifraSavePayload({
     activeLayoutVariant,
     nextDraftCifra,
   );
+  const persistedLayoutsWithoutEditorMarks = {
+    ...persistedLayouts,
+    default: {
+      ...persistedLayouts.default,
+      showProgressionMarkers: false,
+    },
+    expanded: {
+      ...persistedLayouts.expanded,
+      showProgressionMarkers: false,
+    },
+  };
   const updatedBlock = {
     ...currentInstrumentData,
-    songCifra: persistedLayouts.default.songCifra,
-    presentationLayouts: persistedLayouts,
+    songCifra: persistedLayoutsWithoutEditorMarks.default.songCifra,
+    presentationLayouts: persistedLayoutsWithoutEditorMarks,
   };
   const nextSongData = {
     ...(songDataFetched || {}),
@@ -33,7 +44,7 @@ export function buildCifraSavePayload({
   return {
     currentLayouts,
     nextSongData,
-    persistedLayouts,
+    persistedLayouts: persistedLayoutsWithoutEditorMarks,
     updatedBlock,
   };
 }

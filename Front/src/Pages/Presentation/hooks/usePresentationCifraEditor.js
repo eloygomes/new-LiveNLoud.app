@@ -10,7 +10,7 @@ import {
   getVisibleBlocksDebugSummary,
   logPresentationDebug,
 } from "../helpers/presentationUtils";
-import { collectEditedPresentationBlocksFromNode } from "../helpers/editableCifraDom";
+import { collectEditedCifraModelFromNode } from "../helpers/editableCifraDom";
 import {
   buildCifraSavePayload,
   mergeSavedCifraState,
@@ -167,79 +167,101 @@ export function usePresentationCifraEditor({
     updateEditedCifraContent,
   ]);
 
-  const collectEditedPresentationBlocks = useCallback(() => {
+  const getFallbackDraftCifra = useCallback(() => {
+    if (typeof draftCifra === "string" && draftCifra !== "") {
+      return draftCifra;
+    }
+    return editableSongCifra || "";
+  }, [draftCifra, editableSongCifra]);
+
+  const collectEditedCifraModel = useCallback(() => {
     // Layout contract: expanded horizontal editing must save the columns exactly
     // as the user left them. `persistVisualColumnBreaks` is deliberately tied to
     // `shouldUseHorizontalColumnFlow`; removing it causes saved content to be
     // repaginated after reload and makes blocks jump between columns.
-    return collectEditedPresentationBlocksFromNode({
+    return collectEditedCifraModelFromNode({
       contentNode: presentationContentRef.current,
-      fallbackCifra: draftCifra,
+      fallbackCifra: getFallbackDraftCifra(),
       preserveColumnBreaks: isExpandedCifra,
       persistVisualColumnBreaks: shouldUseHorizontalColumnFlow,
       sourceBlocks: visibleContentBlocks,
     });
   }, [
-    draftCifra,
+    getFallbackDraftCifra,
     isExpandedCifra,
     presentationContentRef,
     shouldUseHorizontalColumnFlow,
     visibleContentBlocks,
   ]);
 
-  const markCifraContentAsEdited = useCallback(
-    (event) => {
-      const inputType = event?.nativeEvent?.inputType || event?.inputType || "";
-      if (!inputType || inputType.startsWith("history")) return;
-      updateEditedCifraContent(true);
-    },
-    [updateEditedCifraContent],
-  );
+  const syncRenderedCifraToDraft = useCallback(
+    ({ markEdited = true } = {}) => {
+      if (!isEditing || !presentationContentRef.current) {
+        return getFallbackDraftCifra();
+      }
 
-  const collectSafeEditedPresentationBlocks = useCallback(() => {
-    const nextCifra = collectEditedPresentationBlocks();
-    const currentCifra =
-      typeof draftCifra === "string" ? draftCifra : editableSongCifra || "";
-    const currentSummary = getPresentationContentDebugSummary(currentCifra);
-    const nextSummary = getPresentationContentDebugSummary(nextCifra);
+      const nextModel = collectEditedCifraModel();
+      const currentCifra = getFallbackDraftCifra();
+      const currentSummary = getPresentationContentDebugSummary(currentCifra);
+      const nextSummary = getPresentationContentDebugSummary(nextModel.text);
 
-    if (
-      currentCifra.trim() &&
-      !String(nextCifra || "").trim() &&
-      !hasEditedCifraContent
-    ) {
-      console.warn(
-        "Edição ignorada: coleta do conteúdo retornou vazio para uma cifra existente.",
-      );
-      logPresentationDebug("content:collect-edited:fallback-current", {
+      if (
+        currentCifra.trim() &&
+        !String(nextModel.text || "").trim() &&
+        !hasEditedCifraContent &&
+        !markEdited
+      ) {
+        console.warn(
+          "Edição ignorada: coleta do conteúdo retornou vazio para uma cifra existente.",
+        );
+        logPresentationDebug("content:model-sync:fallback-current", {
+          identity: presentationLayoutIdentity,
+          modelType: nextModel.type,
+          current: currentSummary,
+          collected: nextSummary,
+        });
+        return currentCifra;
+      }
+
+      setDraftCifra(nextModel.text);
+      if (markEdited) {
+        updateEditedCifraContent(true);
+      }
+
+      logPresentationDebug("content:model-sync", {
         identity: presentationLayoutIdentity,
+        modelType: nextModel.type,
         current: currentSummary,
         collected: nextSummary,
       });
-      return currentCifra;
-    }
 
-    logPresentationDebug("content:collect-edited", {
-      identity: presentationLayoutIdentity,
-      current: currentSummary,
-      collected: nextSummary,
-    });
+      return nextModel.text;
+    },
+    [
+      collectEditedCifraModel,
+      getFallbackDraftCifra,
+      hasEditedCifraContent,
+      isEditing,
+      presentationContentRef,
+      presentationLayoutIdentity,
+      updateEditedCifraContent,
+    ],
+  );
 
-    return nextCifra;
-  }, [
-    collectEditedPresentationBlocks,
-    draftCifra,
-    editableSongCifra,
-    hasEditedCifraContent,
-    presentationLayoutIdentity,
-  ]);
+  const markCifraContentAsEdited = useCallback(
+    (event) => {
+      const inputType = event?.nativeEvent?.inputType || event?.inputType || "";
+      if (inputType.startsWith("history")) return;
+      if (!inputType && event?.type !== "input") return;
+      syncRenderedCifraToDraft();
+    },
+    [syncRenderedCifraToDraft],
+  );
 
   const syncEditingCifraBeforeLayoutUpdate = useCallback(() => {
     if (!isEditing || !presentationContentRef.current) return null;
 
-    const nextCifra = collectSafeEditedPresentationBlocks();
-    setDraftCifra(nextCifra);
-    updateEditedCifraContent(true);
+    const nextCifra = syncRenderedCifraToDraft();
 
     logPresentationDebug("content:sync-before-layout-update", {
       identity: presentationLayoutIdentity,
@@ -248,11 +270,10 @@ export function usePresentationCifraEditor({
 
     return nextCifra;
   }, [
-    collectSafeEditedPresentationBlocks,
     isEditing,
     presentationContentRef,
     presentationLayoutIdentity,
-    updateEditedCifraContent,
+    syncRenderedCifraToDraft,
   ]);
 
   const handleSaveCifra = useCallback(async () => {
@@ -267,15 +288,8 @@ export function usePresentationCifraEditor({
     setIsSavingCifra(true);
     setSaveError("");
 
-    // Layout contract: while the cifra editor is open, the contenteditable DOM
-    // is the source of truth. Do not gate collection on `hasEditedCifraContent`;
-    // browser editing can miss that flag for deletes, selections, IME/input
-    // edge cases, or whole-column edits. Saving must persist exactly the editor
-    // content that the user sees at click time.
-    const shouldCollectEditedDom =
-      isEditing && Boolean(presentationContentRef.current);
-    const nextDraftCifra = shouldCollectEditedDom
-      ? collectSafeEditedPresentationBlocks()
+    const nextDraftCifra = isEditing
+      ? syncRenderedCifraToDraft({ markEdited: hasEditedCifraContent })
       : editableSongCifra || draftCifra;
     const { currentLayouts, nextSongData, persistedLayouts, updatedBlock } =
       buildCifraSavePayload({
@@ -375,7 +389,6 @@ export function usePresentationCifraEditor({
   }, [
     activeLayoutVariant,
     activeProgressionRenderColumns,
-    collectSafeEditedPresentationBlocks,
     currentInstrumentData,
     draftCifra,
     editableSongCifra,
@@ -386,15 +399,14 @@ export function usePresentationCifraEditor({
     isEditing,
     presentationLayoutIdentity,
     presentationLayoutStorageKey,
-    presentationContentRef,
     pushSnackbarMessage,
     setHasEditedLayoutContent,
     setIsEditing,
     setSongDataFetched,
     setToolBoxBtnStatus,
     setToolBoxRequestedPanel,
-    shouldUseHorizontalColumnFlow,
     songDataFetched,
+    syncRenderedCifraToDraft,
     updateEditedCifraContent,
     visibleContentBlocks,
   ]);
@@ -428,5 +440,6 @@ export function usePresentationCifraEditor({
     setSaveError,
     startEditingCifra,
     syncEditingCifraBeforeLayoutUpdate,
+    syncRenderedCifraToDraft,
   };
 }

@@ -56,7 +56,7 @@ function SnackBar({ snackbarMessage }) {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 "
       } ${
         side === "left" ? "left-5" : "right-5"
-      } bg-gray-100 border-t-4 border-gray-500 rounded-b text-gray-900 px-4 py-3 shadow-md fixed bottom-10 transition-all duration-300 ease-in-out neuphormism-b-btn-flat z-50`}
+      } bg-gray-100 border-t-4 border-gray-500 rounded-b text-gray-900 px-4 py-3 shadow-md fixed bottom-10 transition-all duration-300 ease-in-out neuphormism-b-btn-flat z-[13000]`}
       role="alert"
     >
       <div className="flex">

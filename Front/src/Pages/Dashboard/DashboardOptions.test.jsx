@@ -153,7 +153,7 @@ describe("DashboardOptions", () => {
     renderDashboardOptions({ onToggleColumn, onMoveColumn });
 
     fireEvent.click(screen.getByLabelText("Videos"));
-    fireEvent.click(screen.getByRole("button", { name: "Move Progression right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Progression later" }));
 
     expect(onToggleColumn).toHaveBeenCalledWith("videos");
     expect(onMoveColumn).toHaveBeenCalledWith("progression", 1);

@@ -1,11 +1,16 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from "react";
 import { FiSend } from "react-icons/fi";
-import { fetchCurrentUserProfile, shareSetlists } from "../../Tools/Controllers";
+import { FaFilter, FaPlus, FaShareAlt } from "react-icons/fa";
+import {
+  fetchCurrentUserProfile,
+  shareSetlists,
+} from "../../Tools/Controllers";
 
 export default function Tags({
   setlists = [],
   selectedSetlists = [],
+  visibleSongsCount = 0,
   importedSetlists = [],
   toggleTag,
   handleDeleteSetlist,
@@ -170,15 +175,16 @@ export default function Tags({
           <div
             className={isTouchLayout ? "flex flex-col" : "w-1/2 flex flex-col"}
           >
-            <h1 className="text-sm font-bold uppercase">Tags / Setlists</h1>
+            <h1 className="text-sm font-bold uppercase">Setlist Filters</h1>
             {!isTouchLayout ? (
               <>
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
-                  Filter songs by setlist tags.
+                  Choose setlists to narrow the dashboard to the songs you need
+                  for rehearsal, export, or playlist work.
                 </p>
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
-                  Selected setlists can be exported or shared with accepted
-                  friends.
+                  Active filters stay connected to TXT/JSON export, sharing, and
+                  playlist creation.
                 </p>
               </>
             ) : null}
@@ -186,14 +192,28 @@ export default function Tags({
           <div
             className={
               isTouchLayout
-                ? "grid grid-cols-2 gap-2"
+                ? "grid grid-cols-3 gap-2"
                 : "w-1/2 flex flex-row justify-between gap-2"
             }
           >
-            <div className={isTouchLayout ? "hidden" : "w-1/2"}></div>
+            <div className={isTouchLayout ? "hidden" : "w-1/4"}></div>
             <button
               type="button"
-              className={`rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
+                isTouchLayout ? "" : "flex-1"
+              } ${
+                activeTab === "new"
+                  ? "neuphormism-b-btn-gold"
+                  : "neuphormism-b-btn "
+              }`}
+              onClick={() => setActiveTab("new")}
+            >
+              <FaPlus className="h-3.5 w-3.5" />
+              <span>New</span>
+            </button>
+            <button
+              type="button"
+              className={`flex items-center justify-center gap-2 rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "tags"
@@ -202,11 +222,12 @@ export default function Tags({
               }`}
               onClick={() => setActiveTab("tags")}
             >
-              Tags
+              <FaFilter className="h-3.5 w-3.5" />
+              <span>Tags</span>
             </button>
             <button
               type="button"
-              className={`rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "export"
@@ -215,24 +236,62 @@ export default function Tags({
               }`}
               onClick={() => setActiveTab("export")}
             >
-              Share
+              <FaShareAlt className="h-3.5 w-3.5" />
+              <span>Share</span>
             </button>
           </div>
         </div>
+
+        {activeTab === "new" ? (
+          <div className="mt-4">
+            <div>
+              <h2 className="text-[11px] font-bold uppercase text-gray-600">
+                New setlist
+              </h2>
+              <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                Create a reusable setlist label. New setlists are immediately
+                selected as dashboard filters, so you can start building a
+                rehearsal group without leaving Options.
+              </p>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <input
+                type="text"
+                className="input-neumorfismo min-w-0 flex-1 rounded-lg border border-transparent bg-[#e0e0e0] px-3 py-2 text-[16px] font-semibold outline-none focus:border-[goldenrod] md:text-sm"
+                placeholder="Add new setlist"
+                value={newTagName}
+                onChange={(event) => setNewTagName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addNewTag();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold uppercase neuphormism-b-btn-gold"
+                onClick={addNewTag}
+              >
+                <FaPlus className="h-3.5 w-3.5" />
+                <span>Add</span>
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {activeTab === "tags" ? (
           <div className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-[11px] font-bold uppercase text-gray-600">
-                  Filter tags
+                <h2 className="text-[11px] font-bold uppercase text-gray-600 mt-5">
+                  Filter dashboard by setlist
                 </h2>
-                {!isTouchLayout ? (
-                  <p className="mt-1 text-[11px] font-semibold text-gray-500">
-                    Selected tags filter the dashboard and are carried into
-                    export.
-                  </p>
-                ) : null}
+                <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                  Click one or more setlists to filter the song table. Gold tags
+                  are active filters; clicking them again removes them.
+                </p>
               </div>
               <div className="flex gap-2">
                 {!isEditing ? (
@@ -265,29 +324,6 @@ export default function Tags({
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <input
-                type="text"
-                className="input-neumorfismo min-w-0 flex-1 rounded-lg border border-transparent bg-[#e0e0e0] px-3 py-2 text-[16px] font-semibold outline-none focus:border-[goldenrod] md:text-sm"
-                placeholder="Add new tag"
-                value={newTagName}
-                onChange={(event) => setNewTagName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    addNewTag();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="rounded-lg px-6 py-2 text-sm font-bold uppercase neuphormism-b-btn-gold"
-                onClick={addNewTag}
-              >
-                +
-              </button>
-            </div>
-
             <div className="mt-4">
               {setlists.length === 0 ? (
                 <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
@@ -302,17 +338,17 @@ export default function Tags({
                   {setlists.map((tag, index) => {
                     const isActive = selectedSetlists.includes(tag);
                     const willRemove = pendingRemovals.includes(tag);
-                    const backgroundColor = willRemove
-                      ? "#dc2626"
-                      : isActive
-                        ? "goldenrod"
-                        : "#9ca3af";
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={`${tag}-${index}`}
-                        className={`flex items-center gap-1 shadow-sm ${
-                          isEditing ? "cursor-default" : ""
-                        } ${willRemove ? "ring-2 ring-red-600" : ""}`}
+                        className={`setlist-tag-button ${
+                          isActive ? "setlist-tag-button-active" : ""
+                        } ${
+                          willRemove
+                            ? "setlist-tag-button-removing ring-2 ring-red-600"
+                            : ""
+                        } ${isEditing ? "setlist-tag-button-editing" : ""}`}
                         onClick={() => !isEditing && toggleTag(tag)}
                         onKeyDown={(event) => {
                           if (isEditing) return;
@@ -329,21 +365,9 @@ export default function Tags({
                             : "Clique para adicionar este filtro"
                         }
                         style={{
-                          minWidth: isTouchLayout ? "0" : "80px",
-                          display: "inline-flex",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          padding: isTouchLayout ? "10px 12px" : "6px 10px",
-                          borderRadius: "7px",
-                          margin: isTouchLayout ? "0" : "2px",
-                          cursor: isEditing ? "default" : "pointer",
-                          fontSize: "12px",
-                          backgroundColor,
-                          border: willRemove
-                            ? "1px solid #dc2626"
-                            : "1px solid transparent",
-                          color: "#fff",
-                          userSelect: "none",
+                          minWidth: isTouchLayout ? "0" : undefined,
+                          margin: isTouchLayout ? "0" : undefined,
+                          padding: isTouchLayout ? "10px 12px" : undefined,
                           ...tagAnimationStyle,
                         }}
                       >
@@ -364,7 +388,7 @@ export default function Tags({
                             }}
                           />
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -415,6 +439,10 @@ export default function Tags({
             <h2 className="text-[11px] font-bold uppercase text-gray-600">
               Share setlists
             </h2>
+            <p className="mt-1 text-[11px] font-semibold text-gray-500">
+              Send the selected setlists to an accepted friend. If no filters
+              are active, every available setlist is prepared for sharing.
+            </p>
             <div className="mt-3 flex max-h-20 min-h-9 flex-wrap gap-2 overflow-y-auto rounded-lg border border-black/5 bg-white/50 p-2">
               {exportableSetlists.length ? (
                 exportableSetlists.map((setlist) => (
@@ -528,6 +556,20 @@ export default function Tags({
             ) : null}
           </div>
         ) : null}
+
+        <div className="relative top-auto mt-auto border-t border-black/5 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/50 px-3 py-2 text-[11px] font-bold text-gray-700">
+            <span>
+              {selectedSetlists.length
+                ? `${selectedSetlists.length} active setlist filter${selectedSetlists.length === 1 ? "" : "s"}`
+                : "No active setlist filter"}
+            </span>
+            <span className="rounded-full bg-[goldenrod] px-3 py-1 text-black">
+              {visibleSongsCount} selected song
+              {visibleSongsCount === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
       </section>
       <style>{`
       @keyframes tag-shake {

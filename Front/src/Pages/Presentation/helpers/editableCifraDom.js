@@ -145,42 +145,13 @@ function getEditableContentBlocks(contentNode) {
   );
 }
 
-function getEditableBlockContainer(contentBlock) {
-  return (
-    contentBlock?.closest(".presentation-column") ||
-    contentBlock?.closest(".presentation-render-block")
-  );
-}
-
-function isEditableBlockMeaningful(contentBlock) {
-  if (!contentBlock) return false;
-
-  return (
-    hasMeaningfulEditableText(readEditableBlockText(contentBlock)) ||
-    hasPreservedBlankLine(contentBlock)
-  );
-}
-
 export function compactEmptyEditableBlocks(contentNode) {
-  const contentBlocks = getEditableContentBlocks(contentNode);
-  if (contentBlocks.length <= 1) return false;
-
-  let removedAny = false;
-
-  contentBlocks.forEach((contentBlock) => {
-    const currentBlocks = getEditableContentBlocks(contentNode);
-    if (currentBlocks.length <= 1) return;
-    if (!currentBlocks.includes(contentBlock)) return;
-    if (isEditableBlockMeaningful(contentBlock)) return;
-
-    const container = getEditableBlockContainer(contentBlock);
-    if (container?.parentElement) {
-      container.remove();
-      removedAny = true;
-    }
-  });
-
-  return removedAny;
+  // The editor may freely change content inside each render block, but it must
+  // not remove React-owned presentation-column/render-block wrappers. React
+  // will reconcile those wrappers later, and removing them here can trigger
+  // DOM removeChild errors during the next render.
+  void contentNode;
+  return false;
 }
 
 function getContentBlockKeys(block) {
@@ -263,7 +234,7 @@ function serializeEditableBlocks(
   }, "").trimEnd();
 }
 
-export function collectEditedPresentationBlocksFromNode({
+export function collectEditedCifraModelFromNode({
   contentNode,
   fallbackCifra = "",
   excludedBlockKeys = [],
@@ -285,12 +256,33 @@ export function collectEditedPresentationBlocksFromNode({
     return !blockKeys.some((blockKey) => excludedKeys.has(blockKey));
   });
 
-  if (!contentBlocks.length) return fallbackCifra;
-  return serializeEditableBlocks(contentBlocks, {
+  const modelType = persistVisualColumnBreaks
+    ? "expanded-columns"
+    : "standard-linear";
+
+  if (!contentBlocks.length) {
+    return {
+      text: fallbackCifra,
+      type: modelType,
+      preserveColumnBreaks,
+      persistVisualColumnBreaks,
+    };
+  }
+
+  return {
+    text: serializeEditableBlocks(contentBlocks, {
+      preserveColumnBreaks,
+      persistVisualColumnBreaks,
+      sourceBlocks,
+    }),
+    type: modelType,
     preserveColumnBreaks,
     persistVisualColumnBreaks,
-    sourceBlocks,
-  });
+  };
+}
+
+export function collectEditedPresentationBlocksFromNode(args) {
+  return collectEditedCifraModelFromNode(args).text;
 }
 
 export function removeEmptyEditableLine(event) {
@@ -356,6 +348,30 @@ export function deleteSelectedEditableContent(event) {
   }
 
   const targetBlock = event.currentTarget;
+  const contentBlocks = getEditableContentBlocks(targetBlock);
+  const selectedIndexes = getRangeBlockIndexes(contentBlocks, selection);
+
+  if (selectedIndexes && selectedIndexes.endIndex > selectedIndexes.startIndex) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    for (
+      let blockIndex = selectedIndexes.startIndex;
+      blockIndex <= selectedIndexes.endIndex;
+      blockIndex += 1
+    ) {
+      contentBlocks[blockIndex]?.replaceChildren();
+    }
+
+    compactEmptyEditableBlocks(targetBlock);
+
+    const updatedBlocks = getEditableContentBlocks(targetBlock);
+    const focusBlock =
+      updatedBlocks[Math.min(selectedIndexes.startIndex, updatedBlocks.length - 1)];
+    focusEditableBlockStart(focusBlock);
+    return true;
+  }
+
   const range = selection.getRangeAt(0);
   const anchorNode = selection.anchorNode;
   const focusNode = selection.focusNode;
@@ -380,6 +396,52 @@ export function deleteSelectedEditableContent(event) {
   pruneEmptyLayoutContainers(targetBlock);
   compactEmptyEditableBlocks(targetBlock);
   targetBlock.focus?.({ preventScroll: true });
+  return true;
+}
+
+export function replaceSelectedEditableContentWithText(event) {
+  if (
+    event.isComposing ||
+    event.key?.length !== 1 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey
+  ) {
+    return false;
+  }
+
+  const selection = window.getSelection?.();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    return false;
+  }
+
+  const targetBlock = event.currentTarget;
+  const contentBlocks = getEditableContentBlocks(targetBlock);
+  const selectedIndexes = getRangeBlockIndexes(contentBlocks, selection);
+  if (!selectedIndexes) return false;
+
+  if (selectedIndexes.endIndex <= selectedIndexes.startIndex) {
+    return false;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  for (
+    let blockIndex = selectedIndexes.startIndex;
+    blockIndex <= selectedIndexes.endIndex;
+    blockIndex += 1
+  ) {
+    contentBlocks[blockIndex]?.replaceChildren();
+  }
+
+  replaceEditableBlockText(contentBlocks[selectedIndexes.startIndex], event.key);
+  compactEmptyEditableBlocks(targetBlock);
+
+  const updatedBlocks = getEditableContentBlocks(targetBlock);
+  const focusBlock =
+    updatedBlocks[Math.min(selectedIndexes.startIndex, updatedBlocks.length - 1)];
+  focusEditableBlockEnd(focusBlock);
   return true;
 }
 
@@ -530,60 +592,172 @@ function prependMovedLine(targetBlock, lineNode) {
   targetBlock.insertBefore(lineNode, targetBlock.firstChild);
 }
 
-function createEditableBlockAfter(currentContentBlock, index) {
-  if (!currentContentBlock) return null;
-
-  const currentColumn = currentContentBlock.closest(".presentation-column");
-  if (!currentColumn?.parentElement) return null;
-
-  const nextColumn = currentColumn.cloneNode(true);
-  const nextContentBlock = nextColumn.querySelector(
-    ".presentation-render-content-block",
-  );
-
-  if (!nextContentBlock) return null;
-
-  const newBlockKey = `editor-new-block-${Date.now()}-${index}`;
-  nextColumn.classList.remove(
-    "presentation-progression-column",
-    "presentation-progression-column-selected",
-  );
-  nextColumn
-    .querySelector(".presentation-render-block")
-    ?.classList.remove(
-      "presentation-progression-block",
-      "presentation-progression-block-selected",
-    );
-  nextColumn
-    .querySelector(".presentation-column-header")
-    ?.setAttribute("aria-hidden", "true");
-  nextContentBlock.dataset.blockKeys = newBlockKey;
-  nextContentBlock.dataset.originalBlockIndex = String(index);
-  nextContentBlock.replaceChildren();
-
-  currentColumn.parentElement.insertBefore(nextColumn, currentColumn.nextSibling);
-  return nextContentBlock;
-}
-
 function rebalanceOverflowToRight(contentBlocks, startIndex) {
   for (
     let blockIndex = Math.max(0, startIndex);
-    blockIndex < contentBlocks.length - 1;
+    blockIndex < contentBlocks.length;
     blockIndex += 1
   ) {
     const sourceBlock = contentBlocks[blockIndex];
-    const targetBlock = contentBlocks[blockIndex + 1];
     let guard = 0;
 
     while (blockHasOverflow(sourceBlock) && guard < 200) {
+      const targetBlock = contentBlocks[blockIndex + 1];
       const lineNode = getLastMovableLineNode(sourceBlock);
-      if (!lineNode) break;
+      if (!lineNode || !targetBlock) break;
 
       prependMovedLine(targetBlock, lineNode);
       pruneEmptyLayoutContainers(sourceBlock);
       guard += 1;
     }
   }
+}
+
+function createPlainEditableLine(ownerDocument, lineText) {
+  const lineNode = ownerDocument.createElement("pre");
+  lineNode.className = "mt-1 presentation-lyrics";
+  lineNode.textContent = lineText;
+  return lineNode;
+}
+
+function createPlainEditableFragment(ownerDocument, text) {
+  const fragment = ownerDocument.createDocumentFragment();
+  String(text || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .forEach((line) => {
+      fragment.appendChild(createPlainEditableLine(ownerDocument, line));
+    });
+  return fragment;
+}
+
+function replaceEditableBlockText(contentBlock, text) {
+  if (!contentBlock) return;
+  const ownerDocument = contentBlock.ownerDocument || document;
+  contentBlock.replaceChildren(createPlainEditableFragment(ownerDocument, text));
+}
+
+function getSelectionBlockIndexes(contentBlocks, selection) {
+  if (!selection || selection.rangeCount === 0) return null;
+
+  const anchorIndex = contentBlocks.findIndex((block) =>
+    block.contains(selection.anchorNode),
+  );
+  const focusIndex = contentBlocks.findIndex((block) =>
+    block.contains(selection.focusNode),
+  );
+
+  if (anchorIndex < 0 || focusIndex < 0) return null;
+
+  return {
+    startIndex: Math.min(anchorIndex, focusIndex),
+    endIndex: Math.max(anchorIndex, focusIndex),
+  };
+}
+
+function getRangeBlockIndexes(contentBlocks, selection) {
+  if (!selection || selection.rangeCount === 0) return null;
+
+  const range = selection.getRangeAt(0);
+  const selectedIndexes = contentBlocks
+    .map((block, index) => {
+      try {
+        return range.intersectsNode(block) ? index : -1;
+      } catch {
+        return -1;
+      }
+    })
+    .filter((index) => index >= 0);
+
+  if (!selectedIndexes.length) return null;
+
+  return {
+    startIndex: Math.min(...selectedIndexes),
+    endIndex: Math.max(...selectedIndexes),
+  };
+}
+
+export function selectAllEditableContent(event) {
+  if (
+    event.key?.toLowerCase() !== "a" ||
+    event.shiftKey ||
+    event.altKey ||
+    (!event.metaKey && !event.ctrlKey)
+  ) {
+    return false;
+  }
+
+  const targetBlock = event.currentTarget;
+  const contentBlocks = getEditableContentBlocks(targetBlock);
+  if (!contentBlocks.length) return false;
+
+  const selection = window.getSelection?.();
+  if (!selection) return false;
+
+  const ownerDocument = targetBlock.ownerDocument || document;
+  const range = ownerDocument.createRange();
+  range.setStartBefore(contentBlocks[0]);
+  range.setEndAfter(contentBlocks[contentBlocks.length - 1]);
+
+  event.preventDefault();
+  event.stopPropagation();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  targetBlock.focus?.({ preventScroll: true });
+  return true;
+}
+
+export function pasteEditableContentAcrossBlocks(event) {
+  const clipboardText = event.clipboardData?.getData("text/plain");
+  if (typeof clipboardText !== "string" || clipboardText === "") return false;
+
+  const targetBlock = event.currentTarget;
+  const contentBlocks = getEditableContentBlocks(targetBlock);
+  if (!contentBlocks.length) return false;
+
+  const selection = window.getSelection?.();
+  if (!selection || selection.rangeCount === 0) return false;
+
+  const selectedIndexes =
+    getSelectionBlockIndexes(contentBlocks, selection) ||
+    getRangeBlockIndexes(contentBlocks, selection);
+  const ownerDocument = targetBlock.ownerDocument || document;
+  let insertionIndex = selectedIndexes?.startIndex ?? 0;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (selectedIndexes && selectedIndexes.endIndex > selectedIndexes.startIndex) {
+    for (
+      let blockIndex = selectedIndexes.startIndex;
+      blockIndex <= selectedIndexes.endIndex;
+      blockIndex += 1
+    ) {
+      contentBlocks[blockIndex]?.replaceChildren();
+    }
+    replaceEditableBlockText(contentBlocks[insertionIndex], clipboardText);
+  } else {
+    const range = selection.getRangeAt(0);
+    const anchorIndex = contentBlocks.findIndex((block) =>
+      block.contains(selection.anchorNode),
+    );
+    insertionIndex = anchorIndex >= 0 ? anchorIndex : insertionIndex;
+
+    if (contentBlocks[insertionIndex]?.contains(range.commonAncestorContainer)) {
+      range.deleteContents();
+      range.insertNode(createPlainEditableFragment(ownerDocument, clipboardText));
+    } else {
+      replaceEditableBlockText(contentBlocks[insertionIndex], clipboardText);
+    }
+  }
+
+  rebalanceOverflowToRight(getEditableContentBlocks(targetBlock), insertionIndex);
+  compactEmptyEditableBlocks(targetBlock);
+
+  const updatedBlocks = getEditableContentBlocks(targetBlock);
+  const focusBlock = updatedBlocks[Math.min(insertionIndex, updatedBlocks.length - 1)];
+  focusEditableBlockEnd(focusBlock);
+  return true;
 }
 
 function moveTrailingContentToBlockStart({
@@ -712,13 +886,6 @@ export function moveToAdjacentEditableBlock(event) {
   const currentIndex = contentBlocks.indexOf(currentContentBlock);
   const targetIndex = shouldMoveRight ? currentIndex + 1 : currentIndex - 1;
   let targetContentBlock = contentBlocks[targetIndex];
-
-  if (!targetContentBlock && shouldMoveRight) {
-    targetContentBlock = createEditableBlockAfter(
-      currentContentBlock,
-      currentIndex + 1,
-    );
-  }
 
   if (!targetContentBlock) return false;
 

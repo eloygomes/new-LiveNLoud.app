@@ -48,10 +48,11 @@ describe("Tags", () => {
     const { handleAddSetlist } = renderTags();
     await waitFor(() => expect(fetchCurrentUserProfile).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByPlaceholderText("Add new tag"), {
+    fireEvent.click(screen.getByRole("button", { name: /New/i }));
+    fireEvent.change(screen.getByPlaceholderText("Add new setlist"), {
       target: { value: "New Tag" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add/i }));
 
     await waitFor(() => {
       expect(handleAddSetlist).toHaveBeenCalledWith("New Tag");

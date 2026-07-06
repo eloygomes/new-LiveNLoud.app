@@ -244,12 +244,14 @@ export default function ScrollControlPanel({ isTouchLayout = false }) {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      const targetTag = event.target?.tagName;
+      const target = event.target;
+      const targetTag = target?.tagName;
       if (
         targetTag === "INPUT" ||
         targetTag === "TEXTAREA" ||
         targetTag === "SELECT" ||
-        event.target?.isContentEditable
+        target?.isContentEditable ||
+        target?.closest?.('[contenteditable="true"]')
       ) {
         return;
       }

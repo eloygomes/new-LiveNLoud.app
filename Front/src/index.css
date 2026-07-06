@@ -182,6 +182,65 @@ main{
               inset -20px -20px 60px #ffffff;
 }
 
+.setlist-tag-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 80px;
+  margin: 2px;
+  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: linear-gradient(145deg, #efefef, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  user-select: none;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.setlist-tag-button:hover,
+.setlist-tag-button:focus-visible {
+  color: #111111;
+  outline: none;
+}
+
+.setlist-tag-button:active {
+  background: goldenrod;
+  box-shadow: inset 6px 6px 14px rgba(122, 87, 0, 0.26),
+              inset -6px -6px 14px rgba(255, 228, 123, 0.32);
+  color: #000000;
+}
+
+.setlist-tag-button-active,
+.setlist-tag-button-active:hover,
+.setlist-tag-button-active:focus-visible,
+.setlist-tag-button-active:active {
+  background: goldenrod !important;
+  color: #000000 !important;
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+}
+
+.setlist-tag-button-removing,
+.setlist-tag-button-removing:hover,
+.setlist-tag-button-removing:focus-visible,
+.setlist-tag-button-removing:active {
+  border-color: #dc2626;
+  background: #f3d4d4 !important;
+  color: #7f1d1d !important;
+}
+
+.setlist-tag-button-editing {
+  cursor: default;
+}
+
 .neuphormism-b-btn-red {
   /* background-color: red; */
   border-radius: 5px;
@@ -237,6 +296,13 @@ main{
   box-shadow: inset 5px 5px 10px #6c6c6c, inset -5px -5px 10px #000;
 }
 
+.presentation-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.5rem;
+}
 
 /* Adicione isso no seu arquivo CSS */
 .disabled-link {
@@ -325,16 +391,6 @@ main{
   box-sizing: border-box;
 }
 
-.presentation-tabs-only .tab + .tab,
-.presentation-tabs-only .presentation-tab + .presentation-tab,
-.presentation-tabs-only .presentation-tab-section + .presentation-tab-section {
-  margin-top: 1.5rem;
-}
-
-.presentation-tab-filter-block + .presentation-tab-filter-block {
-  margin-top: 1.5rem;
-}
-
 .notespresentation{
   color: goldenrod;
   cursor: pointer;
@@ -379,10 +435,6 @@ main{
 .presentation-editor-expanded-vertical {
   width: 100%;
   max-width: none;
-}
-
-.hide-chords .notespresentation {
-  display: none;
 }
 
 .presentation-live-shell {
@@ -1348,23 +1400,23 @@ main{
   filter: none;
 }
 
-.presentation-column {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
+
 
 .presentation-progression-block {
   height: var(--presentation-column-height, min(68vh, 760px));
-  outline: 2px dashed var(--progression-color, #d4a017);
-  outline-offset: -2px;
+  /* outline: 2px dashed var(--progression-color, #d4a017);
+  outline-offset: -2px; */
   border-radius: 10px;
-  padding: 0;
+  padding: 0.75rem;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px
     color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
   pointer-events: auto;
+    border-radius: 5px;
+  background: linear-gradient(145deg, #efefef, #f0f0f0);
+  box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+  cursor: pointer;
+
 }
 
 .presentation-column-body {
@@ -1422,63 +1474,67 @@ main{
     0 10px 24px color-mix(in srgb, var(--progression-color, #d4a017) 12%, transparent);
 }
 
-.presentation-content-flow[contenteditable="true"] {
+.presentation-content-flow[data-editing="true"] {
   caret-color: #ff0000;
   caret-shape: block;
   outline: none;
 }
 
-.presentation-content-flow[contenteditable="true"] .presentation-render-block {
+.presentation-content-flow[data-editing="true"] .presentation-render-block {
   cursor: text;
 }
 
-.presentation-content-flow[contenteditable="true"] .presentation-render-content-block {
-  padding-inline: 0.8rem;
-}
-
-.presentation-content-flow[contenteditable="true"] .presentation-render-content-block::selection,
-.presentation-content-flow[contenteditable="true"] .presentation-render-content-block *::selection {
+.presentation-content-flow[data-editing="true"] .presentation-render-content-block::selection,
+.presentation-content-flow[data-editing="true"] .presentation-render-content-block *::selection {
   background: rgba(220, 38, 38, 0.34);
   color: #050505;
 }
 
-.presentation-content-flow[contenteditable="true"] .notespresentation::before,
-.presentation-content-flow[contenteditable="true"] .notespresentation::after {
-  position: absolute;
-  top: 0;
-  color: goldenrod;
-  pointer-events: none;
+.presentation-edit-chord-bracket {
+  display: none;
 }
 
-.presentation-content-flow[contenteditable="true"] .notespresentation {
+.presentation-content-flow[data-editing="true"] .notespresentation {
   display: inline-block;
   margin-inline: -1ch;
   padding-inline: 1ch;
+  position: relative;
 }
 
-.presentation-content-flow[contenteditable="true"] .notespresentation::before {
-  content: "[ ";
+.presentation-content-flow[data-editing="true"] .notespresentation.presentation-leading-bracketed-chord {
+  margin-left: 0;
+  padding-left: 1ch;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-edit-chord-bracket {
+  color: goldenrod;
+  display: inline;
+  position: absolute;
+  top: 0;
+  user-select: text;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-edit-chord-bracket:first-child {
   left: 0;
 }
 
-.presentation-content-flow[contenteditable="true"] .notespresentation::after {
-  content: " ]";
+.presentation-content-flow[data-editing="true"] .presentation-edit-chord-bracket:last-child {
   right: 0;
 }
 
-.presentation-content-flow[contenteditable="true"] .presentation-tom,
-.presentation-content-flow[contenteditable="true"] .presentation-lyrics,
-.presentation-content-flow[contenteditable="true"] .presentation-chords,
-.presentation-content-flow[contenteditable="true"] .presentation-chord-lyrics,
-.presentation-content-flow[contenteditable="true"] .presentation-combined-tab-chords,
-.presentation-content-flow[contenteditable="true"] .presentation-tab,
-.presentation-content-flow[contenteditable="true"] .presentation-tab-section,
-.presentation-content-flow[contenteditable="true"] .intro pre,
-.presentation-content-flow[contenteditable="true"] .verse pre,
-.presentation-content-flow[contenteditable="true"] .chorus pre,
-.presentation-content-flow[contenteditable="true"] .solo pre,
-.presentation-content-flow[contenteditable="true"] .bridge pre,
-.presentation-content-flow[contenteditable="true"] .section pre {
+.presentation-content-flow[data-editing="true"] .presentation-tom,
+.presentation-content-flow[data-editing="true"] .presentation-lyrics,
+.presentation-content-flow[data-editing="true"] .presentation-chords,
+.presentation-content-flow[data-editing="true"] .presentation-chord-lyrics,
+.presentation-content-flow[data-editing="true"] .presentation-combined-tab-chords,
+.presentation-content-flow[data-editing="true"] .presentation-tab,
+.presentation-content-flow[data-editing="true"] .presentation-tab-section,
+.presentation-content-flow[data-editing="true"] .intro pre,
+.presentation-content-flow[data-editing="true"] .verse pre,
+.presentation-content-flow[data-editing="true"] .chorus pre,
+.presentation-content-flow[data-editing="true"] .solo pre,
+.presentation-content-flow[data-editing="true"] .bridge pre,
+.presentation-content-flow[data-editing="true"] .section pre {
   overflow: visible;
 }
 

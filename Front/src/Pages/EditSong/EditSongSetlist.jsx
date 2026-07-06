@@ -286,12 +286,6 @@ const TAG_SHAKE_ANIMATION = "tag-shake 0.45s ease-in-out infinite";
 
 const getUserEmail = () => localStorage.getItem("userEmail");
 
-const getTagBackgroundColor = ({ willRemove, isActive }) => {
-  if (willRemove) return "#dc2626";
-  if (isActive) return "goldenrod";
-  return "#9ca3af";
-};
-
 const getTagTitle = (isActive) =>
   isActive
     ? "Clique para remover este filtro"
@@ -299,35 +293,6 @@ const getTagTitle = (isActive) =>
 
 const getRemoveIconTitle = (willRemove) =>
   willRemove ? "Clique para desfazer a remoção" : "Remover setlist do sistema";
-
-const buildTagStyle = ({
-  backgroundColor,
-  willRemove,
-  isEditing,
-  tagAnimationStyle,
-}) => {
-  const resolvedBackground = willRemove
-    ? "#f3d4d4"
-    : backgroundColor === "goldenrod"
-      ? "goldenrod"
-      : "#efefef";
-
-  return {
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "10px 20px",
-  borderRadius: "22px",
-  margin: "2px",
-  cursor: isEditing ? "default" : "pointer",
-  fontSize: "12px",
-  backgroundColor: resolvedBackground,
-  border: willRemove ? "1px solid #dc2626" : "1px solid rgba(255,255,255,0.72)",
-  color: backgroundColor === "goldenrod" ? "#000" : "#6b7280",
-  boxShadow: "8px 8px 18px #bebebe, -8px -8px 18px #ffffff",
-  userSelect: "none",
-  ...tagAnimationStyle,
-  };
-};
 
 function EditSongSetlistWeb({
   setlist,
@@ -466,11 +431,14 @@ function EditSongSetlistWeb({
   };
 
   return (
-    <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
+    <div className="my-5 rounded-[16px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Setlist
+          </p>
+          <p className="mt-2 text-sm font-medium text-gray-500">
+            Available setlists
           </p>
         </div>
 
@@ -478,7 +446,7 @@ function EditSongSetlistWeb({
           <button
             type="button"
             onClick={() => setIsCreating((current) => !current)}
-            className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+            className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
           >
             +
           </button>
@@ -486,7 +454,7 @@ function EditSongSetlistWeb({
             <button
               type="button"
               onClick={startEditing}
-              className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+              className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
             >
               Edit
             </button>
@@ -495,7 +463,7 @@ function EditSongSetlistWeb({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+                className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
               >
                 Cancel
               </button>
@@ -503,7 +471,7 @@ function EditSongSetlistWeb({
               <button
                 type="button"
                 onClick={saveChanges}
-                className="rounded-[14px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn disabled:opacity-60"
+                className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn disabled:opacity-60"
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -535,7 +503,7 @@ function EditSongSetlistWeb({
 
           <button
             type="button"
-            className="rounded-[12px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
+            className="rounded-[8px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
             onClick={addNewTag}
           >
             +
@@ -544,11 +512,7 @@ function EditSongSetlistWeb({
       </div>
       ) : null}
 
-      <div className="mt-5">
-        <h1 className="px-0 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
-          Available setlists
-        </h1>
-
+      <div className="mt-7">
         <div className="w-full pr-2">
           {setlistOptions.length === 0 ? (
             <p className="mt-3 italic text-sm text-gray-500">
@@ -559,30 +523,23 @@ function EditSongSetlistWeb({
               {setlistOptions.map((tag) => {
                 const isActive = setlist.includes(tag);
                 const willRemove = pendingRemovals.includes(tag);
-                const backgroundColor = getTagBackgroundColor({
-                  willRemove,
-                  isActive,
-                });
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={tag}
-                    className={`flex items-center gap-1 ${
-                      willRemove ? "opacity-60 ring-2 ring-red-400" : ""
-                    } ${isEditing ? "cursor-default" : ""}`}
-                    style={buildTagStyle({
-                      backgroundColor,
-                      willRemove,
-                      isEditing,
-                      tagAnimationStyle,
-                    })}
+                    className={`setlist-tag-button ${
+                      isActive ? "setlist-tag-button-active" : ""
+                    } ${
+                      willRemove
+                        ? "setlist-tag-button-removing opacity-60 ring-2 ring-red-400"
+                        : ""
+                    } ${isEditing ? "setlist-tag-button-editing" : ""}`}
+                    onClick={() => toggleTag(tag)}
+                    title={getTagTitle(isActive)}
+                    style={tagAnimationStyle}
                   >
-                    <span
-                      onClick={() => toggleTag(tag)}
-                      title={getTagTitle(isActive)}
-                    >
-                      {tag}
-                    </span>
+                    <span>{tag}</span>
 
                     {isEditing && (
                       <RiDeleteBin6Line
@@ -596,7 +553,7 @@ function EditSongSetlistWeb({
                         }}
                       />
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -745,11 +702,14 @@ function EditSongSetlistMobile({
   };
 
   return (
-    <div className="my-5 mr-5 rounded-[30px] neuphormism-b px-6 py-6">
+    <div className="my-5 mr-5 rounded-[16px] neuphormism-b px-6 py-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
             Setlist
+          </p>
+          <p className="mt-2 text-sm font-medium text-gray-500">
+            Available setlists
           </p>
         </div>
 
@@ -757,7 +717,7 @@ function EditSongSetlistMobile({
           <button
             type="button"
             onClick={() => setIsCreating((current) => !current)}
-            className="text-sm px-4 py-2 rounded-full border transition-colors neuphormism-b-btn"
+            className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
           >
             +
           </button>
@@ -765,7 +725,7 @@ function EditSongSetlistMobile({
             <button
               type="button"
               onClick={startEditing}
-              className="text-sm px-4 py-2 rounded-full border transition-colors neuphormism-b-btn"
+              className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
             >
               Edit
             </button>
@@ -774,7 +734,7 @@ function EditSongSetlistMobile({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="text-sm px-4 py-2 rounded-full border transition-colors bg-white text-gray-700 border-gray-300"
+                className="rounded-[8px] border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition-colors"
               >
                 Cancel
               </button>
@@ -782,7 +742,7 @@ function EditSongSetlistMobile({
               <button
                 type="button"
                 onClick={saveChanges}
-                className="text-sm px-4 py-2 rounded-full border transition-colors bg-emerald-500 text-white border-emerald-500 disabled:opacity-60"
+                className="rounded-[8px] border border-emerald-500 bg-emerald-500 px-4 py-2 text-sm font-bold text-white transition-colors disabled:opacity-60"
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -814,7 +774,7 @@ function EditSongSetlistMobile({
 
           <button
             type="button"
-            className="px-3 py-2 text-sm neuphormism-b-btn"
+            className="rounded-[8px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
             onClick={addNewTag}
           >
             +
@@ -823,11 +783,7 @@ function EditSongSetlistMobile({
       </div>
       ) : null}
 
-      <div className="mt-5">
-        <h1 className="px-0 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
-          Available setlists
-        </h1>
-
+      <div className="mt-7">
         <div className="w-full pr-2">
           {setlistOptions.length === 0 ? (
             <p className="mt-3 italic text-sm text-gray-500">
@@ -838,30 +794,23 @@ function EditSongSetlistMobile({
               {setlistOptions.map((tag) => {
                 const isActive = setlist.includes(tag);
                 const willRemove = pendingRemovals.includes(tag);
-                const backgroundColor = getTagBackgroundColor({
-                  willRemove,
-                  isActive,
-                });
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={tag}
-                    className={`flex items-center gap-1 ${
-                      willRemove ? "opacity-60 ring-2 ring-red-400" : ""
-                    } ${isEditing ? "cursor-default" : ""}`}
-                    style={buildTagStyle({
-                      backgroundColor,
-                      willRemove,
-                      isEditing,
-                      tagAnimationStyle,
-                    })}
+                    className={`setlist-tag-button ${
+                      isActive ? "setlist-tag-button-active" : ""
+                    } ${
+                      willRemove
+                        ? "setlist-tag-button-removing opacity-60 ring-2 ring-red-400"
+                        : ""
+                    } ${isEditing ? "setlist-tag-button-editing" : ""}`}
+                    onClick={() => toggleTag(tag)}
+                    title={getTagTitle(isActive)}
+                    style={tagAnimationStyle}
                   >
-                    <span
-                      onClick={() => toggleTag(tag)}
-                      title={getTagTitle(isActive)}
-                    >
-                      {tag}
-                    </span>
+                    <span>{tag}</span>
 
                     {isEditing && (
                       <RiDeleteBin6Line
@@ -875,7 +824,7 @@ function EditSongSetlistMobile({
                         }}
                       />
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
