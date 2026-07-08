@@ -367,6 +367,7 @@ import {
   getAllUserSetlists,
   createNewSongOnServer,
 } from "../../Tools/Controllers";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 /* helper: transforma slug (pink-floyd) em "Pink Floyd" */
 function slugToTitle(input = "") {
@@ -472,6 +473,7 @@ function NewSongColumnA({
   onSongDataChange,
   onPageActionsChange,
 }) {
+  const { t } = useLanguage();
   const [songName, setSongName] = useState(null);
   const [artistName, setArtistName] = useState(null);
   const [capoData, setCapoData] = useState(null);
@@ -903,7 +905,7 @@ function NewSongColumnA({
         >
           <div className="text-left">
             <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
-              Song Data
+              {t("songPages.songData")}
             </h2>
           </div>
           <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
@@ -948,7 +950,7 @@ function NewSongColumnA({
           <div className="rounded-[20px] neuphormism-b p-3">
             <div className="mb-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                Videos
+                {t("songPages.videos")}
               </p>
             </div>
             <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none [&_.neuphormism-b-btn]:!rounded-[14px] [&_.neuphormism-b-btn]:!bg-white">
@@ -962,7 +964,7 @@ function NewSongColumnA({
           <div className="rounded-[20px] neuphormism-b p-3">
             <div className="mb-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                Setlist
+                {t("songPages.setlist")}
               </p>
             </div>
             <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
@@ -994,10 +996,10 @@ function NewSongColumnA({
         >
           <div className="text-left">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              Song Workspace
+              {t("songPages.songWorkspace")}
             </p>
             <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
-              Media & Setlist
+              {t("songPages.mediaSetlist")}
             </h2>
           </div>
           <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
@@ -1022,9 +1024,9 @@ function NewSongColumnA({
                     <FaVideo className="text-sm" />
                   </div>
                   <div className="text-left">
-                    <div className="text-lg font-bold text-black">Videos</div>
+                    <div className="text-lg font-bold text-black">{t("songPages.videos")}</div>
                     <div className="text-xs font-bold text-[#2f6f3e]">
-                      {embedLink.length} videos added
+                      {t("songPages.videosAdded", { count: embedLink.length })}
                     </div>
                   </div>
                 </div>
@@ -1047,9 +1049,9 @@ function NewSongColumnA({
                     <FaListUl className="text-sm" />
                   </div>
                   <div className="text-left">
-                    <div className="text-lg font-bold text-black">Setlist</div>
+                    <div className="text-lg font-bold text-black">{t("songPages.setlist")}</div>
                     <div className="text-xs font-bold text-[#2f6f3e]">
-                      {setlist.length} setlists selected
+                      {t("songPages.setlistsSelected", { count: setlist.length })}
                     </div>
                   </div>
                 </div>
@@ -1070,16 +1072,16 @@ function NewSongColumnA({
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
             onClick={() => setTouchVideosOpen(false)}
-            aria-label="Close videos modal"
+            aria-label={t("songPages.closeVideos")}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <div className="text-[2rem] font-bold tracking-tight text-black">
-                  Videos
+                  {t("songPages.videos")}
                 </div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
-                  Add a video URL for this song.
+                  {t("songPages.addVideoUrl")}
                 </div>
               </div>
               <button
@@ -1106,16 +1108,16 @@ function NewSongColumnA({
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
             onClick={() => setTouchSetlistsOpen(false)}
-            aria-label="Close setlist modal"
+            aria-label={t("songPages.closeSetlist")}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <div className="text-[2rem] font-bold tracking-tight text-black">
-                  Setlist
+                  {t("songPages.setlist")}
                 </div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
-                  Select existing tags or create a new one for this song.
+                  {t("songPages.setlistHelp")}
                 </div>
               </div>
               <button

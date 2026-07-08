@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { BluetoothProvider } from "./contexts/BluetoothContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 // Router
 import {
@@ -387,9 +388,11 @@ registerServiceWorker();
 ReactDOM.createRoot(document.getElementById("REMOVED_MONGO_USER")).render(
   <React.StrictMode>
     <AuthProvider>
-      <BluetoothProvider>
-        <RouterProvider router={router} />
-      </BluetoothProvider>
+      <LanguageProvider>
+        <BluetoothProvider>
+          <RouterProvider router={router} />
+        </BluetoothProvider>
+      </LanguageProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

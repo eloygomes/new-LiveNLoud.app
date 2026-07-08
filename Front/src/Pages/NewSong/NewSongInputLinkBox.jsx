@@ -35,6 +35,7 @@ import {
   isValidGuitarProFile,
 } from "../../utils/guitarPro/validateGuitarProFile";
 import { classifyInstrumentLink } from "../shared/instrumentLinkClassifier";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 const QUICK_ADD_EXTENSION_READY_EVENT = "livenloud:quick-add-extension-ready";
@@ -182,6 +183,7 @@ function NewSongInputLinkBox({
   onResolvedInstrumentLink,
   modalLayout = false,
 }) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false); // mantemos, mas NÃO bloqueia inputs
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesSaving, setNotesSaving] = useState(false);
@@ -852,16 +854,16 @@ function NewSongInputLinkBox({
         </button>
       ) : null}
 
-      <div className={`relative ${expandedControls ? "mt-0" : "mt-2"} ${modalLayout ? "md:col-span-1" : ""}`}>
+      <div className={`relative ${expandedControls ? "mt-0" : "mt-2"} ${modalLayout ? "md:col-span-2" : ""}`}>
         {modalLayout ? (
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-            Link source
+            {t("instrumentModal.linkSource")}
           </p>
         ) : null}
         <input
           type="text"
-          placeholder="Insert your link here"
-          className={`w-full border border-[goldenrod]/35 bg-white pr-11 text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
+          placeholder={t("instrumentModal.linkPlaceholder")}
+          className={`w-full border border-[goldenrod]/35 bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
             expandedControls
               ? "h-14 rounded-[16px] px-4 text-base font-bold"
               : "h-6 rounded-sm p-1 text-sm"
@@ -879,7 +881,7 @@ function NewSongInputLinkBox({
             blurTimer.current = setTimeout(() => handleSubmit(), 150);
           }}
         />
-        {isLocked && (
+        {isLocked && !modalLayout && (
           <button
             type="button"
             aria-label={`Remove ${instrumentName} link`}
@@ -904,12 +906,12 @@ function NewSongInputLinkBox({
           onClick={pasteLinkFromClipboard}
         >
           <FaPaste aria-hidden="true" />
-          Paste from clipboard
+          {t("instrumentModal.pasteFromClipboard")}
         </button>
       ) : null}
 
       {expandedControls ? (
-        <div className="md:col-span-2 mt-0 grid grid-cols-2 gap-3">
+        <div className={`md:col-span-2 mt-0 grid gap-3 ${hasLink ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             type="button"
             aria-label={
@@ -926,9 +928,9 @@ function NewSongInputLinkBox({
           >
             <FaPlay aria-hidden="true" className="shrink-0 text-base" />
             <span>
-              <span className="block">Play</span>
+              <span className="block">{t("instrumentModal.play")}</span>
               <span className="mt-1 block text-xs font-medium text-gray-500">
-                Open this instrument in presentation mode.
+                {t("instrumentModal.playHelp")}
               </span>
             </span>
           </button>
@@ -948,12 +950,31 @@ function NewSongInputLinkBox({
           >
             <FaExternalLinkAlt aria-hidden="true" className="shrink-0 text-base" />
             <span>
-              <span className="block">Open Link</span>
+              <span className="block">{t("instrumentModal.openLink")}</span>
               <span className="mt-1 block text-xs font-medium text-gray-500">
-                Visit the original source in a new tab.
+                {t("instrumentModal.openLinkHelp")}
               </span>
             </span>
           </button>
+          {hasLink ? (
+            <button
+              type="button"
+              aria-label={`Remove ${instrumentName} link`}
+              className="neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold text-black"
+              onClick={() => {
+                setInstrument("");
+                updateScrapeStatus(false);
+              }}
+            >
+              <FaTrashAlt aria-hidden="true" className="shrink-0 text-base" />
+              <span>
+                <span className="block">{t("instrumentModal.remove")}</span>
+                <span className="mt-1 block text-xs font-medium text-gray-500">
+                  {t("instrumentModal.removeNewHelp")}
+                </span>
+              </span>
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -961,10 +982,10 @@ function NewSongInputLinkBox({
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="max-w-[24rem]">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              Progression
+              {t("instrumentModal.progression")}
             </p>
             <p className="mt-1 text-sm font-medium leading-5 text-gray-500">
-              Set how ready this instrument is for rehearsal or live use.
+              {t("instrumentModal.progressionHelp")}
             </p>
           </div>
           <div className="flex min-w-[18rem] items-center justify-between gap-3">
@@ -1019,7 +1040,7 @@ function NewSongInputLinkBox({
           <div className="mt-3 grid grid-cols-3 gap-2">
             <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black">
               <FaPlus />
-              <span>Add GP</span>
+              <span>{t("instrumentModal.addGp")}</span>
               <input
                 type="file"
                 accept={GUITAR_PRO_ACCEPT}
@@ -1034,7 +1055,7 @@ function NewSongInputLinkBox({
               className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
             >
               <FaMinus />
-              <span>Remove</span>
+              <span>{t("instrumentModal.remove")}</span>
             </button>
             <button
               type="button"
@@ -1043,7 +1064,7 @@ function NewSongInputLinkBox({
               className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
             >
               <FaRegFileAlt />
-              <span>View</span>
+              <span>{t("instrumentModal.view")}</span>
             </button>
           </div>
         </div>
@@ -1051,7 +1072,7 @@ function NewSongInputLinkBox({
       {modalLayout ? (
         <div className="rounded-[16px] neuphormism-b-se px-4 py-3 md:col-span-2">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-            Notes
+            {t("instrumentModal.notes")}
           </p>
           <textarea
             className="min-h-[148px] w-full resize-y rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
@@ -1060,10 +1081,10 @@ function NewSongInputLinkBox({
             onBlur={() =>
               saveNotes(notes, { closeModal: false, notifySuccess: false })
             }
-            placeholder="Write instrument notes here"
+            placeholder={t("instrumentModal.notesPlaceholder")}
           />
           <p className="mt-2 text-xs font-medium text-gray-500">
-            {notesSaving ? "Saving notes..." : "Notes save automatically when you leave this field."}
+            {notesSaving ? "Saving notes..." : t("instrumentModal.notesAutoSave")}
           </p>
         </div>
       ) : null}
@@ -1073,7 +1094,7 @@ function NewSongInputLinkBox({
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
             onClick={() => setNotesOpen(false)}
-            aria-label="Close notes modal"
+            aria-label={t("instrumentModal.closeNotes")}
           />
           <div className="absolute left-1/2 top-1/2 w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2">
             <SongInstrumentNotes

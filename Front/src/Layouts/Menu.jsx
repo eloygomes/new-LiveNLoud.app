@@ -16,8 +16,10 @@ import SearchBox from "../Pages/Dashboard/SearchBox/SearchBox";
 import { loadSelectedSetlists } from "../Tools/Controllers";
 import { lockPageScroll } from "../Tools/scrollLock";
 import NewSongStartChoice from "../Components/NewSongStartChoice";
+import { useLanguage } from "../contexts/LanguageContext";
 
 export default function RootLayouts() {
+  const { t } = useLanguage();
   // ===== ESTADO DA BUSCA (navbar) =====
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -77,10 +79,10 @@ export default function RootLayouts() {
     (isToolsRoute && isTouchDashboardLayout);
   const desktopZoomViewportHeight = "calc(100vh / var(--desktop-app-zoom))";
   const mobileTabs = [
-    { to: "/", label: "Songlist", icon: FaListUl },
-    { to: "/newsong", label: "Plus", icon: FaPlusCircle },
-    { to: "/tools", label: "Tools", icon: FaTools },
-    { to: "/userprofile/1", label: "User", icon: FaUser },
+    { to: "/", label: t("nav.songlist"), icon: FaListUl },
+    { to: "/newsong", label: t("nav.plus"), icon: FaPlusCircle },
+    { to: "/tools", label: t("nav.tools"), icon: FaTools },
+    { to: "/userprofile/1", label: t("nav.user"), icon: FaUser },
   ];
 
   const isMobileTabActive = (to) => {
@@ -94,12 +96,12 @@ export default function RootLayouts() {
   };
 
   const mobileHeaderCopy = isDashboardRoute
-    ? { eyebrow: "Songlist", title: "Your Songs" }
+    ? { eyebrow: t("nav.songlist"), title: t("nav.yourSongs") }
     : isToolsRoute
-      ? { eyebrow: "Tools", title: "Practice Utilities" }
+      ? { eyebrow: t("nav.tools"), title: t("nav.practiceUtilities") }
       : isUserProfileRoute
-        ? { eyebrow: "User Hub", title: "Account & Settings" }
-        : { eyebrow: "Sustenido", title: "Your Routine" };
+        ? { eyebrow: t("nav.userHub"), title: t("nav.accountSettings") }
+        : { eyebrow: t("nav.sustenido"), title: t("nav.yourRoutine") };
 
   useEffect(() => {
     const handleVisibilityChange = (event) => {
@@ -264,7 +266,7 @@ export default function RootLayouts() {
                       type="button"
                       className={`relative z-[95] ${searchButtonClassName}`}
                       onClick={openSearch}
-                      aria-label="Open search"
+                      aria-label={t("nav.openSearch")}
                     >
                       <FaSearch size={14} />
                     </button>
@@ -273,7 +275,7 @@ export default function RootLayouts() {
                     type="button"
                     className={filterButtonClassName}
                     onClick={openFilter}
-                    aria-label="Open filters"
+                    aria-label={t("nav.openFilters")}
                   >
                     <FaFilter size={14} />
                   </button>
@@ -314,7 +316,7 @@ export default function RootLayouts() {
                         type="button"
                         className={searchButtonClassName}
                         onClick={openSearch}
-                        aria-label="Open search"
+                        aria-label={t("nav.openSearch")}
                       >
                         <FaSearch size={14} />
                       </button>

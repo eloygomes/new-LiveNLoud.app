@@ -720,11 +720,24 @@ export const updateSongEntry = async (updatedSong = {}, options = {}) => {
   }
 
   try {
+    console.groupCollapsed("[Controllers.updateSongEntry] request");
+    console.log("apiBase", API_BASE);
+    console.log("artist/song", {
+      artist: updatedSong.artist,
+      song: updatedSong.song,
+    });
+    console.log("updatedSong", updatedSong);
+    console.log("options", options);
+    console.groupEnd();
+
     const { data } = await fetchApi.put("/api/v1/song/updateExact", {
       email,
       updatedSong,
       replaceEmptyInstrumentFields: options.replaceEmptyInstrumentFields,
     });
+    console.groupCollapsed("[Controllers.updateSongEntry] response");
+    console.log("data", data);
+    console.groupEnd();
     mergeSongIntoCache(updatedSong);
     setOfflineModeEnabled(false);
     return data;

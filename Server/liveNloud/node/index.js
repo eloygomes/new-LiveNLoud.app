@@ -3960,6 +3960,22 @@ const INSTRUMENT_SETLIST_TAGS = {
   drums: "drums",
   voice: "voice",
 };
+const INSTRUMENT_SETLIST_TAG_ALIASES = {
+  guitar: ["guitar01", "guitar02"],
+  guitar01: ["guitar01"],
+  guitar02: ["guitar02"],
+  g1: ["guitar01"],
+  g2: ["guitar02"],
+  bass: ["bass"],
+  keys: ["keys"],
+  key: ["keys"],
+  keyboard: ["keys"],
+  drums: ["drums"],
+  drum: ["drums"],
+  voice: ["voice"],
+  vocal: ["voice"],
+  vocals: ["voice"],
+};
 const REPLACEABLE_EMPTY_INSTRUMENT_FIELDS = new Set([
   "songCifra",
   "songTabs",
@@ -3989,6 +4005,15 @@ function isExplicitTrue(value) {
 
 function isExplicitFalse(value) {
   return value === false || String(value).trim().toLowerCase() === "false";
+}
+
+function normalizeSetlistTag(value = "") {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
 }
 
 function hasStoredValue(value) {
@@ -4074,23 +4099,26 @@ function normalizeInstrumentFlags(entry = {}) {
 }
 
 function normalizeSetlistForInstrumentFlags(setlist = [], instruments = {}) {
-  const activeInstrumentTags = new Set(
-    SONG_INSTRUMENT_KEYS.filter((key) => instruments?.[key]).map(
-      (key) => INSTRUMENT_SETLIST_TAGS[key],
-    ),
+  const activeInstrumentKeys = new Set(
+    SONG_INSTRUMENT_KEYS.filter((key) => instruments?.[key]),
   );
-  const instrumentTags = new Set(Object.values(INSTRUMENT_SETLIST_TAGS));
+  const instrumentTagAliases = new Map(
+    Object.entries(INSTRUMENT_SETLIST_TAG_ALIASES).map(([tag, owners]) => [
+      normalizeSetlistTag(tag),
+      owners,
+    ]),
+  );
 
   return uniqueArray(setlist).filter(
-    (tag) => !instrumentTags.has(tag) || activeInstrumentTags.has(tag),
+    (tag) => {
+      const owners = instrumentTagAliases.get(normalizeSetlistTag(tag));
+      if (!owners) return true;
+      return owners.some((instrument) => activeInstrumentKeys.has(instrument));
+    },
   );
 }
 
 function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
-  if (!incomingBlock) {
-    return ensurePresentationLayoutsForInstrument(existingBlock || {});
-  }
-
   if (incomingBlock === false) {
     return {
       active: false,
@@ -4102,6 +4130,10 @@ function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
       songLyrics: "",
       presentationLayouts: undefined,
     };
+  }
+
+  if (!incomingBlock) {
+    return ensurePresentationLayoutsForInstrument(existingBlock || {});
   }
 
   if (!isPlainObject(incomingBlock)) {
@@ -4238,6 +4270,82 @@ function applyReplaceEmptyInstrumentFields(
   });
 
   return entry;
+}
+
+function isExplicitInstrumentRemoval(incomingSong = {}, instrument) {
+  const removedInstruments = Array.isArray(incomingSong.removedInstruments)
+    ? incomingSong.removedInstruments.map((item) => normalizeInstrument(item))
+    : [];
+  if (removedInstruments.includes(instrument)) {
+    return true;
+  }
+
+  const hasTopLevelPayload = Object.prototype.hasOwnProperty.call(
+    incomingSong,
+    instrument,
+  );
+  const hasNestedPayload =
+    isPlainObject(incomingSong.instruments) &&
+    Object.prototype.hasOwnProperty.call(incomingSong.instruments, instrument);
+  const topLevelPayload = incomingSong[instrument];
+  const nestedPayload = incomingSong.instruments?.[instrument];
+
+  return Boolean(
+    (hasTopLevelPayload &&
+      (isExplicitFalse(topLevelPayload) ||
+        isExplicitFalse(topLevelPayload?.active) ||
+        (isPlainObject(topLevelPayload) &&
+          Object.prototype.hasOwnProperty.call(topLevelPayload, "link") &&
+          !hasStoredValue(topLevelPayload.link)))) ||
+      (hasNestedPayload &&
+        (isExplicitFalse(nestedPayload) ||
+          isExplicitFalse(nestedPayload?.active))),
+  );
+}
+
+function applyExplicitInstrumentRemovals(entry = {}, incomingSong = {}) {
+  SONG_INSTRUMENT_KEYS.forEach((instrument) => {
+    if (!isExplicitInstrumentRemoval(incomingSong, instrument)) return;
+
+    entry[instrument] = {
+      active: false,
+      link: "",
+      linkNorm: "",
+      progress: 0,
+      songCifra: "",
+      songTabs: "",
+      songChords: "",
+      songLyrics: "",
+      notes: "",
+      capo: "",
+      tuning: "",
+      lastPlay: "",
+      presentationLayouts: undefined,
+    };
+  });
+
+  entry.instruments = normalizeInstrumentFlags(entry);
+  entry.setlist = normalizeSetlistForInstrumentFlags(
+    entry.setlist,
+    entry.instruments,
+  );
+
+  return entry;
+}
+
+function summarizeSongInstrumentsForDebug(song = {}) {
+  return SONG_INSTRUMENT_KEYS.reduce((summary, instrument) => {
+    const block = song?.[instrument];
+    summary[instrument] = {
+      requestedRemoval: isExplicitInstrumentRemoval(song, instrument),
+      flag: song?.instruments?.[instrument],
+      blockType: block === false ? "false" : typeof block,
+      active: isPlainObject(block) ? block.active : undefined,
+      link: isPlainObject(block) ? block.link || "" : "",
+      hasCifra: Boolean(isPlainObject(block) && hasStoredValue(block.songCifra)),
+    };
+    return summary;
+  }, {});
 }
 
 async function hydrateUserdataFromGeneralCifra(userdata = {}) {
@@ -4554,22 +4662,52 @@ app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
     const duplicateEntries = matchingIndexes.map(
       (index) => userDoc.userdata[index],
     );
+    console.groupCollapsed("[song/updateExact] incoming");
+    console.log("song", {
+      artist: updatedSong.artist,
+      song: updatedSong.song,
+      matchingIndexes,
+    });
+    console.log("incoming instruments", summarizeSongInstrumentsForDebug(updatedSong));
+    console.log("stored instruments before merge", summarizeSongInstrumentsForDebug(duplicateEntries[0]));
+    console.log("incoming setlist", updatedSong.setlist);
+    console.log("replaceEmptyInstrumentFields", replaceEmptyInstrumentFields);
+    console.groupEnd();
+
     const mergedEntry = applyReplaceEmptyInstrumentFields(
-      mergeSongEntries(...duplicateEntries, updatedSong),
+      applyExplicitInstrumentRemovals(
+        mergeSongEntries(...duplicateEntries, updatedSong),
+        updatedSong,
+      ),
       updatedSong,
       replaceEmptyInstrumentFields,
     );
+    if (Array.isArray(updatedSong.setlist)) {
+      mergedEntry.setlist = normalizeSetlistForInstrumentFlags(
+        updatedSong.setlist,
+        mergedEntry.instruments,
+      );
+    }
     mergedEntry.id = userDoc.userdata[songIndex].id || songIndex + 1;
+
+    console.groupCollapsed("[song/updateExact] merged");
+    console.log("merged instruments", summarizeSongInstrumentsForDebug(mergedEntry));
+    console.log("merged setlist", mergedEntry.setlist);
+    console.groupEnd();
 
     const nextUserdata = userDoc.userdata.filter(
       (_song, index) => !matchingIndexes.slice(1).includes(index),
     );
     nextUserdata[songIndex] = mergedEntry;
 
-    await collection.updateOne(
+    const updateResult = await collection.updateOne(
       { email: ownerEmail },
       { $set: { userdata: nextUserdata } },
     );
+    console.log("[song/updateExact] updateOne result", {
+      matchedCount: updateResult?.matchedCount,
+      modifiedCount: updateResult?.modifiedCount,
+    });
 
     await addUserLog({
       userEmail: ownerEmail,

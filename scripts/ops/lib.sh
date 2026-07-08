@@ -153,7 +153,16 @@ remote_git_pull() {
   local dir
   dir="$(remote_app_dir "$env")"
 
-  ssh "$REMOTE_SERVER" "cd '$dir' && git pull --ff-only"
+  ssh "$REMOTE_SERVER" "
+    set -e
+    cd '$dir'
+    if [ ! -d .git ]; then
+      echo 'Remote app dir is not a Git checkout: $dir'
+      echo 'Fix $(env_upper "$env")_REMOTE_APP_DIR in $CONFIG_FILE or clone the repo there.'
+      exit 1
+    fi
+    git pull --ff-only
+  "
 }
 
 start_mongo_service() {

@@ -5,6 +5,7 @@ import EditSongColumnB from "./EditSongColumnB";
 import { fetchAllSongData } from "../../Tools/Controllers";
 import SnackBar from "../../Tools/SnackBar";
 import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
+import { useLanguage } from "../../contexts/LanguageContext";
 import {
   getAdjacentSetlistSongs,
   loadActiveSetlistSongs,
@@ -42,6 +43,7 @@ function SetlistNavigationButtons({
   onGoToSetlistSong,
   touchLayout = false,
 }) {
+  const { t } = useLanguage();
   const buttonClass = touchLayout
     ? "neuphormism-b-btn px-3 py-1.5 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
     : "neuphormism-b-btn px-3 py-1.5 text-xs font-bold text-black disabled:cursor-not-allowed disabled:opacity-35";
@@ -59,7 +61,7 @@ function SetlistNavigationButtons({
         disabled={!previousSetlistSong}
         className={buttonClass}
         onClick={() => onGoToSetlistSong(previousSetlistSong)}
-        aria-label="Previous song in selected setlist"
+        aria-label={t("songPages.previousSong")}
       >
         &lt;&lt;
       </button>
@@ -68,7 +70,7 @@ function SetlistNavigationButtons({
         disabled={!nextSetlistSong}
         className={buttonClass}
         onClick={() => onGoToSetlistSong(nextSetlistSong)}
-        aria-label="Next song in selected setlist"
+        aria-label={t("songPages.nextSong")}
       >
         &gt;&gt;
       </button>
@@ -77,6 +79,7 @@ function SetlistNavigationButtons({
 }
 
 function EditSong() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { artist: routeArtist = "", song: routeSong = "" } = useParams();
   const isTouchLayout = getIsSongTouchLayout();
@@ -196,14 +199,13 @@ function EditSong() {
             <div className="flex flex-col gap-4">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                  Edit
+                  {t("songPages.edit")}
                 </p>
                 <h1 className="mt-2 text-[2rem] font-bold leading-none tracking-tight text-black">
-                  Edit Song
+                  {t("songPages.editSong")}
                 </h1>
                 <p className="mt-2 text-sm font-medium text-gray-500">
-                  Update song info, revise links, and keep the current setlist
-                  structure without leaving context.
+                  {t("songPages.editSongDescription")}
                 </p>
               </div>
               <div className="flex flex-col items-stretch gap-2">
@@ -212,14 +214,14 @@ function EditSong() {
                     className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2.5 text-sm font-bold"
                     onClick={pageActions?.onDelete}
                   >
-                    Delete
+                    {t("songPages.delete")}
                   </button>
                   <button
                     className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2.5 text-sm font-bold disabled:opacity-50"
                     onClick={pageActions?.onUpdate}
                     disabled={!pageActions?.canUpdate}
                   >
-                    Update
+                    {t("songPages.update")}
                   </button>
                 </div>
                 <SetlistNavigationButtons
@@ -292,11 +294,10 @@ function EditSong() {
         <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row items-center justify-between gap-4">
           <div>
             <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black md:text-[2.6rem]">
-              Edit Song
+              {t("songPages.editSong")}
             </h1>
             <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
-              Update song info, revise links, and keep the current setlist
-              structure without leaving context.
+              {t("songPages.editSongDescription")}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-stretch">
@@ -305,14 +306,14 @@ function EditSong() {
                 className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-bold"
                 onClick={pageActions?.onDelete}
               >
-                Delete
+                {t("songPages.delete")}
               </button>
               <button
                 className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-bold disabled:opacity-50"
                 onClick={pageActions?.onUpdate}
                 disabled={!pageActions?.canUpdate}
               >
-                Update
+                {t("songPages.update")}
               </button>
             </div>
             <SetlistNavigationButtons

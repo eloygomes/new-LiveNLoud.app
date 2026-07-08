@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
+import { useLanguage } from "../contexts/LanguageContext";
 
 function NavMenuItems() {
+  const { t } = useLanguage();
   const navItemClassName = ({ isActive }) =>
     `pb-2 pt-3 text-[clamp(0.72rem,1.55vw,0.875rem)] font-bold uppercase cursor-pointer ${
       isActive ? "text-[goldenrod]" : "text-gray-500 hover:text-[goldenrod]"
@@ -16,22 +18,22 @@ function NavMenuItems() {
               to="/chordlibrary"
               className={navItemClassName}
             >
-              Chord Library
+              {t("nav.chordLibrary")}
             </NavLink>
             <NavLink
               to="/tuner"
               className={navItemClassName}
             >
-              Tuner
+              {t("nav.tuner")}
             </NavLink>
             <NavLink to="/calendar" className={navItemClassName}>
-              Calendar
+              {t("nav.calendar")}
             </NavLink>
             <NavLink
               to="/metronome"
               className={navItemClassName}
             >
-              Metronome
+              {t("nav.metronome")}
             </NavLink>
           </div>
         </div>
@@ -43,22 +45,22 @@ function NavMenuItems() {
               to="/chordlibrary"
               className={navItemClassName}
             >
-              Chord Library
+              {t("nav.chordLibrary")}
             </NavLink>
             <NavLink
               to="/tuner"
               className={navItemClassName}
             >
-              Tuner
+              {t("nav.tuner")}
             </NavLink>
             <NavLink to="/calendar" className={navItemClassName}>
-              Calendar
+              {t("nav.calendar")}
             </NavLink>
             <NavLink
               to="/metronome"
               className={navItemClassName}
             >
-              Metronome
+              {t("nav.metronome")}
             </NavLink>
           </div>
         </div>

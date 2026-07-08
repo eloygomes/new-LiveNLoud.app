@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import EditSongSetlist from "./EditSongSetlist";
 import { getAllUserSetlists } from "../../Tools/Controllers";
 import { parseDateValue } from "../../Tools/dateFormat";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const getLatestLastPlayValue = (songData) => {
   const candidates = [
@@ -69,6 +70,95 @@ const isInstrumentActive = (block) => {
   );
 };
 
+const INSTRUMENT_SETLIST_TAG_ALIASES = {
+  guitar01: ["guitar01", "guitar 01", "g1"],
+  guitar02: ["guitar02", "guitar 02", "g2"],
+  bass: ["bass"],
+  keys: ["keys", "key", "keyboard"],
+  drums: ["drums", "drum"],
+  voice: ["voice", "vocal", "vocals"],
+};
+
+const INSTRUMENT_SETLIST_GROUP_TAG = {
+  guitar01: "guitar",
+  guitar02: "guitar",
+  bass: "bass",
+  keys: "keys",
+  drums: "drums",
+  voice: "voice",
+};
+
+const INSTRUMENT_SETLIST_GROUPS = {
+  guitar: ["guitar01", "guitar02"],
+  bass: ["bass"],
+  keys: ["keys"],
+  drums: ["drums"],
+  voice: ["voice"],
+};
+
+const normalizeSetlistTag = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+
+const isInstrumentPayloadActive = (block) =>
+  Boolean(block && typeof block === "object" && String(block.link || "").trim());
+
+const removeInactiveInstrumentSetlistTags = (currentSetlist = [], instrumentBlocks = {}) => {
+  const setlistItems = Array.isArray(currentSetlist) ? currentSetlist : [];
+  const activeGroupTags = new Set(
+    Object.entries(instrumentBlocks)
+      .filter(([, block]) => isInstrumentPayloadActive(block))
+      .map(([instrument]) => normalizeSetlistTag(INSTRUMENT_SETLIST_GROUP_TAG[instrument]))
+      .filter(Boolean),
+  );
+  const inactiveSpecificTags = new Set(
+    Object.entries(instrumentBlocks).flatMap(([instrument, block]) =>
+      isInstrumentPayloadActive(block)
+        ? []
+        : (INSTRUMENT_SETLIST_TAG_ALIASES[instrument] || [instrument]).map(
+            normalizeSetlistTag,
+          ),
+    ),
+  );
+
+  return setlistItems.filter((tag) => {
+    const normalizedTag = normalizeSetlistTag(tag);
+    if (inactiveSpecificTags.has(normalizedTag)) return false;
+    const groupTagValues = Object.values(INSTRUMENT_SETLIST_GROUP_TAG).map(
+      normalizeSetlistTag,
+    );
+    if (
+      groupTagValues.includes(normalizedTag) &&
+      !activeGroupTags.has(normalizedTag)
+    ) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const summarizeInstrumentDebug = (song = {}) =>
+  ["guitar01", "guitar02", "bass", "keys", "drums", "voice"].reduce(
+    (summary, instrument) => {
+      const block = song[instrument];
+      summary[instrument] = {
+        flag: song.instruments?.[instrument],
+        blockType: block === false ? "false" : typeof block,
+        active: block && typeof block === "object" ? block.active : undefined,
+        link: block && typeof block === "object" ? block.link || "" : "",
+        hasCifra: Boolean(
+          block && typeof block === "object" && String(block.songCifra || "").trim(),
+        ),
+      };
+      return summary;
+    },
+    {},
+  );
+
 function EditSongColumnA({
   dataFromAPI,
   progGuitar01,
@@ -91,6 +181,7 @@ function EditSongColumnA({
   onSongDataChange,
   onPageActionsChange,
 }) {
+  const { t } = useLanguage();
   // Dados principais da música
   const [songName, setSongName] = useState("");
   const [artistName, setArtistName] = useState("");
@@ -171,6 +262,57 @@ function EditSongColumnA({
   const [instProgressBarvoice, setInstProgressBarvoice] = useState(0);
   const [instNotesvoice, setInstNotesvoice] = useState("");
 
+  const removeInstrumentSetlistTags = useCallback(
+    (instrument) => {
+      const groupTag = INSTRUMENT_SETLIST_GROUP_TAG[instrument];
+      const groupInstruments = INSTRUMENT_SETLIST_GROUPS[groupTag] || [];
+      const linkByInstrument = {
+        guitar01: instrument === "guitar01" ? "" : instLinkguitar01,
+        guitar02: instrument === "guitar02" ? "" : instLinkguitar02,
+        bass: instrument === "bass" ? "" : instLinkbass,
+        keys: instrument === "keys" ? "" : instLinkkeyboard,
+        drums: instrument === "drums" ? "" : instLinkdrums,
+        voice: instrument === "voice" ? "" : instLinkvoice,
+      };
+      const hasActiveInstrumentInGroup = groupInstruments.some((item) =>
+        String(linkByInstrument[item] || "").trim(),
+      );
+      const specificTagsToRemove = new Set(
+        (INSTRUMENT_SETLIST_TAG_ALIASES[instrument] || [instrument]).map(
+          normalizeSetlistTag,
+        ),
+      );
+      const groupTagToRemove =
+        groupTag && !hasActiveInstrumentInGroup
+          ? normalizeSetlistTag(groupTag)
+          : null;
+
+      setIsDirty?.(true);
+      setSetlist((current) => {
+        const currentSetlist = Array.isArray(current) ? current : [];
+        const nextSetlist = currentSetlist.filter((tag) => {
+          const normalizedTag = normalizeSetlistTag(tag);
+          if (specificTagsToRemove.has(normalizedTag)) return false;
+          if (groupTagToRemove && normalizedTag === groupTagToRemove) {
+            return false;
+          }
+          return true;
+        });
+
+        return nextSetlist;
+      });
+    },
+    [
+      instLinkguitar01,
+      instLinkguitar02,
+      instLinkbass,
+      instLinkkeyboard,
+      instLinkdrums,
+      instLinkvoice,
+      setIsDirty,
+    ],
+  );
+
   useEffect(() => {
     if (!registerInstrumentUpdaters) return;
 
@@ -180,6 +322,7 @@ function EditSongColumnA({
       setProgress: setInstProgressBarguitar01,
       setNotes: setInstNotesguitar01,
       setSongCifra: setSongCifraguitar01,
+      removeSetlistTags: () => removeInstrumentSetlistTags("guitar01"),
     });
     registerInstrumentUpdaters("guitar02", {
       setActive: setInstrActiveStatusguitar02,
@@ -187,6 +330,7 @@ function EditSongColumnA({
       setProgress: setInstProgressBarguitar02,
       setNotes: setInstNotesguitar02,
       setSongCifra: setSongCifraguitar02,
+      removeSetlistTags: () => removeInstrumentSetlistTags("guitar02"),
     });
     registerInstrumentUpdaters("bass", {
       setActive: setInstrActiveStatusbass,
@@ -194,6 +338,7 @@ function EditSongColumnA({
       setProgress: setInstProgressBarbass,
       setNotes: setInstNotesbass,
       setSongCifra: setSongCifrabass,
+      removeSetlistTags: () => removeInstrumentSetlistTags("bass"),
     });
     registerInstrumentUpdaters("keys", {
       setActive: setInstrActiveStatuskeyboard,
@@ -201,6 +346,7 @@ function EditSongColumnA({
       setProgress: setInstProgressBarkeyboard,
       setNotes: setInstNoteskeyboard,
       setSongCifra: setSongCifrakeyboard,
+      removeSetlistTags: () => removeInstrumentSetlistTags("keys"),
     });
     registerInstrumentUpdaters("drums", {
       setActive: setInstrActiveStatusdrums,
@@ -208,6 +354,7 @@ function EditSongColumnA({
       setProgress: setInstProgressBardrums,
       setNotes: setInstNotesdrums,
       setSongCifra: setSongCifradrums,
+      removeSetlistTags: () => removeInstrumentSetlistTags("drums"),
     });
     registerInstrumentUpdaters("voice", {
       setActive: setInstrActiveStatusvoice,
@@ -215,9 +362,11 @@ function EditSongColumnA({
       setProgress: setInstProgressBarvoice,
       setNotes: setInstNotesvoice,
       setSongCifra: setSongCifravoice,
+      removeSetlistTags: () => removeInstrumentSetlistTags("voice"),
     });
   }, [
     registerInstrumentUpdaters,
+    removeInstrumentSetlistTags,
     setInstLinkguitar01,
     setInstProgressBarguitar01,
     setInstLinkguitar02,
@@ -242,25 +391,14 @@ function EditSongColumnA({
   }, [setIsDirty]);
   const setSetlistAndMarkDirty = useCallback(
     (updater) => {
+      markDirty();
       setSetlist((current) => {
         const next = typeof updater === "function" ? updater(current) : updater;
-        markDirty();
         return next;
       });
     },
     [markDirty],
   );
-  const setSetListOptionsAndMarkDirty = useCallback(
-    (updater) => {
-      setSetListOptions((current) => {
-        const next = typeof updater === "function" ? updater(current) : updater;
-        markDirty();
-        return next;
-      });
-    },
-    [markDirty],
-  );
-
   // Calcula a média de progress das instruments
   useEffect(() => {
     setGeralPercentage(
@@ -537,6 +675,26 @@ function EditSongColumnA({
     }
   };
 
+  const verifySavedInstrumentState = (response, expectedFlags = {}) => {
+    if (response?.queued) {
+      throw new Error("The song update was queued locally and was not saved on the server.");
+    }
+
+    const savedSong = response?.song;
+    if (!savedSong || typeof savedSong !== "object") return;
+
+    Object.entries(expectedFlags).forEach(([instrument, shouldBeActive]) => {
+      const savedFlag = Boolean(savedSong.instruments?.[instrument]);
+      const savedLink = String(savedSong[instrument]?.link || "").trim();
+
+      if (!shouldBeActive && (savedFlag || savedLink)) {
+        throw new Error(
+          `The song was updated, but ${instrument} was not removed on the server.`,
+        );
+      }
+    });
+  };
+
   const persistVideoLinks = async (nextLinks = []) => {
     const userEmail = localStorage.getItem("userEmail");
     const videoLinks = Array.isArray(nextLinks) ? nextLinks : [];
@@ -557,93 +715,145 @@ function EditSongColumnA({
   const handleUpdate = async () => {
     try {
       const userEmail = localStorage.getItem("userEmail");
+      const buildInstrumentPayload = ({
+        capo,
+        lastPlay,
+        link,
+        progress,
+        songCifra,
+        tuning,
+        notes,
+      }) => {
+        if (!String(link || "").trim()) {
+          return false;
+        }
+
+        return {
+          active: true,
+          capo,
+          lastPlay,
+          link,
+          progress,
+          songCifra,
+          tuning,
+          notes,
+        };
+      };
+      const replaceEmptyInstrumentFields = {
+        guitar01: ["songCifra", "songTabs", "songChords", "songLyrics", "notes"],
+        guitar02: ["songCifra", "songTabs", "songChords", "songLyrics", "notes"],
+        bass: ["songCifra", "songTabs", "songChords", "songLyrics", "notes"],
+        keys: ["songCifra", "songTabs", "songChords", "songLyrics", "notes"],
+        drums: ["songCifra", "songTabs", "songChords", "songLyrics", "notes"],
+        voice: ["songCifra", "songTabs", "songChords", "songLyrics", "notes"],
+      };
+      const instrumentBlocks = {
+        guitar01: buildInstrumentPayload({
+          active: instrActiveStatusguitar01,
+          capo: instCapoguitar01,
+          lastPlay: instLastPlayedguitar01,
+          link: instLinkguitar01,
+          progress: instProgressBarguitar01,
+          songCifra: songCifraguitar01,
+          tuning: instTuningguitar01,
+          notes: instNotesguitar01,
+        }),
+        guitar02: buildInstrumentPayload({
+          active: instrActiveStatusguitar02,
+          capo: instCapoguitar02,
+          lastPlay: instLastPlayedguitar02,
+          link: instLinkguitar02,
+          progress: instProgressBarguitar02,
+          songCifra: songCifraguitar02,
+          tuning: instTuningguitar02,
+          notes: instNotesguitar02,
+        }),
+        bass: buildInstrumentPayload({
+          active: instrActiveStatusbass,
+          capo: instCapobass,
+          lastPlay: instLastPlayedbass,
+          link: instLinkbass,
+          progress: instProgressBarbass,
+          songCifra: songCifrabass,
+          tuning: instTuningbass,
+          notes: instNotesbass,
+        }),
+        keys: buildInstrumentPayload({
+          active: instrActiveStatuskeyboard,
+          capo: instCapokeyboard,
+          lastPlay: instLastPlayedkeyboard,
+          link: instLinkkeyboard,
+          progress: instProgressBarkeyboard,
+          songCifra: songCifrakeyboard,
+          tuning: instTuningkeyboard,
+          notes: instNoteskeyboard,
+        }),
+        drums: buildInstrumentPayload({
+          active: instrActiveStatusdrums,
+          capo: instCapodrums,
+          lastPlay: instLastPlayeddrums,
+          link: instLinkdrums,
+          progress: instProgressBardrums,
+          songCifra: songCifradrums,
+          tuning: instTuningdrums,
+          notes: instNotesdrums,
+        }),
+        voice: buildInstrumentPayload({
+          active: instrActiveStatusvoice,
+          capo: instCapovoice,
+          lastPlay: instLastPlayedvoice,
+          link: instLinkvoice,
+          progress: instProgressBarvoice,
+          songCifra: songCifravoice,
+          tuning: instTuningvoice,
+          notes: instNotesvoice,
+        }),
+      };
+      const instrumentFlags = Object.fromEntries(
+        Object.entries(instrumentBlocks).map(([instrument, block]) => [
+          instrument,
+          isInstrumentPayloadActive(block),
+        ]),
+      );
+      const normalizedSetlist = removeInactiveInstrumentSetlistTags(
+        setlist,
+        instrumentBlocks,
+      );
+      const removedInstruments = Object.entries(instrumentFlags)
+        .filter(([, isActive]) => !isActive)
+        .map(([instrument]) => instrument);
 
       const updatedData = {
         song: songName,
         artist: artistName,
         progressBar: geralPercentage || 0,
-        setlist: setlist, // Array de setlists atualizado (tags escolhidas)
-        instruments: {
-          guitar01: instrActiveStatusguitar01
-            ? {
-                active: true,
-                capo: instCapoguitar01,
-                lastPlay: instLastPlayedguitar01,
-                link: instLinkguitar01,
-                progress: instProgressBarguitar01,
-                songCifra: songCifraguitar01,
-                tuning: instTuningguitar01,
-                notes: instNotesguitar01,
-              }
-            : false,
-          guitar02: instrActiveStatusguitar02
-            ? {
-                active: true,
-                capo: instCapoguitar02,
-                lastPlay: instLastPlayedguitar02,
-                link: instLinkguitar02,
-                progress: instProgressBarguitar02,
-                songCifra: songCifraguitar02,
-                tuning: instTuningguitar02,
-                notes: instNotesguitar02,
-              }
-            : false,
-          bass: instrActiveStatusbass
-            ? {
-                active: true,
-                capo: instCapobass,
-                lastPlay: instLastPlayedbass,
-                link: instLinkbass,
-                progress: instProgressBarbass,
-                songCifra: songCifrabass,
-                tuning: instTuningbass,
-                notes: instNotesbass,
-              }
-            : false,
-          keys: instrActiveStatuskeyboard
-            ? {
-                active: true,
-                capo: instCapokeyboard,
-                lastPlay: instLastPlayedkeyboard,
-                link: instLinkkeyboard,
-                progress: instProgressBarkeyboard,
-                songCifra: songCifrakeyboard,
-                tuning: instTuningkeyboard,
-                notes: instNoteskeyboard,
-              }
-            : false,
-          drums: instrActiveStatusdrums
-            ? {
-                active: true,
-                capo: instCapodrums,
-                lastPlay: instLastPlayeddrums,
-                link: instLinkdrums,
-                progress: instProgressBardrums,
-                songCifra: songCifradrums,
-                tuning: instTuningdrums,
-                notes: instNotesdrums,
-              }
-            : false,
-          voice: instrActiveStatusvoice
-            ? {
-                active: true,
-                capo: instCapovoice,
-                lastPlay: instLastPlayedvoice,
-                link: instLinkvoice,
-                progress: instProgressBarvoice,
-                songCifra: songCifravoice,
-                tuning: instTuningvoice,
-                notes: instNotesvoice,
-              }
-            : false,
-        },
+        setlist: normalizedSetlist,
+        instruments: instrumentFlags,
+        removedInstruments,
+        ...instrumentBlocks,
         embedVideos: embedLink || [],
         updateIn: new Date().toISOString().split("T")[0],
         email: userEmail,
       };
 
-      const response = await updateSongEntry(updatedData);
+      console.groupCollapsed("[EditSong] update payload");
+      console.log("song", { artist: artistName, song: songName });
+      console.log("instrument summary", summarizeInstrumentDebug(updatedData));
+      console.log("removedInstruments", removedInstruments);
+      console.log("setlist", normalizedSetlist);
+      console.log("replaceEmptyInstrumentFields", replaceEmptyInstrumentFields);
+      console.groupEnd();
+
+      const response = await updateSongEntry(updatedData, {
+        replaceEmptyInstrumentFields,
+      });
+      console.groupCollapsed("[EditSong] update response");
+      console.log("response instrument summary", summarizeInstrumentDebug(response?.song || {}));
+      console.log("response setlist", response?.song?.setlist);
+      console.log("raw response", response);
+      console.groupEnd();
       verifySavedVideos(response, embedLink);
+      verifySavedInstrumentState(response, instrumentFlags);
 
       console.log("Song data updated successfully.");
       setSnackbarMessage?.({
@@ -692,9 +902,9 @@ function EditSongColumnA({
         >
           <div className="text-left">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              Song Workspace
+              {t("songPages.songWorkspace")}
             </p>
-            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">Song Data</h2>
+            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">{t("songPages.songData")}</h2>
           </div>
           <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
             {songDataOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
@@ -740,7 +950,7 @@ function EditSongColumnA({
           <div className="rounded-[20px] neuphormism-b p-3">
             <div className="mb-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                Videos
+                {t("songPages.videos")}
               </p>
             </div>
             <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none [&_.neuphormism-b-btn]:!rounded-[14px] [&_.neuphormism-b-btn]:!bg-white">
@@ -764,7 +974,7 @@ function EditSongColumnA({
           <div className="rounded-[20px] neuphormism-b p-3">
             <div className="mb-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                Setlist
+                {t("songPages.setlist")}
               </p>
             </div>
             <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
@@ -772,7 +982,7 @@ function EditSongColumnA({
                 setlist={setlist}
                 setSetlist={setSetlistAndMarkDirty}
                 setlistOptions={setListOptions}
-                setSetListOptions={setSetListOptionsAndMarkDirty}
+                setSetListOptions={setSetListOptions}
               />
             </div>
           </div>
@@ -796,9 +1006,9 @@ function EditSongColumnA({
         >
           <div className="text-left">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              Song Workspace
+              {t("songPages.songWorkspace")}
             </p>
-            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">Media & Setlist</h2>
+            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">{t("songPages.mediaSetlist")}</h2>
           </div>
           <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
             {touchMediaOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
@@ -818,9 +1028,9 @@ function EditSongColumnA({
                   <FaVideo className="text-sm" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg font-bold text-black">Videos</div>
+                  <div className="text-lg font-bold text-black">{t("songPages.videos")}</div>
                   <div className="text-xs font-bold text-[#2f6f3e]">
-                    {embedLink.length} videos added
+                    {t("songPages.videosAdded", { count: embedLink.length })}
                   </div>
                 </div>
               </div>
@@ -839,9 +1049,9 @@ function EditSongColumnA({
                   <FaListUl className="text-sm" />
                 </div>
                 <div className="text-left">
-                  <div className="text-lg font-bold text-black">Setlist</div>
+                  <div className="text-lg font-bold text-black">{t("songPages.setlist")}</div>
                   <div className="text-xs font-bold text-[#2f6f3e]">
-                    {setlist.length} setlists selected
+                    {t("songPages.setlistsSelected", { count: setlist.length })}
                   </div>
                 </div>
               </div>
@@ -858,14 +1068,14 @@ function EditSongColumnA({
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
             onClick={() => setTouchVideosOpen(false)}
-            aria-label="Close videos modal"
+            aria-label={t("songPages.closeVideos")}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <div className="text-[2rem] font-bold tracking-tight text-black">Videos</div>
+                <div className="text-[2rem] font-bold tracking-tight text-black">{t("songPages.videos")}</div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
-                  Add a video URL for this song.
+                  {t("songPages.addVideoUrl")}
                 </div>
               </div>
               <button
@@ -899,14 +1109,14 @@ function EditSongColumnA({
             type="button"
             className="absolute inset-0 h-full w-full cursor-default"
             onClick={() => setTouchSetlistsOpen(false)}
-            aria-label="Close setlist modal"
+            aria-label={t("songPages.closeSetlist")}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#f2f2f2] px-4 pb-8 pt-5 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <div className="text-[2rem] font-bold tracking-tight text-black">Setlist</div>
+                <div className="text-[2rem] font-bold tracking-tight text-black">{t("songPages.setlist")}</div>
                 <div className="mt-1 max-w-[18rem] text-sm font-medium text-gray-500">
-                  Select existing tags or create a new one for this song.
+                  {t("songPages.setlistHelp")}
                 </div>
               </div>
               <button
@@ -922,7 +1132,7 @@ function EditSongColumnA({
                 setlist={setlist}
                 setSetlist={setSetlistAndMarkDirty}
                 setlistOptions={setListOptions}
-                setSetListOptions={setSetListOptionsAndMarkDirty}
+                setSetListOptions={setSetListOptions}
               />
             </div>
           </div>
@@ -980,7 +1190,7 @@ function EditSongColumnA({
             setlist={setlist}
             setSetlist={setSetlistAndMarkDirty}
             setlistOptions={setListOptions}
-            setSetListOptions={setSetListOptionsAndMarkDirty}
+            setSetListOptions={setSetListOptions}
           />
         </div>
       </div>

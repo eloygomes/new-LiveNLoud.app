@@ -550,6 +550,7 @@ import {
 } from "react-icons/fa";
 
 import NewSongInputLinkBox from "./NewSongInputLinkBox";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const INSTRUMENTS = [
   {
@@ -820,13 +821,16 @@ function InstrumentCard({ card, isOpen, onClick }) {
 }
 
 function InstrumentModal({ config, props, onClose }) {
+  const { t } = useLanguage();
+  const Icon = config.icon;
+
   return createPortal(
     <div className="fixed inset-0 z-[13000] bg-black/35">
       <button
         type="button"
         className="absolute inset-0 h-full w-full cursor-default"
         onClick={onClose}
-        aria-label="Close instrument modal"
+        aria-label={t("instrumentModal.closeInstrument")}
       />
 
       <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-6 pt-4 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[86vh] md:w-[min(1120px,94vw)] md:origin-center md:-translate-x-1/2 md:-translate-y-1/2 md:scale-[0.8] md:overflow-visible md:rounded-[28px] md:px-5">
@@ -834,14 +838,17 @@ function InstrumentModal({ config, props, onClose }) {
         <div className="mb-3 flex items-start justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              Instrument details
+              {t("instrumentModal.details")}
             </p>
-            <div className="mt-1 text-[clamp(1.7rem,8vw,2.25rem)] font-bold tracking-tight text-black">
-              {config.label}
+            <div className="mt-1 flex items-center gap-3 text-[clamp(1.7rem,8vw,2.25rem)] font-bold tracking-tight text-black">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] neuphormism-b-btn text-[1.15rem]">
+                <Icon aria-hidden="true" />
+              </span>
+              <span>{config.label}</span>
             </div>
 
             <div className="mt-1 whitespace-nowrap text-base font-medium leading-6 text-gray-500">
-              Insert the URL that will be scraped for this instrument.
+              {t("instrumentModal.urlHelp")}
             </div>
           </div>
 

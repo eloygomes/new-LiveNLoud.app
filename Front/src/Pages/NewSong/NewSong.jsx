@@ -3,6 +3,7 @@ import NewSongColumnA from "./NewSongColumnA";
 import NewSongColumnB from "./NewSongColumnB";
 import SnackBar from "../../Tools/SnackBar";
 import { requestData } from "../../Tools/Controllers"; // ⬅️ importa do Controllers
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const TOUCH_LAYOUT_MAX_WIDTH = 1024;
 
@@ -23,6 +24,7 @@ function getIsSongTouchLayout() {
 }
 
 function NewSong() {
+  const { t } = useLanguage();
   const isTouchLayout = getIsSongTouchLayout();
   const [songDataOpen, setSongDataOpen] = useState(true);
   // Column A
@@ -143,14 +145,13 @@ function NewSong() {
               <div className="flex flex-col gap-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                    Plus
+                    {t("songPages.plus")}
                   </p>
                   <h1 className="mt-2 text-[2rem] font-bold leading-none tracking-tight text-black">
-                    New Song
+                    {t("songPages.newSong")}
                   </h1>
                   <p className="mt-2 text-sm font-medium text-gray-500">
-                    Bring the song data, instrument sources, videos, and
-                    setlists together without leaving the page.
+                    {t("songPages.newSongDescription")}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -158,14 +159,14 @@ function NewSong() {
                     className="neuphormism-b-btn-red-cancel rounded-[14px] px-3 py-2.5 text-sm font-bold"
                     onClick={pageActions?.onDelete}
                   >
-                    Delete
+                    {t("songPages.delete")}
                   </button>
                   <button
                     className="neuphormism-b-btn-green-save rounded-[14px] px-4 py-2.5 text-sm font-bold disabled:opacity-50"
                     onClick={pageActions?.onSave}
                     disabled={!pageActions?.canSave}
                   >
-                    Save
+                    {t("songPages.save")}
                   </button>
                 </div>
               </div>
@@ -278,11 +279,10 @@ function NewSong() {
             <section className="neuphormism-b rounded-[28px] px-5 py-4 flex flex-row items-center justify-between gap-4">
               <div>
                 <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black md:text-[2.6rem]">
-                  New Song
+                  {t("songPages.newSong")}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm font-medium text-gray-500 ">
-                  Bring the song data, instrument sources, videos, and setlists
-                  together without leaving the page.
+                  {t("songPages.newSongDescription")}
                 </p>
               </div>
               <div className="flex shrink-0 justify-end gap-3">
@@ -290,14 +290,14 @@ function NewSong() {
                   className="neuphormism-b-btn-red-cancel rounded-[16px] px-6 py-3 text-base font-bold"
                   onClick={pageActions?.onDelete}
                 >
-                  Delete
+                  {t("songPages.delete")}
                 </button>
                 <button
                   className="neuphormism-b-btn-green-save rounded-[16px] px-8 py-3 text-base font-bold disabled:opacity-50"
                   onClick={pageActions?.onSave}
                   disabled={!pageActions?.canSave}
                 >
-                  Save
+                  {t("songPages.save")}
                 </button>
               </div>
             </section>

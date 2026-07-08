@@ -11,17 +11,19 @@ import Logs from "./modalContent/Logs";
 import Bluetooth from "./modalContent/bluetooth/Bluetooth";
 import Invitations from "./modalContent/Invitations";
 import SoftVersion from "../../Pages/Dashboard/SoftVersion";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 const USER_HUB_MENU = [
-  { value: "USER INFO", label: "User Info" },
-  { value: "USER DATA", label: "User Data" },
-  { value: "FRIENDS", label: "Friends" },
-  { value: "SETTINGS", label: "Settings" },
-  { value: "BLUETOOTH", label: "Footswitch" },
-  { value: "LOGS", label: "Logs" },
+  { value: "USER INFO", labelKey: "userHub.userInfo" },
+  { value: "USER DATA", labelKey: "userHub.userData" },
+  { value: "FRIENDS", labelKey: "userHub.friends" },
+  { value: "SETTINGS", labelKey: "userHub.settings" },
+  { value: "BLUETOOTH", labelKey: "userHub.footswitch" },
+  { value: "LOGS", labelKey: "userHub.logs" },
 ];
 
 export default function UserProfileModal() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [modalOptionChoosen, setModalOptionChoose] = useState("USER INFO");
   const username =
@@ -105,20 +107,20 @@ export default function UserProfileModal() {
             <div className="flex shrink-0 items-center justify-between gap-4 rounded-[22px] neuphormism-b bg-[#ececec] px-5 py-4">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
-                  Account
+                  {t("userHub.account")}
                 </p>
                 <h1 className="mt-1 text-4xl font-black uppercase leading-none">
-                  User Hub
+                  {t("userHub.title")}
                 </h1>
                 <h4 className="mt-1 truncate text-sm font-semibold text-gray-600">
-                  Hello @{username}
+                  {t("userHub.hello", { username })}
                 </h4>
               </div>
               <button
                 type="button"
                 className="neuphormism-b-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-3xl font-light leading-none text-gray-600 hover:text-black"
                 onClick={handleClose}
-                aria-label="Close"
+                aria-label={t("userHub.close")}
               >
                 &times;
               </button>
@@ -128,7 +130,7 @@ export default function UserProfileModal() {
               <aside className="flex min-h-0 flex-col justify-between rounded-[22px] neuphormism-b bg-[#ececec] p-4">
                 <div className="min-h-0">
                   <p className="px-1 text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
-                    Menu
+                    {t("userHub.menu")}
                   </p>
                   <nav className="mt-4 flex flex-col gap-2">
                     {USER_HUB_MENU.map((item) => {
@@ -144,7 +146,7 @@ export default function UserProfileModal() {
                           }`}
                           onClick={() => setModalOptionChoose(item.value)}
                         >
-                          {item.label}
+                          {t(item.labelKey)}
                         </button>
                       );
                     })}
@@ -157,9 +159,9 @@ export default function UserProfileModal() {
                     type="button"
                     className="neuphormism-b-btn-gold rounded-[14px] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-black active:scale-[0.98]"
                     onClick={() => signOut()}
-                    aria-label="Sign Out"
+                    aria-label={t("userHub.signOut")}
                   >
-                    Sign Out
+                    {t("userHub.signOut")}
                   </button>
                 </div>
               </aside>
