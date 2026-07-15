@@ -268,6 +268,47 @@ function getCifraClubCifraText(root) {
   return extractCifraText(root?.querySelector(".cifra_cnt"));
 }
 
+function getCifraClubGuitarProFiles() {
+  const links = Array.from(
+    document.querySelectorAll(
+      '.versions[data-v="guitarpro"] a[download], a[href*="gp_partitura_download.php"]',
+    ),
+  );
+  const seenUrls = new Set();
+
+  return links.reduce((files, link, index) => {
+    const href = link.getAttribute("href");
+    if (!href) return files;
+
+    let url;
+    try {
+      url = new URL(href, window.location.href);
+    } catch (_error) {
+      return files;
+    }
+
+    if (seenUrls.has(url.href)) return files;
+    seenUrls.add(url.href);
+
+    const fileName = cleanText(url.searchParams.get("arq")) ||
+      cleanText(url.pathname.split("/").pop());
+    const versionName = cleanText(
+      link.querySelector(":scope > span:first-child")?.textContent,
+    );
+    const extension = fileName.includes(".")
+      ? fileName.split(".").pop().toLowerCase()
+      : "";
+
+    files.push({
+      url: url.href,
+      fileName,
+      extension,
+      versionName: versionName || `Versão ${index + 1}`,
+    });
+    return files;
+  }, []);
+}
+
 function buildPageContext() {
   const supportedSite = getSupportedSite(window.location.hostname);
   const compatible = Boolean(supportedSite);
@@ -278,6 +319,7 @@ function buildPageContext() {
   let capo = "";
   let lyrics = "";
   let cifraText = "";
+  let guitarProFiles = [];
 
   if (supportedSite?.id === "cifraclub") {
     const cifraRoot = getCifraRoot();
@@ -292,6 +334,7 @@ function buildPageContext() {
     capo = getFieldValue(cifraRoot, "#cifra_capo");
     lyrics = getCifraClubLyrics(cifraRoot);
     cifraText = getCifraClubCifraText(cifraRoot);
+    guitarProFiles = getCifraClubGuitarProFiles();
   } else if (supportedSite?.id === "ultimate_guitar") {
     song = getUltimateGuitarSong();
     artist = getUltimateGuitarArtist();
@@ -318,6 +361,7 @@ function buildPageContext() {
     tuning: compatible ? tuning : "",
     lyrics: compatible ? lyrics : "",
     cifraText: compatible ? cifraText : "",
+    guitarProFiles: compatible ? guitarProFiles : [],
     defaults: {
       song: NOT_AVAILABLE,
       artist: NOT_AVAILABLE,

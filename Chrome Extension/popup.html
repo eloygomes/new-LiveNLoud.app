@@ -120,7 +120,7 @@
               </label>
             </fieldset>
 
-            <label class="field instrument-field">
+            <label id="instrumentField" class="field instrument-field">
               <span>Instrument</span>
               <select id="instrumentSelect">
                 <option value="guitar01">Guitar 01</option>
@@ -135,6 +135,16 @@
             <div class="field instrument-links-field">
               <span>Detected instrument links</span>
               <div id="instrumentLinkSuggestions" class="instrument-link-suggestions"></div>
+            </div>
+
+            <div id="guitarProField" class="field guitar-pro-field hidden">
+              <span>Guitar Pro</span>
+              <label id="guitarProSuggestion" class="instrument-link-suggestion guitar-pro-suggestion">
+                <input id="guitarProInput" type="checkbox" />
+                <i></i>
+                <strong>Add Guitar Pro</strong>
+                <span id="guitarProDetails"></span>
+              </label>
             </div>
 
             <label class="field progress-field">

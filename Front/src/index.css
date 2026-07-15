@@ -2183,6 +2183,69 @@ main{
     height: 1.25rem;
   }
 }
+/* Guitar Pro mixer: neutral, minimal volume slider. */
+input[type="range"].simple-volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+input[type="range"].simple-volume-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #777a7f;
+  box-shadow: none;
+}
+
+input[type="range"].simple-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+input[type="range"].simple-volume-slider::-moz-range-track {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #777a7f;
+  box-shadow: none;
+}
+
+input[type="range"].simple-volume-slider::-moz-range-progress {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #777a7f;
+}
+
+input[type="range"].simple-volume-slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+input[type="range"].simple-volume-slider:focus,
+input[type="range"].simple-volume-slider:focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
+
 /* === Custom range style: golden progress with white track and BLACK thumb === */
 input[type="range"].range-golden {
   -webkit-appearance: none;

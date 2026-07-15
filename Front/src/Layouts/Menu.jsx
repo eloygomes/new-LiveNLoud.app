@@ -43,6 +43,7 @@ export default function RootLayouts() {
     "/chordlibrary",
     "/tuner",
     "/metronome",
+    "/drum-machine",
     "/calendar",
   ].includes(location.pathname);
   const isNewSongRoute = location.pathname === "/newsong";

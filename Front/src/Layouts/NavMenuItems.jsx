@@ -35,6 +35,7 @@ function NavMenuItems() {
             >
               {t("nav.metronome")}
             </NavLink>
+            <NavLink to="/drum-machine" className={navItemClassName}>Drum Machine</NavLink>
           </div>
         </div>
       )}
@@ -62,6 +63,7 @@ function NavMenuItems() {
             >
               {t("nav.metronome")}
             </NavLink>
+            <NavLink to="/drum-machine" className={navItemClassName}>Drum Machine</NavLink>
           </div>
         </div>
       )}

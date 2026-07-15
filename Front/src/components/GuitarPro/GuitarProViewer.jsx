@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as alphaTab from "@coderline/alphatab";
 import {
+  FaArrowRotateLeft,
   FaChevronLeft,
   FaChevronRight,
   FaMagnifyingGlassMinus,
@@ -34,7 +35,6 @@ const DEFAULT_TRACK_VOLUME = 0.8;
 const DEFAULT_MASTER_VOLUME = 0.8;
 const DEFAULT_TRACK_PAN = 0.5;
 const SOUNDFONT_URL = "/soundfont/sonivox.sf3";
-const VU_BAR_COUNT = 12;
 const TRACK_COLORS = [
   "#d7b528",
   "#9cc94a",
@@ -47,9 +47,38 @@ const TRACK_COLORS = [
   "#e36aa5",
   "#e9825c",
 ];
+const FRETBOARD_SCALE_MM = 647.7;
+const FRET_COUNT = 33;
+
+function calculateFretPositions(scaleLength = FRETBOARD_SCALE_MM, fretCount = FRET_COUNT) {
+  const positions = [0];
+  let remainingLength = scaleLength;
+  let accumulatedDistance = 0;
+  for (let fret = 1; fret <= fretCount; fret += 1) {
+    const distanceFromPrevious = remainingLength / 17.817;
+    accumulatedDistance += distanceFromPrevious;
+    remainingLength -= distanceFromPrevious;
+    positions.push(accumulatedDistance);
+  }
+  return positions;
+}
+
+const FRET_POSITIONS_MM = calculateFretPositions();
+const FRETBOARD_VISIBLE_LENGTH_MM = FRET_POSITIONS_MM[FRET_COUNT];
+
+function getFretWirePercent(fret) {
+  return (FRET_POSITIONS_MM[fret] / FRETBOARD_VISIBLE_LENGTH_MM) * 100;
+}
+
+function getFretCenterPercent(fret) {
+  if (fret < 1 || fret > FRET_COUNT) return null;
+  return ((FRET_POSITIONS_MM[fret - 1] + FRET_POSITIONS_MM[fret]) / 2 / FRETBOARD_VISIBLE_LENGTH_MM) * 100;
+}
 
 const buttonBaseClass =
   "neuphormism-b-btn flex items-center justify-center rounded-full text-black active:scale-[0.98]";
+const activeControlClass =
+  "!border-[#9b7400] !bg-[goldenrod] !text-black shadow-[inset_2px_2px_5px_rgba(95,67,0,.28),0_2px_6px_rgba(0,0,0,.18)]";
 const LOG_PREFIX = "[GuitarProViewer]";
 
 function logDebug(message, payload) {
@@ -100,6 +129,11 @@ function readPlaybackPosition(event = {}, fallback = {}) {
 
 function clampNumber(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, Number(value) || 0));
+}
+
+function gainToDecibels(gain) {
+  if (!Number.isFinite(gain) || gain <= 0.001) return "−∞";
+  return Math.max(-60, 20 * Math.log10(gain)).toFixed(1);
 }
 
 function getDynamicIntensity(dynamicValue) {
@@ -165,35 +199,112 @@ function getBeatIntensity(beat) {
   return clampNumber(strongestDynamic * noteDensity * articulationModifier);
 }
 
-function buildVuBars(beat, intensity, currentTick, lookup) {
-  if (!beat || intensity <= 0) return Array(VU_BAR_COUNT).fill(0);
+function getBeatTrackIndex(beat) {
+  const value = Number(beat?.voice?.bar?.staff?.track?.index);
+  return Number.isFinite(value) ? value : -1;
+}
 
-  const notes = getPlayableNotes(beat);
-  const pitches = notes.map(getNotePitch);
-  const minPitch = pitches.length ? Math.min(...pitches) : 48;
-  const maxPitch = pitches.length ? Math.max(...pitches) : 84;
-  const pitchRange = Math.max(1, maxPitch - minPitch);
-  const progress =
-    lookup?.tickDuration > 0
-      ? clampNumber((currentTick - lookup.start) / lookup.tickDuration)
-      : 0;
-  const envelope = clampNumber(1 - progress * 0.45, 0.4, 1);
-
-  return Array.from({ length: VU_BAR_COUNT }, (_, barIndex) => {
-    const barPosition = barIndex / Math.max(1, VU_BAR_COUNT - 1);
-    const pitchEnergy = pitches.length
-      ? Math.max(
-          ...pitches.map((pitch) => {
-            const pitchPosition = (pitch - minPitch) / pitchRange;
-            return 1 - clampNumber(Math.abs(barPosition - pitchPosition) * 2.4);
-          }),
-        )
-      : 0.45;
-    const body = 0.25 + pitchEnergy * 0.75;
-    const shimmer =
-      0.86 + Math.sin(progress * Math.PI * 2 + barIndex * 0.72) * 0.14;
-    return clampNumber(intensity * envelope * body * shimmer);
-  });
+function LiveInstrument({ track, notes, transposition = 0 }) {
+  const Icon = getTrackIcon(track);
+  const isKeyboard = Icon === GiPianoKeys;
+  if (isKeyboard) {
+    const activePitches = new Set(notes.map((note) => getNotePitch(note) + transposition));
+    const pitches = Array.from({ length: 88 }, (_, index) => 21 + index);
+    const whitePitches = pitches.filter(
+      (pitch) => ![1, 3, 6, 8, 10].includes(pitch % 12),
+    );
+    return (
+      <div className="relative h-28 overflow-hidden rounded-[20px] border-[6px] border-[#222] bg-[#222] shadow-xl sm:h-36 md:h-44">
+        <div className="flex h-full">
+          {whitePitches.map((pitch) => (
+            <span
+              key={pitch}
+              className={`h-full flex-1 rounded-b-sm border-x border-[#8d939d] bg-white ${activePitches.has(pitch) ? "!bg-[goldenrod] shadow-[inset_0_-10px_18px_rgba(218,165,32,.75)]" : ""}`}
+            />
+          ))}
+        </div>
+        {pitches
+          .filter((pitch) => [1, 3, 6, 8, 10].includes(pitch % 12))
+          .map((pitch) => {
+            const whitesBefore = pitches.filter(
+              (candidate) =>
+                candidate < pitch && ![1, 3, 6, 8, 10].includes(candidate % 12),
+            ).length;
+            return (
+              <span
+                key={pitch}
+                className={`absolute top-0 z-10 h-[62%] w-[1.15%] -translate-x-1/2 rounded-b bg-black shadow-md ${activePitches.has(pitch) ? "!bg-[goldenrod] shadow-[0_0_14px_goldenrod]" : ""}`}
+                style={{
+                  left: `${(whitesBefore / whitePitches.length) * 100}%`,
+                }}
+              />
+            );
+          })}
+      </div>
+    );
+  }
+  const tunings = track?.staves?.[0]?.stringTuning?.tunings || [];
+  const stringCount = tunings.length || 6;
+  return (
+    <div className="relative overflow-hidden rounded-[20px] border-[6px] border-[#28160f] bg-[linear-gradient(90deg,rgba(255,255,255,.04),transparent_12%,rgba(0,0,0,.08)_24%,transparent_42%,rgba(255,255,255,.035)_64%,rgba(0,0,0,.1)),linear-gradient(#74472d,#512e1d)] px-16 py-7 shadow-[inset_0_0_24px_rgba(0,0,0,.5),0_12px_24px_rgba(0,0,0,.28)] md:py-9">
+      <span className="pointer-events-none absolute bottom-4 left-16 top-4 z-[2] w-[7px] rounded-sm bg-[#e8d8b5] shadow-[2px_0_4px_rgba(0,0,0,.5)]" aria-hidden="true" />
+      <div className="pointer-events-none absolute bottom-4 left-16 right-16 top-4 z-[1]">
+        {[3, 5, 7, 9, 15, 17, 19, 21, 27, 30, 33].map((fret) => <i key={`dot-${fret}`} className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7dfcd]/90 shadow-[inset_0_1px_2px_rgba(0,0,0,.5)]" style={{ left: `${getFretCenterPercent(fret)}%` }} />)}
+        {[12, 24].flatMap((fret) => [-1, 1].map((offset) => <i key={`double-${fret}-${offset}`} className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7dfcd]/90 shadow-[inset_0_1px_2px_rgba(0,0,0,.5)]" style={{ left: `${getFretCenterPercent(fret)}%`, top: `${50 + offset * 22}%` }} />))}
+      </div>
+      {Array.from(
+        { length: stringCount },
+        (_, index) => {
+          const stringNumber = stringCount - index;
+          const stringNotes = notes.filter(
+            (note) =>
+              Number(note.string) === stringNumber &&
+              Number(note.fret) >= 1 &&
+              Number(note.fret) <= FRET_COUNT,
+          );
+          const hasOpenNote = notes.some(
+            (note) => Number(note.string) === stringNumber && Number(note.fret) === 0,
+          );
+          return (
+            <div
+              key={stringNumber}
+              className="relative z-[3] my-6 h-[2px] bg-gradient-to-b from-[#fff7dc] to-[#a98d60] shadow-[0_1px_1px_rgba(0,0,0,.75)]"
+            >
+              <span className="absolute right-[calc(100%+46px)] top-1/2 -translate-y-1/2 text-[11px] font-black text-[#f0dfb6]">
+                {Number.isFinite(Number(tunings[stringCount - stringNumber]))
+                  ? alphaTab.model.Tuning.getTextForTuning(Number(tunings[stringCount - stringNumber]) + transposition, true)
+                  : ""}
+              </span>
+              {hasOpenNote ? <b className="absolute right-[calc(100%+15px)] top-1/2 z-20 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-[goldenrod] text-[10px] text-black shadow-[0_0_12px_goldenrod]">0</b> : null}
+              {Array.from({ length: FRET_COUNT }, (_, index) => index + 1).map((fret) => (
+                <i
+                  key={fret}
+                  className="absolute top-[-14px] h-8 w-[2px] bg-gradient-to-r from-[#806a53] via-[#f0e2c7] to-[#806a53] shadow-[1px_0_2px_rgba(0,0,0,.45)]"
+                  style={{ left: `${getFretWirePercent(fret)}%` }}
+                />
+              ))}
+              {stringNotes.map((note, noteIndex) => (
+                <b
+                  key={noteIndex}
+                  className="absolute top-1/2 z-10 grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[goldenrod] text-[10px] text-black shadow-[0_0_12px_goldenrod]"
+                  style={{
+                    left: `${getFretCenterPercent(Number(note.fret))}%`,
+                  }}
+                >
+                  {note.fret}
+                </b>
+              ))}
+            </div>
+          );
+        },
+      )}
+      <div className="pointer-events-none absolute bottom-1 left-16 right-16 z-[4] h-4 text-[8px] font-bold text-[#e6c990]">
+        {[3, 5, 7, 9, 12, 15, 17, 19, 21, 24, 27, 30, 33].map((fret) => (
+          <span key={fret} className="absolute -translate-x-1/2" style={{ left: `${getFretCenterPercent(fret)}%` }}>{fret}</span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function resolveFileUrl(fileUrl = "") {
@@ -304,7 +415,7 @@ function findBestTrackIndex(tracks = [], instrumentName = "") {
   return programMatchIndex >= 0 ? programMatchIndex : 0;
 }
 
-function formatTuning(track) {
+function formatTuning(track, transposition = 0) {
   const firstStaff = Array.isArray(track?.staves) ? track.staves[0] : null;
   const tuning = Array.isArray(firstStaff?.stringTuning?.tunings)
     ? firstStaff.stringTuning.tunings
@@ -312,7 +423,7 @@ function formatTuning(track) {
 
   if (!tuning.length) return "";
   return tuning
-    .map((value) => alphaTab.model.Tuning.getTextForTuning(value, true))
+    .map((value) => alphaTab.model.Tuning.getTextForTuning(value + transposition, true))
     .reverse()
     .join(" ");
 }
@@ -347,6 +458,14 @@ function GuitarProViewer({
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [activeBeats, setActiveBeats] = useState([]);
+  const [instrumentViewOpen, setInstrumentViewOpen] = useState(false);
+  const [bottomMixerOpen, setBottomMixerOpen] = useState(false);
+  const [tuningMenuOpen, setTuningMenuOpen] = useState(false);
+  const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+  const [showStandardNotation, setShowStandardNotation] = useState(true);
+  const [showTablature, setShowTablature] = useState(true);
+  const [trackTranspositions, setTrackTranspositions] = useState({});
   const playerReadyRef = useRef(false);
   const masterVolumeRef = useRef(DEFAULT_MASTER_VOLUME);
 
@@ -382,6 +501,12 @@ function GuitarProViewer({
 
       api.renderTracks([nextTrack]);
       setSelectedTrackIndex(trackIndex);
+      setShowStandardNotation(
+        nextTrack.staves?.some((staff) => staff.showStandardNotation) ?? true,
+      );
+      setShowTablature(
+        nextTrack.staves?.some((staff) => staff.showTablature) ?? false,
+      );
     },
     [tracks],
   );
@@ -530,9 +655,11 @@ function GuitarProViewer({
         setTracks(loadedTracks);
         setTrackVolumes(
           loadedTracks.reduce(
-            (acc, _track, index) => ({
+            (acc, track, index) => ({
               ...acc,
-              [index]: DEFAULT_TRACK_VOLUME,
+              [index]: Number.isFinite(track?.playbackInfo?.volume)
+                ? clampNumber(track.playbackInfo.volume / 16)
+                : DEFAULT_TRACK_VOLUME,
             }),
             {},
           ),
@@ -612,6 +739,30 @@ function GuitarProViewer({
         syncPlaybackPosition(event);
       });
 
+      registerAlphaTabListener(api, "activeBeatsChanged", (event) => {
+        if (cancelled) return;
+        setActiveBeats(
+          Array.isArray(event?.activeBeats) ? event.activeBeats : [],
+        );
+        window.requestAnimationFrame(() => {
+          const viewport = scoreViewportRef.current;
+          const cursor = viewport?.querySelector(".at-cursor-beat");
+          if (!viewport || !cursor) return;
+          const viewportRect = viewport.getBoundingClientRect();
+          const cursorRect = cursor.getBoundingClientRect();
+          const targetTop =
+            viewport.scrollTop +
+            cursorRect.top -
+            viewportRect.top -
+            viewport.clientHeight / 2 +
+            cursorRect.height / 2;
+          viewport.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: "smooth",
+          });
+        });
+      });
+
       registerAlphaTabListener(api, "error", (error) => {
         if (cancelled) return;
         console.error(`${LOG_PREFIX} AlphaTab error:`, error);
@@ -676,7 +827,16 @@ function GuitarProViewer({
   }, [zoom]);
 
   const selectedTrack = tracks[selectedTrackIndex] || null;
-  const tuningLabel = formatTuning(selectedTrack);
+  const selectedTrackNotes = activeBeats
+    .filter(
+      (beat) =>
+        getBeatTrackIndex(beat) ===
+        Number(selectedTrack?.index ?? selectedTrackIndex),
+    )
+    .flatMap(getPlayableNotes);
+  const selectedTransposition = trackTranspositions[selectedTrackIndex] || 0;
+  const tuningLabel = formatTuning(selectedTrack, selectedTransposition);
+  const editorLayout = true;
   const sidebarExpanded = sidebarOpen || sidebarPinned;
   const hasSoloTracks = tracks.some((track) => track.playbackInfo?.isSolo);
   const playbackPercent = playbackPosition.endTime
@@ -689,12 +849,9 @@ function GuitarProViewer({
       )
     : playerLoadProgress;
   const trackPlaybackLevels = useMemo(() => {
-    const api = apiRef.current;
-    const currentTick = Number(playbackPosition.currentTick);
-    if (!api?.tickCache || !isPlaying || !Number.isFinite(currentTick)) {
+    if (!isPlaying) {
       return {};
     }
-
     return tracks.reduce((levels, track, index) => {
       const volume = trackVolumes[index] ?? DEFAULT_TRACK_VOLUME;
       const canPlay =
@@ -704,27 +861,20 @@ function GuitarProViewer({
         masterVolume > 0;
 
       if (!canPlay) {
-        levels[index] = { active: false, bars: Array(VU_BAR_COUNT).fill(0) };
+        levels[index] = { active: false, level: 0 };
         return levels;
       }
 
-      const trackIndex = Number.isFinite(Number(track.index))
-        ? Number(track.index)
-        : index;
-      const lookup = api.tickCache.findBeat(new Set([trackIndex]), currentTick);
-      const beat = lookup?.beat;
-      const isInsideBeat =
-        lookup &&
-        currentTick >= lookup.start &&
-        currentTick < lookup.end &&
-        beat &&
-        !beat.isRest;
-      const beatIntensity = isInsideBeat ? getBeatIntensity(beat) : 0;
-      const intensity = clampNumber(beatIntensity * volume * masterVolume);
+      const beats = activeBeats.filter(
+        (beat) => getBeatTrackIndex(beat) === Number(track.index ?? index),
+      );
+      const intensity = clampNumber(
+        Math.max(0, ...beats.map(getBeatIntensity)) * volume * masterVolume,
+      );
 
       levels[index] = {
         active: intensity > 0.04,
-        bars: buildVuBars(beat, intensity, currentTick, lookup),
+        level: intensity,
       };
       return levels;
     }, {});
@@ -732,7 +882,7 @@ function GuitarProViewer({
     hasSoloTracks,
     isPlaying,
     masterVolume,
-    playbackPosition.currentTick,
+    activeBeats,
     trackVolumes,
     tracks,
   ]);
@@ -748,16 +898,27 @@ function GuitarProViewer({
       soundFontProgress: playerLoadProgress,
     });
     if (!api || !playerReady || renderError) return;
-    const result = api.playPause();
+    const result = isPlaying ? api.pause() : api.play();
     window.setTimeout(() => {
       setIsPlaying(api.playerState === alphaTab.synth.PlayerState.Playing);
     }, 0);
-    logDebug("playPause chamado", {
+    logDebug(isPlaying ? "pause chamado" : "play chamado", {
       result,
       playerState: api.playerState,
       isReadyForPlayback: api.isReadyForPlayback,
     });
-  }, [playerLoadProgress, playerReady, renderError, tracks.length]);
+  }, [isPlaying, playerLoadProgress, playerReady, renderError, tracks.length]);
+
+  const restartPlayback = useCallback(() => {
+    const api = apiRef.current;
+    if (!api || !playerReady || renderError) return;
+    api.stop();
+    setPlaybackPosition((current) => ({ ...current, currentTime: 0, currentTick: 0 }));
+    window.setTimeout(() => {
+      api.play();
+      setIsPlaying(true);
+    }, 0);
+  }, [playerReady, renderError]);
 
   const stopPlayback = useCallback(() => {
     const api = apiRef.current;
@@ -791,23 +952,28 @@ function GuitarProViewer({
       if (!api || !playerReady || renderError) return;
 
       if (api.playerState === alphaTab.synth.PlayerState.Playing) {
-        stopPlayback();
+        api.pause();
+        setIsPlaying(false);
       } else {
-        togglePlayback();
+        api.play();
+        setIsPlaying(true);
       }
     };
 
     window.addEventListener("keydown", handleSpacePlayback);
     return () => window.removeEventListener("keydown", handleSpacePlayback);
-  }, [playerReady, renderError, stopPlayback, togglePlayback]);
+  }, [playerReady, renderError]);
 
   const updateTrackVolume = (trackIndex, nextValue) => {
     const api = apiRef.current;
     const track = tracks[trackIndex];
     if (!api || !track) return;
 
-    const safeValue = Number(nextValue);
+    const safeValue = clampNumber(Number(nextValue));
     setTrackVolumes((current) => ({ ...current, [trackIndex]: safeValue }));
+    if (track.playbackInfo) {
+      track.playbackInfo.volume = Math.round(safeValue * 16);
+    }
     api.changeTrackVolume([track], safeValue);
   };
 
@@ -848,6 +1014,33 @@ function GuitarProViewer({
     }
   };
 
+  const updateTrackTransposition = (trackIndex, nextValue) => {
+    const track = tracks[trackIndex];
+    const value = Math.max(-12, Math.min(12, Number(nextValue)));
+    if (!track || !apiRef.current) return;
+    setTrackTranspositions((current) => ({ ...current, [trackIndex]: value }));
+    apiRef.current.changeTrackTranspositionPitch([track], value);
+    track.transpositionPitch = value;
+    apiRef.current.renderTracks([track]);
+  };
+
+  const updateNotationVisibility = (nextStandard, nextTablature) => {
+    const api = apiRef.current;
+    const track = tracks[selectedTrackIndex];
+    if (!api || !track || (!nextStandard && !nextTablature)) return;
+    track.staves?.forEach((staff) => {
+      staff.showStandardNotation = nextStandard;
+      staff.showTablature = nextTablature;
+    });
+    setShowStandardNotation(nextStandard);
+    setShowTablature(nextTablature);
+    api.settings.notation.rhythmMode = nextStandard
+      ? alphaTab.TabRhythmMode.Automatic
+      : alphaTab.TabRhythmMode.Hidden;
+    api.updateSettings();
+    api.renderTracks([track]);
+  };
+
   const toggleTrackSolo = (trackIndex) => {
     const api = apiRef.current;
     const track = tracks[trackIndex];
@@ -871,46 +1064,27 @@ function GuitarProViewer({
 
   return (
     <div className="mt-[80px] flex h-[calc(100%-80px)] min-h-0 flex-col overflow-hidden bg-[#f0f0f0]">
-      <div className="mx-4 mt-3 flex shrink-0 items-center justify-between gap-4 rounded-[18px] bg-white/70 px-5 py-4 text-base font-bold text-gray-600 shadow-sm">
-        <div className="flex flex-col">
-          <div className="flex flex-col">
-            <div className="min-w-0 truncate text-xl">
-              {songTitle || "Desconecido"}
+      {instrumentViewOpen && selectedTrack ? (
+        <div className="mx-2 mt-2 shrink-0 rounded-[26px] border border-[#c8c3b6] bg-[#dedbd2] px-3 py-3 shadow-[0_8px_22px_rgba(30,30,30,.16)] sm:mx-4 sm:mt-3 sm:px-6 sm:py-4">
+          <div className="w-full">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-[.15em] text-[#3b3f47]">
+              {normalizeTrackLabel(selectedTrack, selectedTrackIndex)} · Live
             </div>
-            <div className="min-w-0 truncate">
-              {artistName || "Desconecido"}
-            </div>
+            <LiveInstrument track={selectedTrack} notes={selectedTrackNotes} transposition={selectedTransposition} />
           </div>
         </div>
-        <div className="flex flex-col text-right">
-          <div className="min-w-0 truncate text-sm">
-            {tuningLabel ? `Afinacao: ${tuningLabel}` : "Afinacao indisponivel"}
-            {selectedTrack?.playbackInfo?.program !== undefined
-              ? ` · Programa MIDI: ${selectedTrack.playbackInfo.program}`
-              : ""}
-          </div>
-          <div className="shrink-0 text-sm font-bold text-black">
-            Zoom {Math.round(zoom * 100)}%
-          </div>
-        </div>
-      </div>
+      ) : null}
 
-      <div
-        className={`grid min-h-0 flex-1 overflow-hidden transition-[grid-template-columns] duration-300 ${
-          sidebarExpanded
-            ? "grid-cols-[minmax(0,1fr)_30rem]"
-            : "grid-cols-[minmax(0,1fr)_3.5rem]"
-        }`}
-      >
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <div
           ref={scoreViewportRef}
-          className="guitar-pro-score relative m-4 min-h-0 overflow-auto rounded-[26px] bg-white shadow-sm"
+          className={`guitar-pro-score absolute bottom-0 left-0 top-0 m-4 min-h-0 overflow-auto rounded-[26px] bg-white shadow-sm ${editorLayout ? "right-0" : "right-14"}`}
         >
           <style>
             {`
               .guitar-pro-score .at-cursor-beat {
                 animation: none !important;
-                margin-left: -10px !important;
+                margin-left: -20px !important;
                 opacity: 1 !important;
                 visibility: visible !important;
               }
@@ -918,7 +1092,7 @@ function GuitarProViewer({
           </style>
           <div
             ref={containerRef}
-            className={`min-h-full bg-white px-8 py-8 transition-opacity [&_.at-cursor-bar]:!bg-[rgba(218,165,32,0.18)] [&_.at-cursor-beat]:!w-[20px] [&_.at-cursor-beat]:!animate-none [&_.at-cursor-beat]:!bg-[#e53935] [&_.at-cursor-beat]:!opacity-100 [&_.at-cursor-beat]:!shadow-[0_0_10px_rgba(229,57,53,0.65)] [&_.at-main]:!mx-0 [&_.at-main]:!w-full [&_.at-main]:!max-w-none [&_.at-viewport]:!overflow-visible ${
+            className={`mx-auto min-h-full w-[calc(100%-1rem)] bg-white py-4 transition-opacity sm:w-[calc(100%-2rem)] md:w-[calc(100%-5rem)] md:py-8 [&_.at-cursor-bar]:!bg-[rgba(218,165,32,0.18)] [&_.at-cursor-beat]:!w-[40px] [&_.at-cursor-beat]:!animate-none [&_.at-cursor-beat]:!bg-[#e53935] [&_.at-cursor-beat]:!opacity-100 [&_.at-cursor-beat]:!shadow-[0_0_14px_rgba(229,57,53,0.72)] [&_.at-main]:!mx-auto [&_.at-main]:!max-w-full [&_.at-viewport]:!overflow-visible ${
               renderError ? "opacity-0" : "opacity-100"
             }`}
           />
@@ -934,7 +1108,11 @@ function GuitarProViewer({
           ) : null}
         </div>
 
-        <aside className="m-3 ml-0 min-h-0 overflow-hidden rounded-[20px] bg-[#f0f0f0]">
+        <aside
+          className={`absolute bottom-3 right-3 top-3 z-20 min-h-0 overflow-hidden rounded-[20px] bg-[#f0f0f0] shadow-[0_12px_34px_rgba(0,0,0,0.18)] transition-[width] duration-300 ${editorLayout ? "hidden" : ""} ${
+            sidebarExpanded ? "w-[30rem]" : "w-14"
+          }`}
+        >
           {!sidebarExpanded ? (
             <div className="flex h-full flex-col items-center gap-1.5 overflow-auto py-2">
               <button
@@ -1046,7 +1224,7 @@ function GuitarProViewer({
                   const trackColor = getTrackColor(index);
                   const trackVu = trackPlaybackLevels[index] || {
                     active: false,
-                    bars: Array(VU_BAR_COUNT).fill(0),
+                    level: 0,
                   };
 
                   return (
@@ -1119,38 +1297,15 @@ function GuitarProViewer({
 
                           <div className="min-w-0 flex-[4] py-2">
                             <div
-                              className="mb-1 flex h-3 items-end gap-[2px] rounded-[4px] bg-gray-300 p-[2px] shadow-inner"
-                              title={trackVu.active ? "VU ativo" : "VU parado"}
+                              className="mb-1 flex h-3 overflow-hidden rounded-full bg-[#c9cbd0] p-[2px] shadow-inner"
+                              title={`Live level ${Math.round(trackVu.level * 100)}%`}
                             >
-                              {trackVu.bars.map((level, barIndex) => {
-                                const isLit = trackVu.active && level > 0.08;
-                                const isPeak = level > 100;
-                                const barHeight = `${Math.max(18, Math.round(level * 100))}%`;
-
-                                return (
-                                  <span
-                                    key={`${label}-vu-${barIndex}`}
-                                    className={`flex-1 rounded-[1px] transition-all duration-150 ${
-                                      isLit
-                                        ? isPeak
-                                          ? "bg-[#e53935] shadow-[0_0_6px_rgba(229,57,53,0.55)]"
-                                          : "bg-[goldenrod]"
-                                        : "bg-white/70"
-                                    }`}
-                                    style={{
-                                      height: isLit ? barHeight : "100%",
-                                      opacity: isLit ? 0.55 + level * 0.45 : 1,
-                                    }}
-                                  />
-                                );
-                              })}
-
-                              {trackVu.active ? (
-                                <span
-                                  className="ml-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#4fe535] p-1"
-                                  aria-hidden="true"
-                                />
-                              ) : null}
+                              <span
+                                className={`h-full rounded-full transition-[width,background-color] duration-75 ${trackVu.level > 0.88 ? "bg-[#e53935]" : trackVu.active ? "bg-[goldenrod]" : "bg-transparent"}`}
+                                style={{
+                                  width: `${Math.round(trackVu.level * 100)}%`,
+                                }}
+                              />
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -1203,6 +1358,36 @@ function GuitarProViewer({
                               title="Pan"
                             />
                           </div>
+                        </div>
+                        <div className="mb-2 ml-10 flex items-center gap-2 text-[9px] font-bold text-gray-600">
+                          <span>Transpose</span>
+                          <button
+                            type="button"
+                            className="neuphormism-b-btn h-5 w-6"
+                            onClick={() =>
+                              updateTrackTransposition(
+                                index,
+                                (trackTranspositions[index] || 0) - 1,
+                              )
+                            }
+                          >
+                            −
+                          </button>
+                          <output className="w-7 text-center">
+                            {trackTranspositions[index] || 0}
+                          </output>
+                          <button
+                            type="button"
+                            className="neuphormism-b-btn h-5 w-6"
+                            onClick={() =>
+                              updateTrackTransposition(
+                                index,
+                                (trackTranspositions[index] || 0) + 1,
+                              )
+                            }
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1371,13 +1556,13 @@ function GuitarProViewer({
         </aside>
       </div>
 
-      <div className="neuphormism-b z-[1] mx-4 mb-2 flex min-h-12 shrink-0 items-center justify-between rounded-[18px] px-4 py-1.5">
-        <div className="flex items-center gap-2">
+      <div className="neuphormism-b z-[1] mx-2 mb-2 flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-2 rounded-[18px] px-2 py-1.5 sm:mx-4 sm:px-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={togglePlayback}
             disabled={!playerReady || Boolean(renderError)}
-            className={`${buttonBaseClass} h-10 w-10 ${
+            className={`${buttonBaseClass} order-[8] h-10 w-10 ${
               playerReady && !renderError
                 ? "neuphormism-b-btn-gold"
                 : "cursor-not-allowed opacity-55"
@@ -1398,7 +1583,7 @@ function GuitarProViewer({
             type="button"
             onClick={stopPlayback}
             disabled={!playerReady}
-            className={`${buttonBaseClass} h-9 w-9 ${
+            className={`${buttonBaseClass} order-[9] h-9 w-9 ${
               playerReady ? "" : "cursor-not-allowed opacity-55"
             }`}
             title="Stop"
@@ -1407,21 +1592,168 @@ function GuitarProViewer({
           </button>
           <button
             type="button"
-            onClick={() => setZoom((current) => Math.max(0.7, current - 0.1))}
-            className={`${buttonBaseClass} h-9 w-9`}
-            title="Zoom out"
+            onClick={() => setInstrumentViewOpen((current) => !current)}
+            disabled={
+              !selectedTrack ||
+              getTrackIcon(selectedTrack) === GiDrumKit ||
+              getTrackIcon(selectedTrack) === GiMicrophone
+            }
+            className={`${buttonBaseClass} order-[5] h-9 w-9 ${instrumentViewOpen ? "neuphormism-b-btn-gold" : ""}`}
+            title="Show live fretboard or piano"
           >
-            <FaMagnifyingGlassMinus className="h-3.5 w-3.5" />
+            {selectedTrack && getTrackIcon(selectedTrack) === GiPianoKeys ? (
+              <GiPianoKeys className="h-4 w-4" />
+            ) : (
+              <GiGuitar className="h-4 w-4" />
+            )}
+          </button>
+          <div className="relative order-[3]">
+            <button
+              type="button"
+              onClick={() => {
+                setTuningMenuOpen((current) => !current);
+                setZoomMenuOpen(false);
+              }}
+              className={`${buttonBaseClass} h-9 px-3 text-[10px] font-black ${tuningMenuOpen ? activeControlClass : ""}`}
+              title="Mostrar afinação"
+            >
+              AFIN.
+            </button>
+            {tuningMenuOpen ? (
+              <div className="absolute bottom-12 left-0 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-[16px] border border-[#b2aa96] bg-[#efede7] p-3 text-xs font-bold shadow-[0_14px_35px_rgba(0,0,0,.3)]">
+                <div className="mb-1 uppercase tracking-wider text-gray-500">
+                  Afinação
+                </div>
+                <div className="text-black">
+                  {tuningLabel || "Afinação indisponível"}
+                </div>
+                {selectedTrack?.playbackInfo?.program !== undefined ? (
+                  <div className="mt-1 text-gray-600">
+                    Programa MIDI {selectedTrack.playbackInfo.program}
+                  </div>
+                ) : null}
+                <div className="mt-3 flex items-center justify-between border-t border-[#c9c3b5] pt-3">
+                  <span className="uppercase tracking-wider text-gray-500">
+                    Transpose
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateTrackTransposition(
+                          selectedTrackIndex,
+                          (trackTranspositions[selectedTrackIndex] || 0) - 1,
+                        )
+                      }
+                      className="neuphormism-b-btn h-7 w-8"
+                    >
+                      −
+                    </button>
+                    <output className="w-8 text-center text-black">
+                      {trackTranspositions[selectedTrackIndex] || 0}
+                    </output>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateTrackTransposition(
+                          selectedTrackIndex,
+                          (trackTranspositions[selectedTrackIndex] || 0) + 1,
+                        )
+                      }
+                      className="neuphormism-b-btn h-7 w-8"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <div className="relative order-[4]">
+            <button
+              type="button"
+              onClick={() => {
+                setZoomMenuOpen((current) => !current);
+                setTuningMenuOpen(false);
+              }}
+              className={`${buttonBaseClass} h-9 px-3 text-[10px] font-black ${zoomMenuOpen ? "neuphormism-b-btn-gold" : ""}`}
+              title="Controlar zoom"
+            >
+              <FaMagnifyingGlassPlus className="mr-1 h-3 w-3" />
+              {Math.round(zoom * 100)}%
+            </button>
+            {zoomMenuOpen ? (
+              <div className="absolute bottom-12 left-0 z-50 w-56 rounded-xl border border-[#b2aa96] bg-[#efede7] p-3 shadow-[0_14px_35px_rgba(0,0,0,.3)]">
+                <div className="mb-2 flex items-center justify-between text-xs font-black">
+                  <span>ZOOM DA CIFRA</span>
+                  <output>{Math.round(zoom * 100)}%</output>
+                </div>
+                <input
+                  type="range"
+                  min="0.7"
+                  max="1.8"
+                  step="0.05"
+                  value={zoom}
+                  onChange={(event) => setZoom(Number(event.target.value))}
+                  className="range-golden w-full"
+                />
+                <div className="mt-2 flex justify-between">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setZoom((current) => Math.max(0.7, current - 0.1))
+                    }
+                    className="neuphormism-b-btn h-7 w-9"
+                  >
+                    <FaMagnifyingGlassMinus />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setZoom(0.9)}
+                    className="neuphormism-b-btn h-7 px-3 text-[10px] font-bold"
+                  >
+                    90%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setZoom((current) => Math.min(1.8, current + 0.1))
+                    }
+                    className="neuphormism-b-btn h-7 w-9"
+                  >
+                    <FaMagnifyingGlassPlus />
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              updateNotationVisibility(showStandardNotation, !showTablature)
+            }
+            disabled={!showStandardNotation && showTablature}
+            className={`${buttonBaseClass} order-[1] h-9 px-3 text-[10px] font-black ${showTablature ? activeControlClass : ""}`}
+            title={showTablature ? "Ocultar tablatura" : "Mostrar tablatura"}
+          >
+            TAB
           </button>
           <button
             type="button"
-            onClick={() => setZoom((current) => Math.min(1.8, current + 0.1))}
-            className={`${buttonBaseClass} h-9 w-9`}
-            title="Zoom in"
+            onClick={() =>
+              updateNotationVisibility(!showStandardNotation, showTablature)
+            }
+            disabled={showStandardNotation && !showTablature}
+            className={`${buttonBaseClass} order-[2] h-9 px-3 text-[10px] font-black ${showStandardNotation ? activeControlClass : ""}`}
+            title={
+              showStandardNotation ? "Ocultar partitura" : "Mostrar partitura"
+            }
           >
-            <FaMagnifyingGlassPlus className="h-3.5 w-3.5" />
+            PART.
           </button>
-          <div className="ml-1 min-w-[7rem] text-xs font-bold text-gray-600">
+          <span className="order-[6] w-2 sm:w-3" aria-hidden="true" />
+          <button type="button" onClick={restartPlayback} disabled={!playerReady || Boolean(renderError)} className={`${buttonBaseClass} order-[7] h-9 w-9 ${playerReady && !renderError ? "" : "cursor-not-allowed opacity-55"}`} title="Reproduzir desde o início"><FaArrowRotateLeft className="h-3.5 w-3.5" /></button>
+          <div className="order-[10] ml-1 min-w-[6rem] text-xs font-bold text-gray-600">
             {playerReady
               ? `${formatDuration(playbackPosition.currentTime)} / ${formatDuration(
                   playbackPosition.endTime,
@@ -1430,7 +1762,7 @@ function GuitarProViewer({
           </div>
         </div>
 
-        <div className="min-w-0 flex-1 px-4">
+        <div className="order-last min-w-[12rem] flex-1 px-1 sm:order-none sm:px-4">
           <div className="relative h-4">
             <input
               type="range"
@@ -1457,7 +1789,7 @@ function GuitarProViewer({
           </div>
         </div>
 
-        <div className="min-w-0 text-right">
+        <div className="hidden min-w-0 text-right md:block">
           <div className="truncate text-sm font-bold text-black">
             {songTitle || fileName}
           </div>
@@ -1468,6 +1800,98 @@ function GuitarProViewer({
           </div>
         </div>
       </div>
+      {editorLayout ? (
+        <div
+          className={`z-[1] mx-2 mb-2 shrink-0 overflow-hidden rounded-[5px] border-2 border-[#77756f] bg-[#d4d2cb] shadow-[0_10px_25px_rgba(0,0,0,.22)] transition-[max-height] sm:mx-4 ${bottomMixerOpen ? "max-h-[50vh]" : "max-h-12"}`}
+        >
+          <button
+            type="button"
+            onClick={() => setBottomMixerOpen((current) => !current)}
+            className="flex h-11 w-full items-center justify-between bg-[#4f5257] px-5 text-xs font-black uppercase tracking-[.14em] text-white shadow-md"
+          >
+            <span>Instrumentos · Mixer</span>
+            <span>{bottomMixerOpen ? "Recolher ↓" : "Abrir ↑"}</span>
+          </button>
+          {bottomMixerOpen ? (
+            <div className="grid max-h-[calc(50vh-3rem)] grid-cols-1 gap-4 overflow-auto p-3 sm:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] sm:p-5">
+              {tracks.map((track, index) => {
+                const Icon = getTrackIcon(track);
+                const volume = trackVolumes[index] ?? DEFAULT_TRACK_VOLUME;
+                const level = trackPlaybackLevels[index]?.level || 0;
+                return (
+                  <div
+                    key={`bottom-${index}`}
+                    className={`rounded-[18px] border p-3 shadow-[0_5px_12px_rgba(0,0,0,.15)] ${index === selectedTrackIndex ? "border-[#9c7600] bg-[#ead992]" : "border-[#b1afa8] bg-[#f4f3ef]"}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => renderSelectedTrack(index)}
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#c7c3b8] bg-white shadow-[0_2px_5px_rgba(0,0,0,.18)]"
+                      >
+                        <Icon />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => renderSelectedTrack(index)}
+                        className="min-w-0 flex-1 truncate text-left text-xs font-bold uppercase"
+                      >
+                        {normalizeTrackLabel(track, index)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleTrackMute(index)}
+                        className={`h-6 w-7 rounded-md border border-[#c7c3b8] text-[10px] font-bold shadow-[0_2px_5px_rgba(0,0,0,.16)] ${track.playbackInfo?.isMute ? "bg-[#d66f5f]" : "bg-white"}`}
+                      >
+                        M
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleTrackSolo(index)}
+                        className={`h-6 w-7 rounded-md border border-[#c7c3b8] text-[10px] font-bold shadow-[0_2px_5px_rgba(0,0,0,.16)] ${track.playbackInfo?.isSolo ? "bg-[goldenrod]" : "bg-white"}`}
+                      >
+                        S
+                      </button>
+                    </div>
+                    <div className="my-3 rounded-[10px] border border-[#aaa79f] bg-[#deddd8] p-2 shadow-inner">
+                      <div className="mb-1 flex items-center justify-between text-[9px] font-black uppercase tracking-[.08em] text-[#55585f]">
+                        <span>Nível ao vivo</span>
+                        <output>{gainToDecibels(level)} dB</output>
+                      </div>
+                      <div className="grid h-3 grid-cols-12 gap-[2px]" aria-label={`Nível ao vivo ${gainToDecibels(level)} decibéis`}>
+                        {Array.from({ length: 12 }, (_, segment) => {
+                          const lit = level > segment / 12;
+                          const color = segment >= 10 ? "bg-[#df493f]" : segment >= 8 ? "bg-[goldenrod]" : "bg-[#4f9d62]";
+                          return <span key={segment} className={`rounded-[2px] transition-colors duration-75 ${lit ? color : "bg-[#bfc1c0]"}`} />;
+                        })}
+                      </div>
+                      <div className="mt-1 flex justify-between text-[7px] font-bold text-[#777]" aria-hidden="true"><span>−∞</span><span>−18</span><span>−6</span><span>0 dB</span></div>
+                    </div>
+                    <div className="rounded-[10px] border border-[#aaa79f] bg-white/75 p-2 shadow-sm">
+                      <div className="mb-1.5 flex items-center justify-between text-[10px] font-black uppercase tracking-[.08em]"><span>Volume</span><output className="rounded-md bg-[#34373c] px-2 py-0.5 text-white">{Math.round(volume * 100)}%</output></div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step=".01"
+                        value={volume}
+                        onChange={(event) =>
+                          updateTrackVolume(index, event.target.value)
+                        }
+                        onInput={(event) =>
+                          updateTrackVolume(index, event.currentTarget.value)
+                        }
+                        className="simple-volume-slider w-full cursor-pointer"
+                        aria-label={`Volume de ${normalizeTrackLabel(track, index)}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

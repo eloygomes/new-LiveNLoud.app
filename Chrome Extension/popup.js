@@ -1,7 +1,7 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
 const ADMIN_DESTINATION_EMAIL = "eloy.gomes@icloud.com";
-const EXTENSION_VERSION = "0.63.5.0";
+const EXTENSION_VERSION = "0.63.6.0";
 const DEFAULT_DESTINATION = "sustenido";
 const DESTINATIONS = {
   sustenido: {
@@ -66,6 +66,7 @@ const emptyPageContext = {
   tuning: "",
   lyrics: "",
   cifraText: "",
+  guitarProFiles: [],
   defaults: {
     song: NOT_AVAILABLE,
     artist: NOT_AVAILABLE,
@@ -85,6 +86,8 @@ const state = {
   managedInstrumentTags: [],
   detectedInstrumentLinks: {},
   selectedInstrumentLinks: {},
+  guitarProSelected: false,
+  guitarProTouched: false,
   destination: DEFAULT_DESTINATION,
   sessionEmail: "",
 };
@@ -113,6 +116,7 @@ const elements = {
   copyLinkButtonProxy: document.getElementById("copyLinkButtonProxy"),
   linkValue: document.getElementById("linkValue"),
   instrumentSelect: document.getElementById("instrumentSelect"),
+  instrumentField: document.getElementById("instrumentField"),
   instrumentLinkSuggestions: document.getElementById(
     "instrumentLinkSuggestions",
   ),
@@ -131,6 +135,10 @@ const elements = {
   finalMessage: document.getElementById("finalMessage"),
   saveModeInputs: Array.from(document.querySelectorAll("input[name='saveMode']")),
   instrumentLinksField: document.querySelector(".instrument-links-field"),
+  guitarProField: document.getElementById("guitarProField"),
+  guitarProSuggestion: document.getElementById("guitarProSuggestion"),
+  guitarProInput: document.getElementById("guitarProInput"),
+  guitarProDetails: document.getElementById("guitarProDetails"),
 };
 
 const DEBUG_PREFIX = "[#Sustenido Extension]";
@@ -679,6 +687,45 @@ function renderInstrumentLinkSuggestions() {
   });
 }
 
+function getSelectedGuitarProFile() {
+  if (!state.guitarProSelected) return null;
+  const files = Array.isArray(state.pageContext?.guitarProFiles)
+    ? state.pageContext.guitarProFiles
+    : [];
+  return files[0] || null;
+}
+
+function renderGuitarProOption() {
+  if (!elements.guitarProField || !elements.guitarProInput) return;
+
+  const files = Array.isArray(state.pageContext?.guitarProFiles)
+    ? state.pageContext.guitarProFiles
+    : [];
+  const selectedFile = files[0] || null;
+  elements.guitarProField.classList.toggle("hidden", !selectedFile);
+
+  if (!selectedFile) {
+    state.guitarProSelected = false;
+    elements.guitarProInput.checked = false;
+    elements.guitarProDetails.textContent = "";
+    elements.guitarProSuggestion?.removeAttribute("title");
+    return;
+  }
+
+  if (!state.guitarProTouched) {
+    state.guitarProSelected = true;
+  }
+
+  elements.guitarProInput.checked = state.guitarProSelected;
+  elements.guitarProDetails.textContent = [
+    cleanText(selectedFile.versionName) || "Principal",
+    cleanText(selectedFile.fileName),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  elements.guitarProSuggestion.title = cleanText(selectedFile.url);
+}
+
 function detectInstrumentFromLink(pageContext) {
   const link = cleanText(pageContext?.link);
   const source = cleanText(pageContext?.source);
@@ -775,6 +822,7 @@ function syncInstrumentSetlistTags() {
 
 function setSaveMode(mode) {
   state.saveMode = mode === "all" ? "all" : "single";
+  elements.instrumentField?.classList.toggle("hidden", state.saveMode === "all");
   syncInstrumentSetlistTags();
   renderInstrumentLinkSuggestions();
   renderSetlistTags();
@@ -1142,6 +1190,7 @@ function renderPageContext(pageContext) {
     ...emptyPageContext,
     ...pageContext,
   };
+  renderGuitarProOption();
   syncInstrumentUi(state.pageContext);
 
   const defaults = state.pageContext.defaults || emptyPageContext.defaults;
@@ -1610,6 +1659,83 @@ async function saveSong(payload, session) {
   return data;
 }
 
+function getGuitarProDownloadFileName(candidate, response) {
+  const disposition = response.headers.get("content-disposition") || "";
+  const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+  const headerName = encodedMatch?.[1]
+    ? decodeURIComponent(encodedMatch[1])
+    : plainMatch?.[1] || "";
+  const fallbackName = cleanText(candidate?.fileName) ||
+    cleanText(new URL(response.url || candidate?.url).pathname.split("/").pop());
+  return cleanText(headerName || fallbackName || "guitar-pro.gp3").replace(
+    /[\\/:*?"<>|]/g,
+    "-",
+  );
+}
+
+async function downloadGuitarProFile(candidate) {
+  const url = cleanText(candidate?.url);
+  if (!url) {
+    throw new Error("O CifraClub não informou o link do Guitar Pro.");
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    redirect: "follow",
+  });
+  if (!response.ok) {
+    throw new Error(`Falha ao baixar o Guitar Pro (${response.status}).`);
+  }
+
+  const blob = await response.blob();
+  const contentType = cleanText(blob.type).toLowerCase();
+  if (!blob.size || contentType.includes("text/html")) {
+    throw new Error("O CifraClub não retornou um arquivo Guitar Pro válido.");
+  }
+
+  const fileName = getGuitarProDownloadFileName(candidate, response);
+  return new File([blob], fileName, {
+    type: blob.type || "application/octet-stream",
+  });
+}
+
+async function uploadGuitarProFile(session, payload, file) {
+  const songData = payload?.userdata || {};
+  const formData = new FormData();
+  formData.append("email", session.email);
+  formData.append("artist", cleanText(songData.artist));
+  formData.append("song", cleanText(songData.song));
+  formData.append("file", file, file.name);
+
+  const response = await fetchWithSessionRefresh(
+    session,
+    `${getApiBase()}/api/v1/guitarpro/upload`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      data?.message || "Não foi possível anexar o Guitar Pro à cifra.",
+    );
+  }
+  return data;
+}
+
+async function attachSelectedGuitarPro(session, payload) {
+  const candidate = getSelectedGuitarProFile();
+  if (!candidate) return null;
+
+  setNotice("Baixando Guitar Pro do CifraClub...");
+  const file = await downloadGuitarProFile(candidate);
+  setNotice("Anexando Guitar Pro à cifra...");
+  return uploadGuitarProFile(session, payload, file);
+}
+
 function shouldAutoCloseAfterProcess(session) {
   return cleanText(session?.email).toLowerCase() !== ADMIN_DESTINATION_EMAIL;
 }
@@ -1654,10 +1780,14 @@ async function loadSongView(session) {
   state.selectedSetlists = [];
   state.managedInstrumentTags = [];
   state.instrumentTouched = false;
+  state.guitarProSelected = false;
+  state.guitarProTouched = false;
+  elements.guitarProField?.classList.add("hidden");
   state.saveMode = "single";
   elements.saveModeInputs.forEach((input) => {
     input.checked = input.value === state.saveMode;
   });
+  elements.instrumentField?.classList.remove("hidden");
   resetInstrumentLinkSuggestions();
 
   const [pageData, setlists] = await Promise.all([
@@ -1760,6 +1890,11 @@ elements.saveModeInputs.forEach((input) => {
   });
 });
 
+elements.guitarProInput?.addEventListener("change", () => {
+  state.guitarProTouched = true;
+  state.guitarProSelected = elements.guitarProInput.checked;
+});
+
 async function copySourceLink() {
   const link = cleanText(state.pageContext.link);
   if (!link) return;
@@ -1819,7 +1954,22 @@ elements.saveButton.addEventListener("click", async () => {
     );
     setNotice("Salvando cifra...");
     await saveSong(payload, session);
-    const successMessage = "Cifra adicionada com sucesso";
+    const selectedGuitarPro = getSelectedGuitarProFile();
+    if (selectedGuitarPro) {
+      try {
+        await attachSelectedGuitarPro(session, payload);
+      } catch (guitarProError) {
+        debugError("Guitar Pro attachment failed", guitarProError);
+        throw new Error(
+          `A cifra foi salva, mas o Guitar Pro não pôde ser anexado: ${
+            guitarProError?.message || "erro desconhecido"
+          }`,
+        );
+      }
+    }
+    const successMessage = selectedGuitarPro
+      ? "Cifra e Guitar Pro adicionados com sucesso"
+      : "Cifra adicionada com sucesso";
     setNotice(successMessage);
     setNoticeState("success");
     showFinalOnly(successMessage, "success");

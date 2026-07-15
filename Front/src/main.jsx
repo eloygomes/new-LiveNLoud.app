@@ -19,6 +19,7 @@ import Menu from "./Layouts/Menu";
 import Dashboard from "./Pages/Dashboard/Dashboard";
 import NewSong from "./Pages/NewSong/NewSong";
 import Metronome from "./Pages/Metronome/Metronome";
+import DrumMachine from "./Pages/DrumMachine/DrumMachine";
 import EditSong from "./Pages/EditSong/EditSong";
 import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
 import Tuner from "./Pages/Tuner/Tuner";
@@ -359,6 +360,10 @@ const router = createBrowserRouter(
         <Route
           path="/metronome"
           element={<ProtectedRoute element={Metronome} />}
+        />
+        <Route
+          path="/drum-machine"
+          element={<ProtectedRoute element={DrumMachine} />}
         />
         <Route
           path="/calendar"

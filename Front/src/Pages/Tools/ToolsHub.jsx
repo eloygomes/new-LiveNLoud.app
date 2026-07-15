@@ -5,9 +5,17 @@ import {
   FaGuitar,
   FaMicrochip,
   FaWaveSquare,
+  FaDrum,
 } from "react-icons/fa";
 
 const TOOL_LINKS = [
+  {
+    to: "/drum-machine",
+    label: "Drum Machine",
+    detail: "Build four-bar grooves with nine synthesized voices, swing, accents, mute and solo — even offline.",
+    icon: FaDrum,
+    accent: "bg-[#c89222]",
+  },
   {
     to: "/chordlibrary",
     label: "Chord Library",

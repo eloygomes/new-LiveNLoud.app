@@ -63,6 +63,13 @@ function MenuMobileFull({ setMobileMenuOpen }) {
             >
               Metronome
             </NavLink>
+            <NavLink
+              to="/drum-machine"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-24 neuphormism-b-btn flex-1 h-1/2 ml-2 text-center"
+            >
+              Drum Machine
+            </NavLink>
           </div>
         </div>
       </div>
