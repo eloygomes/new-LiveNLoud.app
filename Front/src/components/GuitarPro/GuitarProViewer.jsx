@@ -12,6 +12,7 @@ import {
   FaStop,
   FaThumbtack,
   FaVolumeHigh,
+  FaXmark,
 } from "react-icons/fa6";
 import {
   GiDrumKit,
@@ -49,6 +50,7 @@ const TRACK_COLORS = [
 ];
 const FRETBOARD_SCALE_MM = 647.7;
 const FRET_COUNT = 33;
+const MOBILE_FRET_COUNT = 24;
 
 function calculateFretPositions(scaleLength = FRETBOARD_SCALE_MM, fretCount = FRET_COUNT) {
   const positions = [0];
@@ -66,13 +68,24 @@ function calculateFretPositions(scaleLength = FRETBOARD_SCALE_MM, fretCount = FR
 const FRET_POSITIONS_MM = calculateFretPositions();
 const FRETBOARD_VISIBLE_LENGTH_MM = FRET_POSITIONS_MM[FRET_COUNT];
 
-function getFretWirePercent(fret) {
+function getFretWirePercent(fret, fretCount = FRET_COUNT) {
+  if (fretCount === MOBILE_FRET_COUNT) {
+    return (fret / fretCount) * 100;
+  }
   return (FRET_POSITIONS_MM[fret] / FRETBOARD_VISIBLE_LENGTH_MM) * 100;
 }
 
-function getFretCenterPercent(fret) {
-  if (fret < 1 || fret > FRET_COUNT) return null;
-  return ((FRET_POSITIONS_MM[fret - 1] + FRET_POSITIONS_MM[fret]) / 2 / FRETBOARD_VISIBLE_LENGTH_MM) * 100;
+function getFretCenterPercent(fret, fretCount = FRET_COUNT) {
+  if (fret < 1 || fret > fretCount) return null;
+  if (fretCount === MOBILE_FRET_COUNT) {
+    return ((fret - 0.5) / fretCount) * 100;
+  }
+  return (
+    ((FRET_POSITIONS_MM[fret - 1] + FRET_POSITIONS_MM[fret]) /
+      2 /
+      FRETBOARD_VISIBLE_LENGTH_MM) *
+    100
+  );
 }
 
 const buttonBaseClass =
@@ -204,7 +217,7 @@ function getBeatTrackIndex(beat) {
   return Number.isFinite(value) ? value : -1;
 }
 
-function LiveInstrument({ track, notes, transposition = 0 }) {
+function LiveInstrument({ track, notes, transposition = 0, compact = false }) {
   const Icon = getTrackIcon(track);
   const isKeyboard = Icon === GiPianoKeys;
   if (isKeyboard) {
@@ -214,7 +227,7 @@ function LiveInstrument({ track, notes, transposition = 0 }) {
       (pitch) => ![1, 3, 6, 8, 10].includes(pitch % 12),
     );
     return (
-      <div className="relative h-28 overflow-hidden rounded-[20px] border-[6px] border-[#222] bg-[#222] shadow-xl sm:h-36 md:h-44">
+      <div className={`relative overflow-hidden border-[#222] bg-[#222] shadow-xl ${compact ? "h-20 rounded-[14px] border-4" : "h-28 rounded-[20px] border-[6px] sm:h-36 md:h-44"}`}>
         <div className="flex h-full">
           {whitePitches.map((pitch) => (
             <span
@@ -245,12 +258,52 @@ function LiveInstrument({ track, notes, transposition = 0 }) {
   }
   const tunings = track?.staves?.[0]?.stringTuning?.tunings || [];
   const stringCount = tunings.length || 6;
+  const fretCount = compact ? MOBILE_FRET_COUNT : FRET_COUNT;
+  const singleDotFrets = [3, 5, 7, 9, 15, 17, 19, 21, 27, 30, 33].filter(
+    (fret) => fret <= fretCount,
+  );
+  const doubleDotFrets = [12, 24].filter((fret) => fret <= fretCount);
+  const numberedFrets = [
+    3, 5, 7, 9, 12, 15, 17, 19, 21, 24, 27, 30, 33,
+  ].filter((fret) => fret <= fretCount);
+  const compactStringSpacing = 16;
+  const compactReferenceStringSpan = (6 - 1) * compactStringSpacing + 2;
+  const compactStringSpan =
+    (Math.max(1, stringCount) - 1) * compactStringSpacing + 2;
+  const compactStringStart =
+    18 + (compactReferenceStringSpan - compactStringSpan) / 2;
+  const compactGridTop = compactStringStart - 1;
+  const compactGridHeight = compactStringSpan + 1;
+  const compactDoubleDotOffset =
+    (compactStringSpacing / compactGridHeight) * 100;
   return (
-    <div className="relative overflow-hidden rounded-[20px] border-[6px] border-[#28160f] bg-[linear-gradient(90deg,rgba(255,255,255,.04),transparent_12%,rgba(0,0,0,.08)_24%,transparent_42%,rgba(255,255,255,.035)_64%,rgba(0,0,0,.1)),linear-gradient(#74472d,#512e1d)] px-16 py-7 shadow-[inset_0_0_24px_rgba(0,0,0,.5),0_12px_24px_rgba(0,0,0,.28)] md:py-9">
-      <span className="pointer-events-none absolute bottom-4 left-16 top-4 z-[2] w-[7px] rounded-sm bg-[#e8d8b5] shadow-[2px_0_4px_rgba(0,0,0,.5)]" aria-hidden="true" />
-      <div className="pointer-events-none absolute bottom-4 left-16 right-16 top-4 z-[1]">
-        {[3, 5, 7, 9, 15, 17, 19, 21, 27, 30, 33].map((fret) => <i key={`dot-${fret}`} className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7dfcd]/90 shadow-[inset_0_1px_2px_rgba(0,0,0,.5)]" style={{ left: `${getFretCenterPercent(fret)}%` }} />)}
-        {[12, 24].flatMap((fret) => [-1, 1].map((offset) => <i key={`double-${fret}-${offset}`} className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7dfcd]/90 shadow-[inset_0_1px_2px_rgba(0,0,0,.5)]" style={{ left: `${getFretCenterPercent(fret)}%`, top: `${50 + offset * 22}%` }} />))}
+    <div
+      data-fret-count={fretCount}
+      data-fret-layout={compact ? "equal" : "physical"}
+      className={`relative w-full overflow-hidden border-[#28160f] bg-[linear-gradient(90deg,rgba(255,255,255,.04),transparent_12%,rgba(0,0,0,.08)_24%,transparent_42%,rgba(255,255,255,.035)_64%,rgba(0,0,0,.1)),linear-gradient(#74472d,#512e1d)] shadow-[inset_0_0_24px_rgba(0,0,0,.5),0_12px_24px_rgba(0,0,0,.28)] ${compact ? "h-[128px] rounded-none border-x-0 border-y-4" : "rounded-[20px] border-[6px] px-16 py-7 md:py-9"}`}
+    >
+      <span
+        className={`pointer-events-none absolute z-[2] rounded-sm bg-[#e8d8b5] shadow-[2px_0_4px_rgba(0,0,0,.5)] ${compact ? "left-3 w-[5px]" : "bottom-3 left-16 top-3 w-[7px]"}`}
+        style={compact ? { top: `${compactGridTop}px`, height: `${compactGridHeight}px` } : undefined}
+        aria-hidden="true"
+      />
+      <div
+        className={`pointer-events-none absolute z-[1] ${compact ? "left-3 right-0" : "bottom-3 left-16 right-16 top-3"}`}
+        style={compact ? { top: `${compactGridTop}px`, height: `${compactGridHeight}px` } : undefined}
+      >
+        {compact
+          ? Array.from({ length: fretCount }, (_, index) => index + 1).map(
+              (fret) => (
+                <i
+                  key={`compact-fret-${fret}`}
+                  className="absolute bottom-0 top-0 w-px bg-gradient-to-r from-[#806a53] via-[#f0e2c7] to-[#806a53] shadow-[1px_0_2px_rgba(0,0,0,.45)]"
+                  style={{ left: `${getFretWirePercent(fret, fretCount)}%` }}
+                />
+              ),
+            )
+          : null}
+        {singleDotFrets.map((fret) => <i key={`dot-${fret}`} className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7dfcd]/90 shadow-[inset_0_1px_2px_rgba(0,0,0,.5)] ${compact ? "h-1.5 w-1.5" : "h-3 w-3"}`} style={{ left: `${getFretCenterPercent(fret, fretCount)}%` }} />)}
+        {doubleDotFrets.flatMap((fret) => [-1, 1].map((offset) => <i key={`double-${fret}-${offset}`} className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7dfcd]/90 shadow-[inset_0_1px_2px_rgba(0,0,0,.5)] ${compact ? "h-1.5 w-1.5" : "h-3 w-3"}`} style={{ left: `${getFretCenterPercent(fret, fretCount)}%`, top: `${50 + offset * (compact ? compactDoubleDotOffset : 22)}%` }} />))}
       </div>
       {Array.from(
         { length: stringCount },
@@ -260,7 +313,7 @@ function LiveInstrument({ track, notes, transposition = 0 }) {
             (note) =>
               Number(note.string) === stringNumber &&
               Number(note.fret) >= 1 &&
-              Number(note.fret) <= FRET_COUNT,
+              Number(note.fret) <= fretCount,
           );
           const hasOpenNote = notes.some(
             (note) => Number(note.string) === stringNumber && Number(note.fret) === 0,
@@ -268,27 +321,35 @@ function LiveInstrument({ track, notes, transposition = 0 }) {
           return (
             <div
               key={stringNumber}
-              className="relative z-[3] my-6 h-[2px] bg-gradient-to-b from-[#fff7dc] to-[#a98d60] shadow-[0_1px_1px_rgba(0,0,0,.75)]"
+              className={`z-[3] h-[2px] bg-gradient-to-b from-[#fff7dc] to-[#a98d60] shadow-[0_1px_1px_rgba(0,0,0,.75)] ${compact ? "absolute left-3 right-0" : "relative my-6"}`}
+              style={compact ? { top: `${compactStringStart + index * compactStringSpacing}px` } : undefined}
             >
-              <span className="absolute right-[calc(100%+46px)] top-1/2 -translate-y-1/2 text-[11px] font-black text-[#f0dfb6]">
-                {Number.isFinite(Number(tunings[stringCount - stringNumber]))
-                  ? alphaTab.model.Tuning.getTextForTuning(Number(tunings[stringCount - stringNumber]) + transposition, true)
-                  : ""}
-              </span>
-              {hasOpenNote ? <b className="absolute right-[calc(100%+15px)] top-1/2 z-20 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-[goldenrod] text-[10px] text-black shadow-[0_0_12px_goldenrod]">0</b> : null}
-              {Array.from({ length: FRET_COUNT }, (_, index) => index + 1).map((fret) => (
-                <i
-                  key={fret}
-                  className="absolute top-[-14px] h-8 w-[2px] bg-gradient-to-r from-[#806a53] via-[#f0e2c7] to-[#806a53] shadow-[1px_0_2px_rgba(0,0,0,.45)]"
-                  style={{ left: `${getFretWirePercent(fret)}%` }}
-                />
-              ))}
+              {!compact ? (
+                <span className="absolute right-[calc(100%+46px)] top-1/2 -translate-y-1/2 text-[11px] font-black text-[#f0dfb6]">
+                  {Number.isFinite(Number(tunings[stringCount - stringNumber]))
+                    ? alphaTab.model.Tuning.getTextForTuning(Number(tunings[stringCount - stringNumber]) + transposition, true)
+                    : ""}
+                </span>
+              ) : null}
+              {hasOpenNote ? <b className={`absolute top-1/2 z-20 grid -translate-y-1/2 place-items-center rounded-full bg-[goldenrod] text-black shadow-[0_0_12px_goldenrod] ${compact ? "left-0 h-4 w-4 -translate-x-1/2 text-[8px]" : "right-[calc(100%+15px)] h-6 w-6 text-[10px]"}`}>0</b> : null}
+              {!compact
+                ? Array.from(
+                    { length: fretCount },
+                    (_, index) => index + 1,
+                  ).map((fret) => (
+                    <i
+                      key={fret}
+                      className="absolute top-[-14px] h-8 w-[2px] bg-gradient-to-r from-[#806a53] via-[#f0e2c7] to-[#806a53] shadow-[1px_0_2px_rgba(0,0,0,.45)]"
+                      style={{ left: `${getFretWirePercent(fret, fretCount)}%` }}
+                    />
+                  ))
+                : null}
               {stringNotes.map((note, noteIndex) => (
                 <b
                   key={noteIndex}
-                  className="absolute top-1/2 z-10 grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[goldenrod] text-[10px] text-black shadow-[0_0_12px_goldenrod]"
+                  className={`absolute top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[goldenrod] text-black shadow-[0_0_12px_goldenrod] ${compact ? "h-4 w-4 text-[8px]" : "h-6 w-6 text-[10px]"}`}
                   style={{
-                    left: `${getFretCenterPercent(Number(note.fret))}%`,
+                    left: `${getFretCenterPercent(Number(note.fret), fretCount)}%`,
                   }}
                 >
                   {note.fret}
@@ -298,9 +359,9 @@ function LiveInstrument({ track, notes, transposition = 0 }) {
           );
         },
       )}
-      <div className="pointer-events-none absolute bottom-1 left-16 right-16 z-[4] h-4 text-[8px] font-bold text-[#e6c990]">
-        {[3, 5, 7, 9, 12, 15, 17, 19, 21, 24, 27, 30, 33].map((fret) => (
-          <span key={fret} className="absolute -translate-x-1/2" style={{ left: `${getFretCenterPercent(fret)}%` }}>{fret}</span>
+      <div className={`pointer-events-none absolute bottom-0 z-[4] h-4 font-bold text-[#e6c990] ${compact ? "left-3 right-0 text-[7px]" : "left-16 right-16 text-[8px]"}`}>
+        {numberedFrets.map((fret) => (
+          <span key={fret} className="absolute -translate-x-1/2" style={{ left: `${getFretCenterPercent(fret, fretCount)}%` }}>{fret}</span>
         ))}
       </div>
     </div>
@@ -435,6 +496,7 @@ function GuitarProViewer({
   fileName = "",
   songTitle = "",
   artistName = "",
+  onClose = () => {},
 }) {
   const containerRef = useRef(null);
   const scoreViewportRef = useRef(null);
@@ -442,7 +504,12 @@ function GuitarProViewer({
   const [tracks, setTracks] = useState([]);
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [zoom, setZoom] = useState(0.9);
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 767px)").matches
+      : false,
+  );
+  const [zoom, setZoom] = useState(() => (isMobileLayout ? 1 : 0.9));
   const [loading, setLoading] = useState(true);
   const [renderError, setRenderError] = useState("");
   const [trackVolumes, setTrackVolumes] = useState({});
@@ -468,6 +535,13 @@ function GuitarProViewer({
   const [trackTranspositions, setTrackTranspositions] = useState({});
   const playerReadyRef = useRef(false);
   const masterVolumeRef = useRef(DEFAULT_MASTER_VOLUME);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const handleChange = (event) => setIsMobileLayout(event.matches);
+    mediaQuery.addEventListener?.("change", handleChange);
+    return () => mediaQuery.removeEventListener?.("change", handleChange);
+  }, []);
 
   const resolvedFileUrl = useMemo(
     () => resolveFileUrl(file?.url || fileUrl),
@@ -606,8 +680,12 @@ function GuitarProViewer({
           useWorkers: false,
         },
         display: {
-          layoutMode: alphaTab.LayoutMode.Page,
-          barsPerRow: 8,
+          layoutMode: isMobileLayout
+            ? alphaTab.LayoutMode.Horizontal
+            : alphaTab.LayoutMode.Page,
+          ...(isMobileLayout
+            ? { stretchForce: 1.25 }
+            : { barsPerRow: 8 }),
           scale: zoom,
         },
         player: {
@@ -617,6 +695,13 @@ function GuitarProViewer({
           soundFont: SOUNDFONT_URL,
           outputMode: alphaTab.PlayerOutputMode.WebAudioScriptProcessor,
           scrollElement: scoreViewportRef.current,
+          scrollMode: isMobileLayout
+            ? alphaTab.ScrollMode.Smooth
+            : alphaTab.ScrollMode.OffScreen,
+          scrollOffsetX: isMobileLayout
+            ? -Math.round(window.innerWidth * 0.24)
+            : 0,
+          nativeBrowserSmoothScroll: !isMobileLayout,
         },
       });
 
@@ -744,6 +829,7 @@ function GuitarProViewer({
         setActiveBeats(
           Array.isArray(event?.activeBeats) ? event.activeBeats : [],
         );
+        if (isMobileLayout) return;
         window.requestAnimationFrame(() => {
           const viewport = scoreViewportRef.current;
           const cursor = viewport?.querySelector(".at-cursor-beat");
@@ -812,6 +898,7 @@ function GuitarProViewer({
     artistName,
     file,
     instrumentName,
+    isMobileLayout,
     markPlayerReady,
     resolvedFileUrl,
     songTitle,
@@ -1061,6 +1148,367 @@ function GuitarProViewer({
     track.playbackInfo.isMute = nextMute;
     setTracks((current) => [...current]);
   };
+
+  if (isMobileLayout) {
+    const mobileToolClass =
+      "neuphormism-b-btn flex h-9 min-w-0 items-center justify-center rounded-[10px] px-1 text-[9px] font-black uppercase tracking-[.04em] text-black active:scale-[.98]";
+    const mobileScoreTopClass = instrumentViewOpen ? "top-[184px]" : "top-2";
+
+    return (
+      <div
+        data-testid="guitar-pro-mobile-viewer"
+        className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f0f0f0]"
+      >
+        <header className="neuphormism-b z-40 flex h-[58px] shrink-0 items-center gap-2 border-b border-white/70 px-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-[#e6c85e] shadow-[inset_1px_1px_0_rgba(255,255,255,.55),0_4px_10px_rgba(0,0,0,.14)]">
+            <GiGuitar className="h-4 w-4" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="truncate text-[9px] font-black uppercase tracking-[.18em] text-[goldenrod]">
+              Guitar Pro · {normalizeTrackLabel(selectedTrack, selectedTrackIndex)}
+            </div>
+            <div className="truncate text-[14px] font-black text-black">
+              {songTitle || fileName || "Partitura"}
+            </div>
+            {artistName ? (
+              <div className="truncate text-[10px] font-semibold text-gray-500">
+                {artistName}
+              </div>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="neuphormism-b-btn grid h-9 w-9 shrink-0 place-items-center rounded-[11px]"
+            aria-label="Close Guitar Pro viewer"
+          >
+            <FaXmark className="h-4 w-4" />
+          </button>
+        </header>
+
+        <nav
+          className="neuphormism-b relative z-30 grid shrink-0 grid-cols-5 gap-1.5 border-b border-white/70 px-2 py-2"
+          aria-label="Guitar Pro view controls"
+        >
+          <button
+            type="button"
+            onClick={() =>
+              updateNotationVisibility(showStandardNotation, !showTablature)
+            }
+            disabled={!showStandardNotation && showTablature}
+            className={`${mobileToolClass} ${showTablature ? activeControlClass : ""}`}
+            aria-pressed={showTablature}
+          >
+            Tab
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              updateNotationVisibility(!showStandardNotation, showTablature)
+            }
+            disabled={showStandardNotation && !showTablature}
+            className={`${mobileToolClass} ${showStandardNotation ? activeControlClass : ""}`}
+            aria-pressed={showStandardNotation}
+          >
+            Part.
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTuningMenuOpen((current) => !current);
+              setZoomMenuOpen(false);
+              setBottomMixerOpen(false);
+            }}
+            className={`${mobileToolClass} ${tuningMenuOpen ? activeControlClass : ""}`}
+            aria-expanded={tuningMenuOpen}
+          >
+            Afin.
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setZoomMenuOpen((current) => !current);
+              setTuningMenuOpen(false);
+              setBottomMixerOpen(false);
+            }}
+            className={`${mobileToolClass} ${zoomMenuOpen ? activeControlClass : ""}`}
+            aria-expanded={zoomMenuOpen}
+          >
+            <FaMagnifyingGlassPlus className="mr-1 h-2.5 w-2.5" />
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setInstrumentViewOpen((current) => !current);
+              setBottomMixerOpen(false);
+              setTuningMenuOpen(false);
+              setZoomMenuOpen(false);
+            }}
+            disabled={
+              !selectedTrack ||
+              getTrackIcon(selectedTrack) === GiDrumKit ||
+              getTrackIcon(selectedTrack) === GiMicrophone
+            }
+            className={`${mobileToolClass} px-0 ${instrumentViewOpen ? "neuphormism-b-btn-gold" : ""}`}
+            aria-label="Show live fretboard or piano"
+            aria-pressed={instrumentViewOpen}
+          >
+            {selectedTrack && getTrackIcon(selectedTrack) === GiPianoKeys ? (
+              <GiPianoKeys className="h-4 w-4" />
+            ) : (
+              <GiGuitar className="h-4 w-4" />
+            )}
+          </button>
+        </nav>
+
+        {tuningMenuOpen ? (
+          <section className="absolute left-2 right-2 top-[108px] z-50 rounded-[16px] border border-[#b2aa96] bg-[#efede7] p-3 text-xs font-bold shadow-[0_14px_35px_rgba(0,0,0,.3)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[9px] uppercase tracking-[.16em] text-[goldenrod]">
+                  Afinação
+                </div>
+                <div className="mt-1 truncate text-black">
+                  {tuningLabel || "Afinação indisponível"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTuningMenuOpen(false)}
+                className="neuphormism-b-btn grid h-7 w-7 shrink-0 place-items-center rounded-lg"
+                aria-label="Close tuning controls"
+              >
+                <FaXmark className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="mt-3 flex items-center justify-between border-t border-[#c9c3b5] pt-3">
+              <span className="text-[9px] uppercase tracking-[.14em] text-gray-500">
+                Transpor
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateTrackTransposition(
+                      selectedTrackIndex,
+                      selectedTransposition - 1,
+                    )
+                  }
+                  className="neuphormism-b-btn h-7 w-8 rounded-lg"
+                >
+                  −
+                </button>
+                <output className="w-8 text-center text-black">
+                  {selectedTransposition}
+                </output>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateTrackTransposition(
+                      selectedTrackIndex,
+                      selectedTransposition + 1,
+                    )
+                  }
+                  className="neuphormism-b-btn h-7 w-8 rounded-lg"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {zoomMenuOpen ? (
+          <section className="absolute left-2 right-2 top-[108px] z-50 rounded-[16px] border border-[#b2aa96] bg-[#efede7] p-3 shadow-[0_14px_35px_rgba(0,0,0,.3)]">
+            <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[.1em]">
+              <span>Zoom da partitura</span>
+              <output>{Math.round(zoom * 100)}%</output>
+            </div>
+            <input
+              type="range"
+              min="0.8"
+              max="1.5"
+              step="0.05"
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              className="range-golden w-full"
+              aria-label="Score zoom"
+            />
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button type="button" onClick={() => setZoom((current) => Math.max(0.8, current - 0.1))} className="neuphormism-b-btn grid h-8 place-items-center rounded-lg"><FaMagnifyingGlassMinus /></button>
+              <button type="button" onClick={() => setZoom(1)} className="neuphormism-b-btn h-8 rounded-lg text-[10px] font-black">100%</button>
+              <button type="button" onClick={() => setZoom((current) => Math.min(1.5, current + 0.1))} className="neuphormism-b-btn grid h-8 place-items-center rounded-lg"><FaMagnifyingGlassPlus /></button>
+            </div>
+          </section>
+        ) : null}
+
+        <main className="relative isolate min-h-0 flex-1 overflow-hidden">
+          <div
+            ref={scoreViewportRef}
+            aria-hidden={bottomMixerOpen}
+            className={`guitar-pro-score absolute bottom-2 left-2 right-2 z-0 isolate min-h-0 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-[16px] bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,.05),0_6px_16px_rgba(0,0,0,.12)] [scrollbar-width:thin] ${mobileScoreTopClass} ${bottomMixerOpen ? "pointer-events-none" : ""}`}
+          >
+            <style>
+              {`
+                .guitar-pro-score .at-cursor-beat {
+                  animation: none !important;
+                  margin-left: -12px !important;
+                  opacity: 0 !important;
+                  visibility: visible !important;
+                }
+              `}
+            </style>
+            <div className="flex min-h-full min-w-full items-center bg-white py-2">
+              <div
+                ref={containerRef}
+                className={`min-w-full touch-pan-x bg-white transition-opacity [&_.at-cursor-bar]:!bg-transparent [&_.at-cursor-beat]:!w-[24px] [&_.at-cursor-beat]:!animate-none [&_.at-cursor-beat]:!opacity-0 [&_.at-main]:!max-w-none [&_.at-viewport]:!overflow-visible ${renderError ? "opacity-0" : "opacity-100"}`}
+              />
+            </div>
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/88 px-6 text-center text-xs font-bold text-gray-500 backdrop-blur-[1px]">
+                Carregando arquivo Guitar Pro...
+              </div>
+            ) : null}
+            {renderError ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-white px-6 text-center text-xs font-bold text-red-600">
+                {renderError}
+              </div>
+            ) : null}
+          </div>
+
+          {!bottomMixerOpen ? <div className={`pointer-events-none absolute bottom-2 z-[45] w-px bg-[goldenrod] shadow-[0_0_7px_rgba(218,165,32,.95)] ${mobileScoreTopClass}`} style={{ left: "24%" }} aria-hidden="true">
+          </div> : null}
+
+          {instrumentViewOpen && selectedTrack ? (
+            <section className="absolute inset-x-0 top-0 z-30 h-[174px] overflow-hidden border-y border-[#c8c3b6] bg-[#dedbd2] pb-1 shadow-[0_12px_28px_rgba(30,30,30,.22)]">
+              <div className="flex h-10 items-center justify-between gap-2 px-2">
+                <div className="truncate text-[9px] font-black uppercase tracking-[.13em] text-[#3b3f47]">
+                  {normalizeTrackLabel(selectedTrack, selectedTrackIndex)} · Live
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInstrumentViewOpen(false)}
+                  className="neuphormism-b-btn grid h-7 w-7 shrink-0 place-items-center rounded-lg"
+                  aria-label="Close live instrument"
+                >
+                  <FaXmark className="h-3 w-3" />
+                </button>
+              </div>
+              <LiveInstrument
+                track={selectedTrack}
+                notes={selectedTrackNotes}
+                transposition={selectedTransposition}
+                compact
+              />
+            </section>
+          ) : null}
+        </main>
+
+        <footer className="neuphormism-b z-30 shrink-0 border-t border-white/70 px-2 pb-2 pt-1.5">
+          <div className="relative mb-1 h-3">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.1"
+              value={playbackPercent}
+              disabled={!playbackPosition.endTime}
+              onChange={(event) => seekPlayback(event.target.value)}
+              className="absolute inset-0 z-[1] h-3 w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+              aria-label="Guitar Pro playback progress"
+            />
+            <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-gray-200">
+              <div className="h-full rounded-full bg-[goldenrod]" style={{ width: `${playbackPercent}%` }} />
+            </div>
+          </div>
+          <div className="grid grid-cols-[38px_44px_38px_1fr_76px] items-center gap-1.5">
+            <button type="button" onClick={restartPlayback} disabled={!playerReady || Boolean(renderError)} className={`${buttonBaseClass} h-9 w-full rounded-[10px] ${playerReady && !renderError ? "" : "cursor-not-allowed opacity-45"}`} aria-label="Restart playback"><FaArrowRotateLeft className="h-3 w-3" /></button>
+            <button type="button" onClick={togglePlayback} disabled={!playerReady || Boolean(renderError)} className={`${buttonBaseClass} h-10 w-full rounded-[11px] ${playerReady && !renderError ? "neuphormism-b-btn-gold" : "cursor-not-allowed opacity-45"}`} aria-label={isPlaying ? "Pause" : "Play"}>{isPlaying ? <FaPause className="h-4 w-4" /> : <FaPlay className="h-4 w-4" />}</button>
+            <button type="button" onClick={stopPlayback} disabled={!playerReady} className={`${buttonBaseClass} h-9 w-full rounded-[10px] ${playerReady ? "" : "cursor-not-allowed opacity-45"}`} aria-label="Stop"><FaStop className="h-3 w-3" /></button>
+            <div className="min-w-0 px-1 text-center text-[10px] font-black tabular-nums text-gray-600">
+              {playerReady
+                ? `${formatDuration(playbackPosition.currentTime)} / ${formatDuration(playbackPosition.endTime)}`
+                : `Player ${playerLoadProgress}%`}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setBottomMixerOpen(true);
+                setInstrumentViewOpen(false);
+                setTuningMenuOpen(false);
+                setZoomMenuOpen(false);
+              }}
+              className={`${mobileToolClass} h-9 ${bottomMixerOpen ? "neuphormism-b-btn-gold" : ""}`}
+              aria-label="Open mixer"
+              aria-expanded={bottomMixerOpen}
+            >
+              Mixer
+            </button>
+          </div>
+        </footer>
+
+        {bottomMixerOpen ? (
+          <div className="pointer-events-none absolute inset-0 z-[100] isolate">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-label="Instruments mixer"
+              className="pointer-events-auto absolute bottom-2 left-2 right-2 z-10 flex max-h-[calc(100%-4.5rem)] flex-col overflow-hidden rounded-[18px] border border-[#b5b1a6] bg-[#dedbd2] shadow-[0_20px_45px_rgba(0,0,0,.38)]"
+            >
+              <header className="flex h-11 shrink-0 items-center justify-between bg-[#4f5257] px-3 text-[10px] font-black uppercase tracking-[.14em] text-white">
+                <span>Instrumentos · Mixer</span>
+                <button
+                  type="button"
+                  onClick={() => setBottomMixerOpen(false)}
+                  className="grid h-8 w-8 place-items-center rounded-lg bg-white/12"
+                  aria-label="Close instruments mixer"
+                >
+                  <FaXmark className="h-4 w-4" />
+                </button>
+              </header>
+              <div className="min-h-0 flex-1 space-y-2 overflow-auto p-2">
+                <div className="rounded-[14px] border border-[#b79728] bg-[#ead992] p-2 shadow-sm">
+                  <div className="mb-1 flex items-center justify-between text-[9px] font-black uppercase tracking-[.1em]">
+                    <span>Master</span>
+                    <output className="rounded-md bg-[#34373c] px-2 py-0.5 text-white">
+                      {Math.round(masterVolume * 100)}%
+                    </output>
+                  </div>
+                  <input type="range" min="0" max="1" step=".01" value={masterVolume} onChange={(event) => updateMasterVolume(event.target.value)} className="simple-volume-slider w-full cursor-pointer" aria-label="Master volume" />
+                </div>
+                {tracks.map((track, index) => {
+                  const Icon = getTrackIcon(track);
+                  const label = normalizeTrackLabel(track, index);
+                  const volume = trackVolumes[index] ?? DEFAULT_TRACK_VOLUME;
+                  const level = trackPlaybackLevels[index]?.level || 0;
+                  return (
+                    <article key={`mobile-mixer-${index}`} className={`rounded-[14px] border p-2 shadow-sm ${index === selectedTrackIndex ? "border-[#9c7600] bg-[#f0df9d]" : "border-[#c3bfb4] bg-[#f4f3ef]"}`}>
+                      <div className="flex items-center gap-1.5">
+                        <button type="button" onClick={() => renderSelectedTrack(index)} className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-[#c7c3b8] bg-white shadow-sm" aria-label={`Select ${label}`}><Icon className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => renderSelectedTrack(index)} className="min-w-0 flex-1 truncate text-left text-[10px] font-black uppercase">{label}</button>
+                        <button type="button" onClick={() => toggleTrackMute(index)} className={`h-7 w-7 rounded-lg border border-[#c7c3b8] text-[9px] font-black shadow-sm ${track.playbackInfo?.isMute ? "bg-[#e46e63] text-white" : "bg-white"}`} aria-label={`Mute ${label}`}>M</button>
+                        <button type="button" onClick={() => toggleTrackSolo(index)} className={`h-7 w-7 rounded-lg border border-[#c7c3b8] text-[9px] font-black shadow-sm ${track.playbackInfo?.isSolo ? "bg-[goldenrod]" : "bg-white"}`} aria-label={`Solo ${label}`}>S</button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
+                        <div>
+                          <input type="range" min="0" max="1" step=".01" value={volume} onChange={(event) => updateTrackVolume(index, event.target.value)} onInput={(event) => updateTrackVolume(index, event.currentTarget.value)} className="simple-volume-slider w-full cursor-pointer" aria-label={`Volume de ${label}`} />
+                          <div className="mt-1 grid h-1.5 grid-cols-12 gap-px" aria-label={`Nível ao vivo ${gainToDecibels(level)} decibéis`}>
+                            {Array.from({ length: 12 }, (_, segment) => <span key={segment} className={`rounded-sm ${level > segment / 12 ? (segment >= 10 ? "bg-[#df493f]" : segment >= 8 ? "bg-[goldenrod]" : "bg-[#4f9d62]") : "bg-[#c7c8c5]"}`} />)}
+                          </div>
+                        </div>
+                        <output className="min-w-10 rounded-md bg-[#34373c] px-1.5 py-1 text-center text-[9px] font-black text-white">{Math.round(volume * 100)}%</output>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-[80px] flex h-[calc(100%-80px)] min-h-0 flex-col overflow-hidden bg-[#f0f0f0]">

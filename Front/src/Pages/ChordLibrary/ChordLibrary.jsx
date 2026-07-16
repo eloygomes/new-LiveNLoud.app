@@ -311,14 +311,14 @@ function SelectionBadge({ label, value }) {
 
 function MobileSelectField({ label, value, options, onChange }) {
   return (
-    <label className="flex min-w-0 flex-1 flex-col gap-2">
+    <label className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#697180]">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded bg-[#efefef] px-3 py-3 text-sm font-bold text-black shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] outline-none"
+        className="h-10 w-full rounded-[12px] bg-[#efefef] px-3 text-[12px] font-bold text-black shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] outline-none"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -376,13 +376,13 @@ function ChordLibrary() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-10 pt-4 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">
+    <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-4 pt-3 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">
       <div className="mx-auto w-full max-w-none">
         <div className="w-full pb-10 lg:pb-0">
           <div
-            className={`mb-5 ${
+            className={`mb-3 ${
               isTouchLayout
-                ? "px-1 py-2"
+                ? "px-1 py-1"
                 : "flex items-center gap-6 neuphormism-b p-5"
             }`}
           >
@@ -392,7 +392,7 @@ function ChordLibrary() {
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                     Chord Library
                   </p>
-                  <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
+                  <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight text-black">
                     Shape The Harmony
                   </h1>
                 </>
@@ -407,7 +407,7 @@ function ChordLibrary() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-stretch">
+          <div className="flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] xl:items-stretch">
           <section className="order-2 hidden rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:p-5 xl:order-1 xl:block neuphormism-b">
             <p className="text-lg font-bold uppercase text-black">
               Build chord
@@ -468,8 +468,8 @@ function ChordLibrary() {
             </div>
           </section>
 
-          <section className="order-1 flex min-h-[700px] flex-col rounded-[28px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:min-h-[760px] sm:p-5 xl:order-2 xl:min-h-0 neuphormism-b">
-            <div className="flex flex-col gap-4">
+          <section className="order-1 flex min-h-0 flex-col rounded-[18px] bg-[#e0e0e0] p-3 shadow-[0_12px_24px_rgba(0,0,0,0.06)] sm:min-h-[760px] sm:rounded-[28px] sm:p-5 xl:order-2 xl:min-h-0 neuphormism-b">
+            <div className="flex flex-col gap-3">
               <div className="hidden rounded px-4 py-4 shadow-[6px_6px_14px_rgba(190,190,190,0.55),-6px_-6px_14px_rgba(255,255,255,0.9)] sm:px-5 xl:block">
                 <div className="min-w-0">
                   <div>
@@ -499,11 +499,11 @@ function ChordLibrary() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-[#e0e0e0] p-4 shadow-[0_12px_24px_rgba(0,0,0,0.06)] xl:hidden neuphormism-b">
-                <p className="text-lg font-bold uppercase text-black">
+              <div className="rounded-[16px] bg-[#e0e0e0] p-3 shadow-[0_12px_24px_rgba(0,0,0,0.06)] xl:hidden neuphormism-b">
+                <p className="text-[13px] font-bold uppercase text-black">
                   Build chord
                 </p>
-                <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <MobileSelectField
                     label="Root"
                     value={root}
@@ -532,14 +532,14 @@ function ChordLibrary() {
               </div>
             </div>
 
-            <div className="mt-5 flex  flex-1 flex-col rounded-[24px] bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_8px_18px_rgba(0,0,0,0.05)]  sm:p-5">
+            <div className="mt-3 flex flex-col rounded-[16px] bg-white p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_8px_18px_rgba(0,0,0,0.05)] sm:mt-5 sm:flex-1 sm:rounded-[24px] sm:p-5">
               <div className="flex items-center justify-center overflow-x-auto">
                 <ChordDisplay fingering={fingering} chordName={chordLabel} />
               </div>
 
-              <div className="mt-4 min-h-[20px]">
+              <div className="mt-2 min-h-0">
                 {chordNotes.length ? (
-                  <div className="h-full rounded-[22px] p-4 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]">
+                  <div className="h-full rounded-[14px] p-3 shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] sm:rounded-[22px] sm:p-4">
                     <div className="flex flex-col gap-2">
                       {chordNotes.map((note) => (
                         <p
@@ -553,13 +553,13 @@ function ChordLibrary() {
                   </div>
                 ) : null}
               </div>
-              <h2 className="pb-10 pt-6 text-center text-3xl font-bold leading-none text-black xl:hidden">
+              <h2 className="pb-2 pt-3 text-center text-[1.4rem] font-bold leading-none text-black xl:hidden">
                 {chordLabel}
               </h2>
             </div>
 
             <button
-              className={`mt-4 w-full rounded px-4 py-3 text-[12px] font-bold uppercase tracking-[0.16em] transition ${
+              className={`mt-3 w-full rounded-[12px] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition ${
                 variations.length > 1
                   ? "bg-[goldenrod] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
                   : "bg-[#d8d8d8] text-[#7f8794]"

@@ -15,18 +15,13 @@ function GuitarProViewerModal({
   if (!open || !file) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-white">
-      <button
-        type="button"
-        className="absolute inset-0 h-full w-full cursor-default"
-        onClick={onClose}
-        aria-label="Close Guitar Pro viewer"
-      />
-      <div className="absolute inset-0 overflow-hidden bg-white">
+    <div className="fixed inset-0 z-[9999] bg-[#f0f0f0] md:bg-white">
+      <div className="absolute inset-0 overflow-hidden bg-[#f0f0f0] md:bg-white">
         <button
           type="button"
-          className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
+          className="absolute right-5 top-5 z-10 hidden h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-sm md:flex"
           onClick={onClose}
+          aria-label="Close Guitar Pro viewer"
         >
           <IoClose className="h-6 w-6" />
         </button>
@@ -44,6 +39,7 @@ function GuitarProViewerModal({
             songTitle={songTitle}
             artistName={artistName}
             instrumentName={instrumentName}
+            onClose={onClose}
           />
         </Suspense>
       </div>

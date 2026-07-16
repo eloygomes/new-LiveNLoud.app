@@ -64,6 +64,8 @@ function UserProfile() {
   const [friendFeedback, setFriendFeedback] = useState("");
   const [friendError, setFriendError] = useState("");
   const [revokingEmail, setRevokingEmail] = useState("");
+  const [friendsView, setFriendsView] = useState("friends");
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const [usbEnabled, setUsbEnabled] = useState(false);
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
   const [language, setLanguage] = useState("ENG");
@@ -131,6 +133,16 @@ function UserProfile() {
       );
     };
   }, []);
+
+  useEffect(() => {
+    if (!isTouchLayout) return;
+
+    window.scrollTo({ top: 0, behavior: "auto" });
+    const routeScroller = document.querySelector(
+      '[data-scroll-removed-mongo-user="true"]',
+    );
+    if (routeScroller) routeScroller.scrollTop = 0;
+  }, [isTouchLayout, selectedMobileTab]);
 
   const handleEditPasswordClick = () => {
     setIsModalOpen(true);
@@ -408,6 +420,7 @@ function UserProfile() {
       setInviteMessage("");
       setFriendFeedback("Friend request sent.");
       await reloadFriendData();
+      setFriendsView("sent");
     } catch (error) {
       setFriendError(
         error?.response?.data?.message ||
@@ -427,6 +440,7 @@ function UserProfile() {
       await respondToInvitation(invitationId, status);
       setFriendFeedback(`Friend request ${status}.`);
       await reloadFriendData();
+      if (status === "accepted") setFriendsView("friends");
     } catch (error) {
       setFriendError(
         error?.response?.data?.message ||
@@ -468,21 +482,22 @@ function UserProfile() {
   };
 
   const renderMobileFieldCard = (label, value, onPress) => (
-    <div className="neuphormism-b rounded-[20px] p-4">
+    <div className="neuphormism-b rounded-[16px] px-3 py-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
             {label}
           </div>
-          <div className="mt-2 break-words text-[15px] font-bold text-black">
+          <div className="mt-1 break-words text-[13px] font-bold text-black">
             {value}
           </div>
         </div>
         {onPress ? (
           <button
             type="button"
-            className="neuphormism-b-btn rounded-full bg-white p-3"
+            className="neuphormism-b-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-white"
             onClick={onPress}
+            aria-label={`Edit ${label}`}
           >
             <FaEdit className="text-black" />
           </button>
@@ -492,11 +507,11 @@ function UserProfile() {
   );
 
   const renderMobileUserInfo = () => (
-    <div className="flex flex-col gap-4">
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="flex flex-col items-center text-center">
+    <div className="flex flex-col gap-3">
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="flex items-center gap-3 text-left">
           <label htmlFor="mobileProfileImage" className="cursor-pointer">
-            <UserProfileAvatarBig size={120} imageUpdated={imageUpdated} />
+            <UserProfileAvatarBig size={96} imageUpdated={imageUpdated} />
           </label>
           <input
             type="file"
@@ -505,24 +520,26 @@ function UserProfile() {
             className="hidden"
             id="mobileProfileImage"
           />
-          <div className="mt-4 text-[1.15rem] font-bold uppercase text-black">
-            {mobileProfileSummary.fullName}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[15px] font-bold uppercase leading-tight text-black">
+              {mobileProfileSummary.fullName}
+            </div>
+            <div className="mt-1 truncate text-[11px] font-bold text-gray-500">
+              @{mobileProfileSummary.username}
+            </div>
+            <button
+              type="button"
+              onClick={handleUpload}
+              className="neuphormism-b-btn-gold mt-3 rounded-[12px] bg-[goldenrod] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-black"
+              disabled={uploading}
+            >
+              {uploading ? "Uploading..." : "Upload Photo"}
+            </button>
           </div>
-          <div className="mt-1 text-[13px] font-bold text-gray-500">
-            @{mobileProfileSummary.username}
-          </div>
-          <button
-            type="button"
-            onClick={handleUpload}
-            className="neuphormism-b-btn-gold mt-4 rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
-            disabled={uploading}
-          >
-            {uploading ? "Uploading..." : "Upload Photo"}
-          </button>
-          {uploadError ? (
-            <p className="mt-3 text-xs text-red-600">{uploadError}</p>
-          ) : null}
         </div>
+        {uploadError ? (
+          <p className="mt-2 text-[11px] text-red-600">{uploadError}</p>
+        ) : null}
       </div>
 
       {renderMobileFieldCard(
@@ -536,303 +553,390 @@ function UserProfile() {
   );
 
   const renderMobileUserData = () => (
-    <div className="flex flex-col gap-4">
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
+    <div className="flex flex-col gap-3">
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="text-[13px] font-bold uppercase text-black">
           User Data
         </div>
-        <div className="mt-2 text-sm text-gray-600">
-          Download the data currently stored for your account in the platform.
+        <div className="mt-1 w-full text-[11px] leading-4 text-gray-600">
+          Download a copy of all information currently stored for your account.
         </div>
-        <button
-          type="button"
-          className="neuphormism-b-btn mt-4 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
-          onClick={() => downloadUserData()}
-        >
-          Download
-        </button>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            className="neuphormism-b-btn rounded-[12px] bg-white px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-black"
+            onClick={() => downloadUserData()}
+          >
+            Download
+          </button>
+        </div>
       </div>
 
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Platform User Data
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="text-[13px] font-bold uppercase text-black">
+          Platform Data
         </div>
-        <div className="mt-2 text-sm text-gray-600">
-          Remove all songs from your account.
+        <div className="mt-1 w-full text-[11px] leading-4 text-gray-600">
+          Remove every song saved in your library while keeping your account.
         </div>
-        <button
-          type="button"
-          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-white"
-          onClick={handleDelete}
-        >
-          Delete Songs
-        </button>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            className="neuphormism-b-btn-red rounded-[12px] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white"
+            onClick={handleDelete}
+          >
+            Delete Songs
+          </button>
+        </div>
       </div>
 
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="text-[13px] font-bold uppercase text-black">
           User Account
         </div>
-        <div className="mt-2 text-sm text-gray-600">
-          Delete your user account and all platform data.
+        <div className="mt-1 w-full text-[11px] leading-4 text-gray-600">
+          Permanently delete your account, songs and all associated platform
+          data.
         </div>
-        <button
-          type="button"
-          className="neuphormism-b-btn-red mt-4 w-full rounded-[16px] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-white"
-          onClick={handleDeleteAccountClick}
-        >
-          Delete Account
-        </button>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            className="neuphormism-b-btn-red rounded-[12px] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white"
+            onClick={handleDeleteAccountClick}
+          >
+            Delete Account
+          </button>
+        </div>
       </div>
     </div>
   );
 
   const renderMobileFriends = () => (
-    <div className="flex flex-col gap-4">
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Invite A Friend
+    <div className="flex flex-col gap-3">
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[13px] font-bold uppercase text-black">
+              Friends
+            </div>
+            <div className="mt-1 text-[11px] text-gray-500">
+              Manage your music network.
+            </div>
+          </div>
+          <div className="flex h-9 min-w-9 items-center justify-center rounded-[12px] bg-[goldenrod] text-black">
+            <FaUserFriends size={14} />
+          </div>
         </div>
-        <div className="mt-2 text-sm text-gray-600">
-          Send friendship invites by email. Calendar invites only work after the
-          user accepts.
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          {[
+            { value: "friends", label: "Friends", count: mobileFriends.length },
+            { value: "incoming", label: "Incoming", count: incomingInvitations.length },
+            { value: "sent", label: "Sent", count: sentInvitations.length },
+            { value: "invite", label: "Invite", count: "+" },
+          ].map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              className={`rounded-[11px] px-1 py-2 text-center ${
+                friendsView === item.value
+                  ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                  : "neuphormism-b-btn bg-white text-gray-500"
+              }`}
+              onClick={() => setFriendsView(item.value)}
+            >
+              <span className="block text-[14px] font-bold leading-none">
+                {item.count}
+              </span>
+              <span className="mt-1 block text-[8px] font-bold uppercase tracking-[0.04em]">
+                {item.label}
+              </span>
+            </button>
+          ))}
         </div>
-        <input
-          type="email"
-          value={inviteEmail}
-          onChange={(event) => setInviteEmail(event.target.value.toLowerCase())}
-          placeholder="friend@email.com"
-          className="neuphormism-b-btn mt-4 w-full rounded-[16px] border-0 bg-white px-4 py-3 text-sm outline-none"
-        />
-        <input
-          type="text"
-          value={inviteMessage}
-          onChange={(event) => setInviteMessage(event.target.value)}
-          placeholder="Optional message"
-          className="neuphormism-b-btn mt-3 w-full rounded-[16px] border-0 bg-white px-4 py-3 text-sm outline-none"
-        />
-        <button
-          type="button"
-          className="neuphormism-b-btn-gold mt-4 w-full rounded-[16px] bg-[goldenrod] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
-          disabled={friendActionLoading}
-          onClick={handleSendFriendInvite}
-        >
-          {friendActionLoading ? "Working..." : "Send Invite"}
-        </button>
+      </div>
+
+      <div className="neuphormism-b rounded-[18px] p-3">
+        {friendsView === "invite" ? (
+          <>
+            <div className="text-[13px] font-bold uppercase text-black">
+              Invite A Friend
+            </div>
+            <div className="mt-1 text-[11px] leading-4 text-gray-600">
+              Invite by email. Calendar sharing becomes available after acceptance.
+            </div>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(event) =>
+                setInviteEmail(event.target.value.toLowerCase())
+              }
+              placeholder="friend@email.com"
+              className="neuphormism-b-btn mt-3 h-10 w-full rounded-[12px] border-0 bg-white px-3 text-[12px] outline-none"
+            />
+            <input
+              type="text"
+              value={inviteMessage}
+              onChange={(event) => setInviteMessage(event.target.value)}
+              placeholder="Optional message"
+              className="neuphormism-b-btn mt-2 h-10 w-full rounded-[12px] border-0 bg-white px-3 text-[12px] outline-none"
+            />
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                className="neuphormism-b-btn-gold rounded-[12px] bg-[goldenrod] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-black"
+                disabled={friendActionLoading}
+                onClick={handleSendFriendInvite}
+              >
+                {friendActionLoading ? "Working..." : "Send Invite"}
+              </button>
+            </div>
+          </>
+        ) : friendsView === "incoming" ? (
+          <>
+            <div className="text-[13px] font-bold uppercase text-black">
+              Incoming Requests
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
+              {incomingInvitations.length === 0 ? (
+                <p className="text-[11px] text-gray-500">No requests waiting.</p>
+              ) : (
+                incomingInvitations.map((invitation) => (
+                  <div
+                    key={invitation._id}
+                    className="neuphormism-b-se rounded-[14px] p-3"
+                  >
+                    <div className="break-all text-[12px] font-bold text-black">
+                      {invitation.senderEmail?.toLowerCase()}
+                    </div>
+                    <div className="mt-1 text-[11px] text-gray-500">
+                      {invitation.senderFullName ||
+                        invitation.senderUsername ||
+                        "Friend request"}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        className="neuphormism-b-btn-gold rounded-[11px] bg-[goldenrod] px-3 py-2 text-[9px] font-bold uppercase text-black"
+                        onClick={() =>
+                          handleInvitationResponse(invitation._id, "accepted")
+                        }
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        className="neuphormism-b-btn-red rounded-[11px] px-3 py-2 text-[9px] font-bold uppercase text-white"
+                        onClick={() =>
+                          handleInvitationResponse(invitation._id, "declined")
+                        }
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : friendsView === "sent" ? (
+          <>
+            <div className="text-[13px] font-bold uppercase text-black">
+              Sent Requests
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
+              {sentInvitations.length === 0 ? (
+                <p className="text-[11px] text-gray-500">No sent requests.</p>
+              ) : (
+                sentInvitations.map((invitation) => (
+                  <div
+                    key={invitation._id}
+                    className="neuphormism-b-se rounded-[14px] p-3"
+                  >
+                    <div className="break-all text-[12px] font-bold text-black">
+                      {invitation.receiverEmail?.toLowerCase()}
+                    </div>
+                    <div className="mt-1 text-[11px] text-gray-500">
+                      Waiting for response.
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-[13px] font-bold uppercase text-black">
+              Your Friends
+            </div>
+            <div className="mt-2 flex max-h-[17rem] flex-col gap-2 overflow-y-auto pr-1">
+              {mobileFriends.length === 0 ? (
+                <p className="text-[11px] text-gray-500">
+                  No friends yet. Use Invite to connect with a musician.
+                </p>
+              ) : (
+                mobileFriends.map((friend) => (
+                  <div
+                    key={`${friend.counterpartEmail}-${friend.invitationId || ""}`}
+                    className="neuphormism-b-se flex items-center gap-2 rounded-[14px] p-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12px] font-bold text-black">
+                        {friend.counterpartFullName ||
+                          friend.counterpartUsername ||
+                          "Friend"}
+                      </div>
+                      <div className="mt-1 truncate text-[10px] text-gray-500">
+                        {friend.counterpartEmail?.toLowerCase()}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="neuphormism-b-btn-red shrink-0 rounded-[11px] px-3 py-2 text-[9px] font-bold uppercase text-white"
+                      disabled={revokingEmail === friend.counterpartEmail}
+                      onClick={() =>
+                        handleRevokeFriendship(friend.counterpartEmail)
+                      }
+                    >
+                      {revokingEmail === friend.counterpartEmail
+                        ? "Working..."
+                        : "Remove"}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
         {friendFeedback ? (
-          <p className="mt-3 text-xs text-green-700">{friendFeedback}</p>
+          <p className="mt-3 text-[11px] text-green-700">{friendFeedback}</p>
         ) : null}
         {friendError ? (
-          <p className="mt-3 text-xs text-red-600">{friendError}</p>
+          <p className="mt-3 text-[11px] text-red-600">{friendError}</p>
         ) : null}
-      </div>
-
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Pending Requests
-        </div>
-        <div className="mt-3 flex flex-col gap-3">
-          {incomingInvitations.length === 0 ? (
-            <p className="text-sm text-gray-500">No pending requests.</p>
-          ) : (
-            incomingInvitations.map((invitation) => (
-              <div key={invitation._id} className="neuphormism-b-se rounded-[18px] p-4">
-                <div className="break-all text-sm font-bold text-black">
-                  {invitation.senderEmail?.toLowerCase()}
-                </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {invitation.senderFullName ||
-                    invitation.senderUsername ||
-                    "Friend request"}
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    className="neuphormism-b-btn-gold rounded-[14px] bg-[goldenrod] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black"
-                    onClick={() =>
-                      handleInvitationResponse(invitation._id, "accepted")
-                    }
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    className="neuphormism-b-btn-red rounded-[14px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white"
-                    onClick={() =>
-                      handleInvitationResponse(invitation._id, "declined")
-                    }
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Sent Requests
-        </div>
-        <div className="mt-3 flex flex-col gap-3">
-          {sentInvitations.length === 0 ? (
-            <p className="text-sm text-gray-500">No sent requests.</p>
-          ) : (
-            sentInvitations.map((invitation) => (
-              <div key={invitation._id} className="neuphormism-b-se rounded-[18px] p-4">
-                <div className="break-all text-sm font-bold text-black">
-                  {invitation.receiverEmail?.toLowerCase()}
-                </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  Waiting for response.
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Actual Friends
-        </div>
-        <div className="mt-3 flex flex-col gap-3">
-          {mobileFriends.length === 0 ? (
-            <p className="text-sm text-gray-500">No accepted friends yet.</p>
-          ) : (
-            mobileFriends.map((friend) => (
-              <div
-                key={`${friend.counterpartEmail}-${friend.invitationId || ""}`}
-                className="neuphormism-b-se rounded-[18px] p-4"
-              >
-                <div className="break-all text-sm font-bold text-black">
-                  {friend.counterpartEmail?.toLowerCase()}
-                </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  {friend.counterpartFullName ||
-                    friend.counterpartUsername ||
-                    "Friend"}
-                </div>
-                <button
-                  type="button"
-                  className="neuphormism-b-btn-red mt-3 rounded-[14px] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white"
-                  disabled={revokingEmail === friend.counterpartEmail}
-                  onClick={() => handleRevokeFriendship(friend.counterpartEmail)}
-                >
-                  {revokingEmail === friend.counterpartEmail
-                    ? "Revoking..."
-                    : "Revoke"}
-                </button>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   );
 
   const renderMobileSettings = () => (
-    <div className="flex flex-col gap-4">
-      {[
-        {
-          title: "USB Devices",
-          subtitle: "USB devices connection",
-          value: usbEnabled,
-          onChange: setUsbEnabled,
-        },
-        {
-          title: "Bluetooth",
-          subtitle: "Bluetooth connection",
-          value: bluetoothEnabled,
-          onChange: setBluetoothEnabled,
-        },
-      ].map((item) => (
-        <div
-          key={item.title}
-          className="neuphormism-b rounded-[24px] p-4"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[16px] font-bold uppercase text-black">
+    <div className="neuphormism-b rounded-[18px] p-3">
+      <div className="text-[13px] font-bold uppercase text-black">
+        Connections & Language
+      </div>
+      <div className="mt-1 text-[11px] leading-4 text-gray-500">
+        Choose the connections and interface language used by Sustenido.
+      </div>
+
+      <div className="mt-3 divide-y divide-black/5 overflow-hidden rounded-[14px] bg-white/45 px-3">
+        {[
+          {
+            title: "USB Devices",
+            subtitle: "Use connected USB controllers",
+            value: usbEnabled,
+            onChange: setUsbEnabled,
+          },
+          {
+            title: "Bluetooth",
+            subtitle: "Use wireless controllers",
+            value: bluetoothEnabled,
+            onChange: setBluetoothEnabled,
+          },
+        ].map((item) => (
+          <div key={item.title} className="flex items-center gap-3 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-bold uppercase text-black">
                 {item.title}
               </div>
-              <div className="mt-1 text-sm text-gray-600">{item.subtitle}</div>
+              <div className="mt-0.5 text-[10px] text-gray-500">
+                {item.subtitle}
+              </div>
             </div>
             <button
               type="button"
-              className={`neuphormism-b-btn h-11 w-16 rounded-[14px] text-[10px] font-bold uppercase tracking-[0.12em] transition ${
+              role="switch"
+              aria-checked={item.value}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition ${
                 item.value
-                  ? "bg-[goldenrod] text-black"
-                  : "bg-white text-gray-500"
+                  ? "bg-[goldenrod]"
+                  : "bg-gray-300 shadow-inner"
               }`}
               onClick={() => item.onChange(!item.value)}
+              aria-label={`${item.title}: ${item.value ? "on" : "off"}`}
             >
-              {item.value ? "ON" : "OFF"}
+              <span
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                  item.value ? "left-6" : "left-1"
+                }`}
+              />
             </button>
           </div>
-        </div>
-      ))}
+        ))}
 
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Language
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          {["ENG", "BRA"].map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={`rounded-[16px] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] ${
-                language === item
-                  ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
-                  : "neuphormism-b-btn bg-white text-gray-500"
-              }`}
-              onClick={() => setLanguage(item)}
-            >
-              {item}
-            </button>
-          ))}
+        <div className="flex items-center gap-3 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-bold uppercase text-black">
+              Language
+            </div>
+            <div className="mt-0.5 text-[10px] text-gray-500">
+              Interface language
+            </div>
+          </div>
+          <div className="grid shrink-0 grid-cols-2 gap-1">
+            {["ENG", "BRA"].map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`rounded-[9px] px-2.5 py-2 text-[9px] font-bold uppercase ${
+                  language === item
+                    ? "bg-[goldenrod] text-black"
+                    : "neuphormism-b-btn bg-white text-gray-500"
+                }`}
+                onClick={() => setLanguage(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 
   const renderMobileLogs = () => (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="neuphormism-b rounded-[20px] p-4">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-            Songs
+    <div className="flex flex-col gap-3">
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-[13px] bg-white/55 px-3 py-2.5">
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
+              Songs
+            </div>
+            <div className="mt-1 text-[1.1rem] font-bold leading-none text-black">
+              {data.length}
+            </div>
           </div>
-          <div className="mt-3 text-[1.4rem] font-bold text-black">
-            {data.length}
+          <div className="rounded-[13px] bg-white/55 px-3 py-2.5">
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
+              Progress
+            </div>
+            <div className="mt-1 text-[1.1rem] font-bold leading-none text-black">
+              {averageProgression}%
+            </div>
           </div>
         </div>
-        <div className="neuphormism-b rounded-[20px] p-4">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-            Progress
-          </div>
-          <div className="mt-3 text-[1.4rem] font-bold text-black">
-            {averageProgression}%
-          </div>
-        </div>
-      </div>
 
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Songs By Instruments
+        <div className="mt-3 text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
+          Songs by instrument
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-2 grid grid-cols-6 gap-1">
           {instrumentMeta.map((instrument) => (
             <div
               key={instrument.key}
-              className="neuphormism-b-se rounded-[16px] px-3 py-4 text-center"
+              className="rounded-[10px] bg-white/55 px-1 py-2 text-center"
             >
-              <div className="text-[11px] font-bold uppercase text-gray-500">
+              <div className="text-[9px] font-bold uppercase text-gray-500">
                 {instrument.short}
               </div>
-              <div className="mt-2 text-lg font-bold text-black">
+              <div className="mt-0.5 text-[13px] font-bold text-black">
                 {songsByInstrument[instrument.key] ?? 0}
               </div>
             </div>
@@ -840,23 +944,43 @@ function UserProfile() {
         </div>
       </div>
 
-      <div className="neuphormism-b rounded-[24px] p-4">
-        <div className="text-[16px] font-bold uppercase text-black">
-          Activity Feed
+      <div className="neuphormism-b rounded-[18px] p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[13px] font-bold uppercase text-black">
+              Recent Activity
+            </div>
+            <div className="mt-0.5 text-[10px] text-gray-500">
+              {mobileLogs.length} recorded events
+            </div>
+          </div>
+          {mobileLogs.length > 3 ? (
+            <button
+              type="button"
+              className="neuphormism-b-btn rounded-[10px] bg-white px-3 py-2 text-[9px] font-bold uppercase text-black"
+              onClick={() => setShowAllLogs((current) => !current)}
+            >
+              {showAllLogs ? "Show less" : "View all"}
+            </button>
+          ) : null}
         </div>
-        <div className="mt-4 flex max-h-[22rem] flex-col gap-2 overflow-y-auto pr-1">
+        <div
+          className={`mt-3 flex flex-col gap-2 pr-1 ${
+            showAllLogs ? "max-h-[16rem] overflow-y-auto" : ""
+          }`}
+        >
           {mobileLogs.length === 0 ? (
-            <div className="text-sm text-gray-500">No activity logs yet.</div>
+            <div className="text-[11px] text-gray-500">No activity logs yet.</div>
           ) : (
-            mobileLogs.map((log) => (
+            (showAllLogs ? mobileLogs : mobileLogs.slice(0, 3)).map((log) => (
               <div
                 key={log._id}
-                className="neuphormism-b-se rounded-[16px] px-4 py-3 font-mono text-[12px] leading-5 text-black"
+                className="rounded-[12px] bg-white/55 px-3 py-2.5 text-[11px] leading-4 text-black"
               >
-                <span className="text-[goldenrod]">
-                  [{formatDisplayDateTime(log.createdAt)}]
-                </span>{" "}
-                <span>{log.message}</span>
+                <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-[goldenrod]">
+                  {formatDisplayDateTime(log.createdAt)}
+                </div>
+                <div className="mt-1">{log.message}</div>
               </div>
             ))
           )}
@@ -885,7 +1009,7 @@ function UserProfile() {
 
   if (isTouchLayout) {
     return (
-      <div className="min-h-[calc(100vh-5.25rem)] bg-[#f0f0f0] px-3 pb-28 pt-3">
+      <div className="min-h-[calc(100vh-5.25rem)] bg-[#f0f0f0] px-3 pb-4 pt-3">
         <PasswordResetModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -902,59 +1026,61 @@ function UserProfile() {
           onSubmit={handleDeleteAccount}
         />
 
-        <div className="mx-auto flex min-h-[calc(100vh-12.25rem)] w-full max-w-[760px] flex-col justify-center">
-        <div className="neuphormism-b rounded-[24px] p-4">
-          <div className="text-[13px] font-bold uppercase tracking-[0.18em] text-black">
-            Menu
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {MOBILE_MENU_OPTIONS.map((option) => {
-              const active = option === selectedMobileTab;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  className={`rounded-[16px] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] ${
-                    active
-                      ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
-                      : "neuphormism-b-btn bg-[#f0f0f0] text-gray-500"
-                  }`}
-                  onClick={() => setSelectedMobileTab(option)}
-                >
-                  {option}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          {mobileLoading && !mobileRefreshing ? (
-            <div className="neuphormism-b rounded-[24px] p-6 text-center text-sm text-gray-500">
-              Loading user hub...
+        <div className="mx-auto flex min-h-[calc(100dvh-10.75rem)] w-full max-w-[430px] flex-col">
+          <div className="neuphormism-b relative rounded-[18px] bg-[#f0f0f0] p-2.5">
+            <div className="mb-2 px-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+              Menu
             </div>
-          ) : (
-            renderMobileContent()
-          )}
-        </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {MOBILE_MENU_OPTIONS.map((option) => {
+                const active = option === selectedMobileTab;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`flex min-h-11 items-center justify-center rounded-[11px] px-1 py-2 text-center text-[8px] font-bold uppercase leading-[1.15] tracking-[0.04em] ${
+                      active
+                        ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                        : "neuphormism-b-btn bg-[#f0f0f0] text-gray-500"
+                    }`}
+                    onClick={() => setSelectedMobileTab(option)}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        <div className="neuphormism-b mt-4 rounded-[24px] p-4">
-          <button
-            type="button"
-            className="neuphormism-b-btn flex w-full items-center justify-center gap-2 rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-black"
-            onClick={handleMobileRefresh}
-          >
-            <FaSyncAlt className={mobileRefreshing ? "animate-spin" : ""} />
-            <span>{mobileRefreshing ? "Refreshing..." : "Refresh"}</span>
-          </button>
-          <button
-            type="button"
-            className="neuphormism-b-btn mt-3 w-full rounded-[16px] bg-white px-4 py-3 text-[12px] font-bold uppercase tracking-[0.14em] text-red-600"
-            onClick={handleSignOut}
-          >
-            Sign Out
-          </button>
-        </div>
+          <div className="mt-3 flex-1">
+            {mobileLoading && !mobileRefreshing ? (
+              <div className="neuphormism-b rounded-[18px] p-5 text-center text-[12px] text-gray-500">
+                Loading user hub...
+              </div>
+            ) : (
+              renderMobileContent()
+            )}
+          </div>
+
+          {selectedMobileTab === "USER INFO" ? (
+            <div className="neuphormism-b mt-5 grid grid-cols-2 gap-2 rounded-[18px] p-2.5">
+              <button
+                type="button"
+                className="neuphormism-b-btn flex w-full items-center justify-center gap-2 rounded-[12px] bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-black"
+                onClick={handleMobileRefresh}
+              >
+                <FaSyncAlt className={mobileRefreshing ? "animate-spin" : ""} />
+                <span>{mobileRefreshing ? "Refreshing..." : "Refresh"}</span>
+              </button>
+              <button
+                type="button"
+                className="neuphormism-b-btn w-full rounded-[12px] bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-red-600"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     );

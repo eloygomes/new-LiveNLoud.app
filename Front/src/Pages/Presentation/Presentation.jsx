@@ -821,6 +821,10 @@ function Presentation() {
       className={`flex h-full min-h-0 justify-center ${
         effectiveLiveMode ? "presentation-live-shell" : ""
       } ${
+        effectiveLiveMode && isTouchLayout
+          ? "presentation-live-shell-touch"
+          : ""
+      } ${
         isPseudoLiveMode ? "overflow-hidden" : ""
       }`}
       onMouseDown={effectiveLiveMode ? focusLiveViewport : undefined}

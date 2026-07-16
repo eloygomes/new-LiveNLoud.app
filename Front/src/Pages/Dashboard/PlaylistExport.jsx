@@ -6,7 +6,10 @@ import { startYouTubeLoginPopup } from "./youtubeAuth";
 import { startSpotifyLogin } from "./spotifyAuth";
 import { formatDisplayDate } from "../../Tools/dateFormat";
 
-export default function PlaylistExport({ visibleSongs = [] }) {
+export default function PlaylistExport({
+  visibleSongs = [],
+  isMobileLayout = false,
+}) {
   const disabled = !visibleSongs?.length;
 
   const defaultName = useMemo(() => {
@@ -127,11 +130,11 @@ export default function PlaylistExport({ visibleSongs = [] }) {
         : "";
 
   return (
-    <section className="neuphormism-b p-4">
+    <section className={isMobileLayout ? "rounded-[18px] border border-black/5 bg-white/55 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.06)]" : "neuphormism-b p-4"}>
       <div className="flex flex-col">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-sm font-bold uppercase">Playlists</h1>
+        <div className={`flex flex-wrap items-start justify-between gap-3 ${isMobileLayout ? "text-center" : ""}`}>
+          <div className={isMobileLayout ? "min-w-0 flex-1" : ""}>
+            <h1 className={`${isMobileLayout ? "text-xs" : "text-sm"} font-bold uppercase`}>Playlists</h1>
             <p className="mt-1 text-[11px] font-semibold text-gray-500">
               Create a playlist with the visible songs.
             </p>
@@ -147,19 +150,19 @@ export default function PlaylistExport({ visibleSongs = [] }) {
               <p className="mt-3 text-[11px] text-gray-500">{statusLine}</p>
             )}
 
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => goToNaming("spotify")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-bold transition-transform
+                className={`${isMobileLayout ? "min-h-24 flex-col rounded-[14px] border border-black/5 bg-white/80 shadow-[0_6px_16px_rgba(0,0,0,0.05)]" : "neuphormism-b-btn rounded-lg"} flex items-center justify-center gap-2 px-3 py-3 text-sm font-bold transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-black opacity-60"
                       : "border text-black hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
                   }`}
               >
-                <FaSpotify className="text-lg text-[#1DB954]" />
+                <FaSpotify className={isMobileLayout ? "text-3xl text-[#1DB954]" : "text-lg text-[#1DB954]"} />
                 Spotify
               </button>
 
@@ -167,14 +170,14 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={() => goToNaming("youtube")}
                 disabled={disabled}
-                className={`neuphormism-b-btn flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-bold transition-transform
+                className={`${isMobileLayout ? "min-h-24 flex-col rounded-[14px] border border-black/5 bg-white/80 shadow-[0_6px_16px_rgba(0,0,0,0.05)]" : "neuphormism-b-btn rounded-lg"} flex items-center justify-center gap-2 px-3 py-3 text-sm font-bold transition-transform
                   ${
                     disabled
                       ? "bg-gray-400 cursor-not-allowed text-black opacity-60"
                       : "border text-black hover:bg-[goldenrod] hover:border-[goldenrod] active:scale-95"
                   }`}
               >
-                <FaYoutube className="text-lg text-[#FF0000]" />
+                <FaYoutube className={isMobileLayout ? "text-3xl text-[#FF0000]" : "text-lg text-[#FF0000]"} />
                 YouTube
               </button>
             </div>
@@ -202,14 +205,14 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 if (e.key === "Escape") cancelNaming();
                 if (e.key === "Enter") confirmAndStart();
               }}
-              className="w-full mt-1 mb-3 px-3 py-1 text-sm rounded-md bg-transparent border border-gray-500 text-gray-500 outline-none focus:border-[goldenrod]"
+              className={`w-full mt-1 mb-3 px-3 text-[16px] outline-none focus:border-[goldenrod] ${isMobileLayout ? "min-h-12 rounded-xl border border-black/10 bg-white/80 text-gray-800" : "py-1 text-sm rounded-md bg-transparent border border-gray-500 text-gray-500"}`}
             />
 
-            <div className="flex gap-2 justify-end">
+            <div className={`flex gap-2 justify-end ${isMobileLayout ? "pt-1" : ""}`}>
               <button
                 type="button"
                 onClick={cancelNaming}
-                className="flex items-center justify-center gap-2 w-32 h-10 rounded-md border border-red-500 text-red-400 hover:text-white hover:bg-red-500 text-sm"
+                className={`flex items-center justify-center gap-2 w-32 text-sm ${isMobileLayout ? "min-h-11 rounded-xl border border-black/10 bg-white text-gray-700" : "h-10 rounded-md border border-red-500 text-red-400 hover:text-white hover:bg-red-500"}`}
               >
                 Cancelar
               </button>
@@ -218,7 +221,7 @@ export default function PlaylistExport({ visibleSongs = [] }) {
                 type="button"
                 onClick={confirmAndStart}
                 disabled={!String(playlistName || "").trim()}
-                className={`flex items-center justify-center gap-2 w-32 h-10 rounded-md font-semibold transition-transform text-sm 
+                className={`flex items-center justify-center gap-2 w-32 h-11 rounded-xl font-semibold transition-transform text-sm
                   ${
                     String(playlistName || "").trim()
                       ? "bg-[goldenrod] text-black active:scale-95"

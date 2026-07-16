@@ -596,7 +596,7 @@ export default function Calendar() {
     <div
       className={`flex justify-center ${
         isTouchLayout
-          ? "min-h-screen bg-[#f0f0f0] pb-28 pt-3"
+          ? "min-h-screen bg-[#f0f0f0] pb-4 pt-3"
           : "h-[calc((100vh/var(--desktop-app-zoom))-4rem)] overflow-hidden bg-[#f0f0f0]"
       }`}
     >
@@ -633,9 +633,9 @@ export default function Calendar() {
           }`}
         >
           <div
-            className={`mb-5 neuphormism-b ${
+            className={`mb-3 neuphormism-b ${
               isTouchLayout
-                ? "flex flex-col gap-4 p-4"
+                ? "flex flex-col gap-3 rounded-[18px] p-3"
                 : "flex flex-row items-center gap-6 p-5 mt-5"
             }`}
           >
@@ -653,7 +653,7 @@ export default function Calendar() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                   Calendar
                 </p>
-                <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
+                <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight text-black">
                   Plan The Session
                 </h1>
               </div>
@@ -671,12 +671,12 @@ export default function Calendar() {
                   their email.
                 </h4>
               ) : null}
-              <div className="flex rounded-full bg-white p-1">
+              <div className="flex rounded-[12px] bg-white p-1">
                 {VIEW_OPTIONS.map((option) => (
                   <button
                     key={option}
                     type="button"
-                    className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase transition ${
+                    className={`rounded-[9px] px-3 py-2 text-[9px] font-bold uppercase transition ${
                       viewMode === option
                         ? "bg-black text-white"
                         : "text-gray-500"
@@ -690,14 +690,24 @@ export default function Calendar() {
               <button
                 type="button"
                 className={`neuphormism-b-btn-gold flex items-center justify-center px-5 py-3 text-xs font-bold uppercase ${
-                  isTouchLayout ? "h-11 w-11 rounded-full p-0 text-[1.35rem]" : ""
+                  isTouchLayout
+                    ? "h-10 w-10 rounded-[12px] p-0 text-[1rem] text-black"
+                    : ""
                 }`}
                 onClick={() => {
                   openNewEventModal(new Date());
                 }}
                 aria-label="New event"
               >
-                {isTouchLayout ? <FaPlus /> : "New Event"}
+                {isTouchLayout ? (
+                  <FaPlus
+                    aria-hidden="true"
+                    size={14}
+                    style={{ color: "#000" }}
+                  />
+                ) : (
+                  "New Event"
+                )}
               </button>
             </div>
           </div>
@@ -707,23 +717,39 @@ export default function Calendar() {
           ) : null}
 
           <div
-            className={`grid grid-cols-1 gap-5 items-stretch ${
+            className={`grid grid-cols-1 items-stretch ${
               isTouchLayout
-                ? ""
-                : "min-h-0 flex-1 xl:grid-cols-[minmax(0,1.65fr),360px]"
+                ? "gap-3"
+                : "min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,1.65fr),360px]"
             }`}
           >
-            <div className="neuphormism-b p-5 min-h-0 flex flex-col">
-              <div className="flex items-center justify-between mb-5 gap-4">
+            <div
+              className={`neuphormism-b min-h-0 flex flex-col ${
+                isTouchLayout ? "rounded-[18px] p-3" : "p-5"
+              }`}
+            >
+              <div
+                className={`flex items-center justify-between gap-3 ${
+                  isTouchLayout ? "mb-3" : "mb-5"
+                }`}
+              >
                 <button
                   type="button"
-                  className="neuphormism-b-btn px-4 py-2 text-xs font-bold uppercase"
+                  className={`neuphormism-b-btn font-bold uppercase ${
+                    isTouchLayout
+                      ? "flex h-9 w-9 items-center justify-center rounded-[11px] p-0 text-[10px]"
+                      : "px-4 py-2 text-xs"
+                  }`}
                   onClick={() => movePeriod(-1)}
                 >
                   {isTouchLayout ? "<" : "Prev"}
                 </button>
                 <div className="text-center">
-                  <h2 className="text-xl font-bold uppercase">
+                  <h2
+                    className={`${
+                      isTouchLayout ? "text-[16px]" : "text-xl"
+                    } font-bold uppercase`}
+                  >
                     {isTouchLayout ? mobileCurrentLabel : currentLabel}
                   </h2>
                   <p className={`text-[11px] text-gray-500 uppercase mt-1 ${isTouchLayout ? "hidden" : ""}`}>
@@ -732,7 +758,11 @@ export default function Calendar() {
                 </div>
                 <button
                   type="button"
-                  className="neuphormism-b-btn px-4 py-2 text-xs font-bold uppercase"
+                  className={`neuphormism-b-btn font-bold uppercase ${
+                    isTouchLayout
+                      ? "flex h-9 w-9 items-center justify-center rounded-[11px] p-0 text-[10px]"
+                      : "px-4 py-2 text-xs"
+                  }`}
                   onClick={() => movePeriod(1)}
                 >
                   {isTouchLayout ? ">" : "Next"}
@@ -741,8 +771,8 @@ export default function Calendar() {
 
               {viewMode === "month" ? (
                 <>
-                  <div className={`grid grid-cols-7 text-center text-xs font-bold uppercase text-gray-500 mb-3 ${
-                    isTouchLayout ? "gap-1" : "gap-3"
+                  <div className={`grid grid-cols-7 text-center text-xs font-bold uppercase text-gray-500 ${
+                    isTouchLayout ? "mb-2 gap-1 text-[10px]" : "mb-3 gap-3"
                   }`}>
                     {WEEKDAY_LABELS.map((label) => (
                       <div key={label}>{isTouchLayout ? label.slice(0, 1) : label}</div>
@@ -751,7 +781,7 @@ export default function Calendar() {
                   <div
                     className={`grid grid-cols-7 grid-rows-6 ${
                       isTouchLayout
-                        ? "gap-1.5"
+                        ? "gap-1"
                         : "min-h-0 flex-1 gap-3"
                     }`}
                   >
@@ -778,7 +808,7 @@ export default function Calendar() {
                           onDoubleClick={() => openNewEventModal(day)}
                           className={`text-left transition overflow-hidden ${
                             isTouchLayout
-                              ? "h-[54px] min-h-[54px] rounded-[14px] p-1.5"
+                              ? "h-[44px] min-h-[44px] rounded-[11px] p-1.5"
                               : "h-full min-h-0 rounded-3xl p-3"
                           } ${
                             isSelected
@@ -803,7 +833,7 @@ export default function Calendar() {
 
                           <div
                             className={`flex flex-wrap ${
-                              isTouchLayout ? "mt-2 gap-1" : "mt-3 gap-1.5"
+                              isTouchLayout ? "mt-1 gap-1" : "mt-3 gap-1.5"
                             }`}
                           >
                             {dayEvents.slice(0, isTouchLayout ? 3 : 4).map((event) => (
@@ -986,14 +1016,26 @@ export default function Calendar() {
               ) : null}
             </div>
 
-            <div className="flex min-h-0 flex-col gap-5">
-              <div className="neuphormism-b p-5">
+            <div
+              className={`flex min-h-0 flex-col ${
+                isTouchLayout ? "gap-3" : "gap-5"
+              }`}
+            >
+              <div
+                className={`neuphormism-b ${
+                  isTouchLayout ? "rounded-[18px] p-3" : "p-5"
+                }`}
+              >
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-bold uppercase">
+                    <h2
+                      className={`${
+                        isTouchLayout ? "text-[16px]" : "text-xl"
+                      } font-bold uppercase`}
+                    >
                       Selected Day
                     </h2>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="mt-1 text-[11px] text-gray-600 sm:text-sm">
                       {formatDisplayDate(selectedDay)}
                     </p>
                   </div>
@@ -1003,7 +1045,7 @@ export default function Calendar() {
                 </div>
 
                 <div
-                  className={`space-y-4 mt-5 ${
+                  className={`${isTouchLayout ? "mt-3 space-y-2" : "mt-5 space-y-4"} ${
                     selectedEvents.length > 2
                       ? "max-h-[360px] overflow-y-auto pr-1"
                       : ""
@@ -1013,7 +1055,7 @@ export default function Calendar() {
                     <p className="text-sm">Loading events...</p>
                   ) : null}
                   {!loading && selectedEvents.length === 0 ? (
-                    <div className="rounded-3xl bg-white p-4 text-sm text-gray-500">
+                    <div className="rounded-[14px] bg-white p-3 text-[11px] text-gray-500 sm:rounded-3xl sm:p-4 sm:text-sm">
                       No events scheduled for this day.
                     </div>
                   ) : null}
@@ -1022,7 +1064,7 @@ export default function Calendar() {
                     ? selectedEvents.map((event) => (
                         <div
                           key={event._id}
-                          className="w-full rounded-3xl bg-white p-4 text-left"
+                          className="w-full rounded-[14px] bg-white p-3 text-left sm:rounded-3xl sm:p-4"
                           onDoubleClick={() => openEventEditor(event)}
                           onPointerDown={() =>
                             isTouchLayout

@@ -472,6 +472,7 @@ function NewSongColumnA({
   songData = null,
   onSongDataChange,
   onPageActionsChange,
+  touchSection = null,
 }) {
   const { t } = useLanguage();
   const [songName, setSongName] = useState(null);
@@ -897,14 +898,16 @@ function NewSongColumnA({
 
   return touchLayout ? (
     <>
-      <div className="rounded-[20px] neuphormism-b p-3">
-        <button
+      {touchSection ? (
+      <div className="rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
+        {!touchSection ? (
+          <button
           type="button"
           className="flex w-full items-center justify-between"
           onClick={onToggleSongData}
         >
           <div className="text-left">
-            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
+            <h2 className="text-[1.1rem] font-bold leading-none tracking-tight text-black">
               {t("songPages.songData")}
             </h2>
           </div>
@@ -915,10 +918,11 @@ function NewSongColumnA({
               <FaChevronDown className="text-sm" />
             )}
           </span>
-        </button>
+          </button>
+        ) : null}
 
-        {songDataOpen ? (
-          <div className="mt-3">
+        {songDataOpen || touchSection === "songData" ? (
+          <div className={touchSection ? "" : "mt-3"}>
             <NewSongSongData
               songName={isLoadingData ? "Carregando..." : songName}
               artistName={isLoadingData ? "Carregando..." : artistName}
@@ -928,14 +932,17 @@ function NewSongColumnA({
               fistTime={addedInDATE}
               lastTime=""
               touchLayout
+              compact
               geralPercentage={geralPercentage}
             />
           </div>
         ) : null}
       </div>
+      ) : null}
 
       {middleContent}
 
+      {(!touchSection || touchSection === "guitarPro") ? (
       <GuitarProFileBox
         artistName={artistName}
         songName={songName}
@@ -943,39 +950,29 @@ function NewSongColumnA({
         onSongDataChange={onSongDataChange}
         setShowSnackBar={setShowSnackBar}
         setSnackbarMessage={setSnackbarMessage}
+        compact
       />
+      ) : null}
 
       {touchInlineMedia ? (
-        <div className="mt-4 space-y-4">
-          <div className="rounded-[20px] neuphormism-b p-3">
-            <div className="mb-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                {t("songPages.videos")}
-              </p>
-            </div>
-            <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none [&_.neuphormism-b-btn]:!rounded-[14px] [&_.neuphormism-b-btn]:!bg-white">
+        <div className="space-y-4">
+          {(!touchSection || touchSection === "videos") ? (
               <NewSongEmbed
                 ytEmbedSongList={embedLink}
                 setEmbedLink={setEmbedLink}
+                compact
               />
-            </div>
-          </div>
+          ) : null}
 
-          <div className="rounded-[20px] neuphormism-b p-3">
-            <div className="mb-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                {t("songPages.setlist")}
-              </p>
-            </div>
-            <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
+          {(!touchSection || touchSection === "setlists") ? (
               <NewSongSetlist
                 setlistOptions={setListOptions}
                 setSetlistOptions={setSetListOptions}
                 setlist={setlist}
                 setSetlist={setSetlist}
+                compact
               />
-            </div>
-          </div>
+          ) : null}
         </div>
       ) : (
       <>

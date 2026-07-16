@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { FaPlus, FaVideo } from "react-icons/fa";
 
 /* eslint-disable react/prop-types */
 const EditSongEmbed = ({
@@ -7,6 +8,7 @@ const EditSongEmbed = ({
   setShowSnackBar,
   setSnackbarMessage,
   onSaveVideos,
+  compact = false,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [videoItems, setVideoItems] = useState([]);
@@ -185,13 +187,14 @@ const EditSongEmbed = ({
   };
 
   return (
-    <div className="my-5 flex flex-col rounded-[30px] neuphormism-b p-5">
-      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] pb-5">
-        Videos
-      </p>
+    <div className={compact ? "my-0 flex flex-col rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]" : "my-5 flex flex-col rounded-[30px] neuphormism-b p-5"}>
+      <div className={`${compact ? "mb-3" : "pb-5"} flex items-center justify-between gap-3`}>
+        <p className={`${compact ? "text-[10px] tracking-[0.22em]" : "text-[11px] tracking-[0.24em]"} font-bold uppercase text-[goldenrod]`}>Videos</p>
+        {compact ? <span className="flex items-center gap-1.5 rounded-full bg-black/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase text-gray-500"><FaVideo className="text-[9px]" />{videoItems.length} {videoItems.length === 1 ? "video" : "videos"}</span> : null}
+      </div>
 
       {selectedVideo && (
-        <div className="mb-4 rounded-[18px] neuphormism-b-se p-3">
+        <div className={compact ? "mb-3 rounded-[13px] border border-black/5 bg-white/70 p-2.5" : "mb-4 rounded-[18px] neuphormism-b-se p-3"}>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
               Preview
@@ -206,7 +209,7 @@ const EditSongEmbed = ({
           </div>
           <iframe
             width="100%"
-            height="315"
+            height={compact ? "190" : "315"}
             src={`https://www.youtube.com/embed/${getVideoId(selectedVideo)}`}
             title="YouTube video player"
             frameBorder="0"
@@ -216,12 +219,12 @@ const EditSongEmbed = ({
         </div>
       )}
 
-      <div className="flex flex-row gap-2">
+      <div className={`${compact ? "rounded-[13px] border border-black/5 bg-white/75 p-2 shadow-[0_5px_14px_rgba(0,0,0,0.04)]" : ""} grid grid-cols-[minmax(0,1fr)_auto] gap-2`}>
         <input
           type="text"
           name="ytlink"
           placeholder="Insert your link here"
-          className="w-full p-1 border border-gray-300 rounded-md text-sm"
+          className={`${compact ? "h-10 rounded-[10px] px-3 text-[12px] font-semibold" : "p-1 rounded-md text-sm"} w-full border border-gray-300 bg-white outline-none focus:border-[goldenrod]`}
           value={inputValue}
           disabled={isSaving}
           onChange={(e) => {
@@ -237,23 +240,23 @@ const EditSongEmbed = ({
         />
         <button
           type="button"
-          className="neuphormism-b-btn flex h-9 min-w-[4.5rem] items-center justify-center rounded-[12px] px-3 text-xs font-bold uppercase text-black"
+          className={`${compact ? "h-10 min-w-[4.25rem] rounded-[10px] bg-[goldenrod]/15 text-[11px]" : "h-9 min-w-[4.5rem] rounded-[12px] text-xs neuphormism-b-btn"} flex items-center justify-center gap-1.5 px-3 font-bold uppercase text-black`}
           onClick={handleAddVideo}
           disabled={isSaving}
         >
-          {isSaving ? "Saving" : "Add"}
+          {compact && !isSaving ? <FaPlus className="text-[9px]" /> : null}{isSaving ? "Saving" : "Add"}
         </button>
       </div>
       {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
-      <div className="my-3">
+      {videoItems.length ? <div className={compact ? "mt-2.5" : "my-3"}>
         <ul className="flex flex-col gap-2">
           {videoItems.map(({ title, url }, index) => (
             <li
               key={`${url}-${index}`}
-              className="flex items-center justify-between gap-3 rounded-[14px] px-3 py-2 text-left neuphormism-b-se"
+              className={`${compact ? "rounded-[12px] border border-black/5 bg-white/70 px-2.5 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.04)]" : "rounded-[14px] px-3 py-2 neuphormism-b-se"} flex items-center justify-between gap-2 text-left`}
             >
               <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                <span className="min-w-0 truncate text-sm font-medium text-black">{title}</span>
+                <span className={`${compact ? "text-[11px] font-bold" : "text-sm font-medium"} min-w-0 truncate text-black`}>{title}</span>
                 <button
                   type="button"
                   onClick={() => handleDeleteVideo(url)}
@@ -273,7 +276,7 @@ const EditSongEmbed = ({
             </li>
           ))}
         </ul>
-      </div>
+      </div> : null}
     </div>
   );
 };

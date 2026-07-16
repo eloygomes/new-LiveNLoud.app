@@ -372,7 +372,7 @@ function ChordDiagram({ fingering }) {
 export default function ChordDisplay({ fingering, chordName }) {
   return (
     <div className="flex justify-center items-center ">
-      <div className="p-5 rounded-lg shadow-lg bg-white">
+      <div className="rounded-lg bg-white p-3 shadow-lg sm:p-5">
         <ChordDiagram fingering={fingering} chordName={chordName} />
       </div>
     </div>

@@ -40,6 +40,7 @@ vi.mock("./Tags", () => ({
     return (
       <div>
         Tags section: {setlists.join(",")} / selected: {selectedSetlists.join(",")}
+        <input aria-label="Tag draft" />
       </div>
     );
   },
@@ -139,6 +140,120 @@ describe("DashboardOptions", () => {
     window.dispatchEvent(new Event("dashboard-mobile-close-filter"));
 
     expect(setOptStatus).toHaveBeenCalledWith(false);
+  });
+
+  it("shows the mobile summary and five option layers without initial scrolling", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    renderDashboardOptions();
+
+    expect(screen.getByRole("heading", { name: "FILTER" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Song summary")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Open / })).toHaveLength(5);
+    expect(screen.getByRole("button", { name: "Open Filters" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Column Data" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Offline Content" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Export" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Playlists" })).toBeInTheDocument();
+  });
+
+  it("navigates between mobile layers and preserves mounted layer state", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    renderDashboardOptions();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Filters" }));
+    expect(screen.getByRole("heading", { name: "FILTERS" })).toBeInTheDocument();
+
+    const draft = screen.getByLabelText("Tag draft");
+    fireEvent.change(draft, { target: { value: "Rehearsal" } });
+    fireEvent.click(screen.getByRole("button", { name: "Back to filter menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Filters" }));
+
+    expect(screen.getByLabelText("Tag draft")).toHaveValue("Rehearsal");
+  });
+
+  it("opens each mobile content layer and returns to the main menu", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    renderDashboardOptions();
+
+    for (const name of ["Column Data", "Offline Content", "Export", "Playlists"]) {
+      fireEvent.click(screen.getByRole("button", { name: `Open ${name}` }));
+      expect(
+        screen.getByRole("heading", { name: name.toUpperCase() }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Back to filter menu" }));
+    }
+
+    expect(screen.getByRole("heading", { name: "FILTER" })).toBeInTheDocument();
+  });
+
+  it("keeps mobile column controls focused on visibility only", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    renderDashboardOptions();
+    fireEvent.click(screen.getByRole("button", { name: "Open Column Data" }));
+
+    expect(screen.getByLabelText("Videos")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Instrument Progression" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Move Progression/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("reveals the mobile instrument progression tab only without general progression", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    renderDashboardOptions({ visibleColumns: ["tags"] });
+    fireEvent.click(screen.getByRole("button", { name: "Open Column Data" }));
+
+    const instrumentsTab = screen.getByRole("button", {
+      name: "Instrument Progression",
+    });
+    expect(instrumentsTab).toBeInTheDocument();
+    expect(instrumentsTab).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(instrumentsTab);
+    expect(instrumentsTab).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("disables instrument progressions before enabling general progression on mobile", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    const onToggleColumn = vi.fn();
+    renderDashboardOptions({
+      visibleColumns: ["guitar01Progression", "bassProgression"],
+      onToggleColumn,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Open Column Data" }));
+    fireEvent.click(screen.getByLabelText("Progression"));
+
+    expect(onToggleColumn.mock.calls).toEqual([
+      ["guitar01Progression"],
+      ["bassProgression"],
+      ["progression"],
+    ]);
   });
 
   it("calls the column handlers when the user toggles or reorders columns", () => {

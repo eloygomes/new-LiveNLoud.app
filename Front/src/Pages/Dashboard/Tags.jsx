@@ -164,7 +164,13 @@ export default function Tags({
 
   return (
     <>
-      <section className="neuphormism-b p-4">
+      <section
+        className={
+          isTouchLayout
+            ? "rounded-[18px] border border-black/5 bg-white/55 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.06)]"
+            : "neuphormism-b p-4"
+        }
+      >
         <div
           className={
             isTouchLayout
@@ -173,9 +179,13 @@ export default function Tags({
           }
         >
           <div
-            className={isTouchLayout ? "flex flex-col" : "w-1/2 flex flex-col"}
+            className={
+              isTouchLayout
+                ? "flex flex-col items-center text-center"
+                : "w-1/2 flex flex-col"
+            }
           >
-            <h1 className="text-sm font-bold uppercase">Setlist Filters</h1>
+            <h1 className={`${isTouchLayout ? "text-xs" : "text-sm"} font-bold uppercase`}>Setlist Filters</h1>
             {!isTouchLayout ? (
               <>
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
@@ -192,19 +202,25 @@ export default function Tags({
           <div
             className={
               isTouchLayout
-                ? "grid grid-cols-3 gap-2"
+              ? "grid grid-cols-3 gap-1 rounded-[14px] bg-black/[0.04] p-1"
                 : "w-1/2 flex flex-row justify-between gap-2"
             }
           >
             <div className={isTouchLayout ? "hidden" : "w-1/4"}></div>
             <button
               type="button"
-              className={`flex items-center justify-center gap-2 rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
+              className={`flex min-h-11 items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-colors ${
+                isTouchLayout ? "rounded-[11px]" : "rounded-md"
+              } ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "new"
-                  ? "neuphormism-b-btn-gold"
-                  : "neuphormism-b-btn "
+                  ? isTouchLayout
+                    ? "bg-[goldenrod] text-black shadow-[0_4px_12px_rgba(218,165,32,0.24)]"
+                    : "neuphormism-b-btn-gold"
+                  : isTouchLayout
+                    ? "text-gray-500"
+                    : "neuphormism-b-btn "
               }`}
               onClick={() => setActiveTab("new")}
             >
@@ -213,12 +229,18 @@ export default function Tags({
             </button>
             <button
               type="button"
-              className={`flex items-center justify-center gap-2 rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
+              className={`flex min-h-11 items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-colors ${
+                isTouchLayout ? "rounded-[11px]" : "rounded-md"
+              } ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "tags"
-                  ? "neuphormism-b-btn-gold"
-                  : "neuphormism-b-btn "
+                  ? isTouchLayout
+                    ? "bg-[goldenrod] text-black shadow-[0_4px_12px_rgba(218,165,32,0.24)]"
+                    : "neuphormism-b-btn-gold"
+                  : isTouchLayout
+                    ? "text-gray-500"
+                    : "neuphormism-b-btn "
               }`}
               onClick={() => setActiveTab("tags")}
             >
@@ -227,12 +249,18 @@ export default function Tags({
             </button>
             <button
               type="button"
-              className={`flex items-center justify-center gap-2 rounded-md px-2 py-2 text-sm font-bold uppercase transition-colors ${
+              className={`flex min-h-11 items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-colors ${
+                isTouchLayout ? "rounded-[11px]" : "rounded-md"
+              } ${
                 isTouchLayout ? "" : "flex-1"
               } ${
                 activeTab === "export"
-                  ? "neuphormism-b-btn-gold"
-                  : "neuphormism-b-btn "
+                  ? isTouchLayout
+                    ? "bg-[goldenrod] text-black shadow-[0_4px_12px_rgba(218,165,32,0.24)]"
+                    : "neuphormism-b-btn-gold"
+                  : isTouchLayout
+                    ? "text-gray-500"
+                    : "neuphormism-b-btn "
               }`}
               onClick={() => setActiveTab("export")}
             >
@@ -243,7 +271,7 @@ export default function Tags({
         </div>
 
         {activeTab === "new" ? (
-          <div className="mt-4">
+          <div className="mt-3">
             <div>
               <h2 className="text-[11px] font-bold uppercase text-gray-600">
                 New setlist
@@ -255,7 +283,7 @@ export default function Tags({
               </p>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className={`mt-4 flex gap-2 ${isTouchLayout ? "flex-col" : ""}`}>
               <input
                 type="text"
                 className="input-neumorfismo min-w-0 flex-1 rounded-lg border border-transparent bg-[#e0e0e0] px-3 py-2 text-[16px] font-semibold outline-none focus:border-[goldenrod] md:text-sm"
@@ -271,7 +299,7 @@ export default function Tags({
               />
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold uppercase neuphormism-b-btn-gold"
+                className={`flex items-center justify-center gap-2 px-5 py-2 text-sm font-bold uppercase neuphormism-b-btn-gold ${isTouchLayout ? "min-h-11 rounded-xl" : "rounded-lg"}`}
                 onClick={addNewTag}
               >
                 <FaPlus className="h-3.5 w-3.5" />
@@ -285,12 +313,13 @@ export default function Tags({
           <div className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-[11px] font-bold uppercase text-gray-600 mt-5">
+                <h2 className={`text-[11px] font-bold uppercase text-gray-600 ${isTouchLayout ? "mt-1" : "mt-5"}`}>
                   Filter dashboard by setlist
                 </h2>
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
-                  Click one or more setlists to filter the song table. Gold tags
-                  are active filters; clicking them again removes them.
+                  {isTouchLayout
+                    ? "Tap any setlist to show only its songs. Active filters appear in gold."
+                    : "Click one or more setlists to filter the song table. Gold tags are active filters; clicking them again removes them."}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -331,7 +360,7 @@ export default function Tags({
                 <div
                   className={
                     isTouchLayout
-                      ? "grid max-h-44 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3"
+                      ? "grid grid-cols-2 gap-2 sm:grid-cols-3"
                       : "flex flex-wrap gap-2"
                   }
                 >
@@ -367,7 +396,9 @@ export default function Tags({
                         style={{
                           minWidth: isTouchLayout ? "0" : undefined,
                           margin: isTouchLayout ? "0" : undefined,
-                          padding: isTouchLayout ? "10px 12px" : undefined,
+                          padding: isTouchLayout ? "15px 12px" : undefined,
+                          minHeight: isTouchLayout ? "56px" : undefined,
+                          fontSize: isTouchLayout ? "14px" : undefined,
                           ...tagAnimationStyle,
                         }}
                       >
@@ -400,7 +431,7 @@ export default function Tags({
         {activeTab === "export" ? (
           <div
             className={
-              isTouchLayout ? "mt-5 border-t border-black/5 pt-4" : "mt-4"
+              isTouchLayout ? "mt-4 rounded-[14px] bg-white/55 p-3" : "mt-4"
             }
           >
             {/* <div className="flex flex-wrap items-center justify-between gap-2">
@@ -460,7 +491,7 @@ export default function Tags({
               )}
             </div>
 
-            <div className="relative mt-2 grid grid-cols-[1fr,auto] gap-2">
+            <div className="relative mt-3 grid grid-cols-[1fr,auto] gap-2">
               <div className="relative min-w-0">
                 <input
                   type="email"
@@ -470,7 +501,7 @@ export default function Tags({
                     setShareStatus("");
                     setShareError("");
                   }}
-                  className="w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-[16px] font-semibold text-gray-700 outline-none focus:border-[goldenrod] md:text-sm"
+                  className={`w-full min-w-0 border border-gray-300 bg-white px-3 py-2 text-[16px] font-semibold text-gray-700 outline-none focus:border-[goldenrod] md:text-sm ${isTouchLayout ? "min-h-11 rounded-xl" : "rounded-lg"}`}
                   placeholder="friend@email.com"
                 />
                 {destinationEmail && friendSuggestions.length > 0 ? (

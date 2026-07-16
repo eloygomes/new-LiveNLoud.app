@@ -606,6 +606,7 @@ function EditSongColumnBMobile(props) {
         ...instrumentConfig,
         link: props[instrumentConfig.stateName],
         notes: props[instrumentConfig.notesName],
+        progress: props[instrumentConfig.progressName],
       })),
     [props],
   );
@@ -627,7 +628,7 @@ function EditSongColumnBMobile(props) {
   }
 
   return (
-    <div className="mt-4 rounded-[20px] neuphormism-b p-3">
+    <div className={`${props.touchSection && props.touchSection !== "links" ? "hidden" : "block"} order-2 rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]`}>
       <button
         type="button"
         className="flex w-full items-center justify-between"
@@ -651,13 +652,14 @@ function EditSongColumnBMobile(props) {
       </button>
 
       {touchInstrumentsOpen ? (
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-2.5">
           {instrumentCards.map((instrumentCard) => (
             <InstrumentCard
               key={instrumentCard.key}
               card={instrumentCard}
               isOpen={activeInstrument === instrumentCard.key}
               onClick={() => toggleInstrument(instrumentCard.key)}
+              compact
             />
           ))}
         </div>
@@ -688,7 +690,7 @@ function SectionHeader() {
   );
 }
 
-function InstrumentCard({ card, isOpen, onClick }) {
+function InstrumentCard({ card, isOpen, onClick, compact = false }) {
   const { label, short, icon: Icon, link, notes, progress } = card;
   const hasLink = Boolean(link?.trim());
   const hasNotes = Boolean(notes?.trim());
@@ -696,21 +698,20 @@ function InstrumentCard({ card, isOpen, onClick }) {
   return (
     <button
       type="button"
-      className={`rounded-[18px] p-4 text-left transition active:scale-[0.99] neuphormism-b-se ${
+      className={`${compact ? "min-h-[88px] overflow-hidden rounded-[14px] border border-black/5 bg-white/75 p-2.5 shadow-[0_5px_14px_rgba(0,0,0,0.04)]" : "rounded-[18px] p-4 neuphormism-b-se"} text-left transition active:scale-[0.99] ${
         hasLink ? "text-black" : "text-gray-400 opacity-75"
       }`}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between">
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-full text-black ${
-            hasLink ? "text-[goldenrod] neuphormism-b-btn" : "neuphormism-b-avatar text-gray-400"
-          }`}
-        >
-          <Icon className="text-[14px]" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className={`flex shrink-0 items-center justify-center rounded-[9px] text-black ${compact ? "h-7 w-7" : "h-11 w-11"} ${hasLink ? "bg-[goldenrod]/15 text-[goldenrod]" : "bg-black/[0.035] text-gray-400"}`}>
+            <Icon className={compact ? "text-[11px]" : "text-[14px]"} />
+          </div>
+          {compact ? <div className={`truncate text-[12px] font-black ${hasLink ? "text-black" : "text-gray-400"}`}>{label}</div> : null}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           {hasLink ? <FaCheckCircle className="text-sm text-[goldenrod]" /> : null}
           {hasNotes ? (
             <FaRegStickyNote
@@ -718,21 +719,23 @@ function InstrumentCard({ card, isOpen, onClick }) {
               aria-label="Notes registered"
             />
           ) : null}
-          <span className={`text-sm font-bold ${hasLink ? "text-black" : "text-gray-400"}`}>
+          <span className={`${compact ? "text-[10px]" : "text-sm"} font-black ${hasLink ? "text-black" : "text-gray-400"}`}>
             {Number(progress || 0)}%
           </span>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <div className={`text-[1.05rem] font-bold ${hasLink ? "text-black" : "text-gray-400"}`}>{label}</div>
-        <div className={`shrink-0 text-xs font-bold ${hasLink ? "text-[goldenrod]" : "text-gray-500"}`}>
+      <div className={`${compact ? "mt-3" : "mt-4"} flex items-center justify-between gap-2`}>
+        {!compact ? <div className="text-[1.05rem] font-bold">{label}</div> : null}
+        <div className={`${compact ? "text-[9px]" : "text-xs"} font-bold ${hasLink ? "text-[goldenrod]" : "text-gray-500"}`}>
           {hasLink ? "Link added" : "No URL yet"}
         </div>
+        {compact ? <span className="text-[9px] font-bold text-gray-400" aria-hidden="true">↗</span> : null}
       </div>
-      <div className="mt-2 text-right text-xs font-medium text-black/55">
+      {compact ? <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/[0.05]"><span className="block h-full rounded-full bg-[goldenrod]" style={{ width: `${Math.max(0, Math.min(100, Number(progress || 0)))}%` }} /></div> : null}
+      {!compact ? <div className="mt-2 text-right text-xs font-medium text-black/55">
         {isOpen ? "Tap to close" : "Tap to add"}
-      </div>
+      </div> : null}
     </button>
   );
 }
@@ -750,35 +753,36 @@ function InstrumentModal({ config, props, onClose }) {
         aria-label={t("instrumentModal.closeInstrument")}
       />
 
-      <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#f2f2f2] px-4 pb-6 pt-4 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[86vh] md:w-[min(1120px,94vw)] md:origin-center md:-translate-x-1/2 md:-translate-y-1/2 md:scale-[0.8] md:overflow-visible md:rounded-[28px] md:px-5">
-        <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-gray-300" />
-        <div className="mb-3 flex items-start justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+      <div className="absolute inset-x-0 bottom-0 max-h-[82dvh] overflow-x-hidden overflow-y-auto rounded-t-[24px] bg-[#f2f2f2] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_32px_rgba(0,0,0,0.16)] md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[86vh] md:w-[min(1120px,94vw)] md:-translate-x-1/2 md:-translate-y-1/2 md:scale-[0.8] md:overflow-visible md:rounded-[28px] md:px-5">
+        <div className="mx-auto mb-3 h-1 w-12 rounded-full bg-gray-300" />
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:text-[11px]">
               {t("instrumentModal.details")}
             </p>
-            <div className="mt-1 flex items-center gap-3 text-[clamp(1.7rem,8vw,2.25rem)] font-bold tracking-tight text-black">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] neuphormism-b-btn text-[1.15rem]">
+            <div className="mt-1.5 flex items-center gap-2.5 text-[1.35rem] font-black tracking-tight text-black md:text-[2rem]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[goldenrod]/15 text-[goldenrod] md:h-11 md:w-11 md:rounded-[14px]">
                 <Icon aria-hidden="true" />
               </span>
-              <span>{config.label}</span>
+              <span className="truncate">{config.label}</span>
             </div>
 
-            <div className="mt-1 whitespace-nowrap text-base font-medium leading-6 text-gray-500">
+            <div className="mt-1 max-w-[17rem] text-[11px] font-medium leading-4 text-gray-500 md:max-w-none md:text-base md:leading-6">
               {t("instrumentModal.urlHelp")}
             </div>
           </div>
 
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[12px] text-black shadow-[0_5px_14px_rgba(0,0,0,0.07)] md:h-10 md:w-10"
             onClick={onClose}
+            aria-label={t("instrumentModal.closeInstrument")}
           >
             <FaTimes />
           </button>
         </div>
 
-        <div className="rounded-[20px] neuphormism-b-se p-3">
+        <div className="rounded-[18px] bg-white/45 p-2.5 shadow-[0_6px_18px_rgba(0,0,0,0.05)] md:p-3">
           <InstrumentInputBox
             config={config}
             props={props}

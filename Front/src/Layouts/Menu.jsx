@@ -247,14 +247,24 @@ export default function RootLayouts() {
       <header>
         {/* Mobile */}
         {window.innerWidth < 768 && !isToolDetailRoute && !hideMobileHeader ? (
-          <nav className="fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 pb-3 pt-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)]">
+          <nav
+            className={`fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)] ${
+              isUserProfileRoute ? "pb-2.5 pt-3" : "pb-3 pt-4"
+            }`}
+          >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="cursor-pointer" onClick={handleHomeNavigation}>
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                     {mobileHeaderCopy.eyebrow}
                   </p>
-                  <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
+                  <h1
+                    className={`font-bold leading-none tracking-tight text-black ${
+                      isUserProfileRoute
+                        ? "mt-1 text-[1.55rem]"
+                        : "mt-2 text-[1.9rem]"
+                    }`}
+                  >
                     {mobileHeaderCopy.title}
                   </h1>
                 </div>

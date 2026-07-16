@@ -41,6 +41,106 @@ const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 const QUICK_ADD_EXTENSION_READY_EVENT = "livenloud:quick-add-extension-ready";
 const QUICK_ADD_EXTENSION_DOWNLOAD_URL = `${API_BASE}/downloads/sustenido-quick-add.zip`;
 
+export function ChromeExtensionInfoModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-[130] bg-black/40 px-3">
+      <button
+        type="button"
+        className="absolute inset-0 h-full w-full cursor-default"
+        onClick={onClose}
+        aria-label="Close Chrome Extension information"
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chrome-extension-title"
+        className="absolute left-1/2 top-1/2 max-h-[84dvh] w-[min(calc(100%_-_1.5rem),440px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[22px] bg-[#f2f2f2] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.22)]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
+              Quick Add
+            </p>
+            <h2
+              id="chrome-extension-title"
+              className="mt-1.5 text-[1.4rem] font-black leading-none tracking-tight text-black"
+            >
+              Chrome Extension
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[12px] text-black shadow-[0_5px_14px_rgba(0,0,0,0.07)]"
+            onClick={onClose}
+            aria-label="Close Chrome Extension information"
+          >
+            <FaTimes />
+          </button>
+        </div>
+
+        <div className="mt-3 rounded-[15px] border border-black/5 bg-white/65 p-3 shadow-[0_5px_14px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[goldenrod]/15 text-[12px] text-[goldenrod]">
+              <FaPuzzlePiece aria-hidden="true" />
+            </span>
+            <p className="text-[12px] font-black leading-4 text-gray-800">
+              Save the song open in your browser directly to Sustenido.
+            </p>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
+            {["Choose instruments", "Set details", "Add instantly"].map(
+              (step, index) => (
+                <div
+                  key={step}
+                  className="rounded-[10px] bg-black/[0.035] px-1.5 py-2"
+                >
+                  <span className="block text-[8px] font-black text-[goldenrod]">
+                    0{index + 1}
+                  </span>
+                  <span className="mt-0.5 block text-[9px] font-bold leading-3 text-gray-600">
+                    {step}
+                  </span>
+                </div>
+              ),
+            )}
+          </div>
+
+          <div className="mt-3 border-t border-black/5 pt-3">
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-gray-500">
+              Supported sites
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {["Cifra Club", "Letras", "Ultimate Guitar"].map((site) => (
+                <span
+                  key={site}
+                  className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold text-gray-700 shadow-[0_3px_9px_rgba(0,0,0,0.04)]"
+                >
+                  {site}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2.5 text-[10px] font-medium leading-4 text-gray-500">
+              Available by direct download while the Chrome Web Store version
+              is being prepared.
+            </p>
+          </div>
+
+          <a
+            href={QUICK_ADD_EXTENSION_DOWNLOAD_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[goldenrod] px-3 text-[11px] font-black uppercase tracking-[0.12em] text-black shadow-[0_6px_15px_rgba(162,113,0,0.2)]"
+          >
+            <FaDownload className="text-[10px]" aria-hidden="true" />
+            Download extension
+          </a>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 /** Normaliza a resposta do scrape em um doc utilizável */
 function normalizeScrapeDoc(scraped, instrumentName) {
   if (!scraped) return null;
@@ -200,7 +300,7 @@ function NewSongInputLinkBox({
   const shouldShowGuitarProRow = false;
   const expandedControls = touchLayout || modalLayout;
   const iconButtonClass =
-    "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[12px] text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60";
+    "neuphormism-b-btn flex h-9 w-9 items-center justify-center rounded-[10px] text-sm text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60 md:h-10 md:w-10 md:rounded-[12px]";
 
   const buildUserErrorMessage = useCallback((error) => {
     const responseMessage =
@@ -721,9 +821,9 @@ function NewSongInputLinkBox({
   }, [instrumentName, routeIncomingLink]);
 
   useEffect(() => {
-    if (!touchLayout || !notesOpen) return undefined;
+    if (!touchLayout || (!notesOpen && !extensionInfoOpen)) return undefined;
     return lockPageScroll();
-  }, [notesOpen, touchLayout]);
+  }, [extensionInfoOpen, notesOpen, touchLayout]);
 
   const rangeProgress = `${Number(progress || 0)}%`;
 
@@ -750,7 +850,7 @@ function NewSongInputLinkBox({
 
   return (
     <div
-      className={`${modalLayout ? "grid gap-y-5 gap-x-3 md:grid-cols-[1.45fr_0.55fr]" : "flex w-full flex-col"} ${
+      className={`${modalLayout ? "grid gap-x-3 gap-y-3 md:grid-cols-[1.45fr_0.55fr] md:gap-y-5" : "flex w-full flex-col"} ${
         expandedControls
           ? "mt-0 rounded-[18px] bg-transparent px-0 py-0"
           : `mt-0 neuphormism-b px-5 py-4 ${
@@ -832,31 +932,31 @@ function NewSongInputLinkBox({
       {modalLayout && !extensionInstalled ? (
         <button
           type="button"
-          className="md:col-span-2 flex w-full items-center justify-between gap-3 rounded-[16px] bg-[goldenrod] px-4 py-2.5 text-left text-black shadow-[6px_6px_14px_rgba(0,0,0,0.14),-6px_-6px_14px_rgba(255,255,255,0.78)] transition hover:brightness-[0.98] active:scale-[0.99]"
+          className="flex w-full items-center justify-between gap-2.5 rounded-[14px] bg-[goldenrod] px-3 py-2.5 text-left text-black shadow-[0_7px_16px_rgba(162,113,0,0.18)] transition active:scale-[0.99] md:col-span-2 md:gap-3 md:rounded-[16px] md:px-4"
           onClick={() => setExtensionInfoOpen(true)}
         >
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white/70 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)]">
+          <span className="flex min-w-0 items-center gap-2.5 md:gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white/70 text-[12px] shadow-[inset_2px_2px_5px_rgba(0,0,0,0.08),inset_-2px_-2px_5px_rgba(255,255,255,0.8)] md:h-10 md:w-10 md:rounded-[12px] md:text-base">
               <FaChrome aria-hidden="true" />
             </span>
             <span className="min-w-0">
-              <span className="block text-[11px] font-bold uppercase tracking-[0.2em]">
+              <span className="block text-[9px] font-black uppercase tracking-[0.18em] md:text-[11px]">
                 Chrome Extension
               </span>
-              <span className="mt-1 block text-sm font-bold leading-5">
+              <span className="mt-0.5 block text-[11px] font-bold leading-4 md:mt-1 md:text-sm md:leading-5">
                 Add songs faster from Cifra Club, Letras and Ultimate Guitar.
               </span>
             </span>
           </span>
-          <span className="shrink-0 text-xs font-bold uppercase tracking-[0.14em]">
-            Learn more
+          <span className="shrink-0 text-[10px] font-black" aria-hidden="true">
+            ↗
           </span>
         </button>
       ) : null}
 
       <div className={`relative ${expandedControls ? "mt-0" : "mt-2"} ${modalLayout ? "md:col-span-2" : ""}`}>
         {modalLayout ? (
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:mb-2 md:text-[11px]">
             {t("instrumentModal.linkSource")}
           </p>
         ) : null}
@@ -865,7 +965,7 @@ function NewSongInputLinkBox({
           placeholder={t("instrumentModal.linkPlaceholder")}
           className={`w-full border border-[goldenrod]/35 bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
             expandedControls
-              ? "h-14 rounded-[16px] px-4 text-base font-bold"
+              ? "h-12 rounded-[13px] px-3.5 text-[13px] font-bold md:h-14 md:rounded-[16px] md:px-4 md:text-base"
               : "h-6 rounded-sm p-1 text-sm"
           } ${isLocked ? "cursor-default" : ""}`}
           value={instrument}
@@ -902,7 +1002,7 @@ function NewSongInputLinkBox({
       {expandedControls && !hasLink ? (
         <button
           type="button"
-          className="flex h-12 w-full items-center justify-center gap-2 self-end rounded-[12px] neuphormism-b-btn px-3 text-xs font-bold text-black"
+          className="flex h-11 w-full items-center justify-center gap-2 self-end rounded-[11px] neuphormism-b-btn px-3 text-[11px] font-bold text-black md:h-12 md:rounded-[12px] md:text-xs"
           onClick={pasteLinkFromClipboard}
         >
           <FaPaste aria-hidden="true" />
@@ -911,7 +1011,7 @@ function NewSongInputLinkBox({
       ) : null}
 
       {expandedControls ? (
-        <div className={`md:col-span-2 mt-0 grid gap-3 ${hasLink ? "grid-cols-3" : "grid-cols-2"}`}>
+        <div className={`mt-0 grid gap-2 md:col-span-2 md:gap-3 ${hasLink ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             type="button"
             aria-label={
@@ -922,14 +1022,14 @@ function NewSongInputLinkBox({
             title={hasLink ? "Play presentation" : "No link added"}
             disabled={!hasLink}
             onClick={openPresentation}
-            className={`neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold ${
+            className={`neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-2.5 py-2 text-left text-[11px] font-bold md:justify-start md:gap-3 md:rounded-[14px] md:px-4 md:py-3 md:text-sm ${
               hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
             }`}
           >
-            <FaPlay aria-hidden="true" className="shrink-0 text-base" />
+            <FaPlay aria-hidden="true" className="shrink-0 text-[12px] md:text-base" />
             <span>
               <span className="block">{t("instrumentModal.play")}</span>
-              <span className="mt-1 block text-xs font-medium text-gray-500">
+              <span className="mt-1 hidden text-xs font-medium text-gray-500 md:block">
                 {t("instrumentModal.playHelp")}
               </span>
             </span>
@@ -944,14 +1044,14 @@ function NewSongInputLinkBox({
             title={hasLink ? "Open link" : "No link added"}
             disabled={!hasLink}
             onClick={openInstrumentLink}
-            className={`neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold ${
+            className={`neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-2.5 py-2 text-left text-[11px] font-bold md:justify-start md:gap-3 md:rounded-[14px] md:px-4 md:py-3 md:text-sm ${
               hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
             }`}
           >
-            <FaExternalLinkAlt aria-hidden="true" className="shrink-0 text-base" />
+            <FaExternalLinkAlt aria-hidden="true" className="shrink-0 text-[12px] md:text-base" />
             <span>
               <span className="block">{t("instrumentModal.openLink")}</span>
-              <span className="mt-1 block text-xs font-medium text-gray-500">
+              <span className="mt-1 hidden text-xs font-medium text-gray-500 md:block">
                 {t("instrumentModal.openLinkHelp")}
               </span>
             </span>
@@ -960,16 +1060,16 @@ function NewSongInputLinkBox({
             <button
               type="button"
               aria-label={`Remove ${instrumentName} link`}
-              className="neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold text-black"
+              className="neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-2.5 py-2 text-left text-[11px] font-bold text-black md:justify-start md:gap-3 md:rounded-[14px] md:px-4 md:py-3 md:text-sm"
               onClick={() => {
                 setInstrument("");
                 updateScrapeStatus(false);
               }}
             >
-              <FaTrashAlt aria-hidden="true" className="shrink-0 text-base" />
+              <FaTrashAlt aria-hidden="true" className="shrink-0 text-[12px] md:text-base" />
               <span>
                 <span className="block">{t("instrumentModal.remove")}</span>
-                <span className="mt-1 block text-xs font-medium text-gray-500">
+                <span className="mt-1 hidden text-xs font-medium text-gray-500 md:block">
                   {t("instrumentModal.removeNewHelp")}
                 </span>
               </span>
@@ -978,17 +1078,17 @@ function NewSongInputLinkBox({
         </div>
       ) : null}
 
-      <div className="md:col-span-2 mt-0 rounded-[16px] neuphormism-b-se px-4 py-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mt-0 rounded-[14px] border border-black/5 bg-white/65 px-3 py-3 shadow-[0_5px_14px_rgba(0,0,0,0.04)] md:col-span-2 md:rounded-[16px] md:px-4">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between md:gap-3">
           <div className="max-w-[24rem]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:text-[11px]">
               {t("instrumentModal.progression")}
             </p>
-            <p className="mt-1 text-sm font-medium leading-5 text-gray-500">
+            <p className="mt-1 text-[11px] font-medium leading-4 text-gray-500 md:text-sm md:leading-5">
               {t("instrumentModal.progressionHelp")}
             </p>
           </div>
-          <div className="flex min-w-[18rem] items-center justify-between gap-3">
+          <div className="flex w-full items-center justify-between gap-3 md:min-w-[18rem] md:w-auto">
           <button
             type="button"
             className={iconButtonClass}
@@ -1000,7 +1100,7 @@ function NewSongInputLinkBox({
           >
             <FaMinus />
           </button>
-          <div className="min-w-[5rem] text-center text-2xl font-bold text-black">
+          <div className="min-w-[5rem] text-center text-xl font-black text-black md:text-2xl">
             {rangeProgress}
           </div>
           <button
@@ -1070,12 +1170,12 @@ function NewSongInputLinkBox({
         </div>
       ) : null}
       {modalLayout ? (
-        <div className="rounded-[16px] neuphormism-b-se px-4 py-3 md:col-span-2">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+        <div className="rounded-[14px] border border-black/5 bg-white/65 px-3 py-3 shadow-[0_5px_14px_rgba(0,0,0,0.04)] md:col-span-2 md:rounded-[16px] md:px-4">
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:mb-2 md:text-[11px]">
             {t("instrumentModal.notes")}
           </p>
           <textarea
-            className="min-h-[148px] w-full resize-y rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
+            className="min-h-[104px] w-full resize-y rounded-[12px] border border-gray-300 bg-white p-3 text-[12px] font-medium text-black outline-none focus:border-[goldenrod] md:min-h-[148px] md:rounded-[14px] md:text-sm"
             value={notes}
             onChange={(event) => onNotesChange?.(event.target.value)}
             onBlur={() =>
@@ -1083,7 +1183,7 @@ function NewSongInputLinkBox({
             }
             placeholder={t("instrumentModal.notesPlaceholder")}
           />
-          <p className="mt-2 text-xs font-medium text-gray-500">
+          <p className="mt-1.5 text-[10px] font-medium leading-4 text-gray-500 md:mt-2 md:text-xs">
             {notesSaving ? "Saving notes..." : t("instrumentModal.notesAutoSave")}
           </p>
         </div>
@@ -1110,67 +1210,9 @@ function NewSongInputLinkBox({
         </div>
       ) : null}
       {extensionInfoOpen ? (
-        <div className="fixed inset-0 z-[130] bg-black/35">
-          <button
-            type="button"
-            className="absolute inset-0 h-full w-full cursor-default"
-            onClick={() => setExtensionInfoOpen(false)}
-            aria-label="Close Chrome Extension information"
-          />
-          <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-[24px] bg-[#f2f2f2] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                  Quick Add
-                </p>
-                <h2 className="mt-2 text-[2rem] font-bold leading-none text-black">
-                  Chrome Extension
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
-                onClick={() => setExtensionInfoOpen(false)}
-                aria-label="Close Chrome Extension information"
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="rounded-[18px] neuphormism-b-se p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[goldenrod] text-black shadow-[0_8px_18px_rgba(218,165,32,0.22)]">
-                  <FaPuzzlePiece aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold leading-6 text-gray-700">
-                    The #Sustenido Quick Add extension lets you save the song
-                    currently open in your browser directly into your library.
-                    Open a supported song page, click the extension icon, choose
-                    the instrument or all detected instruments, set progress,
-                    tags and videos, then add it without coming back to this
-                    form.
-                  </p>
-                  <p className="mt-3 text-sm font-medium leading-6 text-gray-500">
-                    It works with Cifra Club, Letras and Ultimate Guitar. For
-                    now the extension is distributed by direct download; later
-                    it will be available in the Chrome Web Store.
-                  </p>
-                </div>
-              </div>
-
-              <a
-                href={QUICK_ADD_EXTENSION_DOWNLOAD_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-[14px] bg-[goldenrod] px-4 py-3 text-sm font-bold uppercase tracking-[0.16em] text-black shadow-[6px_6px_14px_rgba(0,0,0,0.14),-6px_-6px_14px_rgba(255,255,255,0.78)]"
-              >
-                <FaDownload aria-hidden="true" />
-                Download extension
-              </a>
-            </div>
-          </div>
-        </div>
+        <ChromeExtensionInfoModal
+          onClose={() => setExtensionInfoOpen(false)}
+        />
       ) : null}
     </div>
   );

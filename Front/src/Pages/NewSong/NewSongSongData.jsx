@@ -10,12 +10,79 @@ function NewSongSongData({
   fistTime,
   lastTime,
   touchLayout = false,
+  compact = false,
   geralPercentage = 0,
 }) {
   const addedDate = formatDisplayDate(fistTime) || "-";
   const lastPlayDate = formatDisplayDate(lastTime) || "not played yet";
 
   if (touchLayout) {
+    if (compact) {
+      return (
+        <div className="w-full">
+          <div className="flex items-center justify-between gap-3 border-b border-black/5 pb-2.5">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+                Song Data
+              </div>
+              <div className="mt-1 text-[10px] font-semibold text-gray-500">
+                Always visible as links are imported
+              </div>
+            </div>
+            <div className="rounded-full bg-black px-3 py-1.5 text-[11px] font-bold text-white">
+              {Number(geralPercentage || 0)}%
+            </div>
+          </div>
+
+          <div className="mt-2.5 grid grid-cols-1 gap-2">
+            <div className="min-w-0 rounded-[12px] bg-white/75 px-3 py-2">
+              <div className="text-[9px] font-bold uppercase text-gray-500">
+                Song
+              </div>
+              <div className="mt-0.5 truncate text-[12px] font-bold text-black">
+                {songName || "-"}
+              </div>
+            </div>
+            <div className="min-w-0 rounded-[12px] bg-white/75 px-3 py-2">
+              <div className="text-[9px] font-bold uppercase text-gray-500">
+                Artist
+              </div>
+              <div className="mt-0.5 truncate text-[12px] font-bold text-black">
+                {artistName || "-"}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <div className="min-w-0 rounded-[12px] bg-white/75 px-3 py-2">
+              <div className="text-[9px] font-bold uppercase text-gray-500">
+                Capo
+              </div>
+              <div className="mt-0.5 truncate text-[12px] font-bold text-black">
+                {capoData || "-"}
+              </div>
+            </div>
+            <div className="min-w-0 rounded-[12px] bg-white/75 px-3 py-2">
+              <div className="text-[9px] font-bold uppercase text-gray-500">
+                Key
+              </div>
+              <div className="mt-0.5 truncate text-[12px] font-bold text-black">
+                {tomData || "-"}
+              </div>
+            </div>
+            <div className="min-w-0 rounded-[12px] bg-white/75 px-3 py-2">
+              <div className="text-[9px] font-bold uppercase text-gray-500">
+                Tuning
+              </div>
+              <div className="mt-0.5 truncate text-[12px] font-bold text-black">
+                {tunerData || "-"}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full">
         <div className="flex flex-col gap-3">

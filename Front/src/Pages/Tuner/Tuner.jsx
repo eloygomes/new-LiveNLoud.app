@@ -319,14 +319,14 @@ export default function Tuner() {
 
   return (
     <div
-      className={`min-h-screen overflow-x-hidden bg-[#f0f0f0] px-3 pb-10 pt-4 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4 ${isTouchLayout ? "pb-28" : ""}`}
+      className={`flex min-h-[calc(100dvh-6rem)] flex-col overflow-x-hidden bg-[#f0f0f0] px-3 pb-4 pt-3 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4`}
     >
-      <div className="mx-auto w-full max-w-none">
-        <div className="w-full pb-10 lg:pb-0">
+      <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col sm:max-w-none">
+        <div className="flex w-full flex-1 flex-col lg:pb-0">
           <div
-            className={`mb-5 ${
+            className={`mb-3 ${
               isTouchLayout
-                ? "px-1 py-2"
+                ? "px-1 py-1"
                 : "flex items-center gap-6 neuphormism-b p-5"
             }`}
           >
@@ -336,7 +336,7 @@ export default function Tuner() {
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                     Tuner
                   </p>
-                  <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
+                  <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight text-black">
                     Tune The Sound
                   </h1>
                 </>
@@ -351,8 +351,8 @@ export default function Tuner() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 lg:gap-4">
-            <section className="neuphormism-b rounded p-3 sm:p-4">
+          <div className="flex flex-1 flex-col gap-3 lg:gap-4">
+            <section className="neuphormism-b rounded-[16px] p-2.5 sm:p-4">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-left lg:hidden"
@@ -434,13 +434,13 @@ export default function Tuner() {
               </div>
 
               {showSettings && (
-                <div className="mt-3 grid grid-cols-1 gap-3 lg:hidden">
-                  <label className="flex flex-col gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2 lg:hidden">
+                  <label className="flex flex-col gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#697180]">
                       Instrument Type
                     </span>
                     <select
-                      className="neuphormism-b-btn h-[42px] w-full rounded-[14px] bg-[#efefef] px-3 text-sm font-bold text-black outline-none"
+                      className="neuphormism-b-btn h-10 w-full rounded-[12px] bg-[#efefef] px-3 text-[12px] font-bold text-black outline-none"
                       value={instrumentType}
                       onChange={(event) =>
                         setInstrumentType(event.target.value)
@@ -454,12 +454,12 @@ export default function Tuner() {
                     </select>
                   </label>
 
-                  <label className="flex flex-col gap-2">
+                  <label className="flex flex-col gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#697180]">
                       Tuning
                     </span>
                     <select
-                      className="neuphormism-b-btn h-[42px] w-full rounded-[14px] bg-[#efefef] px-3 text-sm font-bold text-black outline-none"
+                      className="neuphormism-b-btn h-10 w-full rounded-[12px] bg-[#efefef] px-3 text-[12px] font-bold text-black outline-none"
                       value={tuningName}
                       onChange={(event) => setTuningName(event.target.value)}
                     >
@@ -471,13 +471,13 @@ export default function Tuner() {
                     </select>
                   </label>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="col-span-2 flex flex-col gap-1">
                     <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#697180]">
                       Auto Detect
                     </span>
                     <button
                       type="button"
-                      className={`flex h-[42px] w-full items-center justify-between rounded-[14px] px-3 text-sm font-bold uppercase tracking-[0.1em] transition active:scale-[0.98] ${
+                      className={`flex h-10 w-full items-center justify-between rounded-[12px] px-3 text-[11px] font-bold uppercase tracking-[0.08em] transition active:scale-[0.98] ${
                         autoDetectString
                           ? "neuphormism-b-btn-gold text-black"
                           : "neuphormism-b-btn text-black"
@@ -512,8 +512,8 @@ export default function Tuner() {
               )}
             </section>
 
-            <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-315px)] lg:min-h-0 lg:grid-cols-[minmax(96px,10%)_minmax(0,1fr)] lg:gap-4">
-              <section className="order-2 neuphormism-b rounded p-3 sm:p-4 lg:order-1 lg:h-full lg:min-h-0 lg:px-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-3 lg:grid lg:h-[calc(100vh-315px)] lg:grid-cols-[minmax(96px,10%)_minmax(0,1fr)] lg:gap-4">
+              <section className="order-2 shrink-0 neuphormism-b rounded-[16px] p-2.5 sm:p-4 lg:order-1 lg:h-full lg:min-h-0 lg:px-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#697180]">
                     Strings
@@ -523,7 +523,7 @@ export default function Tuner() {
                   </p>
                 </div>
                 <div
-                  className="grid gap-3 lg:flex lg:h-[calc(100%-28px)] lg:flex-col lg:gap-3"
+                  className="grid gap-2 lg:flex lg:h-[calc(100%-28px)] lg:flex-col lg:gap-3"
                   style={{
                     gridTemplateColumns:
                       currentStrings.length >= 12
@@ -537,7 +537,7 @@ export default function Tuner() {
                       <button
                         key={`${string.name}-${index}`}
                         type="button"
-                        className={`min-h-[50px] rounded-[14px] px-2 py-2 text-center text-base font-bold transition active:scale-[0.98] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:px-1 lg:py-1 lg:text-sm ${
+                        className={`min-h-[44px] rounded-[12px] px-2 py-1.5 text-center text-[14px] font-bold transition active:scale-[0.98] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:items-center lg:justify-center lg:px-1 lg:py-1 lg:text-sm ${
                           isSelected
                             ? "neuphormism-b-btn-gold text-black"
                             : "neuphormism-b-btn text-black"
@@ -558,13 +558,13 @@ export default function Tuner() {
                 </div>
               </section>
 
-              <section className="order-1 neuphormism-b rounded p-3 sm:p-4 lg:order-2 lg:h-full lg:min-h-0">
-                <div className="flex h-full flex-col rounded-[24px] px-4 py-5 text-center shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] sm:px-8 lg:justify-center lg:py-6">
+              <section className="order-1 flex min-h-0 flex-1 neuphormism-b rounded-[16px] p-2.5 sm:p-4 lg:order-2 lg:h-full">
+                <div className="flex h-full min-h-0 w-full flex-col justify-center rounded-[16px] px-3 py-3 text-center shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] sm:rounded-[24px] sm:px-8 lg:py-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)] neuphormism-b">
+                    <span className="rounded-[10px] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)] neuphormism-b">
                       {tunerStatus}
                     </span>
-                    <span className="text-xs font-bold uppercase tracking-[0.22em] text-[#697180]">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#697180]">
                       Target: {targetString?.name || "—"}{" "}
                       {targetFrequency
                         ? `${targetFrequency.toFixed(2)} Hz`
@@ -572,21 +572,21 @@ export default function Tuner() {
                     </span>
                   </div>
 
-                  <div className="mt-5 text-[4.8rem] font-bold leading-none tracking-[-0.08em] text-black sm:text-[7rem] lg:text-[8rem]">
+                  <div className="mt-3 text-[3.8rem] font-bold leading-none tracking-[-0.08em] text-black sm:text-[7rem] lg:text-[8rem]">
                     {noteLabel}
                   </div>
-                  <div className="mt-3 text-xl font-bold text-[#697180] sm:text-3xl">
+                  <div className="mt-2 text-[16px] font-bold text-[#697180] sm:text-3xl">
                     {liveFreq
                       ? `${liveFreq.toFixed(2)} Hz`
                       : "No pitch detected"}
                   </div>
-                  <div className="mt-2 text-sm font-bold text-[#697180] sm:text-lg">
+                  <div className="mt-1 text-[12px] font-bold text-[#697180] sm:text-lg">
                     {targetFrequency
                       ? `Target: ${targetFrequency.toFixed(2)} Hz`
                       : "Choose a string"}
                   </div>
 
-                  <div className="mx-auto mt-7 w-full max-w-[820px]">
+                  <div className="mx-auto mt-4 w-full max-w-[820px]">
                     <div className="relative h-8">
                       <div className="absolute left-0 right-0 top-1/2 h-4 -translate-y-1/2 rounded-full bg-white shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]" />
                       {[-50, -25, 0, 25, 50].map((mark) => (
@@ -609,13 +609,13 @@ export default function Tuner() {
                   </div>
 
                   <p
-                    className={`mt-5 text-xl font-bold sm:text-2xl ${Math.abs(cents) <= 5 && liveFreq ? "text-[goldenrod]" : "text-black"}`}
+                    className={`mt-3 text-[16px] font-bold sm:text-2xl ${Math.abs(cents) <= 5 && liveFreq ? "text-[goldenrod]" : "text-black"}`}
                   >
                     {tuneMessage}
                   </p>
 
                   <button
-                    className={`mx-auto mt-5 h-[48px] min-w-[180px] rounded-[16px] px-8 text-sm font-bold uppercase tracking-[0.18em] transition active:scale-[0.98] ${
+                    className={`mx-auto mt-3 h-11 min-w-[160px] rounded-[12px] px-6 text-[11px] font-bold uppercase tracking-[0.14em] transition active:scale-[0.98] ${
                       isTuning
                         ? "bg-black text-[goldenrod] shadow-[0_12px_24px_rgba(0,0,0,0.18)]"
                         : "neuphormism-b-btn-gold text-black"

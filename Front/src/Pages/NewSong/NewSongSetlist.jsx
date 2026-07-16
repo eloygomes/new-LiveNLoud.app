@@ -15,6 +15,7 @@ function NewSongSetlist({
   setSetlistOptions,
   setlist = [],
   setSetlist,
+  compact = false,
 }) {
   // Guardamos o input do usuário para criar um novo setlist
   const [newSetlistName, setNewSetlistName] = useState("");
@@ -116,21 +117,26 @@ function NewSongSetlist({
   // console.log("setlistOptions", setlistOptions);
 
   return (
-    <div className="my-5 rounded-[16px] neuphormism-b px-6 py-6">
+    <div className={compact ? "my-0 rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]" : "my-5 rounded-[16px] neuphormism-b px-6 py-6"}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+          <p className={`${compact ? "text-[10px] tracking-[0.22em]" : "text-[11px] tracking-[0.24em]"} font-bold uppercase text-[goldenrod]`}>
             Setlist
           </p>
-          <p className="mt-2 text-sm font-medium text-gray-500">
-            Available setlists
-          </p>
+          {compact ? (
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.08em] text-[goldenrod]">
+              {setlist.length}/{setlistOptions.length} selected
+            </p>
+          ) : (
+            <p className="mt-2 text-sm font-medium text-gray-500">Available setlists</p>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsCreating((current) => !current)}
-            className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+            className={`${compact ? "h-8 w-8 rounded-[9px] bg-[goldenrod]/15 p-0 text-[12px] shadow-[0_4px_12px_rgba(218,165,32,0.12)]" : "rounded-[8px] px-4 py-2 text-sm neuphormism-b-btn"} font-bold transition-colors`}
+            aria-label="Create setlist"
           >
             +
           </button>
@@ -138,7 +144,7 @@ function NewSongSetlist({
             <button
               type="button"
               onClick={startEditing}
-              className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+              className={`${compact ? "h-8 rounded-[9px] bg-white/75 px-2.5 text-[10px] shadow-[0_4px_12px_rgba(0,0,0,0.04)]" : "rounded-[8px] px-4 py-2 text-sm neuphormism-b-btn"} font-bold transition-colors`}
             >
               Edit
             </button>
@@ -147,14 +153,14 @@ function NewSongSetlist({
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+                className={`${compact ? "h-8 rounded-[9px] bg-white/75 px-2 text-[9px] shadow-[0_4px_12px_rgba(0,0,0,0.04)]" : "rounded-[8px] px-4 py-2 text-sm neuphormism-b-btn"} font-bold transition-colors`}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveChanges}
-                className="rounded-[8px] px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn disabled:opacity-60"
+                className={`${compact ? "h-8 rounded-[9px] bg-[goldenrod]/15 px-2 text-[9px] shadow-[0_4px_12px_rgba(218,165,32,0.12)]" : "rounded-[8px] px-4 py-2 text-sm neuphormism-b-btn"} font-bold transition-colors disabled:opacity-60`}
                 disabled={pendingRemovals.length === 0}
               >
                 Save
@@ -165,10 +171,10 @@ function NewSongSetlist({
       </div>
 
       {isCreating ? (
-      <div className="mt-5">
+      <div className={compact ? "mt-3" : "mt-5"}>
         <label
           htmlFor="newSetlistName"
-          className="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500"
+          className={`${compact ? "mb-1.5 text-[9px]" : "mb-2 text-[11px]"} block font-bold uppercase tracking-[0.18em] text-gray-500`}
         >
           Create a new setlist:
         </label>
@@ -176,7 +182,7 @@ function NewSongSetlist({
           <input
             id="newSetlistName"
             type="text"
-            className="w-full rounded border-0  px-2 py-1 outline-none text-sm"
+            className={`${compact ? "h-10 rounded-[10px] border border-gray-300 px-3 text-[12px]" : "rounded border-0 px-2 py-1 text-sm"} w-full bg-white outline-none focus:border-[goldenrod]`}
             placeholder="Ex: 'Show2023' ou 'Ensaios'"
             value={newSetlistName}
             onChange={(e) => setNewSetlistName(e.target.value)}
@@ -189,7 +195,7 @@ function NewSongSetlist({
           />
           <button
             type="button"
-            className="rounded-[8px] px-3 py-2 text-sm font-bold neuphormism-b-btn"
+            className={`${compact ? "h-10 w-10 rounded-[10px] bg-[goldenrod]/15 p-0 text-[12px]" : "rounded-[8px] px-3 py-2 text-sm neuphormism-b-btn"} font-bold`}
             onClick={handleAddNew}
           >
             +
@@ -198,14 +204,14 @@ function NewSongSetlist({
       </div>
       ) : null}
 
-      <div className="mt-7">
-        <div className="w-full pr-2">
+      <div className={compact ? "mt-3" : "mt-7"}>
+        <div className={compact ? "w-full" : "w-full pr-2"}>
           {setlistOptions.length === 0 ? (
-            <p className="mt-3 italic text-sm text-gray-500">
+            <p className={`${compact ? "rounded-[12px] border border-dashed border-black/10 bg-white/45 px-3 py-4 text-center text-[11px]" : "mt-3 italic text-sm"} text-gray-500`}>
               Nenhuma setlist cadastrada.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className={compact ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-2"}>
               {setlistOptions.map((tag, index) => {
                 const isActive = setlist.includes(tag);
                 const willRemove = pendingRemovals.includes(tag);
@@ -213,7 +219,7 @@ function NewSongSetlist({
                   <button
                     type="button"
                     key={index}
-                    className={`setlist-tag-button ${
+                    className={`setlist-tag-button ${compact ? "!m-0 !h-10 !w-full !min-w-0 !rounded-[11px] !border-black/5 !px-3 !py-2 !text-[11px] !shadow-[0_4px_12px_rgba(0,0,0,0.04)]" : ""} ${
                       isActive ? "setlist-tag-button-active" : ""
                     } ${
                       willRemove
@@ -228,6 +234,9 @@ function NewSongSetlist({
                     }
                     style={{
                       ...tagAnimationStyle,
+                      ...(compact && !isActive
+                        ? { background: "rgba(255, 255, 255, 0.75)" }
+                        : {}),
                     }}
                   >
                     <span>{tag}</span>

@@ -38,7 +38,7 @@ describe("DashboardSongActionSheet", () => {
     expect(screen.getByText("Oceans")).toBeInTheDocument();
     expect(screen.getByText("Hillsong")).toBeInTheDocument();
     expect(screen.getByText("75%")).toBeInTheDocument();
-    expect(screen.getByText("1 instruments")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Online access only");
   });
 
   it("opens only the available instrument", () => {
@@ -64,5 +64,18 @@ describe("DashboardSongActionSheet", () => {
     expect(onEditSong).toHaveBeenCalledWith(
       expect.objectContaining({ song: "Oceans" }),
     );
+  });
+
+  it("closes when the drag handle is pulled down", () => {
+    const { onClose } = renderSheet();
+    const handle = screen.getByRole("button", {
+      name: "Drag down to close song sheet",
+    });
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 100 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 190 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientY: 190 });
+
+    expect(onClose).toHaveBeenCalled();
   });
 });

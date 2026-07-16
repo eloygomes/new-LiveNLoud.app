@@ -180,6 +180,7 @@ function EditSongColumnA({
   songData = null,
   onSongDataChange,
   onPageActionsChange,
+  touchSection,
 }) {
   const { t } = useLanguage();
   // Dados principais da música
@@ -894,25 +895,10 @@ function EditSongColumnA({
 
   return touchLayout ? (
     <>
-      <div className="rounded-[20px] neuphormism-b p-3">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between"
-          onClick={onToggleSongData}
-        >
-          <div className="text-left">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-              {t("songPages.songWorkspace")}
-            </p>
-            <h2 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">{t("songPages.songData")}</h2>
-          </div>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full neuphormism-b-avatar text-black">
-            {songDataOpen ? <FaChevronUp className="text-sm" /> : <FaChevronDown className="text-sm" />}
-          </span>
-        </button>
-
-        {songDataOpen ? (
-          <div className="mt-3">
+      {touchSection ? (
+      <div className="rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
+        {songDataOpen || touchSection === "songData" ? (
+          <div>
             <EditSongSongData
               songName={songName}
               artistName={artistName}
@@ -927,15 +913,17 @@ function EditSongColumnA({
               setTomData={setTomData}
               setTunerData={setTunerData}
               touchLayout
+              compact
               geralPercentage={geralPercentage}
             />
           </div>
         ) : null}
       </div>
+      ) : null}
 
       {middleContent}
 
-      <GuitarProFileBox
+      {(!touchSection || touchSection === "guitarPro") ? <GuitarProFileBox
         artistName={artistName}
         songName={songName}
         songData={songData}
@@ -943,17 +931,12 @@ function EditSongColumnA({
         setShowSnackBar={setShowSnackBar}
         setSnackbarMessage={setSnackbarMessage}
         setIsDirty={setIsDirty}
-      />
+        compact
+      /> : null}
 
       {touchInlineMedia ? (
-        <div className="mt-4 space-y-4">
-          <div className="rounded-[20px] neuphormism-b p-3">
-            <div className="mb-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                {t("songPages.videos")}
-              </p>
-            </div>
-            <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none [&_.neuphormism-b-btn]:!rounded-[14px] [&_.neuphormism-b-btn]:!bg-white">
+        <div className="space-y-4">
+          {(!touchSection || touchSection === "videos") ? (
               <EditSongEmbed
                 ytEmbedSongList={embedLink}
                 setEmbedLink={(updater) => {
@@ -967,25 +950,19 @@ function EditSongColumnA({
                 setShowSnackBar={setShowSnackBar}
                 setSnackbarMessage={setSnackbarMessage}
                 onSaveVideos={persistVideoLinks}
+                compact
               />
-            </div>
-          </div>
+          ) : null}
 
-          <div className="rounded-[20px] neuphormism-b p-3">
-            <div className="mb-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                {t("songPages.setlist")}
-              </p>
-            </div>
-            <div className="[&_.neuphormism-b]:!m-0 [&_.neuphormism-b]:!rounded-[16px] [&_.neuphormism-b]:!bg-transparent [&_.neuphormism-b]:!p-0 [&_.neuphormism-b]:!shadow-none">
+          {(!touchSection || touchSection === "setlists") ? (
               <EditSongSetlist
                 setlist={setlist}
                 setSetlist={setSetlistAndMarkDirty}
                 setlistOptions={setListOptions}
                 setSetListOptions={setSetListOptions}
+                compact
               />
-            </div>
-          </div>
+          ) : null}
         </div>
       ) : (
       <>

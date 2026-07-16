@@ -19,6 +19,7 @@ export default function GuitarProFileBox({
   setShowSnackBar,
   setSnackbarMessage,
   setIsDirty,
+  compact = false,
 }) {
   const guitarProFiles = getGuitarProFiles(songData);
   const hasGuitarProFiles = guitarProFiles.length > 0;
@@ -95,51 +96,68 @@ export default function GuitarProFileBox({
     }
   };
 
-  const handleView = () => {
-    const selectedFile = guitarProFiles[0];
-    if (!selectedFile) {
-      notify("Error", "Nenhum arquivo Guitar Pro cadastrado.");
-      return;
-    }
-    if (selectedFile.url) {
-      window.open(selectedFile.url, "_blank", "noopener,noreferrer");
-      return;
-    }
-    notify("Info", selectedFile.originalName || "Guitar Pro file registered.");
-  };
-
   return (
-    <div className="my-5 rounded-[30px] neuphormism-b px-6 py-6">
+    <div
+      className={
+        compact
+          ? "my-0 rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
+          : "my-5 rounded-[30px] neuphormism-b px-6 py-6"
+      }
+    >
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+        <div className="min-w-0">
+          <p className={`${compact ? "text-[10px] tracking-[0.22em]" : "text-[11px] tracking-[0.24em]"} font-bold uppercase text-[goldenrod]`}>
             Guitar Pro
           </p>
-          <p className="mt-1 text-sm font-medium text-gray-500">
-            Add, remove, or open the registered Guitar Pro file.
-          </p>
+          {compact ? null : (
+            <p className="mt-1 text-sm font-medium text-gray-500">
+              Add, remove, or open the registered Guitar Pro file.
+            </p>
+          )}
         </div>
-        <GuitarProIcon
-          active={hasGuitarProFiles}
-          title={
-            hasGuitarProFiles
-              ? `${guitarProFiles.length} Guitar Pro file(s)`
-              : "No Guitar Pro files"
-          }
-        />
+        <div className={compact ? "flex items-center gap-2 rounded-full bg-black/[0.035] px-2.5 py-1.5" : ""}>
+          <GuitarProIcon
+            active={hasGuitarProFiles}
+            compact={compact}
+            title={
+              hasGuitarProFiles
+                ? `${guitarProFiles.length} Guitar Pro file(s)`
+                : "No Guitar Pro files"
+            }
+          />
+          {compact ? (
+            <span className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-500">
+              {guitarProFiles.length} {guitarProFiles.length === 1 ? "file" : "files"}
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      <div className="mt-4 rounded-[16px] neuphormism-b-se px-4 py-3">
-        <div className="truncate text-sm font-bold text-black">
-          {hasGuitarProFiles
-            ? guitarProFiles[0]?.originalName || "Guitar Pro file"
-            : "No file registered"}
+      <div className={compact ? "mt-3 flex items-center gap-2.5 rounded-[13px] border border-black/5 bg-white/75 p-2.5 shadow-[0_5px_14px_rgba(0,0,0,0.04)]" : "mt-4 rounded-[16px] neuphormism-b-se px-4 py-3"}>
+        {compact ? (
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-[12px] ${hasGuitarProFiles ? "bg-[goldenrod]/15 text-[goldenrod]" : "bg-black/[0.035] text-gray-400"}`}>
+            <FaRegFileAlt aria-hidden="true" />
+          </span>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <div className={`${compact ? "text-[12px] font-black" : "text-sm font-bold"} truncate text-black`}>
+            {hasGuitarProFiles
+              ? guitarProFiles[0]?.originalName || "Guitar Pro file"
+              : "No file registered"}
+          </div>
+          {compact ? (
+            <div className="mt-0.5 truncate text-[9px] font-semibold text-gray-500">
+              {hasGuitarProFiles
+                ? "Ready to open"
+                : "Supported: GP3, GP4, GP5, GPX and GP"}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <label className="neuphormism-b-btn flex h-11 cursor-pointer items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black">
-          <FaPlus />
+      <div className={`${compact ? "mt-2.5 gap-2" : "mt-4 gap-3"} grid grid-cols-2`}>
+        <label className={`${compact ? "h-10 rounded-[11px] bg-[goldenrod]/15 text-[11px] shadow-[0_4px_12px_rgba(218,165,32,0.12)]" : "h-11 rounded-[14px] text-sm neuphormism-b-btn"} flex cursor-pointer items-center justify-center gap-1.5 font-bold text-black`}>
+          <FaPlus className={compact ? "text-[10px]" : ""} />
           <span>Add</span>
           <input
             type="file"
@@ -152,19 +170,10 @@ export default function GuitarProFileBox({
           type="button"
           onClick={handleDelete}
           disabled={!hasGuitarProFiles}
-          className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
+          className={`${compact ? "h-10 gap-1.5 rounded-[11px] border border-black/5 bg-white/70 text-[11px] shadow-[0_4px_12px_rgba(0,0,0,0.04)]" : "h-11 gap-2 rounded-[14px] text-sm neuphormism-b-btn"} flex items-center justify-center font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-50`}
         >
-          <FaMinus />
+          <FaMinus className={compact ? "text-[10px]" : ""} />
           <span>Remove</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleView}
-          disabled={!hasGuitarProFiles}
-          className="neuphormism-b-btn flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60"
-        >
-          <FaRegFileAlt />
-          <span>View</span>
         </button>
       </div>
     </div>

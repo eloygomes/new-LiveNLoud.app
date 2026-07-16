@@ -46,7 +46,10 @@ function PresentationTopBar({
 
   if (isTouchLayout) {
     return (
-      <div className="relative my-3 flex shrink-0 flex-col gap-3 neuphormism-b px-4 py-3">
+      <div
+        data-presentation-top-bar="true"
+        className="sticky top-0 z-[120] my-3 flex shrink-0 flex-col gap-3 neuphormism-b px-4 py-3"
+      >
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <h1
@@ -121,7 +124,8 @@ function PresentationTopBar({
 
   return (
     <div
-      className="relative my-5 flex min-h-[7.25rem] shrink-0 flex-col items-stretch justify-between gap-4 neuphormism-b px-10 pb-4 pt-8 xl:flex-row xl:items-center"
+      data-presentation-top-bar="true"
+      className="sticky top-0 z-[120] my-5 flex min-h-[7.25rem] shrink-0 flex-col items-stretch justify-between gap-4 neuphormism-b px-10 pb-4 pt-8 xl:flex-row xl:items-center"
     >
       <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
         <span>Presentation</span>

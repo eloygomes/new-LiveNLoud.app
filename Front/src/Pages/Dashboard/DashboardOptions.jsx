@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FiFileText } from "react-icons/fi";
 import { VscJson } from "react-icons/vsc";
@@ -11,14 +11,18 @@ import {
   FaChartLine,
   FaClock,
   FaDatabase,
+  FaDownload,
+  FaFilter,
   FaGuitar,
   FaHashtag,
+  FaHeadphones,
   FaListOl,
   FaMusic,
   FaStickyNote,
   FaVideo,
   FaWifi,
 } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import {
   GiDrumKit,
   GiGuitar,
@@ -115,23 +119,37 @@ function OfflineContentCard({
   const estimatedIndexKb = Math.max(downloadedSongsCount * 42, 0);
 
   return (
-    <section className="neuphormism-b flex h-full w-full flex-col p-4">
+    <section
+      className={
+        compact
+          ? "flex h-full w-full flex-col rounded-[18px] border border-black/5 bg-white/55 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.06)]"
+          : "neuphormism-b flex h-full w-full flex-col p-4"
+      }
+    >
       <div
-        className={`flex ${compact ? "flex-col gap-3" : "items-start justify-between gap-4"}`}
+        className={`flex items-start justify-between ${compact ? "gap-3" : "gap-4"}`}
       >
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]  text-black shadow-[0_8px_18px_rgba(218,165,32,0.22)]">
+          <span
+            className={`flex h-9 w-9 shrink-0 items-center justify-center text-black ${
+              compact
+                ? "rounded-[11px] bg-[goldenrod]/15"
+                : "rounded-[8px] shadow-[0_8px_18px_rgba(218,165,32,0.22)]"
+            }`}
+          >
             <FaDatabase className="h-4 w-4" />
           </span>
           <div>
-            <h1 className="text-sm font-bold uppercase">Offline Content</h1>
-            <p className="mt-1 text-[11px] font-semibold text-gray-500">
+            <h1 className={`${compact ? "text-xs" : "text-sm"} font-bold uppercase`}>Offline Content</h1>
+            <p className={`${compact ? "mt-0.5 leading-tight" : "mt-1"} text-[11px] font-semibold text-gray-500`}>
               Download songs and allow offline access on this device.
             </p>
           </div>
         </div>
         <label
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
+          className={`relative inline-flex shrink-0 items-center rounded-full shadow-inner ${
+            compact ? "h-7 w-12" : "h-6 w-11"
+          } ${
             isContentEnabled ? "bg-[goldenrod]" : "bg-gray-400"
           }`}
         >
@@ -147,29 +165,35 @@ function OfflineContentCard({
             aria-label="Offline content"
           />
           <span
-            className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
-              isContentEnabled ? "translate-x-6" : "translate-x-1"
+            className={`rounded-full bg-white shadow transition-transform ${
+              compact ? "h-5 w-5" : "h-4 w-4"
+            } ${
+              isContentEnabled
+                ? compact
+                  ? "translate-x-6"
+                  : "translate-x-6"
+                : "translate-x-1"
             }`}
           />
         </label>
       </div>
 
-      <div className="mt-4 grid gap-2 text-[11px] font-bold text-gray-700">
-        <div className="input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2">
+      <div className={`${compact ? "mt-2 gap-1.5" : "mt-4 gap-2"} grid text-[11px] font-bold text-gray-700`}>
+        <div className={`${compact ? "min-h-10 border border-black/5 bg-white/75 shadow-[0_5px_14px_rgba(0,0,0,0.04)]" : "input-neumorfismo"} flex items-center justify-between rounded-xl px-3 py-2`}>
           <span className="flex items-center gap-2">
             <FaMusic className="h-3.5 w-3.5 text-gray-500" />
             Cached songs
           </span>
           <span>{downloadedSongsCount}</span>
         </div>
-        <div className="input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2">
+        <div className={`${compact ? "min-h-10 border border-black/5 bg-white/75 shadow-[0_5px_14px_rgba(0,0,0,0.04)]" : "input-neumorfismo"} flex items-center justify-between rounded-xl px-3 py-2`}>
           <span className="flex items-center gap-2">
             <FaDatabase className="h-3.5 w-3.5 text-gray-500" />
             Mock storage
           </span>
           <span>{estimatedOfflineMb} MB</span>
         </div>
-        <div className="input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2">
+        <div className={`${compact ? "min-h-10 border border-black/5 bg-white/75 shadow-[0_5px_14px_rgba(0,0,0,0.04)]" : "input-neumorfismo"} flex items-center justify-between rounded-xl px-3 py-2`}>
           <span className="flex items-center gap-2">
             <FaWifi className="h-3.5 w-3.5 text-gray-500" />
             Mock index
@@ -178,7 +202,7 @@ function OfflineContentCard({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-wrap gap-2 pt-4 text-[10px] font-bold uppercase">
+      <div className={`mt-auto flex flex-wrap gap-2 text-[10px] font-bold uppercase ${compact ? "pt-2" : "pt-4"}`}>
         {isContentEnabled ? (
           <span className="rounded-full bg-white px-2 py-1 text-gray-800 shadow-[0_6px_14px_rgba(0,0,0,0.06)]">
             offline ready
@@ -233,7 +257,9 @@ function ColumnsData({
   canSelectAllColumns = false,
   maxSelectableColumns = columnOptions.length,
   isColumnLimitedLayout = false,
+  isMobileLayout = false,
 }) {
+  const [mobileColumnTab, setMobileColumnTab] = useState("items");
   const selectedConfigurableColumns = visibleColumns.filter((key) =>
     columnOptions.some((option) => option.key === key),
   );
@@ -243,6 +269,30 @@ function ColumnsData({
   const maxColumnsReached =
     !canSelectAllColumns &&
     selectedConfigurableColumns.length >= maxSelectableColumns;
+  const isGeneralProgressionEnabled = visibleColumns.includes("progression");
+
+  useEffect(() => {
+    if (isGeneralProgressionEnabled && mobileColumnTab !== "items") {
+      setMobileColumnTab("items");
+    }
+  }, [isGeneralProgressionEnabled, mobileColumnTab]);
+
+  const handleToggleColumn = (key) => {
+    if (
+      isMobileLayout &&
+      key === "progression" &&
+      !isGeneralProgressionEnabled
+    ) {
+      instrumentProgressionColumnOptions.forEach(({ key: instrumentKey }) => {
+        if (visibleColumns.includes(instrumentKey)) {
+          onToggleColumn(instrumentKey);
+        }
+      });
+    }
+
+    onToggleColumn(key);
+  };
+
   const renderColumnRow = ({ key, label }) => {
     const checked = visibleColumns.includes(key);
     const disabled = !checked && (allColumnsSelected || maxColumnsReached);
@@ -252,7 +302,7 @@ function ColumnsData({
     return (
       <div
         key={key}
-        className={`input-neumorfismo flex items-center justify-between rounded-lg px-3 py-2 ${
+        className={`${isMobileLayout ? "min-h-12 border border-black/5 bg-white/75 shadow-[0_4px_12px_rgba(0,0,0,0.035)]" : "input-neumorfismo"} flex items-center justify-between rounded-xl px-3 py-2 ${
           disabled ? "opacity-50" : ""
         }`}
       >
@@ -272,7 +322,7 @@ function ColumnsData({
             className="sr-only"
             checked={checked}
             disabled={disabled}
-            onChange={() => onToggleColumn(key)}
+            onChange={() => handleToggleColumn(key)}
           />
           <span
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full shadow-inner ${
@@ -287,14 +337,14 @@ function ColumnsData({
           </span>
         </label>
 
-        {checked ? (
+        {checked && !isMobileLayout ? (
           <div className="ml-3 flex shrink-0 items-center gap-1">
             <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-[goldenrod] px-2 text-[11px] font-black text-black">
               {visibleIndex + 1}
             </span>
             <button
               type="button"
-              className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
+              className={`neuphormism-b-btn flex items-center justify-center rounded-lg text-[10px] disabled:opacity-35 ${isMobileLayout ? "h-9 w-9" : "h-7 w-7"}`}
               disabled={visibleIndex <= 0}
               onClick={() => onMoveColumn(key, -1)}
               aria-label={`Move ${label} earlier`}
@@ -303,7 +353,7 @@ function ColumnsData({
             </button>
             <button
               type="button"
-              className="neuphormism-b-btn flex h-7 w-7 items-center justify-center rounded-md text-[10px] disabled:opacity-35"
+              className={`neuphormism-b-btn flex items-center justify-center rounded-lg text-[10px] disabled:opacity-35 ${isMobileLayout ? "h-9 w-9" : "h-7 w-7"}`}
               disabled={visibleIndex === visibleColumns.length - 1}
               onClick={() => onMoveColumn(key, 1)}
               aria-label={`Move ${label} later`}
@@ -317,15 +367,23 @@ function ColumnsData({
   };
 
   return (
-    <section className="neuphormism-b p-4">
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]  text-black shadow-[0_8px_18px_rgba(218,165,32,0.22)]">
+    <section
+      className={
+        isMobileLayout
+          ? "rounded-[18px] border border-black/5 bg-white/55 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.06)]"
+          : "neuphormism-b p-4"
+      }
+    >
+      <div className={`flex items-start gap-3 ${isMobileLayout ? "justify-center text-center" : ""}`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center text-black ${isMobileLayout ? "rounded-[11px] bg-[goldenrod]/15" : "rounded-[8px] shadow-[0_8px_18px_rgba(218,165,32,0.22)]"}`}>
           <FaListOl className="h-4 w-4" />
         </span>
         <div>
-          <h1 className="text-sm font-bold uppercase">Columns Data</h1>
+          <h1 className={`${isMobileLayout ? "text-xs" : "text-sm"} font-bold uppercase`}>Columns Data</h1>
           <p className="mt-1 text-[11px] font-semibold text-gray-500">
-            Select columns and reorder their sequence number.
+            {isMobileLayout
+              ? "Choose which data appears in your song list."
+              : "Select columns and reorder their sequence number."}
             {!canSelectAllColumns ? ` Limit: ${maxSelectableColumns}.` : ""}
           </p>
         </div>
@@ -336,7 +394,42 @@ function ColumnsData({
           isColumnLimitedLayout ? "grid-cols-1" : "sm:grid-cols-2"
         }`}
       >
-        <div>
+        {isMobileLayout ? (
+          <div className="col-span-full grid grid-cols-2 gap-1 rounded-[14px] bg-black/[0.04] p-1">
+            <button
+              type="button"
+              className={`min-h-10 rounded-[11px] px-2 text-[11px] font-bold uppercase transition-colors ${
+                mobileColumnTab === "items"
+                  ? "bg-[goldenrod] text-black shadow-[0_4px_12px_rgba(218,165,32,0.24)]"
+                  : "text-gray-500"
+              } ${isGeneralProgressionEnabled ? "col-span-2" : ""}`}
+              onClick={() => setMobileColumnTab("items")}
+              aria-pressed={mobileColumnTab === "items"}
+            >
+              Items
+            </button>
+            {!isGeneralProgressionEnabled ? (
+              <button
+                type="button"
+                className={`min-h-10 rounded-[11px] px-2 text-[11px] font-bold uppercase transition-colors ${
+                  mobileColumnTab === "instruments"
+                    ? "bg-[goldenrod] text-black shadow-[0_4px_12px_rgba(218,165,32,0.24)]"
+                    : "text-gray-500"
+                }`}
+                onClick={() => setMobileColumnTab("instruments")}
+                aria-pressed={mobileColumnTab === "instruments"}
+              >
+                Instrument Progression
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div
+          className={
+            isMobileLayout && mobileColumnTab !== "items" ? "hidden" : ""
+          }
+        >
           <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
             Items
           </h2>
@@ -344,7 +437,16 @@ function ColumnsData({
             {itemColumnOptions.map(renderColumnRow)}
           </div>
         </div>
-        <div>
+        <div
+          className={
+            isMobileLayout
+              ? !isGeneralProgressionEnabled &&
+                mobileColumnTab === "instruments"
+                ? "block"
+                : "hidden"
+              : ""
+          }
+        >
           <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
             Instrument Progression
           </h2>
@@ -375,6 +477,9 @@ export default function DashboardOptions({
 }) {
   const [setlists, setSetlists] = useState([]);
   const [offlineLoading, setOfflineLoading] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState("home");
+  const [mobileTransition, setMobileTransition] = useState("forward");
+  const mobilePanelScrollRef = useRef(null);
   const isSmallScreen =
     typeof window !== "undefined" && window.innerWidth < 768;
   const isColumnLimitedLayout =
@@ -406,6 +511,10 @@ export default function DashboardOptions({
   useEffect(() => {
     if (!optStatus) return undefined;
     return lockPageScroll();
+  }, [optStatus]);
+
+  useEffect(() => {
+    if (!optStatus) setMobilePanel("home");
   }, [optStatus]);
 
   // 1) Buscar setlists distintas no backend
@@ -554,8 +663,55 @@ export default function DashboardOptions({
   };
 
   const closeFilter = () => {
+    setMobilePanel("home");
     setOptStatus(false);
   };
+
+  const openMobilePanel = (panel, transition = "forward") => {
+    setMobileTransition(transition);
+    setMobilePanel(panel);
+    requestAnimationFrame(() => {
+      mobilePanelScrollRef.current?.scrollTo?.({ top: 0, behavior: "auto" });
+    });
+  };
+
+  const mobilePanels = [
+    {
+      id: "filters",
+      title: "Filters",
+      description: "Choose setlists and manage tags",
+      icon: FaFilter,
+    },
+    {
+      id: "columns",
+      title: "Column Data",
+      description: "Show, hide, and reorder song data",
+      icon: FaListOl,
+    },
+    {
+      id: "offline",
+      title: "Offline Content",
+      description: "Manage downloads and sync status",
+      icon: FaDatabase,
+    },
+    {
+      id: "export",
+      title: "Export",
+      description: "Download visible songs as TXT or JSON",
+      icon: FaDownload,
+    },
+    {
+      id: "playlists",
+      title: "Playlists",
+      description: "Create Spotify or YouTube playlists",
+      icon: FaHeadphones,
+    },
+  ];
+
+  const activeMobilePanelTitle =
+    mobilePanels.find(({ id }) => id === mobilePanel)?.title || "Filter";
+  const ActiveMobilePanelIcon =
+    mobilePanels.find(({ id }) => id === mobilePanel)?.icon || FaFilter;
 
   const handleOfflineToggle = async (event) => {
     const enabled = event.target.checked;
@@ -617,28 +773,41 @@ export default function DashboardOptions({
         }
       >
         <div
-          className={`flex flex-row justify-between ${
+          className={`${isSmallScreen ? "grid grid-cols-[44px_minmax(0,1fr)_44px]" : "flex flex-row justify-between"} ${
             isSmallScreen
-              ? "mb-4 items-start"
+              ? "mb-3 min-h-11 items-center"
               : " rounded-t-lg px-5 py-2 text-center  text-white font-bold  bg-[#000000]/60 cursor-pointer"
           }`}
         >
-          <div className="min-w-0">
-            {isSmallScreen ? (
+          <div className={`flex min-w-0 items-center gap-2 ${isSmallScreen ? "contents" : ""}`}>
+            {isSmallScreen && mobilePanel !== "home" ? (
               <button
                 type="button"
-                className=" flex  w-full items-center justify-center"
-                onClick={closeFilter}
-                aria-label="Close filter"
+                className="neuphormism-b-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod]"
+                onClick={() => openMobilePanel("home", "back")}
+                aria-label="Back to filter menu"
               >
-                {/* <span className="h-1.5 w-12 rounded-full bg-[#c8c8c8]" /> */}
+                <FaChevronLeft className="h-4 w-4" />
               </button>
+            ) : isSmallScreen ? (
+              <span aria-hidden="true" />
             ) : null}
 
             <h1
-              className={`font-bold ${isSmallScreen ? "text-[2rem]" : "text-md"}`}
+              className={`font-bold ${
+                isSmallScreen
+                  ? "flex min-w-0 items-center justify-center gap-2 px-1 text-center text-[1.35rem] leading-none"
+                  : "text-md"
+              }`}
             >
-              {isSmallScreen ? "FILTER" : "OPTIONS"}
+              {isSmallScreen ? (
+                <>
+                  <ActiveMobilePanelIcon className="h-[0.9em] w-[0.9em] shrink-0" />
+                  <span>{activeMobilePanelTitle.toUpperCase()}</span>
+                </>
+              ) : (
+                "OPTIONS"
+              )}
             </h1>
             {/* {isSmallScreen ? (
               <p className="mt-2 text-sm text-gray-600">
@@ -650,7 +819,7 @@ export default function DashboardOptions({
             type="button"
             className={
               isSmallScreen
-                ? "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)]"
+                ? "neuphormism-b-btn flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_6px_16px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod]"
                 : "px-5"
             }
             onClick={closeFilter}
@@ -661,9 +830,10 @@ export default function DashboardOptions({
         </div>
 
         <div
+          ref={mobilePanelScrollRef}
           className={
             isSmallScreen
-              ? "min-h-0 flex-1 overflow-y-auto pb-2"
+              ? `min-h-0 flex-1 px-1 pb-2 ${mobilePanel === "home" ? "overflow-hidden" : "overflow-y-auto overscroll-contain"}`
               : "min-h-0 flex-1 overflow-y-auto rounded-b-lg bg-[#e6e6e6] px-4 py-3"
           }
         >
@@ -674,70 +844,154 @@ export default function DashboardOptions({
           >
             {isSmallScreen ? (
               <>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="neuphormism-b rounded-lg p-3">
-                    <p className="text-[10px] font-bold uppercase text-gray-500">
-                      Songs
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">
-                      {dashboardMetrics.totalSongs}
-                    </p>
-                  </div>
-                  <div className="neuphormism-b rounded-lg p-3">
-                    <p className="text-[10px] font-bold uppercase text-gray-500">
-                      Ready
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">
-                      {dashboardMetrics.readySongs}
-                    </p>
-                  </div>
-                  <div className="neuphormism-b rounded-lg p-3">
-                    <p className="text-[10px] font-bold uppercase text-gray-500">
-                      Avg
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900">
-                      {dashboardMetrics.averageProgress}%
-                    </p>
-                  </div>
+                <div
+                  key={mobilePanel}
+                  className={`dashboard-mobile-panel-enter-${mobileTransition} motion-reduce:animate-none`}
+                >
+                  {mobilePanel === "home" ? (
+                    <div className="flex flex-col gap-3">
+                      <div
+                        className="grid grid-cols-3 gap-2"
+                        aria-label="Song summary"
+                      >
+                        <div className="neuphormism-b rounded-lg p-3 text-center">
+                          <p className="text-[10px] font-bold uppercase text-gray-500">
+                            Songs
+                          </p>
+                          <p className="mt-1 text-2xl font-bold text-gray-900">
+                            {dashboardMetrics.totalSongs}
+                          </p>
+                        </div>
+                        <div className="neuphormism-b rounded-lg p-3 text-center">
+                          <p className="text-[10px] font-bold uppercase text-gray-500">
+                            Ready
+                          </p>
+                          <p className="mt-1 text-2xl font-bold text-gray-900">
+                            {dashboardMetrics.readySongs}
+                          </p>
+                        </div>
+                        <div className="neuphormism-b rounded-lg p-3 text-center">
+                          <p className="text-[10px] font-bold uppercase text-gray-500">
+                            Avg
+                          </p>
+                          <p className="mt-1 text-2xl font-bold text-gray-900">
+                            {dashboardMetrics.averageProgress}%
+                          </p>
+                        </div>
+                      </div>
+
+                      <nav className="grid gap-2" aria-label="Filter options">
+                        {mobilePanels.map(
+                          ({ id, title, description, icon: Icon }) => (
+                            <button
+                              key={id}
+                              type="button"
+                              className="neuphormism-b-btn flex min-h-14 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-transform active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod]"
+                              onClick={() => openMobilePanel(id)}
+                              aria-label={`Open ${title}`}
+                            >
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-[goldenrod]/15 text-black">
+                                <Icon className="h-4 w-4" />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[12px] font-black uppercase tracking-[0.04em] text-gray-900">
+                                  {title}
+                                </span>
+                                <span className="mt-0.5 block truncate text-[10px] font-semibold text-gray-500">
+                                  {description}
+                                </span>
+                              </span>
+                              <FaChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                            </button>
+                          ),
+                        )}
+                      </nav>
+                    </div>
+                  ) : null}
                 </div>
 
-                <Tags
-                  setlists={setlists}
-                  selectedSetlists={selectedSetlists}
-                  visibleSongsCount={visibleSongs.length}
-                  toggleTag={toggleTag}
-                  handleDeleteSetlist={handleDeleteSetlist}
-                  handleAddSetlist={handleAddSetlist}
-                  RiDeleteBin6Line={RiDeleteBin6Line}
-                  isTouchLayout
-                />
+                <div
+                  className={
+                    mobilePanel === "filters"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={mobilePanel !== "filters"}
+                >
+                  <Tags
+                    setlists={setlists}
+                    selectedSetlists={selectedSetlists}
+                    visibleSongsCount={visibleSongs.length}
+                    toggleTag={toggleTag}
+                    handleDeleteSetlist={handleDeleteSetlist}
+                    handleAddSetlist={handleAddSetlist}
+                    RiDeleteBin6Line={RiDeleteBin6Line}
+                    isTouchLayout
+                  />
+                </div>
 
-                <ColumnsData
-                  visibleColumns={visibleColumns}
-                  onToggleColumn={onToggleColumn}
-                  onMoveColumn={onMoveColumn}
-                  canSelectAllColumns={canSelectAllColumns}
-                  maxSelectableColumns={maxSelectableColumns}
-                  isColumnLimitedLayout={isColumnLimitedLayout}
-                />
+                <div
+                  className={
+                    mobilePanel === "columns"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={mobilePanel !== "columns"}
+                >
+                  <ColumnsData
+                    visibleColumns={visibleColumns}
+                    onToggleColumn={onToggleColumn}
+                    onMoveColumn={onMoveColumn}
+                    canSelectAllColumns={canSelectAllColumns}
+                    maxSelectableColumns={maxSelectableColumns}
+                    isColumnLimitedLayout={isColumnLimitedLayout}
+                    isMobileLayout
+                  />
+                </div>
 
-                <OfflineContentCard
-                  offlineInfo={offlineInfo}
-                  offlineLoading={offlineLoading}
-                  onToggle={handleOfflineToggle}
-                  onSyncOffline={onSyncOffline}
-                  compact
-                />
+                <div
+                  className={
+                    mobilePanel === "offline"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={mobilePanel !== "offline"}
+                >
+                  <OfflineContentCard
+                    offlineInfo={offlineInfo}
+                    offlineLoading={offlineLoading}
+                    onToggle={handleOfflineToggle}
+                    onSyncOffline={onSyncOffline}
+                    compact
+                  />
+                </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div
+                  className={
+                    mobilePanel === "export"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={mobilePanel !== "export"}
+                >
                   <SetlistExport
                     handleExportText={handleExportText}
                     visibleSongs={visibleSongs}
                     FiFileText={FiFileText}
                     handleExportJson={handleExportJson}
                     VscJson={VscJson}
+                    isMobileLayout
                   />
-                  <PlaylistExport visibleSongs={visibleSongs} />
+                </div>
+                <div
+                  className={
+                    mobilePanel === "playlists"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={mobilePanel !== "playlists"}
+                >
+                  <PlaylistExport visibleSongs={visibleSongs} isMobileLayout />
                 </div>
               </>
             ) : (
@@ -801,17 +1055,7 @@ export default function DashboardOptions({
           </div>
         </div>
 
-        {isSmallScreen ? (
-          <div className="border-t border-black/5 bg-[#f2f2f2] px-1 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2">
-            <button
-              type="button"
-              className="w-full rounded-[10px] border border-black/10 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-black shadow-[0_5px_12px_rgba(0,0,0,0.04)]"
-              onClick={closeFilter}
-            >
-              Close Filter
-            </button>
-          </div>
-        ) : (
+        {isSmallScreen ? null : (
           <div
             className="text-center text-[10px] text-white font-bold rounded-b-md bg-[#000000]/60 cursor-pointer"
             onClick={closeFilter}

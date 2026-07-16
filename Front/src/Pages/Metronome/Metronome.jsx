@@ -261,7 +261,7 @@ function Metronome() {
   const bpmButtonClass =
     "neuphormism-b-btn flex min-h-[22px] items-center justify-center rounded-[18px] px-4 text-sm font-bold uppercase tracking-[0.14em] text-black active:scale-[0.98]";
   const touchActionButtonClass =
-    "neuphormism-b-btn flex min-h-[72px] min-w-0 items-center justify-center rounded-[18px] px-4 text-base font-bold uppercase tracking-[0.14em] text-black active:scale-[0.98]";
+    "neuphormism-b-btn flex min-h-[52px] min-w-0 items-center justify-center rounded-[14px] px-3 text-[13px] font-bold uppercase tracking-[0.1em] text-black active:scale-[0.98]";
   const desktopSmallButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[1.05rem] font-bold uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
   const desktopTAPButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[.9rem] font-bold uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
   const desktopMINUSPLUSButtonClass = `neuphormism-b-btn flex ${isTouchLayout ? "h-[34px]" : "h-[64px]"} items-center justify-center rounded-[18px] px-3 text-[1.05rem] font-bold uppercase tracking-[0.08em] text-black active:scale-[0.98]`;
@@ -280,11 +280,11 @@ function Metronome() {
     vertical = false,
   }) => (
     <div
-      className={`neuphormism-b rounded-[24px] ${vertical ? "flex h-full min-h-0 flex-col items-center justify-between overflow-hidden px-3 py-5" : "px-4 py-4"}`}
+      className={`neuphormism-b ${isTouchLayout ? "rounded-[16px] px-3 py-3" : "rounded-[24px]"} ${vertical ? "flex h-full min-h-0 flex-col items-center justify-between overflow-hidden px-3 py-5" : isTouchLayout ? "" : "px-4 py-4"}`}
     >
       {label === "Tempo" && (
         <div
-          className={`grid gap-3 mt-1 mb-6 ${
+            className={`grid gap-2 mt-0 mb-3 ${
             isTouchLayout ? "grid-cols-4 " : "grid-cols-5"
           }`}
         >
@@ -330,7 +330,7 @@ function Metronome() {
         </div>
       )}
 
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500">
           {label}
         </span>
@@ -403,26 +403,26 @@ function Metronome() {
 
   if (isTouchLayout) {
     return (
-      <div className="min-h-[calc(100vh-6.5rem)] bg-[#f0f0f0] px-3 pb-28 pt-3">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3">
-          <section className="neuphormism-b rounded-[28px] px-5 py-4">
+      <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-[#f0f0f0] px-3 pb-4 pt-3">
+        <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col gap-3">
+          <section className="flex min-h-0 flex-1 flex-col neuphormism-b rounded-[18px] px-3 py-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
                 Metronome
               </p>
-              <h1 className="mt-2 text-[1.9rem] font-bold leading-none tracking-tight text-black">
+              <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight text-black">
                 Keep The Pulse
               </h1>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 rounded-[24px] neuphormism-b px-4 py-3">
+            <div className="mt-3 flex flex-col gap-2 rounded-[14px] neuphormism-b px-3 py-2.5">
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 ">
                 Timer{" "}
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className={`flex h-[48px] w-[68px] shrink-0 items-center justify-center rounded-[18px] px-2 py-3 text-sm font-bold uppercase tracking-[0.14em] text-black active:scale-[0.98] ${
+                  className={`flex h-10 w-14 shrink-0 items-center justify-center rounded-[12px] px-2 text-[11px] font-bold uppercase tracking-[0.1em] text-black active:scale-[0.98] ${
                     isTimerActive
                       ? "neuphormism-b-btn-gold"
                       : "neuphormism-b-btn"
@@ -440,20 +440,20 @@ function Metronome() {
                   {isTimerActive ? "On" : " Off"}
                 </button>
 
-                <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-1.5">
                   <button
                     type="button"
-                    className={`${bpmButtonClass} h-[48px] w-[68px] shrink-0 px-3 py-3`}
+                    className={`${bpmButtonClass} h-10 w-12 shrink-0 rounded-[12px] px-2`}
                     onClick={() => adjustTimer(-10)}
                   >
                     -10
                   </button>
-                  <p className="w-[94px] shrink-0 text-center text-[1.8rem] font-bold leading-none tracking-[-0.05em] text-black">
+                  <p className="w-[76px] shrink-0 text-center text-[1.35rem] font-bold leading-none tracking-[-0.04em] text-black">
                     {formatTime(displayedTimer)}
                   </p>
                   <button
                     type="button"
-                    className={`${bpmButtonClass} h-[48px] w-[68px] shrink-0 px-3 py-3`}
+                    className={`${bpmButtonClass} h-10 w-12 shrink-0 rounded-[12px] px-2`}
                     onClick={() => adjustTimer(10)}
                   >
                     +10
@@ -463,11 +463,11 @@ function Metronome() {
             </div>
 
             <div
-              className={`mt-4 rounded px-4 py-4 text-center transition-colors ${
+              className={`mt-3 flex min-h-[190px] flex-1 flex-col items-center justify-center rounded-[14px] px-3 py-4 text-center transition-colors ${
                 isOn ? "bg-black text-white" : "bg-white text-black"
               }`}
             >
-              <div className="text-[5.4rem] font-bold leading-[0.9] tracking-[-0.08em]">
+              <div className="text-[6rem] font-bold leading-[0.86] tracking-[-0.075em]">
                 {bpm}
               </div>
               <div className="mt-1 text-sm font-bold uppercase tracking-[0.3em] text-[goldenrod]">
@@ -479,7 +479,7 @@ function Metronome() {
           <section className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              className={`${touchActionButtonClass} h-[84px] ${
+              className={`${touchActionButtonClass} h-14 ${
                 isPlaying
                   ? "bg-black text-[goldenrod]"
                   : "neuphormism-b-btn-gold"
@@ -495,7 +495,7 @@ function Metronome() {
             </button>
             <button
               type="button"
-              className={`${touchActionButtonClass} h-[84px]`}
+              className={`${touchActionButtonClass} h-14`}
               onClick={handleTapTempo}
             >
               <span className="mr-2 shrink-0">

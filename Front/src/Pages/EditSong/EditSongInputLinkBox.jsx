@@ -63,7 +63,7 @@ function EditSongInputLinkBox({
   const shouldShowGuitarProRow = false;
   const expandedControls = touchLayout || modalLayout;
   const iconButtonClass =
-    "neuphormism-b-btn flex h-10 w-10 items-center justify-center rounded-[12px] text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60";
+    "neuphormism-b-btn flex h-9 w-9 items-center justify-center rounded-[10px] text-sm text-black disabled:cursor-not-allowed disabled:text-gray-400 disabled:opacity-60 md:h-10 md:w-10 md:rounded-[12px]";
 
   const notify = useCallback(
     (title, message) => {
@@ -407,7 +407,7 @@ function EditSongInputLinkBox({
 
   return (
     <div
-      className={`${modalLayout ? "grid gap-y-5 gap-x-3 md:grid-cols-[1.45fr_0.55fr]" : "flex w-full flex-col"} ${
+      className={`${modalLayout ? "grid gap-x-3 gap-y-3 md:grid-cols-[1.45fr_0.55fr] md:gap-y-5" : "flex w-full flex-col"} ${
         expandedControls
           ? "mt-0 rounded-[18px] bg-transparent px-0 py-0"
           : `mt-0 neuphormism-b-btn px-5 py-4 ${
@@ -487,7 +487,7 @@ function EditSongInputLinkBox({
 
       <div className={`relative ${expandedControls ? "mt-0" : "mt-2"} ${modalLayout ? "md:col-span-2" : ""}`}>
         {modalLayout ? (
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:mb-2 md:text-[11px]">
             {t("instrumentModal.linkSource")}
           </p>
         ) : null}
@@ -496,7 +496,7 @@ function EditSongInputLinkBox({
           placeholder={t("instrumentModal.linkPlaceholder")}
           className={`w-full border border-[goldenrod]/35 bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,0.08)] outline-none focus:border-[goldenrod] focus:shadow-[0_10px_22px_rgba(218,165,32,0.18)] ${
             expandedControls
-              ? "h-14 rounded-[16px] px-4 text-base font-bold"
+              ? "h-12 rounded-[13px] px-3.5 text-[13px] font-bold md:h-14 md:rounded-[16px] md:px-4 md:text-base"
               : "h-6 rounded-sm p-1 text-sm"
           } ${isLocked ? "cursor-default" : ""}`}
           value={link}
@@ -534,7 +534,7 @@ function EditSongInputLinkBox({
       {expandedControls && !hasLink ? (
         <button
           type="button"
-          className="flex h-12 w-full items-center justify-center gap-2 self-end rounded-[12px] neuphormism-b-btn px-3 text-xs font-bold text-black"
+          className="flex h-11 w-full items-center justify-center gap-2 self-end rounded-[11px] neuphormism-b-btn px-3 text-[11px] font-bold text-black md:h-12 md:text-xs"
           onClick={pasteLinkFromClipboard}
         >
           <FaPaste aria-hidden="true" />
@@ -542,7 +542,7 @@ function EditSongInputLinkBox({
         </button>
       ) : null}
       {expandedControls ? (
-        <div className={`md:col-span-2 mt-0 grid gap-3 ${hasLink ? "grid-cols-3" : "grid-cols-2"}`}>
+        <div className={`mt-0 grid gap-2 md:col-span-2 md:gap-3 ${hasLink ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             type="button"
             aria-label={
@@ -553,14 +553,14 @@ function EditSongInputLinkBox({
             title={hasLink ? "Play presentation" : "No link added"}
             disabled={!hasLink}
             onClick={openPresentation}
-            className={`neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold ${
+            className={`neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-2.5 py-2 text-left text-[11px] font-bold md:justify-start md:gap-3 md:rounded-[14px] md:px-4 md:py-3 md:text-sm ${
               hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
             }`}
           >
             <FaPlay aria-hidden="true" className="shrink-0 text-base" />
             <span>
               <span className="block">{t("instrumentModal.play")}</span>
-              <span className="mt-1 block text-xs font-medium text-gray-500">
+              <span className="mt-1 hidden text-xs font-medium text-gray-500 md:block">
                 {t("instrumentModal.playHelp")}
               </span>
             </span>
@@ -575,14 +575,14 @@ function EditSongInputLinkBox({
             title={hasLink ? "Open link" : "No link added"}
             disabled={!hasLink}
             onClick={openInstrumentLink}
-            className={`neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold ${
+            className={`neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-2.5 py-2 text-left text-[11px] font-bold md:justify-start md:gap-3 md:rounded-[14px] md:px-4 md:py-3 md:text-sm ${
               hasLink ? "text-black" : "cursor-not-allowed text-gray-400 opacity-60"
             }`}
           >
             <FaExternalLinkAlt aria-hidden="true" className="shrink-0 text-base" />
             <span>
               <span className="block">{t("instrumentModal.openLink")}</span>
-              <span className="mt-1 block text-xs font-medium text-gray-500">
+              <span className="mt-1 hidden text-xs font-medium text-gray-500 md:block">
                 {t("instrumentModal.openLinkHelp")}
               </span>
             </span>
@@ -591,14 +591,14 @@ function EditSongInputLinkBox({
             <button
               type="button"
               aria-label={`Remove ${instrumentName} instrument`}
-              className="neuphormism-b-btn flex items-center gap-3 rounded-[14px] px-4 py-3 text-left text-sm font-bold text-black"
+              className="neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-2.5 py-2 text-left text-[11px] font-bold text-black md:justify-start md:gap-3 md:rounded-[14px] md:px-4 md:py-3 md:text-sm"
               onMouseDown={(event) => event.preventDefault()}
               onClick={removeInstrument}
             >
               <FaTrashAlt aria-hidden="true" className="shrink-0 text-base" />
               <span>
                 <span className="block">{t("instrumentModal.remove")}</span>
-                <span className="mt-1 block text-xs font-medium text-gray-500">
+                <span className="mt-1 hidden text-xs font-medium text-gray-500 md:block">
                   {t("instrumentModal.removeEditHelp")}
                 </span>
               </span>
@@ -607,17 +607,17 @@ function EditSongInputLinkBox({
         </div>
       ) : null}
 
-      <div className="md:col-span-2 mt-0 rounded-[16px] neuphormism-b-se px-4 py-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mt-0 rounded-[14px] border border-black/5 bg-white/65 px-3 py-3 shadow-[0_5px_14px_rgba(0,0,0,0.04)] md:col-span-2 md:rounded-[16px] md:px-4">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
           <div className="max-w-[24rem]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:text-[11px]">
               {t("instrumentModal.progression")}
             </p>
-            <p className="mt-1 text-sm font-medium leading-5 text-gray-500">
+            <p className="mt-1 text-[11px] font-medium leading-4 text-gray-500 md:text-sm md:leading-5">
               {t("instrumentModal.progressionHelp")}
             </p>
           </div>
-          <div className="flex min-w-[18rem] items-center justify-between gap-3">
+          <div className="flex w-full items-center justify-between gap-3 md:min-w-[18rem] md:w-auto">
             <button
               type="button"
               className={iconButtonClass}
@@ -631,7 +631,7 @@ function EditSongInputLinkBox({
             >
               <FaMinus />
             </button>
-            <div className="min-w-[5rem] text-center text-2xl font-bold text-black">
+            <div className="min-w-[5rem] text-center text-xl font-black text-black md:text-2xl">
               {rangeProgress}
             </div>
             <button
@@ -703,12 +703,12 @@ function EditSongInputLinkBox({
         </div>
       ) : null}
       {modalLayout ? (
-        <div className="rounded-[16px] neuphormism-b-se px-4 py-3 md:col-span-2">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+        <div className="rounded-[14px] border border-black/5 bg-white/65 px-3 py-3 shadow-[0_5px_14px_rgba(0,0,0,0.04)] md:col-span-2 md:rounded-[16px] md:px-4">
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:mb-2 md:text-[11px]">
             {t("instrumentModal.notes")}
           </p>
           <textarea
-            className="min-h-[148px] w-full resize-y rounded-[14px] border border-gray-300 bg-white p-3 text-sm font-medium text-black outline-none focus:border-[goldenrod]"
+            className="min-h-[104px] w-full resize-y rounded-[12px] border border-gray-300 bg-white p-3 text-[12px] font-medium text-black outline-none focus:border-[goldenrod] md:min-h-[148px] md:text-sm"
             value={notes}
             onChange={(event) => onNotesChange?.(event.target.value)}
             onBlur={() =>
@@ -716,7 +716,7 @@ function EditSongInputLinkBox({
             }
             placeholder={t("instrumentModal.notesPlaceholder")}
           />
-          <p className="mt-2 text-xs font-medium text-gray-500">
+          <p className="mt-1.5 text-[10px] font-medium leading-4 text-gray-500 md:mt-2 md:text-xs">
             {notesSaving ? "Saving notes..." : t("instrumentModal.notesAutoSave")}
           </p>
         </div>

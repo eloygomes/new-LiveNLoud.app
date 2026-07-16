@@ -114,11 +114,16 @@ describe("Presentation extracted components", () => {
     expect(onExit).toHaveBeenCalled();
   });
 
-  it("keeps only zoom controls visible in the touch live header", () => {
+  it("adapts the desktop presentation controls to the touch live header", () => {
     const onGoToSetlistSong = vi.fn();
     const onOpenSetlist = vi.fn();
+    const onDecreaseZoom = vi.fn();
+    const onIncreaseZoom = vi.fn();
+    const onDecreaseSpacing = vi.fn();
+    const onIncreaseSpacing = vi.fn();
+    const onExit = vi.fn();
 
-    render(
+    const { container } = render(
       <PresentationLiveHeader
         effectiveLiveMode
         isTouchLayout
@@ -132,22 +137,42 @@ describe("Presentation extracted components", () => {
         ]}
         liveCifraZoomLabel="120%"
         blockSpacingLabel="32px"
-        onDecreaseZoom={vi.fn()}
-        onIncreaseZoom={vi.fn()}
-        onDecreaseSpacing={vi.fn()}
-        onIncreaseSpacing={vi.fn()}
+        onDecreaseZoom={onDecreaseZoom}
+        onIncreaseZoom={onIncreaseZoom}
+        onDecreaseSpacing={onDecreaseSpacing}
+        onIncreaseSpacing={onIncreaseSpacing}
         onOpenSetlist={onOpenSetlist}
         onGoToSetlistSong={onGoToSetlistSong}
-        onExit={vi.fn()}
+        onExit={onExit}
       />,
     );
 
+    expect(screen.getByText("Song")).toBeInTheDocument();
+    expect(screen.getByText("Artist")).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: "Live cifra zoom" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("group", { name: "Live block spacing" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("group", { name: "Live block spacing" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Decrease live cifra zoom" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase live cifra zoom" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Decrease live block spacing" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase live block spacing" }),
+    );
+
+    expect(onDecreaseZoom).toHaveBeenCalledOnce();
+    expect(onIncreaseZoom).toHaveBeenCalledOnce();
+    expect(onDecreaseSpacing).toHaveBeenCalledOnce();
+    expect(onIncreaseSpacing).toHaveBeenCalledOnce();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Previous song in selected setlist" }),
@@ -166,9 +191,21 @@ describe("Presentation extracted components", () => {
     });
 
     fireEvent.click(
-      screen.getAllByRole("button", { name: "Open live setlist" })[0],
+      screen.getByRole("button", { name: "Open live setlist" }),
     );
     expect(onOpenSetlist).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close live mode" }));
+    expect(onExit).toHaveBeenCalledOnce();
+
+    expect(screen.queryByRole("button", { name: "Like live song" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Comment on live song" }),
+    ).toBeNull();
+    expect(screen.queryByText("Add comment...")).toBeNull();
+    expect(
+      container.querySelector('[class*="presentation-live-reels"]'),
+    ).toBeNull();
   });
 
   it("renders touch video actions", () => {
@@ -378,6 +415,11 @@ describe("Presentation extracted components", () => {
         onGoToSetlistSong={onGoToSetlistSong}
       />,
     );
+
+    const topBar = document.querySelector(
+      '[data-presentation-top-bar="true"]',
+    );
+    expect(topBar).toHaveClass("sticky", "top-0", "z-[120]");
 
     expect(
       screen.queryByRole("button", { name: "Open cifra editor" }),
