@@ -3,6 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header';
 import Faq from '../components/Faq';
 import HeroScene from '../components/HeroScene';
+import AmbientScene from '../components/AmbientScene';
+import MobileCarouselControls from '../components/MobileCarouselControls.astro';
 import { faqs, navItems, site } from '../config/site';
 
 const ctaLabel = site.cta.labels[site.cta.mode];
@@ -57,6 +59,7 @@ const audiences = [
   <Header client:load nav={navItems} ctaLabel={ctaLabel} ctaUrl={site.cta.url} appUrl={site.appUrl} />
   <main>
     <section class="hero section-shell" aria-labelledby="hero-title">
+      <div class="parallax-backdrop hero-parallax" data-parallax data-parallax-speed="-.045" aria-hidden="true"><i></i><i></i><i></i></div>
       <div class="hero-copy" data-reveal>
         <p class="eyebrow"><span></span> O workspace do músico</p>
         <h1 id="hero-title">Da primeira ideia ao palco, <em>tudo no mesmo compasso.</em></h1>
@@ -73,38 +76,42 @@ const audiences = [
     </section>
 
     <section class="manifesto section-shell" aria-labelledby="manifesto-title">
+      <div class="parallax-backdrop manifesto-parallax" data-parallax data-parallax-speed=".035" aria-hidden="true"><i></i><i></i></div>
       <p class="section-index">01 — O problema</p>
       <div class="manifesto-grid">
         <div class="manifesto-intro" data-reveal>
           <h2 id="manifesto-title">Menos abas.<br/><em>Mais música.</em></h2>
           <p>A rotina musical se espalha com facilidade: um link no grupo, uma cifra no navegador, um arquivo no computador e a data do ensaio em outra conversa. O Sustenido reúne cada etapa sem tirar a música do centro.</p>
         </div>
-        <div class="transform-list" data-reveal>
-          <article>
+        <div id="problems-carousel" class="transform-list" data-reveal data-mobile-carousel>
+          <article data-carousel-slide>
             <div><small>NA ROTINA</small><strong>Referências espalhadas</strong><p>Links, vídeos, cifras e arquivos ficam perdidos entre favoritos, mensagens e pastas.</p></div>
             <b aria-hidden="true">→</b>
             <div><small>COM O SUSTENIDO</small><strong>Cada parte junto da música</strong><p>Guarde materiais de guitarra, baixo, teclas, bateria e voz no mesmo registro.</p></div>
           </article>
-          <article>
+          <article data-carousel-slide>
             <div><small>NA ROTINA</small><strong>Repertório sem contexto</strong><p>Você lembra da música, mas não do tom, afinação, setlist ou última vez que tocou.</p></div>
             <b aria-hidden="true">→</b>
             <div><small>COM O SUSTENIDO</small><strong>Um catálogo que trabalha por você</strong><p>Encontre dados, tags, setlists, arquivos, notas e histórico sem reconstruir o contexto.</p></div>
           </article>
-          <article>
+          <article data-carousel-slide>
             <div><small>NA ROTINA</small><strong>Preparação no improviso</strong><p>O ensaio chega sem uma visão clara do que está pronto e do que precisa de atenção.</p></div>
             <b aria-hidden="true">→</b>
             <div><small>COM O SUSTENIDO</small><strong>Progresso visível por instrumento</strong><p>Acompanhe a evolução de cada parte e filtre exatamente o que precisa ser praticado.</p></div>
           </article>
-          <article>
+          <article data-carousel-slide>
             <div><small>NA ROTINA</small><strong>Ferramentas desconectadas</strong><p>Afinador, metrônomo, calendário e ideias vivem longe do repertório que você está preparando.</p></div>
             <b aria-hidden="true">→</b>
             <div><small>COM O SUSTENIDO</small><strong>Um fluxo contínuo até o palco</strong><p>Prepare, crie, combine encontros e entre no modo LIVE sem trocar de ambiente.</p></div>
           </article>
         </div>
+        <MobileCarouselControls target="problems-carousel" label="Problemas e soluções" />
       </div>
     </section>
 
     <section id="produto" class="product section-shell dark-section" aria-labelledby="product-title">
+      <div class="parallax-backdrop product-parallax" data-parallax data-parallax-speed="-.04" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="three-accent product-three" data-parallax data-parallax-speed=".055"><AmbientScene client:visible variant="product" /></div>
       <div class="product-heading" data-reveal>
         <div>
           <p class="section-index">02 — Produto</p>
@@ -113,15 +120,15 @@ const audiences = [
         <p>Catalogue suas músicas com todos os materiais de que precisa. Prepare-se com afinador e metrônomo, transforme ideias em grooves na drum machine, organize os encontros da banda e conte com o modo LIVE quando chegar a hora de tocar.</p>
       </div>
 
-      <div class="product-showcase" data-reveal>
-        <figure class="app-preview product-main-preview">
+      <div id="product-carousel" class="product-showcase" data-reveal data-mobile-carousel>
+        <figure class="app-preview product-main-preview" data-carousel-slide>
           <div class="preview-bar"><i></i><i></i><i></i><span>Repertório</span><b>sustenido.eloygomes.com</b></div>
           <div class="shot-viewport"><img src="/screenshots/repertorio.png" alt="Tela real do repertório no Sustenido, com músicas, artistas, tags e instrumentos" loading="lazy" /></div>
           <figcaption><span>Seu repertório inteiro em perspectiva</span><small>Busque, filtre e veja o estado de cada música.</small></figcaption>
         </figure>
         <div class="product-preview-grid">
           {productPreviews.map((preview) =>
-            <figure class="app-preview compact">
+            <figure class="app-preview compact" data-carousel-slide>
               <div class="preview-bar"><i></i><i></i><i></i><span>{preview.label}</span></div>
               <div class="shot-viewport"><img src={preview.src} alt={`${preview.title} no Sustenido`} loading="lazy" /></div>
               <figcaption><span>{preview.title}</span></figcaption>
@@ -129,6 +136,7 @@ const audiences = [
           )}
         </div>
       </div>
+      <MobileCarouselControls target="product-carousel" label="Telas do produto" />
 
       <div class="feature-line" data-reveal>
         <span><b>Catalogue</b> músicas, partes e setlists</span>
@@ -139,32 +147,39 @@ const audiences = [
     </section>
 
     <section class="flow section-shell" aria-labelledby="flow-title">
+      <div class="parallax-backdrop flow-parallax" data-parallax data-parallax-speed="-.05" aria-hidden="true"><i></i><i></i></div>
+      <div class="three-accent flow-three" data-parallax data-parallax-speed=".075"><AmbientScene client:visible variant="flow" /></div>
       <p class="section-index">03 — Fluxo</p>
-      <div class="section-heading split" data-reveal><h2 id="flow-title">Da música ao ensaio,<br/><em>sem perder o contexto.</em></h2><p>O caminho inteiro cabe em três movimentos.</p></div>
-      <div class="steps">
-        <article data-reveal><span>01</span><div class="step-icon capture"><i></i><i></i><i></i></div><h3>Capture</h3><p>Comece do zero ou adicione uma música por link. Registre artista, tom, afinação e tudo que acompanha cada instrumento.</p></article>
-        <article data-reveal><span>02</span><div class="step-icon organize"><i></i><i></i><i></i></div><h3>Prepare</h3><p>Organize setlists, acompanhe o progresso e use as ferramentas certas para chegar ao ensaio sabendo o que merece atenção.</p></article>
-        <article data-reveal><span>03</span><div class="step-icon play"><i></i></div><h3>Crie e toque</h3><p>Teste grooves e acordes, alinhe a agenda da banda e leve o repertório em sequência para o palco com o modo LIVE.</p></article>
+      <div class="section-heading split" data-reveal><h2 id="flow-title">Da música ao ensaio,<br/><em>sem perder o contexto.</em></h2><p class="flow-kicker">O caminho inteiro cabe em três movimentos.</p></div>
+      <div id="flow-carousel" class="steps" data-mobile-carousel>
+        <article data-reveal data-carousel-slide><span>01</span><div class="step-icon capture"><i></i><i></i><i></i></div><h3>Capture</h3><p>Comece do zero ou adicione uma música por link. Registre artista, tom, afinação e tudo que acompanha cada instrumento.</p></article>
+        <article data-reveal data-carousel-slide><span>02</span><div class="step-icon organize"><i></i><i></i><i></i></div><h3>Prepare</h3><p>Organize setlists, acompanhe o progresso e use as ferramentas certas para chegar ao ensaio sabendo o que merece atenção.</p></article>
+        <article data-reveal data-carousel-slide><span>03</span><div class="step-icon play"><i></i></div><h3>Crie e toque</h3><p>Teste grooves e acordes, alinhe a agenda da banda e leve o repertório em sequência para o palco com o modo LIVE.</p></article>
       </div>
+      <MobileCarouselControls target="flow-carousel" label="Etapas do fluxo" />
     </section>
 
     <section id="recursos" class="lab section-shell" aria-labelledby="lab-title">
+      <div class="parallax-backdrop lab-parallax" data-parallax data-parallax-speed=".045" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="three-accent lab-three" data-parallax data-parallax-speed="-.06"><AmbientScene client:visible variant="lab" /></div>
       <div class="section-heading" data-reveal>
         <p class="section-index">04 — Laboratório</p>
         <h2 id="lab-title">Ferramentas para <em>praticar, experimentar e criar.</em></h2>
         <p>O laboratório fica ao lado do seu repertório. Afine, estude no tempo certo, descubra novas formas de tocar um acorde e construa a base rítmica da próxima ideia.</p>
       </div>
-      <div class="lab-grid lab-real-grid">
+      <div id="tools-carousel" class="lab-grid lab-real-grid" data-mobile-carousel>
         {labTools.map((tool) =>
-          <figure class={`real-tool-card ${tool.className}`} data-reveal>
+          <figure class={`real-tool-card ${tool.className}`} data-reveal data-carousel-slide>
             <div class="tool-shot"><img src={tool.src} alt={`Tela real de ${tool.label} no Sustenido`} loading="lazy" /></div>
             <figcaption><small>{tool.label}</small><h3>{tool.title}</h3><p>{tool.copy}</p></figcaption>
           </figure>
         )}
       </div>
+      <MobileCarouselControls target="tools-carousel" label="Ferramentas" />
     </section>
 
     <section class="rehearsal section-shell" aria-labelledby="rehearsal-title">
+      <div class="parallax-backdrop rehearsal-parallax" data-parallax data-parallax-speed="-.04" aria-hidden="true"><i></i><i></i></div>
       <div class="rehearsal-copy" data-reveal>
         <p class="section-index">05 — Ensaio</p>
         <h2 id="rehearsal-title">A agenda da banda, <em>com todos no mesmo compasso.</em></h2>
@@ -190,6 +205,7 @@ const audiences = [
     </section>
 
     <section class="live section-shell dark-section" aria-labelledby="live-title">
+      <div class="parallax-backdrop live-parallax" data-parallax data-parallax-speed=".035" aria-hidden="true"><i></i><i></i></div>
       <div class="live-copy" data-reveal>
         <p class="section-index">06 — Ao vivo</p>
         <h2 id="live-title">O palco na tela.<br/><em>O controle aos seus pés.</em></h2>
@@ -203,7 +219,7 @@ const audiences = [
         <a class="text-link light" href="#faq">Ver compatibilidade <span>↘</span></a>
       </div>
       <div class="live-visual" data-reveal>
-        <div class="signal signal-a"></div><div class="signal signal-b"></div><div class="signal signal-c"></div>
+        <div class="three-accent live-three" data-parallax data-parallax-speed="-.065"><AmbientScene client:visible variant="live" /></div>
         <div class="live-screen">
           <div class="live-screen-top"><span>AGORA</span><small>03 / 12</small></div>
           <h3>Come Together</h3><p>The Beatles · Baixo</p>
@@ -219,13 +235,14 @@ const audiences = [
     </section>
 
     <section id="para-quem" class="audiences section-shell" aria-labelledby="audience-title">
+      <div class="parallax-backdrop audience-parallax" data-parallax data-parallax-speed=".04" aria-hidden="true"><i></i><i></i><i></i></div>
       <div class="audience-heading" data-reveal>
         <div><p class="section-index">07 — Para quem</p><h2 id="audience-title">Uma plataforma.<br/><em>Cada rotina encontra seu fluxo.</em></h2></div>
         <p>Do estudo individual à agenda da banda, da primeira batida ao último bis: o Sustenido acompanha quem faz a música acontecer.</p>
       </div>
-      <div class="audience-grid">
+      <div id="audience-carousel" class="audience-grid" data-mobile-carousel>
         {audiences.map((audience) =>
-          <article data-reveal>
+          <article data-reveal data-carousel-slide>
             <div class="audience-card-top"><span>{audience.n}</span><small>{audience.eyebrow}</small></div>
             <h3>{audience.title}</h3>
             <p>{audience.copy}</p>
@@ -233,6 +250,7 @@ const audiences = [
           </article>
         )}
       </div>
+      <MobileCarouselControls target="audience-carousel" label="Perfis de uso" />
       <div class="audience-close" data-reveal><span>Uma única fonte de verdade</span><p>O repertório conecta a preparação, a criação, o ensaio e o palco — mesmo quando a sua forma de fazer música muda.</p></div>
     </section>
 

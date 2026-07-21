@@ -1,0 +1,11 @@
+- label: Comece aqui
+  path: /usuario/primeiros-passos
+- label: Manual do usuário
+  children: [Biblioteca e músicas, Instrumentos e progresso, Setlists, Apresentação e LIVE MODE, Ferramentas musicais, Calendário, Amigos e compartilhamento, Offline e sincronização, Integrações e exportações, Extensão, Perfil e conta, Web e aplicativo, Problemas comuns]
+- label: Desenvolvimento
+  children: [Início rápido, Arquitetura do sistema, Mapa do repositório, Frontend web, Aplicativo mobile, Backend Node, Scraper Python, Admin, Extensão, Offline e conflitos, Testes e qualidade, Segurança e privacidade]
+- label: Referência
+  children: [Referência da API, Modelo de dados, Autenticação e autorização, Compatibilidade de navegadores, Rastreabilidade, ADRs]
+- label: Operação
+  visibility: restricted
+  children: [Ambientes, Deploy e promoção, Rollback, Backup externo, Restauração, Observabilidade e alertas, Resposta a incidentes, LGPD retenção e exclusão, Runbook API, Runbook MongoDB, Runbook scraper e integrações, Runbook SMTP e OAuth, Operação do Admin, Sincronização de bancos]

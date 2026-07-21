@@ -9,11 +9,13 @@ import {
   listUserLogs,
   listUserSongs,
   removeFriendship,
+  resetUserPassword,
   updateUserStatus,
 } from "../api/admin.js";
 import { ConfirmActionModal } from "../components/ConfirmActionModal.jsx";
 import { DataState } from "../components/DataState.jsx";
 import { StatusBadge } from "../components/StatusBadge.jsx";
+import { ResetPasswordModal } from "../components/ResetPasswordModal.jsx";
 
 export function UserDetails() {
   const { userId } = useParams();
@@ -54,6 +56,7 @@ export function UserDetails() {
     if (modal.type === "deleteAllSongs") await deleteAllSongs(user.id, payload);
     if (modal.type === "deleteSong") await deleteSong(user.id, modal.song.key, payload);
     if (modal.type === "removeFriend") await removeFriendship(user.id, modal.email, payload);
+    if (modal.type === "resetPassword") await resetUserPassword(user.id, payload);
     setModal(null);
     await load();
   }
@@ -76,7 +79,14 @@ export function UserDetails() {
 
       <section className="panel action-panel">
         <h2>Risco/Acoes</h2>
+        {user?.resetPasswordRequestedAt ? (
+          <div className="password-reset-notice">
+            <strong>{user.passwordResetPending ? "Redefinicao de senha solicitada" : "Ultima solicitacao de redefinicao"}</strong>
+            <span>{new Date(user.resetPasswordRequestedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })}</span>
+          </div>
+        ) : null}
         <button className="button secondary" onClick={() => setModal({ type: "status", status: "approved", title: "Reativar usuario" })}>Reativar</button>
+        <button className="button secondary" onClick={() => setModal({ type: "resetPassword", title: "Redefinir senha" })}>Redefinir senha</button>
         <button className="button danger" onClick={() => setModal({ type: "status", status: "blocked", title: "Bloquear usuario" })}>Bloquear</button>
         <button className="button danger" onClick={() => setModal({ type: "deleteUser", title: "Excluir usuario" })}>Excluir usuario</button>
         <button className="button danger" onClick={() => setModal({ type: "deleteAllSongs", title: "Excluir todas as musicas" })}>Excluir musicas</button>
@@ -141,7 +151,15 @@ export function UserDetails() {
         )}
       </section>
 
-      {modal ? (
+      {modal?.type === "resetPassword" ? (
+        <ResetPasswordModal
+          userEmail={user.email}
+          lastPasswordChangedAt={user.passwordChangedAt}
+          resetRequestedAt={user.resetPasswordRequestedAt}
+          onCancel={() => setModal(null)}
+          onConfirm={runAction}
+        />
+      ) : modal ? (
         <ConfirmActionModal
           title={modal.title}
           expectedText={user.email}

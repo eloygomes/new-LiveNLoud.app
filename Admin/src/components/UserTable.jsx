@@ -12,6 +12,7 @@ export function UserTable({ users, actions }) {
             <th>Role</th>
             <th>Musicas</th>
             <th>Amigos</th>
+            <th>Reset de senha</th>
             <th></th>
           </tr>
         </thead>
@@ -26,6 +27,15 @@ export function UserTable({ users, actions }) {
               <td>{user.role || "user"}</td>
               <td>{user.songCount}</td>
               <td>{user.friendCount}</td>
+              <td>
+                {user.passwordResetPending ? (
+                  <span className="status-badge pending">Solicitado</span>
+                ) : user.resetPasswordRequestedAt ? (
+                  new Date(user.resetPasswordRequestedAt).toLocaleString("pt-BR")
+                ) : (
+                  "—"
+                )}
+              </td>
               <td className="row-actions">{actions?.(user)}</td>
             </tr>
           ))}

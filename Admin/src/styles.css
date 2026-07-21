@@ -338,6 +338,24 @@ textarea {
   gap: 10px;
 }
 
+.password-reset-notice,
+.password-history {
+  background: rgba(218, 165, 32, 0.14);
+  border: 1px solid rgba(218, 165, 32, 0.35);
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.password-reset-notice {
+  margin-right: auto;
+}
+
+.password-history {
+  margin-bottom: 12px;
+}
+
 input,
 select,
 textarea {

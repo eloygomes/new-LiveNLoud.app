@@ -2,7 +2,7 @@ export default function SoftVersion() {
   return (
     <>
       <div className="   ">
-        <p className=" text-[10px] ">0.75.7.3</p>
+        <p className=" text-[10px] ">0.77.1.0</p>
       </div>
     </>
   );

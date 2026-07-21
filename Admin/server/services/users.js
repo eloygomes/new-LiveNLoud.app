@@ -10,6 +10,11 @@ export function serializeAuthUser(user = {}, dataDoc = {}) {
   const acceptedInvitations = Array.isArray(user.acceptedInvitations)
     ? user.acceptedInvitations
     : [];
+  const resetRequestedAt = user.resetPasswordRequestedAt || (
+    user.resetPasswordExpiresAt
+      ? new Date(new Date(user.resetPasswordExpiresAt).getTime() - 30 * 60 * 1000)
+      : null
+  );
 
   return {
     id: serializeId(user._id),
@@ -24,6 +29,14 @@ export function serializeAuthUser(user = {}, dataDoc = {}) {
     rejectedAt: safeDate(user.rejectedAt),
     blockedAt: safeDate(user.blockedAt),
     deletedAt: safeDate(user.deletedAt),
+    passwordChangedAt: safeDate(user.passwordChangedAt),
+    resetPasswordRequestedAt: safeDate(resetRequestedAt),
+    resetPasswordExpiresAt: safeDate(user.resetPasswordExpiresAt),
+    passwordResetPending: Boolean(
+      user.resetPasswordTokenHash &&
+      user.resetPasswordExpiresAt &&
+      new Date(user.resetPasswordExpiresAt).getTime() > Date.now()
+    ),
     songCount: songs.length,
     friendCount: acceptedInvitations.length,
     pendingInvitationCount: 0,

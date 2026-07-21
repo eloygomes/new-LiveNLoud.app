@@ -36,9 +36,9 @@ services:
 
       FRONTEND_BASE_URL: https://sustenido.eloygomes.com
       API_PUBLIC_BASE_URL: https://api.sustenido.eloygomes.com
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required},http://localhost:5173,http://127.0.0.1:5173
 
-      SMTP_HOST: ${SMTP_HOST}
+      SMTP_HOST: ${SMTP_PUBLIC_HOST:-mail.eloygomes.com}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_TLS_SERVERNAME: ${SMTP_TLS_SERVERNAME}
       SMTP_USER: ${SMTP_USER}
@@ -52,6 +52,7 @@ services:
     restart: unless-stopped
     networks:
       - sustenido-network
+      - mailserver-network
 
   python_scraper:
     image: python:3.10-slim
@@ -82,3 +83,6 @@ services:
 networks:
   sustenido-network:
     driver: bridge
+  mailserver-network:
+    external: true
+    name: mailserver-network

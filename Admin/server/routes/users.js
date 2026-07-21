@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { getTargetDb } from "../db.js";
 import { addAdminLog } from "../services/adminLogs.js";
 import { getUserWithData, serializeAuthUser } from "../services/users.js";
@@ -89,6 +90,65 @@ export function registerUserRoutes(app, { authenticateJWT, requireAdmin, require
 
     const updated = await getUserWithData(req.params.userId);
     return res.json({ user: serializeAuthUser(updated.authUser, updated.dataDoc) });
+  });
+
+  app.put("/api/users/:userId/password", authenticateJWT, requireAdmin, requireTargetDb, async (req, res) => {
+    const newPassword = String(req.body?.newPassword || "");
+    const reason = String(req.body?.reason || "").trim();
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: "A nova senha deve ter pelo menos 8 caracteres." });
+    }
+    if (!reason) {
+      return res.status(400).json({ message: "Motivo obrigatorio." });
+    }
+
+    const result = await getUserWithData(req.params.userId);
+    if (!result) return res.status(404).json({ message: "Usuario nao encontrado." });
+
+    const isSamePassword = await bcrypt.compare(
+      newPassword,
+      result.authUser.passwordHash || "",
+    );
+    if (isSamePassword) {
+      return res.status(409).json({ message: "A nova senha deve ser diferente da senha atual." });
+    }
+
+    const passwordHash = await bcrypt.hash(
+      newPassword,
+      Number(process.env.BCRYPT_ROUNDS || 12),
+    );
+    const now = new Date();
+    await getTargetDb().collection("authUsers").updateOne(
+      { _id: result.authUser._id },
+      {
+        $set: {
+          passwordHash,
+          passwordChangedAt: now,
+          passwordChangedByAdminId: req.adminUser._id,
+          lastAdminActionAt: now,
+        },
+        $inc: { authVersion: 1 },
+        $unset: {
+          refreshToken: "",
+          resetPasswordTokenHash: "",
+          resetPasswordExpiresAt: "",
+          resetPasswordRequestedAt: "",
+        },
+      },
+    );
+
+    await addAdminLog({
+      req,
+      action: "user_password_reset",
+      targetType: "user",
+      targetUser: result.authUser,
+      reason,
+      metadata: { sessionsInvalidated: true },
+    });
+
+    return res.json({
+      message: "Senha redefinida e sessoes existentes invalidadas.",
+    });
   });
 
   app.delete("/api/users/:userId", authenticateJWT, requireAdmin, requireTargetDb, async (req, res) => {

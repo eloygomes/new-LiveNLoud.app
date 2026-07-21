@@ -1,0 +1,12 @@
+---
+import { getCollection } from 'astro:content';
+import DocsLayout from '../layouts/DocsLayout.astro';
+const q = Astro.url.searchParams.get('q')?.trim().toLocaleLowerCase('pt-BR') ?? '';
+const publicDocs = (await getCollection('docs', ({ data }) => data.visibility === 'public'))
+  .filter(({ data, body }) => q && `${data.title} ${data.description} ${data.tags.join(' ')} ${body}`.toLocaleLowerCase('pt-BR').includes(q));
+---
+<DocsLayout title="Busca" description={q ? `Resultados públicos para “${q}”.` : 'Pesquise por assunto, funcionalidade ou palavra-chave.'}>
+  {!q && <p>Digite um termo no campo de busca no topo da página.</p>}
+  {q && publicDocs.length === 0 && <p>Nenhum resultado público encontrado.</p>}
+  <ul>{publicDocs.map((entry) => <li><a href={`/${entry.id.replace(/\.mdx?$/, '')}`}>{entry.data.title}</a> — {entry.data.description}</li>)}</ul>
+</DocsLayout>

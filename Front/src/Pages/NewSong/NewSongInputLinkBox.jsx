@@ -41,6 +41,26 @@ const LETRAS_AUTO_SUBMIT_EVENT = "livenloud:auto-submit-voice";
 const QUICK_ADD_EXTENSION_READY_EVENT = "livenloud:quick-add-extension-ready";
 const QUICK_ADD_EXTENSION_DOWNLOAD_URL = `${API_BASE}/downloads/sustenido-quick-add.zip`;
 
+export function canonicalizeSourceUrl(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (
+      host === "ultimate-guitar.com" ||
+      host.endsWith(".ultimate-guitar.com")
+    ) {
+      url.protocol = "https:";
+      url.hostname = "tabs.ultimate-guitar.com";
+      url.port = "";
+      return url.toString();
+    }
+  } catch {
+    return value;
+  }
+  return value;
+}
+
 export function ChromeExtensionInfoModal({ onClose }) {
   return (
     <div className="fixed inset-0 z-[130] bg-black/40 px-3">
@@ -207,7 +227,10 @@ function parseArtistSongFromUrl(raw) {
     const parts = u.pathname.split("/").filter(Boolean);
     const host = u.hostname.replace(/^www\./, "").toLowerCase();
 
-    if (host === "tabs.ultimate-guitar.com") {
+    if (
+      host === "ultimate-guitar.com" ||
+      host.endsWith(".ultimate-guitar.com")
+    ) {
       const artist = parts[1] || "";
       const song = (parts[2] || "")
         .replace(/-(chords|tabs|tab|bass|ukulele|drums|pro|official)-\d+$/i, "")
@@ -540,7 +563,7 @@ function NewSongInputLinkBox({
     async (linkOverride) => {
       if (inFlightRef.current) return;
 
-      const link = (linkOverride ?? instrument ?? "").trim();
+      const link = canonicalizeSourceUrl(linkOverride ?? instrument ?? "");
       const detectedInstrument = classifyInstrumentLink(link);
       const effectiveInstrumentName = detectedInstrument || instrumentName;
       console.groupCollapsed(`[${effectiveInstrumentName}] SUBMIT`);

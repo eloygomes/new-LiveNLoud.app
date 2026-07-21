@@ -456,8 +456,22 @@ function enqueueMutation(mutation) {
   writeOfflineSyncQueue(nextQueue);
 }
 
-function mergeSongIntoCache(updatedSong = {}) {
+function mergeSongIntoCache(updatedSong = {}, originalSong = updatedSong) {
   const cachedSongs = readCachedOfflineSongs();
+
+  const originalIndex = cachedSongs.findIndex((entry) =>
+    songMatchesTarget(entry, originalSong?.artist, originalSong?.song),
+  );
+
+  if (originalIndex >= 0) {
+    const nextSongs = [...cachedSongs];
+    nextSongs[originalIndex] = {
+      ...nextSongs[originalIndex],
+      ...updatedSong,
+    };
+    writeCachedOfflineSongs(nextSongs);
+    return nextSongs;
+  }
 
   try {
     const nextSongs = applyOfflineSongUpdate(cachedSongs, updatedSong);
@@ -733,23 +747,27 @@ export const updateSongEntry = async (updatedSong = {}, options = {}) => {
     const { data } = await fetchApi.put("/api/v1/song/updateExact", {
       email,
       updatedSong,
+      originalSong: options.originalSong,
       replaceEmptyInstrumentFields: options.replaceEmptyInstrumentFields,
     });
     console.groupCollapsed("[Controllers.updateSongEntry] response");
     console.log("data", data);
     console.groupEnd();
-    mergeSongIntoCache(updatedSong);
+    mergeSongIntoCache(updatedSong, options.originalSong);
     setOfflineModeEnabled(false);
     return data;
   } catch (error) {
     console.error("Error updating exact song record:", error);
-    mergeSongIntoCache(updatedSong);
+    if (error?.response) throw error;
+
+    mergeSongIntoCache(updatedSong, options.originalSong);
     enqueueMutation(
       buildOfflineMutation("UPSERT_SONG", {
         email,
-        artist: updatedSong.artist,
-        song: updatedSong.song,
+        artist: options.originalSong?.artist || updatedSong.artist,
+        song: options.originalSong?.song || updatedSong.song,
         userdata: updatedSong,
+        originalSong: options.originalSong,
         replaceEmptyInstrumentFields: options.replaceEmptyInstrumentFields,
       }),
     );
@@ -1550,6 +1568,14 @@ export async function syncOfflineQueue() {
 
       if (mutation.action === "UPDATE_SETLISTS") {
         await fetchApi.put("/api/v1/updateSetlists", mutation.payload);
+      } else if (mutation.payload?.originalSong) {
+        await fetchApi.put("/api/v1/song/updateExact", {
+          email: mutation.payload.email,
+          updatedSong: mutation.payload.userdata,
+          originalSong: mutation.payload.originalSong,
+          replaceEmptyInstrumentFields:
+            mutation.payload.replaceEmptyInstrumentFields,
+        });
       } else {
         const cachedSong = readCachedOfflineSongs().find(
           (entry) =>
@@ -1924,12 +1950,21 @@ export async function resetPassword({ email, token, newPassword }) {
 
 export function logoutUser() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("userEmail");
-  localStorage.removeItem("username");
-  localStorage.removeItem(SESSION_TIMESTAMP_KEY);
-  localStorage.removeItem(OFFLINE_MODE_KEY);
-  localStorage.removeItem(OFFLINE_SYNC_QUEUE_KEY);
-  localStorage.removeItem(OFFLINE_SONGS_KEY);
+  const keys = [
+    "token",
+    "accessToken",
+    "access_token",
+    "jwt",
+    "refreshToken",
+    "userEmail",
+    "username",
+    SESSION_TIMESTAMP_KEY,
+    OFFLINE_MODE_KEY,
+    OFFLINE_SYNC_QUEUE_KEY,
+    OFFLINE_SONGS_KEY,
+  ];
+  for (const key of keys) {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  }
 }

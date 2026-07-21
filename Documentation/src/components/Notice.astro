@@ -1,0 +1,9 @@
+---
+interface Props { type?: 'info' | 'beta' | 'warning' | 'restricted'; title: string }
+const { type = 'info', title } = Astro.props;
+const styles = { info: 'border-violet-400 bg-violet-50', beta: 'border-amber-400 bg-amber-50', warning: 'border-red-400 bg-red-50', restricted: 'border-zinc-600 bg-zinc-100' };
+---
+<aside class:list={['my-6 rounded-xl border-l-4 p-5', styles[type]]} role={type === 'warning' ? 'alert' : 'note'}>
+  <strong class="block text-sm uppercase tracking-wide">{title}</strong>
+  <div class="mt-2 text-sm leading-relaxed"><slot /></div>
+</aside>

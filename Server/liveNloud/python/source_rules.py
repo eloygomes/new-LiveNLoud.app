@@ -13,6 +13,7 @@ SOURCE_RULES = {
             "www.ultimate-guitar.com",
             "ultimate-guitar.com",
         ),
+        "domain_suffixes": ("ultimate-guitar.com",),
         "service_module": "scraping_service_ultimate_guitar",
         "service_function": "get_ultimate_guitar_data",
     },
@@ -30,14 +31,24 @@ SOURCE_RULES = {
 
 
 def _normalize_host(url: str) -> str:
-    return urlparse(url).netloc.lower()
+    return (urlparse(url).hostname or "").lower()
+
+
+def _host_matches_rule(host: str, rule: dict) -> bool:
+    if host in rule.get("hosts", ()):
+        return True
+
+    return any(
+        host.endswith(f".{suffix}")
+        for suffix in rule.get("domain_suffixes", ())
+    )
 
 
 def detect_source(url: str) -> str:
     host = _normalize_host(url)
 
     for source_name, rule in SOURCE_RULES.items():
-        if host in rule["hosts"]:
+        if _host_matches_rule(host, rule):
             return source_name
 
     return "unknown"

@@ -1,0 +1,20 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import Notice from '../../components/Notice.astro';
+const links = [
+  ['Ambientes', '/operacao/ambientes'], ['Deploy e promoção', '/operacao/deploy-e-promocao'],
+  ['Rollback', '/operacao/rollback'], ['Backup externo', '/operacao/backup-externo'],
+  ['Restauração', '/operacao/restauracao'], ['Observabilidade', '/operacao/observabilidade-e-alertas'],
+  ['Incidentes', '/operacao/resposta-a-incidentes'], ['LGPD', '/operacao/lgpd-retencao-e-exclusao'],
+  ['Runbook da API', '/operacao/runbook-api'], ['Runbook MongoDB', '/operacao/runbook-mongodb'],
+  ['Scraper e integrações', '/operacao/runbook-scraper-e-integracoes'], ['SMTP e OAuth', '/operacao/runbook-smtp-e-oauth'],
+  ['Operação do Admin', '/operacao/operacao-do-admin'], ['Sincronização de bancos', '/operacao/sincronizacao-de-bancos'],
+];
+---
+<DocsLayout title="Operação protegida" description="Procedimentos, controles e runbooks internos do #Sustenido." restricted>
+  <Notice type="restricted" title="Acesso interno">Nunca copie credenciais, topologia privada, dumps, logs reais ou dados pessoais para estas páginas.</Notice>
+  <p>Use estes documentos como roteiro controlado. Antes de uma ação destrutiva, confirme ambiente, versão, banco, backup, responsável e plano de retorno.</p>
+  <div class="my-8 grid gap-3 sm:grid-cols-2">
+    {links.map(([label, href]) => <a href={href} class="rounded-xl border border-black/10 bg-white p-4 font-bold no-underline shadow-sm hover:bg-black/5">{label}</a>)}
+  </div>
+</DocsLayout>

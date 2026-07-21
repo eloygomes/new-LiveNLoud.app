@@ -181,6 +181,63 @@ function getUltimateGuitarField(label) {
   return "";
 }
 
+function normalizeUltimateGuitarContent(value) {
+  const rawContent = String(value || "");
+  if (!rawContent.trim()) return "";
+
+  const container = document.createElement("div");
+  container.innerHTML = rawContent
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/(?:div|p|pre)>/gi, "\n");
+
+  return cleanMultilineText(container.textContent)
+    .replace(
+      /\[\/?(?:tab|ch|verse|chorus|bridge|intro|outro|pre-chorus|prechorus|solo)(?:=[^\]]*)?\]/gi,
+      "",
+    )
+    .trim();
+}
+
+function getUltimateGuitarStoreContent() {
+  const stores = document.querySelectorAll(
+    ".js-store[data-content], [data-content*='wiki_tab']",
+  );
+
+  for (const store of stores) {
+    try {
+      const data = JSON.parse(store.getAttribute("data-content") || "");
+      const content =
+        data?.store?.page?.data?.tab_view?.wiki_tab?.content ||
+        data?.page?.data?.tab_view?.wiki_tab?.content ||
+        data?.data?.tab_view?.wiki_tab?.content ||
+        data?.tab_view?.wiki_tab?.content ||
+        data?.wiki_tab?.content;
+      const normalizedContent = normalizeUltimateGuitarContent(content);
+      if (normalizedContent) return normalizedContent;
+    } catch (_error) {
+      // Some unrelated data-content attributes are not JSON.
+    }
+  }
+
+  return "";
+}
+
+function getUltimateGuitarCifraText() {
+  const storeContent = getUltimateGuitarStoreContent();
+  if (storeContent) return storeContent;
+
+  const candidates = Array.from(
+    document.querySelectorAll(
+      '[data-name="tab-content"], .js-tab-content, [class*="TabContent"], pre',
+    ),
+  )
+    .map((node) => cleanMultilineText(node.textContent))
+    .filter((text) => text.length >= 40)
+    .sort((left, right) => right.length - left.length);
+
+  return candidates[0] || "";
+}
+
 function getLetrasSong() {
   const title = cleanText(
     document.querySelector("#js-lyricHeader .title-primary h1")?.textContent ||
@@ -341,6 +398,7 @@ function buildPageContext() {
     tom = getUltimateGuitarField("key");
     tuning = getUltimateGuitarField("tuning");
     capo = getUltimateGuitarField("capo");
+    cifraText = getUltimateGuitarCifraText();
   } else if (supportedSite?.id === "letrasmus") {
     song = getLetrasSong();
     artist = getLetrasArtist();

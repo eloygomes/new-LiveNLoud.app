@@ -1,8 +1,9 @@
 import re
 import os
+import json
 import hashlib
 import secrets
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 from datetime import datetime, timezone
 
 import requests
@@ -44,6 +45,14 @@ UG_SCRAPER_ENABLED = os.getenv("UG_SCRAPER_ENABLED", "true").lower() in {
 
 def _slug_to_title(slug: str) -> str:
     return " ".join(chunk.capitalize() for chunk in slug.split("-") if chunk)
+
+
+def _canonicalize_ug_url(url: str) -> str:
+    parsed = urlparse(str(url or "").strip())
+    host = (parsed.hostname or "").lower()
+    if host == "ultimate-guitar.com" or host.endswith(".ultimate-guitar.com"):
+        return urlunparse(parsed._replace(netloc="tabs.ultimate-guitar.com"))
+    return url
 
 
 def _ug_headers() -> dict:
@@ -265,7 +274,11 @@ def _build_song_fields(arrangement: str, body: str):
     song_tabs = ""
     song_chords = ""
 
-    if arrangement_key in {"tab", "tabs", "bass", "drums"}:
+    if (
+        arrangement_key in {"tab", "tabs", "bass", "drums"}
+        or "tab" in arrangement_key
+        or "bass" in arrangement_key
+    ):
         song_tabs = body
     elif arrangement_key in {"chords", "ukulele", "official"}:
         song_chords = body
@@ -408,12 +421,30 @@ def _fetch_ultimate_guitar_from_api(url: str):
     return [result]
 
 
+def _extract_store_content(soup: BeautifulSoup) -> str:
+    for store in soup.select(".js-store[data-content], [data-content*='wiki_tab']"):
+        try:
+            data = json.loads(store.get("data-content", ""))
+            content = (
+                data.get("store", {}).get("page", {}).get("data", {})
+                .get("tab_view", {}).get("wiki_tab", {}).get("content", "")
+            )
+            if content:
+                content_soup = BeautifulSoup(content, "html.parser")
+                content_text = _clean_text(content_soup.get_text("\n"))
+                return _body_from_ug_lines(_parse_ug_content_lines(content_text))
+        except (TypeError, ValueError, AttributeError):
+            continue
+    return ""
+
+
 def get_ultimate_guitar_data(url: str):
     if not UG_SCRAPER_ENABLED:
         raise UltimateGuitarScrapeError(
             "Ultimate Guitar scraper is disabled. Set UG_SCRAPER_ENABLED=true to enable it again."
         )
 
+    url = _canonicalize_ug_url(url)
     parsed = _parse_ug_tab_url(url)
     if not parsed:
         msg = f"Invalid Ultimate Guitar URL format: {url}"
@@ -451,20 +482,21 @@ def get_ultimate_guitar_data(url: str):
         song_title = _extract_song_title(soup, parsed["song_slug"])
         print(f"[UG] Parsed header: artist='{artist_name}' song='{song_title}' arrangement='{parsed['arrangement']}'")
 
-        content_el = soup.select_one("pre.extra")
-        if not content_el:
+        content_el = soup.select_one(
+            "pre.extra, [data-name='tab-content'], .js-tab-content, pre"
+        )
+        song_body = (
+            _clean_text(content_el.get_text("\n"))
+            if content_el
+            else _extract_store_content(soup)
+        )
+        if not song_body:
             pre_count = len(soup.select("pre"))
             title_found = bool(soup.select_one("h1.tabHeader-h1"))
             msg = (
                 "Ultimate Guitar tab content not found. "
                 f"selector='pre.extra' pre_count={pre_count} title_found={title_found}"
             )
-            print(f"[UG] {msg}")
-            raise UltimateGuitarScrapeError(msg)
-
-        song_body = _clean_text(content_el.get_text("\n"))
-        if not song_body:
-            msg = "Ultimate Guitar returned an empty tab body."
             print(f"[UG] {msg}")
             raise UltimateGuitarScrapeError(msg)
 

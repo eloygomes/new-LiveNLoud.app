@@ -4,6 +4,9 @@ import { formatDisplayDate } from "../../Tools/dateFormat";
 function EditSongSongData({
   songName,
   artistName,
+  setSongName,
+  setArtistName,
+  onIdentityChange,
   capoData,
   tomData,
   tunerData,
@@ -15,6 +18,12 @@ function EditSongSongData({
 }) {
   const addedDate = formatDisplayDate(fistTime) || "-";
   const lastPlayDate = formatDisplayDate(lastTime) || "not played yet";
+  const identityInputClass =
+    "mt-1 w-full min-w-0 bg-transparent font-bold text-black outline-none placeholder:text-gray-400 focus:ring-0";
+  const updateIdentity = (setter) => (event) => {
+    setter?.(event.target.value);
+    onIdentityChange?.();
+  };
 
   if (touchLayout) {
     if (compact) {
@@ -28,10 +37,10 @@ function EditSongSongData({
             <div className="rounded-full bg-black px-3 py-1.5 text-[11px] font-bold text-white">{Number(geralPercentage || 0)}%</div>
           </div>
           <div className="mt-2.5 grid grid-cols-1 gap-2">
-            {[["Song", songName], ["Artist", artistName]].map(([label, value]) => (
+            {[["Song", songName, setSongName], ["Artist", artistName, setArtistName]].map(([label, value, setter]) => (
               <div key={label} className="min-w-0 rounded-[12px] bg-white/75 px-3 py-2">
-                <div className="text-[9px] font-bold uppercase text-gray-500">{label}</div>
-                <div className="mt-0.5 truncate text-[12px] font-bold text-black">{value || "-"}</div>
+                <label className="text-[9px] font-bold uppercase text-gray-500" htmlFor={`edit-${label.toLowerCase()}-compact`}>{label}</label>
+                <input id={`edit-${label.toLowerCase()}-compact`} className={`${identityInputClass} text-[12px]`} value={value} onChange={updateIdentity(setter)} />
               </div>
             ))}
           </div>
@@ -59,20 +68,16 @@ function EditSongSongData({
             </div>
           </div>
           <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
-            <div className="text-[11px] font-bold uppercase text-gray-500">
+            <label htmlFor="edit-artist-touch" className="text-[11px] font-bold uppercase text-gray-500">
               Artist
-            </div>
-            <div className="mt-1 text-base font-bold text-black">
-              {artistName || "-"}
-            </div>
+            </label>
+            <input id="edit-artist-touch" className={`${identityInputClass} text-base`} value={artistName} onChange={updateIdentity(setArtistName)} />
           </div>
           <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
-            <div className="text-[11px] font-bold uppercase text-gray-500">
+            <label htmlFor="edit-song-touch" className="text-[11px] font-bold uppercase text-gray-500">
               Song
-            </div>
-            <div className="mt-1 text-base font-bold text-black">
-              {songName || "-"}
-            </div>
+            </label>
+            <input id="edit-song-touch" className={`${identityInputClass} text-base`} value={songName} onChange={updateIdentity(setSongName)} />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-[14px] bg-[#f8f8f8] px-3 py-2">
@@ -137,20 +142,16 @@ function EditSongSongData({
 
         <div className="mt-5 grid gap-4">
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            <label htmlFor="edit-song" className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Song
-            </span>
-            <div className="mt-2 text-xl font-bold text-black">
-              {songName || "-"}
-            </div>
+            </label>
+            <input id="edit-song" className={`${identityInputClass} mt-2 text-xl`} value={songName} onChange={updateIdentity(setSongName)} />
           </div>
           <div className="rounded-[22px] neuphormism-b-se px-4 py-3">
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            <label htmlFor="edit-artist" className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
               Artist
-            </span>
-            <div className="mt-2 text-xl font-bold text-black">
-              {artistName || "-"}
-            </div>
+            </label>
+            <input id="edit-artist" className={`${identityInputClass} mt-2 text-xl`} value={artistName} onChange={updateIdentity(setArtistName)} />
           </div>
         </div>
 

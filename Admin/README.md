@@ -2,13 +2,13 @@
 
 Painel administrativo separado do `Front/`, com frontend React/Vite e backend Express no mesmo projeto.
 
-Este Admin foi preparado para administrar somente o ambiente Sustenido. O controle de acesso do painel fica em um Mongo proprio do Admin, criado no mesmo `docker-compose.yml`, separado da rede Docker do Sustenido.
+Este Admin foi preparado para administrar somente o ambiente Sustenido. O controle de acesso usa o banco remoto de producao informado em `ADMIN_MONGO_URI`. O projeto nao cria um Mongo local.
 
 Separacao de dados:
 
-- `admin-db/adminPanel.adminUsers`: login/permissao dos administradores do painel.
-- `admin-db/adminPanel.adminLogs`: auditoria administrativa do painel.
-- API interna `admin-api`: servico Python no mesmo `docker-compose.yml` que le o Mongo proprio do Admin e o Mongo alvo do Sustenido.
+- `adminPanel.adminUsers`: login/permissao dos administradores no banco remoto.
+- `adminPanel.adminLogs`: auditoria administrativa no banco remoto.
+- API interna `admin-api`: servico Python no mesmo `docker-compose.yml` que le os bancos remotos do Admin e do Sustenido.
 - Mongo do Sustenido via `host.docker.internal:27018`: banco alvo usado somente para operar usuarios, musicas, amizades e logs do produto.
 
 ## Instalar no servidor
@@ -23,8 +23,10 @@ O repositorio mantem somente `.env.example`. No servidor, crie um unico `.env` a
 ```text
 PORT=5175
 ADMIN_DB_NAME=adminPanel
-ADMIN_MONGO_ROOT_USER=admin_root
-ADMIN_MONGO_ROOT_PASSWORD=...
+ADMIN_MONGO_HOST=HOST_PRODUCAO
+ADMIN_MONGO_PORT=27019
+ADMIN_MONGO_ROOT_USER=USER
+ADMIN_MONGO_ROOT_PASSWORD=SENHA
 ADMIN_ACCESS_SECRET=...
 ADMIN_REFRESH_SECRET=...
 ADMIN_BOOTSTRAP_EMAIL=eloy.gomes@icloud.com
@@ -57,7 +59,7 @@ O script local copia `Admin/` para `/home/Admin` no VPS e roda o Docker Compose 
 ADMIN_REMOTE_DIR=/outro/caminho/Admin ./scripts/deploy_admin_sustenido.sh
 ```
 
-O painel autentica administradores no Mongo proprio `admin-db`. As telas administrativas operam o banco alvo definido em `SUSTENIDO_MONGO_URI`. Nao use URI do Live nem `TARGET_DB_NAME=liveNloud_` neste arquivo.
+O painel monta a conexao a partir de `ADMIN_MONGO_HOST`, `ADMIN_MONGO_PORT`, `ADMIN_MONGO_ROOT_USER` e `ADMIN_MONGO_ROOT_PASSWORD`. Uma `ADMIN_MONGO_URI` completa continua aceita como alternativa. As telas administrativas operam o banco alvo definido em `SUSTENIDO_MONGO_URI`. O Admin local e o publicado devem apontar para o mesmo Mongo administrativo para compartilhar usuarios e senhas.
 
 O Admin nao entra na rede Docker `sustenido_sustenido-network`. Para acessar o banco alvo, use a porta publicada do Mongo do Sustenido no host:
 
@@ -112,7 +114,7 @@ Em producao, o frontend chama `/api` no mesmo subdominio do Admin.
 
 ## Primeiro admin
 
-Nao promova usuario em `liveNloud_.authUsers`. O Admin agora usa banco proprio.
+Nao promova usuario em `liveNloud_.authUsers`. O login administrativo usa `adminPanel.adminUsers` no Mongo administrativo remoto.
 
 Configure no `/home/Admin/.env`:
 

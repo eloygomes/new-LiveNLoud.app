@@ -17,6 +17,8 @@ export const updateApproval = (userId, payload) =>
   apiRequest(`/users/${userId}/approval`, { method: "PATCH", body: JSON.stringify(payload) });
 export const updateUserStatus = (userId, payload) =>
   apiRequest(`/users/${userId}/status`, { method: "PATCH", body: JSON.stringify(payload) });
+export const resetUserPassword = (userId, payload) =>
+  apiRequest(`/users/${userId}/password`, { method: "PUT", body: JSON.stringify(payload) });
 export const deleteUser = (userId, payload) =>
   apiRequest(`/users/${userId}`, { method: "DELETE", body: JSON.stringify(payload) });
 export const listUserSongs = (userId) => apiRequest(`/users/${userId}/songs`);

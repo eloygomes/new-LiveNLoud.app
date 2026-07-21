@@ -1,0 +1,6 @@
+node_modules
+.astro
+dist
+.git
+.env
+npm-debug.log

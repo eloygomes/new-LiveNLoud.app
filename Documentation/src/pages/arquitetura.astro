@@ -1,0 +1,7 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+<DocsLayout title="Arquitetura do portal" description="Como o portal separa conteúdo público e procedimentos protegidos.">
+  <p>Astro executa em modo servidor com adapter Node standalone. Conteúdo público e operacional permanece no repositório, validado por schema. Middleware bloqueia acesso direto a <code>/operacao</code> e <code>/interno</code>.</p>
+  <h2>Decisão de renderização</h2><p>Páginas públicas podem ser servidas de forma eficiente pelo mesmo processo, enquanto rotas protegidas são autorizadas antes da renderização. A navegação usa <code>ClientRouter</code> para preservar URLs diretas e oferecer transições no cliente.</p>
+</DocsLayout>

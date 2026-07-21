@@ -368,6 +368,7 @@ import {
   createNewSongOnServer,
 } from "../../Tools/Controllers";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { syncInstrumentSetlistTags } from "../shared/instrumentSetlistTags";
 
 /* helper: transforma slug (pink-floyd) em "Pink Floyd" */
 function slugToTitle(input = "") {
@@ -503,6 +504,25 @@ function NewSongColumnA({
   const [setListOptions, setSetListOptions] = useState([]);
   // 2) setlist = o array que realmente será usado/associado à nova música
   const [setlist, setSetlist] = useState([]);
+
+  useEffect(() => {
+    setSetlist((currentSetlist) => {
+      const nextSetlist = syncInstrumentSetlistTags(
+        currentSetlist,
+        scrapeStatus,
+      );
+      return JSON.stringify(nextSetlist) === JSON.stringify(currentSetlist)
+        ? currentSetlist
+        : nextSetlist;
+    });
+  }, [
+    scrapeStatus.guitar01,
+    scrapeStatus.guitar02,
+    scrapeStatus.bass,
+    scrapeStatus.keys,
+    scrapeStatus.drums,
+    scrapeStatus.voice,
+  ]);
 
   const navigate = useNavigate();
   const hasSaved = useRef(false);

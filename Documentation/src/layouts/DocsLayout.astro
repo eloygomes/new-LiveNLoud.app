@@ -1,0 +1,92 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Search from '../components/Search.astro';
+import StatusBadge from '../components/StatusBadge.astro';
+import '../styles/global.css';
+
+interface Props { title: string; description: string; featureStatus?: 'delivered' | 'beta' | 'planned' | 'legacy'; restricted?: boolean }
+const { title, description, featureStatus = 'delivered', restricted = false } = Astro.props;
+const pathname = Astro.url.pathname;
+const nav = [
+  { label: 'Comece aqui', href: '/usuario/primeiros-passos' },
+  { label: 'Biblioteca e músicas', href: '/usuario/biblioteca-e-musicas' },
+  { label: 'Instrumentos', href: '/usuario/instrumentos-e-progresso' },
+  { label: 'Setlists', href: '/usuario/setlists' },
+  { label: 'Apresentação', href: '/usuario/apresentacao-live-mode' },
+  { label: 'Ferramentas', href: '/usuario/ferramentas-musicais' },
+  { label: 'Calendário', href: '/usuario/calendario' },
+  { label: 'Amigos e compartilhamento', href: '/usuario/amigos-e-compartilhamento' },
+  { label: 'Offline', href: '/usuario/offline-e-sincronizacao' },
+  { label: 'Integrações', href: '/usuario/integracoes-e-exportacoes' },
+  { label: 'Extensão', href: '/usuario/extensao-do-navegador' },
+  { label: 'Perfil e conta', href: '/usuario/perfil-privacidade-e-conta' },
+  { label: 'Web e aplicativo', href: '/usuario/web-e-aplicativo-mobile' },
+  { label: 'Compatibilidade', href: '/referencia/compatibilidade' },
+  { label: 'Problemas comuns', href: '/usuario/problemas-comuns' },
+];
+const technicalNav = [
+  { label: 'Desenvolvimento', href: '/desenvolvedor' },
+  { label: 'Início rápido', href: '/desenvolvedor/inicio-rapido' },
+  { label: 'Arquitetura do sistema', href: '/desenvolvedor/arquitetura-do-sistema' },
+  { label: 'Mapa do repositório', href: '/desenvolvedor/mapa-do-repositorio' },
+  { label: 'Frontend web', href: '/desenvolvedor/frontend-web' },
+  { label: 'Aplicativo mobile', href: '/desenvolvedor/aplicativo-mobile' },
+  { label: 'Backend Node', href: '/desenvolvedor/backend-node' },
+  { label: 'Scraper Python', href: '/desenvolvedor/scraper-python' },
+  { label: 'Admin', href: '/desenvolvedor/admin' },
+  { label: 'Extensão', href: '/desenvolvedor/extensao' },
+  { label: 'Modelo de dados', href: '/desenvolvedor/modelo-de-dados' },
+  { label: 'Referência da API', href: '/desenvolvedor/referencia-api' },
+  { label: 'Autenticação', href: '/desenvolvedor/autenticacao-e-autorizacao' },
+  { label: 'Offline e conflitos', href: '/desenvolvedor/offline-e-conflitos' },
+  { label: 'Testes e qualidade', href: '/desenvolvedor/testes-e-qualidade' },
+  { label: 'Segurança e privacidade', href: '/desenvolvedor/seguranca-e-privacidade' },
+];
+const operationNav = [
+  { label: 'Operação restrita', href: '/operacao' },
+];
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <title>{title} · Documentação #Sustenido</title>
+    <ClientRouter />
+  </head>
+  <body>
+    <a href="#conteudo" class="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:bg-white focus:p-3">Pular para o conteúdo</a>
+    <header class="sticky top-0 z-30 border-b border-black/10 bg-[#fbfaf4]/95 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3 lg:px-8">
+        <a href="/" class="text-xl font-black tracking-tight"><span class="text-violet-700">#</span>Sustenido <span class="text-xs font-medium text-muted">DOCS</span></a>
+        <div class="ml-auto w-full max-w-md"><Search /></div>
+      </div>
+    </header>
+    <div class="mx-auto grid max-w-7xl lg:grid-cols-[250px_minmax(0,1fr)]">
+      <nav aria-label="Documentação" class="border-b border-black/10 p-4 lg:min-h-[calc(100vh-65px)] lg:border-b-0 lg:border-r lg:p-7">
+        <details class="lg:hidden"><summary class="cursor-pointer font-bold">Navegação</summary><div class="mt-3 grid gap-1">
+          {[...nav, ...technicalNav, ...operationNav].map(({ label, href }) => <a href={href} class="rounded-lg px-3 py-2 hover:bg-black/5">{label}</a>)}
+        </div></details>
+        <div class="hidden gap-1 lg:grid">
+          <p class="mb-2 text-xs font-bold uppercase tracking-[.2em] text-muted">Portal</p>
+          {nav.map(({ label, href }) => <a href={href} aria-current={pathname === href ? 'page' : undefined} class:list={['rounded-lg px-3 py-2 text-sm hover:bg-black/5', pathname === href && 'bg-accent font-bold']}>{label}</a>)}
+          <p class="mb-2 mt-6 text-xs font-bold uppercase tracking-[.2em] text-muted">Técnico</p>
+          {technicalNav.map(({ label, href }) => <a href={href} aria-current={pathname === href ? 'page' : undefined} class:list={['rounded-lg px-3 py-2 text-sm hover:bg-black/5', pathname === href && 'bg-accent font-bold']}>{label}</a>)}
+          <p class="mb-2 mt-6 text-xs font-bold uppercase tracking-[.2em] text-muted">Operação restrita</p>
+          {operationNav.map(({ label, href }) => <a href={href} aria-current={pathname === href ? 'page' : undefined} class:list={['rounded-lg px-3 py-2 text-sm hover:bg-black/5', pathname === href && 'bg-zinc-900 font-bold text-white']}>{label}</a>)}
+        </div>
+      </nav>
+      <main id="conteudo" class="min-w-0 px-5 py-9 lg:px-12 lg:py-12">
+        <div class="mb-8 max-w-3xl">
+          <div class="mb-4 flex items-center gap-2"><StatusBadge status={featureStatus} />{restricted && <span class="rounded-full bg-zinc-900 px-3 py-1 text-xs font-bold text-white">Restrito</span>}</div>
+          <p class="mb-3 text-sm text-muted"><a href="/" class="underline">Documentação</a> / {title}</p>
+          <h1 class="text-4xl font-black tracking-tight sm:text-5xl">{title}</h1>
+          <p class="mt-4 text-lg leading-relaxed text-muted">{description}</p>
+        </div>
+        <article class="prose max-w-3xl"><slot /></article>
+        <footer class="mt-16 border-t border-black/10 pt-6 text-sm text-muted">Documentação validada contra o commit <code>2cb3f8f</code> em 16/07/2026.</footer>
+      </main>
+    </div>
+  </body>
+</html>

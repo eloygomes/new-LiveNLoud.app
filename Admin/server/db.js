@@ -5,6 +5,29 @@ let adminDatabase;
 let targetClient;
 let targetDatabase;
 
+function getAdminMongoUri() {
+  const host = process.env.ADMIN_MONGO_HOST;
+  const port = process.env.ADMIN_MONGO_PORT || "27017";
+  const user = process.env.ADMIN_MONGO_ROOT_USER;
+  const password = process.env.ADMIN_MONGO_ROOT_PASSWORD;
+  if (host && user && password) {
+    return `mongodb://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/admin?authSource=admin`;
+  }
+
+  return process.env.ADMIN_MONGO_URI || "";
+}
+
+function getTargetMongoUri() {
+  const rawUri = process.env.TARGET_MONGO_URI || process.env.SUSTENIDO_MONGO_URI;
+  const host = process.env.TARGET_MONGO_HOST;
+  if (!rawUri || !host) return rawUri;
+
+  const uri = new URL(rawUri);
+  uri.hostname = host;
+  if (process.env.TARGET_MONGO_PORT) uri.port = process.env.TARGET_MONGO_PORT;
+  return uri.toString();
+}
+
 export async function connectDb() {
   await connectAdminDb();
 
@@ -25,8 +48,14 @@ export async function connectDb() {
 export async function connectAdminDb() {
   if (adminDatabase) return adminDatabase;
 
-  const uri = process.env.ADMIN_MONGO_URI || "mongodb://admin-db:27017";
+  const uri = getAdminMongoUri();
   const dbName = process.env.ADMIN_DB_NAME || "adminPanel";
+
+  if (!uri) {
+    throw new Error(
+      "Configure ADMIN_MONGO_URI or ADMIN_MONGO_HOST with ADMIN_MONGO_ROOT_USER and ADMIN_MONGO_ROOT_PASSWORD",
+    );
+  }
 
   adminClient = new MongoClient(uri);
   await adminClient.connect();
@@ -46,7 +75,7 @@ export async function connectAdminDb() {
 export async function connectTargetDb() {
   if (targetDatabase) return targetDatabase;
 
-  const uri = process.env.TARGET_MONGO_URI || process.env.SUSTENIDO_MONGO_URI;
+  const uri = getTargetMongoUri();
   const dbName = process.env.TARGET_DB_NAME || process.env.MONGO_DB_NAME || "sustenido";
 
   if (!uri) {

@@ -91,11 +91,11 @@ ssh "$REMOTE_SERVER" "
   cd '$ADMIN_REMOTE_DIR'
 
   if [ ! -f .env ]; then
-    echo 'Missing /home/Admin/.env. Create it from .env.example and fill Sustenido values.' >&2
+    echo 'Missing /home/Admin/.env. Create it with the production Admin and Sustenido values.' >&2
     exit 1
   fi
 
-  for var_name in ADMIN_MONGO_ROOT_USER ADMIN_MONGO_ROOT_PASSWORD ADMIN_ACCESS_SECRET ADMIN_REFRESH_SECRET ADMIN_BOOTSTRAP_EMAIL ADMIN_BOOTSTRAP_PASSWORD SUSTENIDO_MONGO_URI; do
+  for var_name in ADMIN_MONGO_HOST ADMIN_MONGO_PORT ADMIN_MONGO_ROOT_USER ADMIN_MONGO_ROOT_PASSWORD ADMIN_ACCESS_SECRET ADMIN_REFRESH_SECRET ADMIN_BOOTSTRAP_EMAIL ADMIN_BOOTSTRAP_PASSWORD SUSTENIDO_MONGO_URI; do
     if ! grep -Eq \"^\${var_name}=.+\" .env; then
       echo \"Missing required .env value: \${var_name}\" >&2
       exit 1

@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import quote_plus
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -16,6 +17,27 @@ admin_client = None
 admin_db = None
 target_client = None
 target_db = None
+
+
+def get_admin_mongo_uri() -> str:
+    host = os.getenv("ADMIN_MONGO_HOST", "").strip()
+    port = os.getenv("ADMIN_MONGO_PORT", "27017").strip()
+    user = os.getenv("ADMIN_MONGO_ROOT_USER", "")
+    password = os.getenv("ADMIN_MONGO_ROOT_PASSWORD", "")
+    if host and user and password:
+        return f"mongodb://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/admin?authSource=admin"
+
+    return os.getenv("ADMIN_MONGO_URI", "").strip()
+
+
+def get_target_mongo_uri() -> str:
+    uri = os.getenv("TARGET_MONGO_URI") or os.getenv("SUSTENIDO_MONGO_URI") or ""
+    host = os.getenv("TARGET_MONGO_HOST", "").strip()
+    if not uri or not host:
+        return uri
+
+    port = os.getenv("TARGET_MONGO_PORT", "27017").strip()
+    return re.sub(r"(?<=@)[^/:?]+(?::\d+)?", f"{host}:{port}", uri, count=1)
 
 
 def normalize_email(value: str = "") -> str:
@@ -49,7 +71,12 @@ def get_admin_db():
     if admin_db is not None:
         return admin_db
 
-    uri = os.getenv("ADMIN_MONGO_URI", "mongodb://admin-db:27017")
+    uri = get_admin_mongo_uri()
+    if not uri:
+        raise HTTPException(
+            status_code=503,
+            detail="Configure ADMIN_MONGO_URI or the ADMIN_MONGO_HOST/user/password variables",
+        )
     db_name = os.getenv("ADMIN_DB_NAME", "adminPanel")
     admin_client = MongoClient(uri, serverSelectionTimeoutMS=int(os.getenv("ADMIN_MONGO_TIMEOUT_MS", "5000")))
     admin_client.admin.command("ping")
@@ -62,7 +89,7 @@ def get_target_db():
     if target_db is not None:
         return target_db
 
-    uri = os.getenv("TARGET_MONGO_URI") or os.getenv("SUSTENIDO_MONGO_URI")
+    uri = get_target_mongo_uri()
     if not uri:
         raise HTTPException(status_code=503, detail="TARGET_MONGO_URI or SUSTENIDO_MONGO_URI is required")
 
@@ -244,6 +271,15 @@ def serialize_auth_user(user: dict, data_doc: dict | None = None, pending_invite
     created_at = user.get("createdAt")
     if not created_at and user.get("_id"):
         created_at = user["_id"].generation_time
+    reset_expires_at = user.get("resetPasswordExpiresAt")
+    reset_requested_at = user.get("resetPasswordRequestedAt")
+    if not reset_requested_at and isinstance(reset_expires_at, datetime):
+        reset_requested_at = reset_expires_at - timedelta(minutes=30)
+    reset_pending = bool(
+        user.get("resetPasswordTokenHash")
+        and isinstance(reset_expires_at, datetime)
+        and reset_expires_at.replace(tzinfo=None) > datetime.utcnow()
+    )
 
     return {
         "id": serialize_id(user.get("_id")),
@@ -258,6 +294,10 @@ def serialize_auth_user(user: dict, data_doc: dict | None = None, pending_invite
         "rejectedAt": serialize_value(user.get("rejectedAt")),
         "blockedAt": serialize_value(user.get("blockedAt")),
         "deletedAt": serialize_value(user.get("deletedAt")),
+        "passwordChangedAt": serialize_value(user.get("passwordChangedAt")),
+        "resetPasswordRequestedAt": serialize_value(reset_requested_at),
+        "resetPasswordExpiresAt": serialize_value(reset_expires_at),
+        "passwordResetPending": reset_pending,
         "songCount": len(songs),
         "friendCount": len(accepted_invitations),
         "pendingInvitationCount": pending_invites,
@@ -340,18 +380,20 @@ def users(
     q: str = "",
     status: str = "",
     role: str = "",
+    password_reset_pending: bool = False,
     page: int = Query(1, ge=1),
     limit: int = Query(25, ge=1, le=100),
     sort: str = "_id",
     direction: str = "desc",
 ):
-    return list_users(q=q, status=status, role=role, page=page, limit=limit, sort=sort, direction=direction)
+    return list_users(q=q, status=status, role=role, password_reset_pending=password_reset_pending, page=page, limit=limit, sort=sort, direction=direction)
 
 
 def list_users(
     q: str = "",
     status: str = "",
     role: str = "",
+    password_reset_pending: bool = False,
     page: int = 1,
     limit: int = 25,
     sort: str = "_id",
@@ -366,6 +408,9 @@ def list_users(
         query["approvalStatus"] = status
     if role:
         query["role"] = role
+    if password_reset_pending:
+        query["resetPasswordTokenHash"] = {"$exists": True, "$ne": ""}
+        query["resetPasswordExpiresAt"] = {"$gt": datetime.utcnow()}
 
     allowed_sort = {"email", "approvalStatus", "role", "approvalRequestedAt", "approvedAt", "_id"}
     sort_field = sort if sort in allowed_sort else "_id"

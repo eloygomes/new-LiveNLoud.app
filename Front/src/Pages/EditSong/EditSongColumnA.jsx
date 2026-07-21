@@ -10,6 +10,7 @@ import EditSongSetlist from "./EditSongSetlist";
 import { getAllUserSetlists } from "../../Tools/Controllers";
 import { parseDateValue } from "../../Tools/dateFormat";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { syncInstrumentSetlistTags } from "../shared/instrumentSetlistTags";
 
 const getLatestLastPlayValue = (songData) => {
   const candidates = [
@@ -263,6 +264,26 @@ function EditSongColumnA({
   const [instProgressBarvoice, setInstProgressBarvoice] = useState(0);
   const [instNotesvoice, setInstNotesvoice] = useState("");
 
+  useEffect(() => {
+    setSetlist((currentSetlist) =>
+      syncInstrumentSetlistTags(currentSetlist, {
+        guitar01: Boolean(String(instLinkguitar01 || "").trim()),
+        guitar02: Boolean(String(instLinkguitar02 || "").trim()),
+        bass: Boolean(String(instLinkbass || "").trim()),
+        keys: Boolean(String(instLinkkeyboard || "").trim()),
+        drums: Boolean(String(instLinkdrums || "").trim()),
+        voice: Boolean(String(instLinkvoice || "").trim()),
+      }),
+    );
+  }, [
+    instLinkguitar01,
+    instLinkguitar02,
+    instLinkbass,
+    instLinkkeyboard,
+    instLinkdrums,
+    instLinkvoice,
+  ]);
+
   const removeInstrumentSetlistTags = useCallback(
     (instrument) => {
       const groupTag = INSTRUMENT_SETLIST_GROUP_TAG[instrument];
@@ -384,6 +405,7 @@ function EditSongColumnA({
 
   const navigate = useNavigate();
   const initialSnapshotRef = useRef("");
+  const originalIdentityRef = useRef({ artist: "", song: "" });
   const [touchMediaOpen, setTouchMediaOpen] = useState(false);
   const [touchVideosOpen, setTouchVideosOpen] = useState(false);
   const [touchSetlistsOpen, setTouchSetlistsOpen] = useState(false);
@@ -478,6 +500,10 @@ function EditSongColumnA({
 
         setArtistName(parsedData.artist || "");
         setSongName(parsedData.song || "");
+        originalIdentityRef.current = {
+          artist: parsedData.artist || "",
+          song: parsedData.song || "",
+        };
         setCapoData(parsedData.capo || "N/A");
         setTomData(parsedData.tom || "N/A");
         setTunerData(parsedData.tuning || "N/A");
@@ -699,13 +725,14 @@ function EditSongColumnA({
   const persistVideoLinks = async (nextLinks = []) => {
     const userEmail = localStorage.getItem("userEmail");
     const videoLinks = Array.isArray(nextLinks) ? nextLinks : [];
+    const originalIdentity = originalIdentityRef.current;
     const response = await updateSongEntry({
-      song: songName,
-      artist: artistName,
+      song: originalIdentity.song || songName,
+      artist: originalIdentity.artist || artistName,
       embedVideos: videoLinks,
       updateIn: new Date().toISOString().split("T")[0],
       email: userEmail,
-    });
+    }, { originalSong: originalIdentity });
 
     verifySavedVideos(response, videoLinks);
     console.log("Video links saved successfully.");
@@ -715,6 +742,11 @@ function EditSongColumnA({
   // Atualiza no banco
   const handleUpdate = async () => {
     try {
+      const nextSongName = String(songName || "").trim();
+      const nextArtistName = String(artistName || "").trim();
+      if (!nextSongName || !nextArtistName) {
+        throw new Error("Song name and artist name are required.");
+      }
       const userEmail = localStorage.getItem("userEmail");
       const buildInstrumentPayload = ({
         capo,
@@ -825,8 +857,8 @@ function EditSongColumnA({
         .map(([instrument]) => instrument);
 
       const updatedData = {
-        song: songName,
-        artist: artistName,
+        song: nextSongName,
+        artist: nextArtistName,
         progressBar: geralPercentage || 0,
         setlist: normalizedSetlist,
         instruments: instrumentFlags,
@@ -847,6 +879,7 @@ function EditSongColumnA({
 
       const response = await updateSongEntry(updatedData, {
         replaceEmptyInstrumentFields,
+        originalSong: originalIdentityRef.current,
       });
       console.groupCollapsed("[EditSong] update response");
       console.log("response instrument summary", summarizeInstrumentDebug(response?.song || {}));
@@ -862,12 +895,17 @@ function EditSongColumnA({
         message: "Song data updated successfully.",
       });
       setShowSnackBar?.(true);
+      localStorage.setItem("artist", nextArtistName);
+      localStorage.setItem("song", nextSongName);
       navigate("/");
     } catch (error) {
       console.error("Error updating song data:", error);
       setSnackbarMessage?.({
         title: "Error",
-        message: error?.message || "Could not update this song.",
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Could not update this song.",
       });
       setShowSnackBar?.(true);
     }
@@ -877,7 +915,11 @@ function EditSongColumnA({
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${songName}" by ${artistName}?`)) return;
     try {
-      await deleteOneSong(artistName, songName);
+      const originalIdentity = originalIdentityRef.current;
+      await deleteOneSong(
+        originalIdentity.artist || artistName,
+        originalIdentity.song || songName,
+      );
       console.log("Song data deleted successfully:", artistName, songName);
       navigate("/");
     } catch (error) {
@@ -909,6 +951,7 @@ function EditSongColumnA({
               lastTime={lastPlay}
               setSongName={setSongName}
               setArtistName={setArtistName}
+              onIdentityChange={markDirty}
               setCapoData={setCapoData}
               setTomData={setTomData}
               setTunerData={setTunerData}
@@ -1133,6 +1176,7 @@ function EditSongColumnA({
             lastTime={lastPlay}
             setSongName={setSongName}
             setArtistName={setArtistName}
+            onIdentityChange={markDirty}
             setCapoData={setCapoData}
             setTomData={setTomData}
             setTunerData={setTunerData}

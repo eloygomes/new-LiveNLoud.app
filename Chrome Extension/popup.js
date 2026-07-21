@@ -1,7 +1,7 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
 const ADMIN_DESTINATION_EMAIL = "eloy.gomes@icloud.com";
-const EXTENSION_VERSION = "0.63.6.0";
+const EXTENSION_VERSION = "0.63.6.1";
 const DEFAULT_DESTINATION = "sustenido";
 const DESTINATIONS = {
   sustenido: {

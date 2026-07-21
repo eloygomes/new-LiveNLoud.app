@@ -12,7 +12,18 @@ const youtubeRoutes = require("./youtube/youtube.routes");
 const cookieParser = require("cookie-parser");
 const { createRuntime } = require("./server/runtime");
 
-const uri = process.env.MONGO_URI;
+function getSharedSustenidoMongoUri() {
+  const host = process.env.SUSTENIDO_MONGO_HOST;
+  const port = process.env.SUSTENIDO_MONGO_PORT || "27018";
+  const user = process.env.SUSTENIDO_MONGO_USER;
+  const password = process.env.SUSTENIDO_MONGO_PASS;
+  if (host && user && password) {
+    return `mongodb://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/admin?authSource=admin`;
+  }
+  return process.env.SUSTENIDO_MONGO_URI || process.env.MONGO_URI;
+}
+
+const uri = getSharedSustenidoMongoUri();
 if (!uri) {
   throw new Error("MONGO_URI environment variable is required");
 }
@@ -20,7 +31,7 @@ if (!process.env.ACCESS_SECRET || !process.env.REFRESH_SECRET) {
   throw new Error("ACCESS_SECRET and REFRESH_SECRET environment variables are required");
 }
 const client = new MongoClient(uri);
-const APP_DATABASE_NAME = process.env.APP_DATABASE_NAME || "liveNloud_";
+const APP_DATABASE_NAME = process.env.APP_DATABASE_NAME || "sustenido";
 const appDatabase = () => client.db(APP_DATABASE_NAME);
 
 async function postJson(url, payload, headers = {}) {
@@ -1907,12 +1918,12 @@ function renderApprovalHtml({ title, message }) {
 const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || "24h";
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || "7d";
 
-const genAccessToken = (id) =>
-  jwt.sign({ userId: id }, process.env.ACCESS_SECRET, {
+const genAccessToken = (id, authVersion = 0) =>
+  jwt.sign({ userId: id, authVersion }, process.env.ACCESS_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   });
-const genRefreshToken = (id) =>
-  jwt.sign({ userId: id }, process.env.REFRESH_SECRET, {
+const genRefreshToken = (id, authVersion = 0) =>
+  jwt.sign({ userId: id, authVersion }, process.env.REFRESH_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRES_IN,
   });
 
@@ -2031,8 +2042,9 @@ app.post("/api/v1/auth/login", async (req, res) => {
       });
     }
 
-    const accessToken = genAccessToken(user._id.toString());
-    const refreshToken = genRefreshToken(user._id.toString());
+    const authVersion = Number(user.authVersion || 0);
+    const accessToken = genAccessToken(user._id.toString(), authVersion);
+    const refreshToken = genRefreshToken(user._id.toString(), authVersion);
 
     await authCollection.updateOne(
       { _id: user._id },
@@ -2160,6 +2172,7 @@ app.put("/api/v1/auth/updatePassword", async (req, res) => {
           resetPasswordTokenHash: "",
           resetPasswordExpiresAt: "",
         },
+        $inc: { authVersion: 1 },
       },
     );
 
@@ -2206,6 +2219,7 @@ app.post("/api/v1/auth/request-password-reset", async (req, res) => {
         $set: {
           resetPasswordTokenHash,
           resetPasswordExpiresAt,
+          resetPasswordRequestedAt: new Date(),
         },
       },
     );
@@ -2278,12 +2292,14 @@ app.post("/api/v1/auth/reset-password", async (req, res) => {
     await authCollection.updateOne(
       { _id: user._id },
       {
-        $set: { passwordHash },
+        $set: { passwordHash, passwordChangedAt: new Date() },
         $unset: {
           refreshToken: "",
           resetPasswordTokenHash: "",
           resetPasswordExpiresAt: "",
+          resetPasswordRequestedAt: "",
         },
+        $inc: { authVersion: 1 },
       },
     );
 
@@ -2310,7 +2326,13 @@ app.post("/api/v1/auth/refresh", async (req, res) => {
     if (!user || user.refreshToken !== refreshToken) return res.sendStatus(403);
     if (user.approvalStatus !== "approved") return res.sendStatus(403);
 
-    const newAccessToken = genAccessToken(user._id.toString());
+    if (Number(payload.authVersion || 0) !== Number(user.authVersion || 0)) {
+      return res.sendStatus(403);
+    }
+    const newAccessToken = genAccessToken(
+      user._id.toString(),
+      Number(user.authVersion || 0),
+    );
     res.json({ accessToken: newAccessToken });
   } catch (err) {
     res.sendStatus(403);
@@ -2318,15 +2340,30 @@ app.post("/api/v1/auth/refresh", async (req, res) => {
 });
 
 // Middleware de proteção
-function authenticateJWT(req, res, next) {
+async function authenticateJWT(req, res, next) {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.ACCESS_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
+  try {
+    const payload = jwt.verify(token, process.env.ACCESS_SECRET);
+    if (!ObjectId.isValid(payload.userId)) return res.sendStatus(403);
+    const authUser = await authCollection.findOne(
+      { _id: new ObjectId(payload.userId) },
+      { projection: { authVersion: 1, approvalStatus: 1, deletedAt: 1 } },
+    );
+    if (
+      !authUser ||
+      authUser.deletedAt ||
+      authUser.approvalStatus !== "approved" ||
+      Number(payload.authVersion || 0) !== Number(authUser.authVersion || 0)
+    ) {
+      return res.sendStatus(403);
+    }
+    req.user = payload;
+    return next();
+  } catch (_error) {
+    return res.sendStatus(403);
+  }
 }
 
 async function requireAuthorizedSongOwner(req, res) {
@@ -4109,13 +4146,18 @@ function normalizeSetlistForInstrumentFlags(setlist = [], instruments = {}) {
     ]),
   );
 
-  return uniqueArray(setlist).filter(
+  const filteredSetlist = uniqueArray(setlist).filter(
     (tag) => {
       const owners = instrumentTagAliases.get(normalizeSetlistTag(tag));
       if (!owners) return true;
       return owners.some((instrument) => activeInstrumentKeys.has(instrument));
     },
   );
+  const requiredInstrumentTags = Array.from(activeInstrumentKeys)
+    .map((instrument) => INSTRUMENT_SETLIST_TAGS[instrument])
+    .filter(Boolean);
+
+  return uniqueArray([...filteredSetlist, ...requiredInstrumentTags]);
 }
 
 function mergeInstrumentBlock(existingBlock = {}, incomingBlock = {}) {
@@ -4618,7 +4660,7 @@ app.get("/api/v1/generalCifra", async (req, res) => {
 
 app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
   try {
-    const { email, updatedSong, replaceEmptyInstrumentFields } = req.body;
+    const { email, updatedSong, originalSong, replaceEmptyInstrumentFields } = req.body;
     const ownerEmail = await requireSameUserEmail(
       req,
       res,
@@ -4642,10 +4684,12 @@ app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado." });
     }
 
+    const lookupSong =
+      originalSong?.artist && originalSong?.song ? originalSong : updatedSong;
     const matchingIndexes = userDoc.userdata.reduce((indexes, entry, index) => {
       if (
-        normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
-        normalizeName(entry.song) === normalizeName(updatedSong.song)
+        normalizeName(entry.artist) === normalizeName(lookupSong.artist) &&
+        normalizeName(entry.song) === normalizeName(lookupSong.song)
       ) {
         indexes.push(index);
       }
@@ -4658,12 +4702,26 @@ app.put("/api/v1/song/updateExact", authenticateJWT, async (req, res) => {
         .json({ message: "Música não encontrada para este usuário." });
     }
 
+    const destinationCollision = userDoc.userdata.some(
+      (entry, index) =>
+        !matchingIndexes.includes(index) &&
+        normalizeName(entry.artist) === normalizeName(updatedSong.artist) &&
+        normalizeName(entry.song) === normalizeName(updatedSong.song),
+    );
+    if (destinationCollision) {
+      return res.status(409).json({
+        message: "Já existe uma música com este nome e artista.",
+      });
+    }
+
     const [songIndex] = matchingIndexes;
     const duplicateEntries = matchingIndexes.map(
       (index) => userDoc.userdata[index],
     );
     console.groupCollapsed("[song/updateExact] incoming");
     console.log("song", {
+      originalArtist: lookupSong.artist,
+      originalSong: lookupSong.song,
       artist: updatedSong.artist,
       song: updatedSong.song,
       matchingIndexes,

@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AuthShell from "../Auth/AuthShell";
 import {
   requestPasswordReset,
   resetPassword,
+  logoutUser,
 } from "../../Tools/Controllers";
 
 function NewPassword() {
@@ -24,6 +25,15 @@ function NewPassword() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!saved) return undefined;
+    logoutUser();
+    const redirect = window.setTimeout(() => {
+      navigate("/login", { replace: true, state: { passwordReset: true } });
+    }, 1500);
+    return () => window.clearTimeout(redirect);
+  }, [navigate, saved]);
 
   const handleRequestReset = async (event) => {
     event.preventDefault();
@@ -75,7 +85,7 @@ function NewPassword() {
         newPassword,
       });
       setSaved(true);
-      setStatus("Senha atualizada com sucesso. Agora voce pode voltar para o login.");
+      setStatus("Senha atualizada com sucesso. Redirecionando para o login...");
     } catch (err) {
       setError(
         err?.response?.data?.message ||
