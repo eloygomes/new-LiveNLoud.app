@@ -89,6 +89,10 @@ function renderDashboardOptions(customProps = {}) {
 describe("DashboardOptions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, "innerHeight", {
+      value: 768,
+      configurable: true,
+    });
     fetchDistinctSetlists.mockResolvedValue(["Worship", "Acoustic"]);
     setOfflineContentAvailability.mockResolvedValue({
       enabled: true,
@@ -179,6 +183,34 @@ describe("DashboardOptions", () => {
     expect(screen.getByLabelText("Tag draft")).toHaveValue("Rehearsal");
   });
 
+  it("toggles the song display order from the mobile Filter home", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+
+    const onToggleSongNumberOrder = vi.fn();
+    renderDashboardOptions({
+      songNumberSortOrder: "asc",
+      onToggleSongNumberOrder,
+    });
+
+    const orderSwitch = screen.getByRole("switch", {
+      name: "Inverter ordem de exibição das cifras",
+    });
+
+    expect(orderSwitch).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(orderSwitch);
+    expect(onToggleSongNumberOrder).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Filters" }));
+    expect(
+      screen.queryByRole("switch", {
+        name: "Inverter ordem de exibição das cifras",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("opens each mobile content layer and returns to the main menu", () => {
     Object.defineProperty(window, "innerWidth", {
       value: 375,
@@ -196,6 +228,148 @@ describe("DashboardOptions", () => {
     }
 
     expect(screen.getByRole("heading", { name: "FILTER" })).toBeInTheDocument();
+  });
+
+  it("renders a full editorial workspace with illustrated navigation on portrait tablets", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 768,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1024,
+      configurable: true,
+    });
+
+    renderDashboardOptions();
+
+    const dialog = screen.getByRole("dialog", { name: "Filter workspace" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByLabelText("Dashboard summary")).toBeInTheDocument();
+    expect(screen.getByLabelText("Dashboard filter sections")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /^Open .+ settings$/ }),
+    ).toHaveLength(5);
+    expect(
+      screen.getByLabelText("Filters category illustration"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Filters workspace illustration"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("One selection, every connected workflow"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", {
+        name: "Inverter ordem de exibição das cifras",
+      }),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Tags section: Worship,Acoustic / selected: Worship"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("navigates tablet sections while preserving the mounted panel state", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 768,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1024,
+      configurable: true,
+    });
+
+    renderDashboardOptions();
+
+    const filterButton = screen.getByRole("button", {
+      name: "Open Filters settings",
+    });
+    const columnButton = screen.getByRole("button", {
+      name: "Open Column Data settings",
+    });
+    const draft = screen.getByLabelText("Tag draft");
+
+    expect(filterButton).toHaveAttribute("aria-current", "page");
+    fireEvent.change(draft, { target: { value: "Rehearsal" } });
+    fireEvent.click(columnButton);
+
+    expect(columnButton).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getByText("A clearer list makes the next action easier"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Setlist export")).toBeInTheDocument();
+    expect(screen.getByText("Playlist export")).toBeInTheDocument();
+
+    fireEvent.click(filterButton);
+    expect(screen.getByLabelText("Tag draft")).toHaveValue("Rehearsal");
+  });
+
+  it("shows both tablet column groups and explains when instrument progressions are locked", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 768,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1024,
+      configurable: true,
+    });
+
+    renderDashboardOptions({ visibleColumns: ["progression", "tags"] });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open Column Data settings" }),
+    );
+
+    expect(screen.getByText("Items")).toBeInTheDocument();
+    expect(screen.getByText("Instrument Progression")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Desligue Progression para liberar as progressões por instrumento.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Guitar 1 progression")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Items" })).not.toBeInTheDocument();
+  });
+
+  it("enables tablet instrument progression controls when general progression is off", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 768,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1024,
+      configurable: true,
+    });
+
+    renderDashboardOptions({ visibleColumns: ["tags"] });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open Column Data settings" }),
+    );
+
+    expect(
+      screen.getByText(
+        "Progression está desligado. Escolha as progressões de instrumento que deseja exibir.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Guitar 1 progression")).toBeEnabled();
+  });
+
+  it("closes the tablet dialog with Escape", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 768,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1024,
+      configurable: true,
+    });
+
+    const { setOptStatus } = renderDashboardOptions();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(setOptStatus).toHaveBeenCalledWith(false);
   });
 
   it("keeps mobile column controls focused on visibility only", () => {

@@ -47,6 +47,37 @@ describe("Dashboard", () => {
     expect(screen.queryByText("Soft version")).not.toBeInTheDocument();
   });
 
+  it("renders the card layout on portrait tablets up to 1279px", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 1024,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1366,
+      configurable: true,
+    });
+
+    render(<Dashboard />);
+
+    expect(screen.queryByText("Soft version")).not.toBeInTheDocument();
+  });
+
+  it("renders the desktop layout from 1280px even in portrait", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 1280,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1600,
+      configurable: true,
+    });
+
+    const { container } = render(<Dashboard />);
+
+    expect(container.querySelector(".desktop")).toBeInTheDocument();
+    expect(container.querySelector(".mobile")).not.toBeInTheDocument();
+  });
+
   it("renders the desktop layout and the soft version on large screens", () => {
     Object.defineProperty(window, "innerWidth", {
       value: 1440,

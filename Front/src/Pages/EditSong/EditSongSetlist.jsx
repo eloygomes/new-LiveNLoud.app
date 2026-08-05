@@ -438,7 +438,7 @@ function EditSongSetlistWeb({
           <p className={`${compact ? "text-[10px] tracking-[0.22em]" : "text-[11px] tracking-[0.24em]"} font-bold uppercase text-[goldenrod]`}>
             Setlist
           </p>
-          {compact ? <p className="mt-1 text-[9px] font-black uppercase tracking-[0.08em] text-[goldenrod]">{setlist.length}/{setlistOptions.length} selected</p> : <p className="mt-2 text-sm font-medium text-gray-500">Available setlists</p>}
+          {compact ? <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.08em] text-[goldenrod]">{setlist.length}/{setlistOptions.length} selected</p> : <p className="mt-2 text-sm font-medium text-gray-500">Available setlists</p>}
         </div>
 
         <div className="flex gap-2">

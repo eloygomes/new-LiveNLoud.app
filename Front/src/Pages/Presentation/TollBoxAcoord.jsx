@@ -325,7 +325,7 @@ export default function TollBoxAcoord({
                     </span>
                     <span className="truncate">{label}</span>
                   </span>
-                  <span className="shrink-0 text-[0.68rem] font-black uppercase text-black/50">
+                  <span className="shrink-0 text-[0.68rem] font-bold uppercase text-black/50">
                     {short}
                   </span>
                 </button>
@@ -344,7 +344,7 @@ export default function TollBoxAcoord({
                     </span>
                     <span className="truncate">{label}</span>
                   </span>
-                  <span className="shrink-0 text-[0.68rem] font-black uppercase">
+                  <span className="shrink-0 text-[0.68rem] font-bold uppercase">
                     {short}
                   </span>
                 </button>

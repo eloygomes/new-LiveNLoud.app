@@ -13,8 +13,10 @@ import {
   setLocalStorageItemSafe,
   setLocalStorageJsonSafe,
 } from "../../Tools/storageSafe";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
 
 const DEFAULT_VISIBLE_COLUMNS = ["progression", "guitarPro", "notes", "instruments"];
+const SONG_NUMBER_SORT_ORDER_KEY = "dashboardSongNumberSortOrder";
 const TABLET_COLUMNS_LIMIT = 3;
 const FIXED_TRAILING_COLUMNS = ["instruments"];
 const INSTRUMENT_PROGRESSION_COLUMN_KEYS = [
@@ -40,6 +42,16 @@ const INSTRUMENT_PROGRESSION_COLUMNS = [
   { key: "keysProgression", label: "KEYS PROGRESSION", sortable: "keysProgression" },
   { key: "drumsProgression", label: "DRUMS PROGRESSION", sortable: "drumsProgression" },
   { key: "voiceProgression", label: "VOICE PROGRESSION", sortable: "voiceProgression" },
+];
+const TABLET_DEFAULT_VISIBLE_COLUMNS = [
+  "progression",
+  "guitarPro",
+  "notes",
+  "tags",
+  "videos",
+  "addedDate",
+  "lastPlay",
+  "instruments",
 ];
 const OPTIONAL_COLUMNS = [
   { key: "progression", label: "PROGRESSION", sortable: "progressBar" },
@@ -70,7 +82,11 @@ const COLUMN_WIDTHS = {
   lastPlay: "minmax(0, 0.55fr)",
 };
 
-const normalizeVisibleColumns = (columns, selectableLimit = Infinity) => {
+const normalizeVisibleColumns = (
+  columns,
+  selectableLimit = Infinity,
+  allowCombinedProgression = false,
+) => {
   const validKeys = OPTIONAL_COLUMNS.map((column) => column.key);
   const selectedColumns = Array.isArray(columns) ? columns : [];
   const hasInstrumentProgression = selectedColumns.some((key) =>
@@ -78,9 +94,13 @@ const normalizeVisibleColumns = (columns, selectableLimit = Infinity) => {
   );
   const selectedOptionalColumns = selectedColumns.filter(
     (key) => validKeys.includes(key) && !FIXED_TRAILING_COLUMNS.includes(key),
-  ).filter(
-    (key) => !(hasInstrumentProgression && key === "progression"),
-  ).slice(0, selectableLimit);
+  )
+    .filter(
+      (key) =>
+        allowCombinedProgression ||
+        !(hasInstrumentProgression && key === "progression"),
+    )
+    .slice(0, selectableLimit);
 
   return [
     ...selectedOptionalColumns,
@@ -89,9 +109,13 @@ const normalizeVisibleColumns = (columns, selectableLimit = Infinity) => {
 };
 
 function DashList2({ searchTerm = "" }) {
-  const [isMobile, setIsMobile] = useState(false);
-  const [sortColumn, setSortColumn] = useState("");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const isMobile = useCompactAppLayout();
+  const [sortColumn, setSortColumn] = useState(() =>
+    localStorage.getItem(SONG_NUMBER_SORT_ORDER_KEY) === "desc" ? "number" : "",
+  );
+  const [sortOrder, setSortOrder] = useState(() =>
+    localStorage.getItem(SONG_NUMBER_SORT_ORDER_KEY) === "desc" ? "desc" : "asc",
+  );
   const [optStatus, setOptStatus] = useState(false);
   const [songs, setSongs] = useState([]);
   const [songsLoaded, setSongsLoaded] = useState(false);
@@ -114,8 +138,16 @@ function DashList2({ searchTerm = "" }) {
   });
   const isTabletColumnLimited =
     typeof window !== "undefined" &&
+    !isMobile &&
     window.innerWidth >= 768 &&
     window.innerWidth < 1366;
+  const isTabletCompactLayout =
+    isMobile &&
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768;
+  const visibleColumnsStorageKey = isTabletCompactLayout
+    ? "dashboardVisibleColumnsTablet"
+    : "dashboardVisibleColumns";
   const maxSelectableColumns = isTabletColumnLimited
     ? TABLET_COLUMNS_LIMIT
     : OPTIONAL_COLUMNS.length;
@@ -123,15 +155,20 @@ function DashList2({ searchTerm = "" }) {
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
       const stored = JSON.parse(
-        localStorage.getItem("dashboardVisibleColumns") || "null",
+        localStorage.getItem(visibleColumnsStorageKey) || "null",
       );
       const validStored = Array.isArray(stored)
         ? stored.filter((key) =>
             OPTIONAL_COLUMNS.some((column) => column.key === key),
           )
         : [];
-      if (!validStored.length) return normalizeVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
+      if (!validStored.length) {
+        return isTabletCompactLayout
+          ? normalizeVisibleColumns(TABLET_DEFAULT_VISIBLE_COLUMNS)
+          : normalizeVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
+      }
       return typeof window !== "undefined" &&
+        !isMobile &&
         window.innerWidth >= 768 &&
         window.innerWidth < 1366 &&
         validStored.filter((key) => !FIXED_TRAILING_COLUMNS.includes(key)).length >
@@ -139,7 +176,9 @@ function DashList2({ searchTerm = "" }) {
         ? normalizeVisibleColumns(validStored, TABLET_COLUMNS_LIMIT)
         : normalizeVisibleColumns(validStored);
     } catch {
-      return normalizeVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
+      return isTabletCompactLayout
+        ? normalizeVisibleColumns(TABLET_DEFAULT_VISIBLE_COLUMNS)
+        : normalizeVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
     }
   });
 
@@ -175,14 +214,9 @@ function DashList2({ searchTerm = "" }) {
     };
   }, [loadSongs]);
 
-  // Detecta se é mobile
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
-
   useEffect(() => {
     const handleOpenMobileFilter = () => {
-      if (window.innerWidth < 768) {
+      if (isMobile) {
         setOptStatus(true);
       }
     };
@@ -198,7 +232,7 @@ function DashList2({ searchTerm = "" }) {
         handleOpenMobileFilter,
       );
     };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     const handleUserHubVisibilityChange = (event) => {
@@ -226,6 +260,20 @@ function DashList2({ searchTerm = "" }) {
       }),
     );
   }, [selectedSetlists]);
+
+  useEffect(() => {
+    if (!isTabletCompactLayout) return;
+
+    setVisibleColumns((current) => {
+      if (!current.includes("progression")) return current;
+      const next = current.filter(
+        (key) => !INSTRUMENT_PROGRESSION_COLUMN_KEYS.includes(key),
+      );
+      if (next.length === current.length) return current;
+      setLocalStorageJsonSafe(visibleColumnsStorageKey, next);
+      return next;
+    });
+  }, [isTabletCompactLayout, visibleColumnsStorageKey]);
 
   useEffect(() => {
     if (!isTabletColumnLimited) return;
@@ -272,7 +320,21 @@ function DashList2({ searchTerm = "" }) {
   }, [filteredSongs, searchTerm]);
 
   // Ordenação simples (na DashList2Items a ordenação é reaplicada)
+  const toggleSongNumberOrder = () => {
+    const currentOrder = sortColumn === "number" ? sortOrder : "asc";
+    const nextOrder = currentOrder === "desc" ? "asc" : "desc";
+
+    setSortColumn("number");
+    setSortOrder(nextOrder);
+    setLocalStorageItemSafe(SONG_NUMBER_SORT_ORDER_KEY, nextOrder);
+  };
+
   const handleSort = (column) => {
+    if (column === "number") {
+      toggleSongNumberOrder();
+      return;
+    }
+
     if (sortColumn === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -311,7 +373,10 @@ function DashList2({ searchTerm = "" }) {
               (key) => !INSTRUMENT_PROGRESSION_COLUMN_KEYS.includes(key),
             )
           : nextSelectionBase;
-      const next = normalizeVisibleColumns(nextSelection);
+      const next = normalizeVisibleColumns(
+        nextSelection,
+        Infinity,
+      );
       const selectableCount = next.filter(
         (key) => !FIXED_TRAILING_COLUMNS.includes(key),
       ).length;
@@ -320,7 +385,7 @@ function DashList2({ searchTerm = "" }) {
         return current;
       }
 
-      setLocalStorageJsonSafe("dashboardVisibleColumns", next);
+      setLocalStorageJsonSafe(visibleColumnsStorageKey, next);
       return next;
     });
   };
@@ -339,13 +404,19 @@ function DashList2({ searchTerm = "" }) {
       const next = [...current];
       const [movedColumn] = next.splice(currentIndex, 1);
       next.splice(nextIndex, 0, movedColumn);
-      const normalizedNext = normalizeVisibleColumns(next);
-      setLocalStorageJsonSafe("dashboardVisibleColumns", normalizedNext);
+      const normalizedNext = normalizeVisibleColumns(
+        next,
+        Infinity,
+      );
+      setLocalStorageJsonSafe(visibleColumnsStorageKey, normalizedNext);
       return normalizedNext;
     });
   };
 
-  const orderedVisibleColumns = normalizeVisibleColumns(visibleColumns);
+  const orderedVisibleColumns = normalizeVisibleColumns(
+    visibleColumns,
+    Infinity,
+  );
   const optionalGridColumns = orderedVisibleColumns
     .map((key) => COLUMN_WIDTHS[key] || "minmax(7rem, 1fr)")
     .join(" ");
@@ -380,6 +451,10 @@ function DashList2({ searchTerm = "" }) {
         onMoveColumn={handleMoveColumn}
         canSelectAllColumns={canSelectAllColumns}
         maxSelectableColumns={maxSelectableColumns}
+        songNumberSortOrder={
+          sortColumn === "number" ? sortOrder : "asc"
+        }
+        onToggleSongNumberOrder={toggleSongNumberOrder}
         offlineInfo={offlineInfo}
         onOfflineStateChanged={loadSongs}
         onNotify={({ title, message }) => {
@@ -404,9 +479,9 @@ function DashList2({ searchTerm = "" }) {
         <div className="flex h-full min-h-0 flex-col">
           <div
             data-dashboard-scroll-container="true"
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-32"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#f0f0f0] pb-4"
           >
-            <ul>
+            <ul className="min-h-full bg-[#f0f0f0]">
               <DashList2Items
                 sortColumn={sortColumn}
                 sortOrder={sortOrder}
@@ -438,7 +513,9 @@ function DashList2({ searchTerm = "" }) {
                       gridTemplateColumns: listGridTemplateColumns,
                     }}
                   >
-                    <div
+                    <button
+                      type="button"
+                      aria-label="Inverter ordem das músicas"
                       className="cursor-pointer text-center"
                       onClick={() => handleSort("number")}
                     >
@@ -446,7 +523,7 @@ function DashList2({ searchTerm = "" }) {
                       {sortColumn === "number" && (
                         <span>{sortOrder === "asc" ? " ▲" : " ▼"}</span>
                       )}
-                    </div>
+                    </button>
                     <div
                       className="cursor-pointer px-2"
                       onClick={() => handleSort("song")}

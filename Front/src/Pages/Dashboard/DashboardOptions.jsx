@@ -37,6 +37,9 @@ import {
   updateUserSetlists,
 } from "../../Tools/Controllers";
 import { lockPageScroll } from "../../Tools/scrollLock";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
+import CategoryArtwork from "../../components/CategoryArtwork";
+import dashboardOptionIllustrations from "../../assets/dashboard-option-illustrations.jpg";
 import PlaylistExport from "./PlaylistExport";
 import SetlistExport from "./SetlistExport";
 import Insights from "./Insights";
@@ -88,6 +91,69 @@ const columnIcons = {
   drumsProgression: GiDrumKit,
   voiceProgression: GiMicrophone,
 };
+
+const dashboardOptionSections = [
+  {
+    id: "filters",
+    title: "Filters",
+    eyebrow: "Shape the repertoire",
+    description: "Choose setlists and manage tags",
+    longDescription:
+      "Bring the songs for the next rehearsal, set or practice session into focus. Every active setlist updates the dashboard, exports and playlists together.",
+    insight: "One selection, every connected workflow",
+    benefits: ["Setlists", "Instant results", "Saved selection"],
+    icon: FaFilter,
+    artIndex: 0,
+  },
+  {
+    id: "columns",
+    title: "Column Data",
+    eyebrow: "Design your view",
+    description: "Show, hide, and reorder song data",
+    longDescription:
+      "Decide which details deserve space in your song list. Keep the view concise for practice or reveal progression, notes, dates and instrument-specific data.",
+    insight: "A clearer list makes the next action easier",
+    benefits: ["Visibility", "Progress data", "Focused view"],
+    icon: FaListOl,
+    artIndex: 1,
+  },
+  {
+    id: "offline",
+    title: "Offline Content",
+    eyebrow: "Ready without a signal",
+    description: "Manage downloads and sync status",
+    longDescription:
+      "Prepare the visible repertoire on this device before you leave home. Review cached songs, storage estimates and pending changes from one dependable place.",
+    insight: "Keep rehearsal moving when the connection cannot",
+    benefits: ["Device cache", "Sync status", "Offline access"],
+    icon: FaDatabase,
+    artIndex: 2,
+  },
+  {
+    id: "export",
+    title: "Export",
+    eyebrow: "Take the set with you",
+    description: "Download visible songs as TXT or JSON",
+    longDescription:
+      "Turn the dashboard you have shaped into a portable setlist. Choose a readable text file for people or structured JSON for backup and integrations.",
+    insight: "Only the songs currently in view are exported",
+    benefits: ["TXT setlist", "JSON backup", "Current view"],
+    icon: FaDownload,
+    artIndex: 3,
+  },
+  {
+    id: "playlists",
+    title: "Playlists",
+    eyebrow: "Listen to the repertoire",
+    description: "Create Spotify or YouTube playlists",
+    longDescription:
+      "Convert the visible songs into a listening queue for preparation and sharing. Name it once, choose a destination and keep the current set together.",
+    insight: "Your active filters define the listening queue",
+    benefits: ["Spotify", "YouTube", "Visible songs"],
+    icon: FaHeadphones,
+    artIndex: 4,
+  },
+];
 
 function OfflineContentCard({
   offlineInfo = {},
@@ -258,6 +324,7 @@ function ColumnsData({
   maxSelectableColumns = columnOptions.length,
   isColumnLimitedLayout = false,
   isMobileLayout = false,
+  showAllProgressionOptions = false,
 }) {
   const [mobileColumnTab, setMobileColumnTab] = useState("items");
   const selectedConfigurableColumns = visibleColumns.filter((key) =>
@@ -295,7 +362,14 @@ function ColumnsData({
 
   const renderColumnRow = ({ key, label }) => {
     const checked = visibleColumns.includes(key);
-    const disabled = !checked && (allColumnsSelected || maxColumnsReached);
+    const isInstrumentProgression = key.endsWith("Progression");
+    const disabledByGeneralProgression =
+      showAllProgressionOptions &&
+      isInstrumentProgression &&
+      isGeneralProgressionEnabled;
+    const disabled =
+      disabledByGeneralProgression ||
+      (!checked && (allColumnsSelected || maxColumnsReached));
     const visibleIndex = visibleColumns.indexOf(key);
     const Icon = columnIcons[key] || FaListOl;
 
@@ -339,7 +413,7 @@ function ColumnsData({
 
         {checked && !isMobileLayout ? (
           <div className="ml-3 flex shrink-0 items-center gap-1">
-            <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-[goldenrod] px-2 text-[11px] font-black text-black">
+            <span className="flex h-7 min-w-7 items-center justify-center rounded-md bg-[goldenrod] px-2 text-[11px] font-bold text-black">
               {visibleIndex + 1}
             </span>
             <button
@@ -394,7 +468,7 @@ function ColumnsData({
           isColumnLimitedLayout ? "grid-cols-1" : "sm:grid-cols-2"
         }`}
       >
-        {isMobileLayout ? (
+        {isMobileLayout && !showAllProgressionOptions ? (
           <div className="col-span-full grid grid-cols-2 gap-1 rounded-[14px] bg-black/[0.04] p-1">
             <button
               type="button"
@@ -427,7 +501,11 @@ function ColumnsData({
 
         <div
           className={
-            isMobileLayout && mobileColumnTab !== "items" ? "hidden" : ""
+            isMobileLayout &&
+            !showAllProgressionOptions &&
+            mobileColumnTab !== "items"
+              ? "hidden"
+              : ""
           }
         >
           <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
@@ -439,7 +517,9 @@ function ColumnsData({
         </div>
         <div
           className={
-            isMobileLayout
+            showAllProgressionOptions
+              ? ""
+              : isMobileLayout
               ? !isGeneralProgressionEnabled &&
                 mobileColumnTab === "instruments"
                 ? "block"
@@ -450,11 +530,68 @@ function ColumnsData({
           <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
             Instrument Progression
           </h2>
+          {showAllProgressionOptions ? (
+            <div
+              className={`mb-2 rounded-[12px] border px-3 py-2 text-[10px] font-semibold leading-4 ${
+                isGeneralProgressionEnabled
+                  ? "border-[goldenrod]/25 bg-[goldenrod]/10 text-gray-600"
+                  : "border-emerald-600/15 bg-emerald-50 text-emerald-800"
+              }`}
+            >
+              {isGeneralProgressionEnabled
+                ? "Desligue Progression para liberar as progressões por instrumento."
+                : "Progression está desligado. Escolha as progressões de instrumento que deseja exibir."}
+            </div>
+          ) : null}
           <div className="grid gap-2">
             {instrumentProgressionColumnOptions.map(renderColumnRow)}
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function SongOrderToggle({ sortOrder = "asc", onToggle = () => {} }) {
+  const isDescending = sortOrder === "desc";
+
+  return (
+    <section className="mb-3 flex items-center justify-between gap-4 rounded-[16px] border border-black/5 bg-white/70 px-4 py-3 shadow-[0_8px_20px_rgba(0,0,0,0.05)]">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-[goldenrod]/15 text-black">
+          {isDescending ? (
+            <FaArrowDown className="h-4 w-4" />
+          ) : (
+            <FaArrowUp className="h-4 w-4" />
+          )}
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[12px] font-bold uppercase text-gray-900">
+            Ordem de exibição
+          </h2>
+          <p className="mt-0.5 text-[10px] font-semibold text-gray-500">
+            {isDescending
+              ? "Últimas cifras primeiro"
+              : "Primeiras cifras primeiro"}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDescending}
+        aria-label="Inverter ordem de exibição das cifras"
+        onClick={onToggle}
+        className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full shadow-inner transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod] ${
+          isDescending ? "bg-[goldenrod]" : "bg-gray-400"
+        }`}
+      >
+        <span
+          className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            isDescending ? "translate-x-8" : "translate-x-1"
+          }`}
+        />
+      </button>
     </section>
   );
 }
@@ -470,6 +607,8 @@ export default function DashboardOptions({
   onMoveColumn = () => {},
   canSelectAllColumns = false,
   maxSelectableColumns,
+  songNumberSortOrder = "asc",
+  onToggleSongNumberOrder = () => {},
   offlineInfo = {},
   onOfflineStateChanged = () => {},
   onNotify = () => {},
@@ -478,16 +617,23 @@ export default function DashboardOptions({
   const [setlists, setSetlists] = useState([]);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [mobilePanel, setMobilePanel] = useState("home");
+  const [tabletPanel, setTabletPanel] = useState("filters");
   const [mobileTransition, setMobileTransition] = useState("forward");
   const mobilePanelScrollRef = useRef(null);
-  const isSmallScreen =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const tabletPanelScrollRef = useRef(null);
+  const isSmallScreen = useCompactAppLayout();
+  const isTabletOptionsLayout =
+    isSmallScreen &&
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768;
   const isColumnLimitedLayout =
     typeof window !== "undefined" &&
+    !isSmallScreen &&
     window.innerWidth >= 768 &&
     window.innerWidth < 1366;
   const isMiniTabletOptions =
     typeof window !== "undefined" &&
+    !isSmallScreen &&
     window.innerWidth >= 768 &&
     window.innerWidth < 820;
 
@@ -514,7 +660,10 @@ export default function DashboardOptions({
   }, [optStatus]);
 
   useEffect(() => {
-    if (!optStatus) setMobilePanel("home");
+    if (!optStatus) {
+      setMobilePanel("home");
+      setTabletPanel("filters");
+    }
   }, [optStatus]);
 
   // 1) Buscar setlists distintas no backend
@@ -664,6 +813,7 @@ export default function DashboardOptions({
 
   const closeFilter = () => {
     setMobilePanel("home");
+    setTabletPanel("filters");
     setOptStatus(false);
   };
 
@@ -675,43 +825,37 @@ export default function DashboardOptions({
     });
   };
 
-  const mobilePanels = [
-    {
-      id: "filters",
-      title: "Filters",
-      description: "Choose setlists and manage tags",
-      icon: FaFilter,
-    },
-    {
-      id: "columns",
-      title: "Column Data",
-      description: "Show, hide, and reorder song data",
-      icon: FaListOl,
-    },
-    {
-      id: "offline",
-      title: "Offline Content",
-      description: "Manage downloads and sync status",
-      icon: FaDatabase,
-    },
-    {
-      id: "export",
-      title: "Export",
-      description: "Download visible songs as TXT or JSON",
-      icon: FaDownload,
-    },
-    {
-      id: "playlists",
-      title: "Playlists",
-      description: "Create Spotify or YouTube playlists",
-      icon: FaHeadphones,
-    },
-  ];
+  const openTabletPanel = (panel) => {
+    setTabletPanel(panel);
+    requestAnimationFrame(() => {
+      tabletPanelScrollRef.current?.scrollTo?.({ top: 0, behavior: "auto" });
+    });
+  };
+
+  useEffect(() => {
+    if (!optStatus) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMobilePanel("home");
+      setTabletPanel("filters");
+      setOptStatus(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [optStatus, setOptStatus]);
+
+  const mobilePanels = dashboardOptionSections;
 
   const activeMobilePanelTitle =
     mobilePanels.find(({ id }) => id === mobilePanel)?.title || "Filter";
   const ActiveMobilePanelIcon =
     mobilePanels.find(({ id }) => id === mobilePanel)?.icon || FaFilter;
+  const activeTabletPanel =
+    dashboardOptionSections.find(({ id }) => id === tabletPanel) ||
+    dashboardOptionSections[0];
 
   const handleOfflineToggle = async (event) => {
     const enabled = event.target.checked;
@@ -765,6 +909,353 @@ export default function DashboardOptions({
         />
       ) : null}
 
+      {isTabletOptionsLayout ? (
+        <section
+          className="dashboard-options-tablet-sheet absolute inset-x-0 bottom-0 z-10 flex max-h-[calc(100dvh-8.5rem)] min-h-0 flex-col overflow-hidden rounded-t-[18px] bg-[#f2f2f2] px-5 pb-4 pt-4 shadow-[0_-18px_44px_rgba(0,0,0,0.18)]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dashboard-filter-tablet-title"
+          aria-describedby="dashboard-filter-tablet-description"
+        >
+          <div className="grid h-full min-h-0 w-full grid-cols-[19rem_minmax(0,1fr)] gap-5">
+            <aside className="neuphormism-b flex min-h-0 cursor-default flex-col rounded-[24px] p-4">
+              <div className="rounded-[18px] bg-white/55 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[goldenrod]/15 text-black">
+                    <FaFilter className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                      Dashboard controls
+                    </div>
+                    <h1
+                      id="dashboard-filter-tablet-title"
+                      className="mt-1 text-[1.2rem] font-bold leading-tight text-black"
+                    >
+                      Filter workspace
+                    </h1>
+                    <p
+                      id="dashboard-filter-tablet-description"
+                      className="mt-2 text-[0.72rem] font-semibold leading-[1rem] text-gray-500"
+                    >
+                      Shape the repertoire once, then carry that view into every
+                      connected dashboard action.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-4 gap-2" aria-label="Dashboard summary">
+                  {[
+                    [dashboardMetrics.totalSongs, "Songs"],
+                    [dashboardMetrics.readySongs, "Ready"],
+                    [`${dashboardMetrics.averageProgress}%`, "Average"],
+                    [selectedSetlists.length, "Setlists"],
+                  ].map(([value, label]) => (
+                    <div
+                      key={label}
+                      className="rounded-[13px] bg-white/75 px-2 py-3 text-center shadow-[0_5px_14px_rgba(0,0,0,0.04)]"
+                    >
+                      <div className="text-[1rem] font-bold leading-none text-black">
+                        {value}
+                      </div>
+                      <div className="mt-1 text-[8px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                        {label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="neuphormism-b-btn dashboard-options-tablet-close flex h-12 w-12 items-center justify-center rounded-[13px] bg-white text-black focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod]"
+                  onClick={closeFilter}
+                  aria-label="Close filter"
+                >
+                  <IoClose className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="mt-4 px-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                Primary navigation
+              </div>
+              <nav
+                className="mt-2 flex min-h-0 flex-1 flex-col gap-2"
+                aria-label="Dashboard filter sections"
+              >
+                {dashboardOptionSections.map((section) => {
+                  const active = tabletPanel === section.id;
+                  const Icon = section.icon;
+
+                  return (
+                    <button
+                      key={section.id}
+                      type="button"
+                      className={`group flex min-h-[5rem] items-center gap-3 rounded-[16px] p-2.5 text-left transition focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod] ${
+                        active
+                          ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                          : "neuphormism-b-btn bg-[#f0f0f0] text-gray-600"
+                      }`}
+                      aria-label={`Open ${section.title} settings`}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => openTabletPanel(section.id)}
+                    >
+                      <CategoryArtwork
+                        src={dashboardOptionIllustrations}
+                        index={section.artIndex}
+                        label={`${section.title} category illustration`}
+                        className="relative h-16 w-16 shrink-0 rounded-[13px]"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 text-[0.86rem] font-bold leading-tight">
+                          <Icon className="shrink-0 text-[0.7rem]" />
+                          <span className="truncate">{section.title}</span>
+                        </span>
+                        <span
+                          className={`mt-1 line-clamp-2 block text-[0.7rem] font-bold leading-[0.95rem] ${
+                            active ? "text-black/65" : "text-gray-400"
+                          }`}
+                        >
+                          {section.description}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+            </aside>
+
+            <section className="flex min-h-0 min-w-0 flex-col gap-5 overflow-hidden">
+              <header className="neuphormism-b relative grid min-h-[12rem] shrink-0 cursor-default grid-cols-[minmax(0,1fr)_17rem] overflow-hidden rounded-[24px]">
+                <div className="relative z-10 flex min-w-0 flex-col justify-center px-7 py-5">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                    {activeTabletPanel.eyebrow}
+                  </div>
+                  <h2 className="mt-2 text-[1.8rem] font-bold leading-tight text-black">
+                    {activeTabletPanel.title}
+                  </h2>
+                  <p className="mt-2 max-w-[56rem] text-[0.92rem] font-semibold leading-[1.4rem] text-gray-600">
+                    {activeTabletPanel.longDescription}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {activeTabletPanel.benefits.map((benefit) => (
+                      <span
+                        key={benefit}
+                        className="rounded-full bg-white/70 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-gray-500"
+                      >
+                        {benefit}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <CategoryArtwork
+                  src={dashboardOptionIllustrations}
+                  index={activeTabletPanel.artIndex}
+                  label={`${activeTabletPanel.title} workspace illustration`}
+                  className="relative h-full w-full"
+                />
+                <div className="pointer-events-none absolute inset-y-0 right-[12rem] w-48 bg-gradient-to-r from-[#f0f0f0] via-[#f0f0f0]/80 to-transparent" />
+                <button
+                  type="button"
+                  className="neuphormism-b-btn absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-[14px] bg-white text-black focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod]"
+                  onClick={closeFilter}
+                  aria-label="Close filter"
+                >
+                  <IoClose className="h-6 w-6" />
+                </button>
+                <div className="absolute bottom-4 right-4 z-20 max-w-[14rem] rounded-full bg-black/70 px-3 py-2 text-right text-[8px] font-bold uppercase tracking-[0.1em] text-white">
+                  {activeTabletPanel.insight}
+                </div>
+              </header>
+
+              <div
+                ref={tabletPanelScrollRef}
+                className="min-h-0 flex-1 overflow-y-auto pr-2 overscroll-contain"
+              >
+                <div
+                  className={
+                    tabletPanel === "filters"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={tabletPanel !== "filters"}
+                >
+                  <SongOrderToggle
+                    sortOrder={songNumberSortOrder}
+                    onToggle={onToggleSongNumberOrder}
+                  />
+                  <div className="mb-4 grid grid-cols-3 gap-3" aria-label="Filter workflow summary">
+                    {[
+                      [selectedSetlists.length || "All", "Setlists in focus"],
+                      [visibleSongs.length, "Songs in current view"],
+                      ["Live", "Exports stay connected"],
+                    ].map(([value, label]) => (
+                      <div
+                        key={label}
+                        className="rounded-[18px] border border-black/5 bg-white/65 px-4 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.05)]"
+                      >
+                        <div className="text-[1.25rem] font-bold text-black">{value}</div>
+                        <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                          {label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Tags
+                    setlists={setlists}
+                    selectedSetlists={selectedSetlists}
+                    visibleSongsCount={visibleSongs.length}
+                    toggleTag={toggleTag}
+                    handleDeleteSetlist={handleDeleteSetlist}
+                    handleAddSetlist={handleAddSetlist}
+                    RiDeleteBin6Line={RiDeleteBin6Line}
+                    isTouchLayout
+                  />
+                </div>
+
+                <div
+                  className={
+                    tabletPanel === "columns"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={tabletPanel !== "columns"}
+                >
+                  <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5 rounded-[18px] border border-black/5 bg-white/65 px-5 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.05)]">
+                    <div>
+                      <div className="text-[0.95rem] font-bold text-black">
+                        Make every row easier to scan.
+                      </div>
+                      <p className="mt-1 text-[0.78rem] font-semibold leading-[1.15rem] text-gray-500">
+                        Compact controls keep the tablet view familiar while your
+                        selections remain available when the dashboard grows wider.
+                      </p>
+                    </div>
+                    <div className="rounded-full bg-[goldenrod] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-black">
+                      {visibleColumns.length} visible fields
+                    </div>
+                  </div>
+                  <ColumnsData
+                    visibleColumns={visibleColumns}
+                    onToggleColumn={onToggleColumn}
+                    onMoveColumn={onMoveColumn}
+                    canSelectAllColumns={canSelectAllColumns}
+                    maxSelectableColumns={maxSelectableColumns}
+                    isColumnLimitedLayout={isColumnLimitedLayout}
+                    isMobileLayout
+                    showAllProgressionOptions
+                  />
+                </div>
+
+                <div
+                  className={
+                    tabletPanel === "offline"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={tabletPanel !== "offline"}
+                >
+                  <div className="grid grid-cols-[minmax(15rem,0.72fr)_minmax(0,1.28fr)] items-stretch gap-4">
+                    <section className="rounded-[18px] border border-black/5 bg-white/65 p-5 shadow-[0_10px_24px_rgba(0,0,0,0.05)]">
+                      <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[goldenrod]">
+                        Before rehearsal
+                      </div>
+                      <h3 className="mt-2 text-[1.15rem] font-bold text-black">
+                        Prepare once, practice anywhere.
+                      </h3>
+                      <p className="mt-2 text-[0.78rem] font-semibold leading-[1.2rem] text-gray-500">
+                        Enable downloads while connected, verify the song count and
+                        return here whenever pending changes need attention.
+                      </p>
+                      <div className="mt-5 grid gap-2 text-[0.72rem] font-bold text-gray-600">
+                        {["Download the current library", "Review device storage", "Sync changes when online"].map((step, index) => (
+                          <div key={step} className="flex items-center gap-3 rounded-[13px] bg-white/75 px-3 py-3">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[goldenrod] text-[9px] font-bold text-black">
+                              {index + 1}
+                            </span>
+                            {step}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                    <OfflineContentCard
+                      offlineInfo={offlineInfo}
+                      offlineLoading={offlineLoading}
+                      onToggle={handleOfflineToggle}
+                      onSyncOffline={onSyncOffline}
+                      compact
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className={
+                    tabletPanel === "export"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={tabletPanel !== "export"}
+                >
+                  <div className="mb-4 grid grid-cols-2 gap-4">
+                    {[
+                      ["TXT", "A clean, readable setlist for rehearsal notes, messages and printing."],
+                      ["JSON", "A structured copy of visible song data for backup or connected workflows."],
+                    ].map(([format, detail]) => (
+                      <div key={format} className="rounded-[18px] border border-black/5 bg-white/65 p-5 shadow-[0_10px_24px_rgba(0,0,0,0.05)]">
+                        <div className="text-[1.15rem] font-bold text-black">{format}</div>
+                        <p className="mt-2 text-[0.76rem] font-semibold leading-[1.15rem] text-gray-500">
+                          {detail}
+                        </p>
+                        <div className="mt-4 text-[9px] font-bold uppercase tracking-[0.1em] text-[goldenrod]">
+                          {visibleSongs.length} visible songs ready
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <SetlistExport
+                    handleExportText={handleExportText}
+                    visibleSongs={visibleSongs}
+                    FiFileText={FiFileText}
+                    handleExportJson={handleExportJson}
+                    VscJson={VscJson}
+                    isMobileLayout
+                  />
+                </div>
+
+                <div
+                  className={
+                    tabletPanel === "playlists"
+                      ? "dashboard-mobile-panel-enter-forward block"
+                      : "hidden"
+                  }
+                  aria-hidden={tabletPanel !== "playlists"}
+                >
+                  <div className="mb-4 rounded-[18px] border border-black/5 bg-white/65 p-5 shadow-[0_10px_24px_rgba(0,0,0,0.05)]">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-5">
+                      <div>
+                        <div className="text-[1rem] font-bold text-black">
+                          From repertoire to listening queue.
+                        </div>
+                        <p className="mt-1 text-[0.78rem] font-semibold leading-[1.15rem] text-gray-500">
+                          Review the current song count, choose a provider and give the
+                          playlist a useful name before authorizing the destination.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {["1. Choose", "2. Name", "3. Create"].map((step) => (
+                          <span key={step} className="rounded-full bg-black/[0.045] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.08em] text-gray-500">
+                            {step}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <PlaylistExport visibleSongs={visibleSongs} isMobileLayout />
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      ) : (
       <div
         className={
           isSmallScreen
@@ -880,6 +1371,11 @@ export default function DashboardOptions({
                         </div>
                       </div>
 
+                      <SongOrderToggle
+                        sortOrder={songNumberSortOrder}
+                        onToggle={onToggleSongNumberOrder}
+                      />
+
                       <nav className="grid gap-2" aria-label="Filter options">
                         {mobilePanels.map(
                           ({ id, title, description, icon: Icon }) => (
@@ -894,7 +1390,7 @@ export default function DashboardOptions({
                                 <Icon className="h-4 w-4" />
                               </span>
                               <span className="min-w-0 flex-1">
-                                <span className="block text-[12px] font-black uppercase tracking-[0.04em] text-gray-900">
+                                <span className="block text-[12px] font-bold uppercase tracking-[0.04em] text-gray-900">
                                   {title}
                                 </span>
                                 <span className="mt-0.5 block truncate text-[10px] font-semibold text-gray-500">
@@ -927,6 +1423,7 @@ export default function DashboardOptions({
                     handleAddSetlist={handleAddSetlist}
                     RiDeleteBin6Line={RiDeleteBin6Line}
                     isTouchLayout
+                    isPhoneLayout
                   />
                 </div>
 
@@ -1064,6 +1561,7 @@ export default function DashboardOptions({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

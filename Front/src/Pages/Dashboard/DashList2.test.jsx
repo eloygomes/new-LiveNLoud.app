@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashList2 from "./DashList2";
 import {
   fetchUserSongs,
@@ -39,6 +39,7 @@ vi.mock("./DashList2Items", () => ({
         Items count: {props.songs.length}
         <div>Loading: {String(props.isLoading)}</div>
         <div>Columns: {props.visibleColumns.join(",")}</div>
+        <div>Sort: {props.sortColumn || "none"} / {props.sortOrder}</div>
       </div>
     );
   },
@@ -47,6 +48,7 @@ vi.mock("./DashList2Items", () => ({
 describe("DashList2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     Object.defineProperty(window, "innerWidth", {
       value: 1440,
       configurable: true,
@@ -137,5 +139,32 @@ describe("DashList2", () => {
         screen.getByText("Offline state: true / pending: 3"),
       ).toBeInTheDocument();
     });
+  });
+
+  it("inverts the song order on the first N click and restores it after remounting", async () => {
+    const { unmount } = render(<DashList2 />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sort: none / asc")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Inverter ordem das músicas" }),
+    );
+
+    expect(screen.getByText("Sort: number / desc")).toBeInTheDocument();
+    expect(localStorage.getItem("dashboardSongNumberSortOrder")).toBe("desc");
+
+    unmount();
+    render(<DashList2 />);
+
+    expect(screen.getByText("Sort: number / desc")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Inverter ordem das músicas" }),
+    );
+
+    expect(screen.getByText("Sort: number / asc")).toBeInTheDocument();
+    expect(localStorage.getItem("dashboardSongNumberSortOrder")).toBe("asc");
   });
 });

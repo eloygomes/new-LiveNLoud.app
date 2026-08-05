@@ -4,8 +4,6 @@ from urllib.parse import urlparse
 SOURCE_RULES = {
     "cifraclub": {
         "hosts": ("cifraclub.com.br", "www.cifraclub.com.br", "sscdn.co"),
-        "service_module": "scraping_service_cifraclub",
-        "service_function": "get_cifraclub_data",
     },
     "ultimate_guitar": {
         "hosts": (
@@ -14,8 +12,6 @@ SOURCE_RULES = {
             "ultimate-guitar.com",
         ),
         "domain_suffixes": ("ultimate-guitar.com",),
-        "service_module": "scraping_service_ultimate_guitar",
-        "service_function": "get_ultimate_guitar_data",
     },
     "letrasmus": {
         "hosts": (
@@ -24,8 +20,6 @@ SOURCE_RULES = {
             "letras.com",
             "www.letras.com",
         ),
-        "service_module": "scraping_service_letrasmus",
-        "service_function": "get_letrasmus_data",
     },
 }
 

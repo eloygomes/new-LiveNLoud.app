@@ -124,7 +124,7 @@ function NewSongSetlist({
             Setlist
           </p>
           {compact ? (
-            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.08em] text-[goldenrod]">
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.08em] text-[goldenrod]">
               {setlist.length}/{setlistOptions.length} selected
             </p>
           ) : (

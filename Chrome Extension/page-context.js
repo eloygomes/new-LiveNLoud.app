@@ -120,6 +120,36 @@ function getMetaContent(selector) {
   return cleanText(document.querySelector(selector)?.content);
 }
 
+function parseCifraClubUrl(urlString) {
+  try {
+    const parsedUrl = new URL(urlString);
+    const segments = parsedUrl.pathname.split("/").filter(Boolean);
+    if (segments.length < 2) return null;
+
+    return {
+      artist: slugToTitle(segments[0]),
+      song: slugToTitle(segments[1]),
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
+function getCifraClubTitleParts() {
+  const ogTitle = getMetaContent('meta[property="og:title"]');
+  const title = ogTitle || cleanText(document.title);
+  const match = title.match(/^(.+?)\s+-\s+(.+?)\s+-\s+Cifra Club$/i);
+
+  if (match) {
+    return {
+      song: cleanText(match[1]),
+      artist: cleanText(match[2]),
+    };
+  }
+
+  return parseCifraClubUrl(window.location.href) || {};
+}
+
 function getUltimateGuitarSong() {
   const headerTitle = cleanText(
     document.querySelector("h1.tabHeader-h1")?.childNodes?.[0]?.textContent ||
@@ -322,7 +352,19 @@ function getCifraClubLyrics(root) {
 }
 
 function getCifraClubCifraText(root) {
-  return extractCifraText(root?.querySelector(".cifra_cnt"));
+  const candidates = [
+    root?.querySelector(".cifra_cnt"),
+    document.querySelector("#song-sheet-root"),
+    document.querySelector('[data-main] pre'),
+    document.querySelector("main#chordPage pre"),
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const text = extractCifraText(candidate);
+    if (text.length >= 40) return text;
+  }
+
+  return "";
 }
 
 function getCifraClubGuitarProFiles() {
@@ -380,12 +422,16 @@ function buildPageContext() {
 
   if (supportedSite?.id === "cifraclub") {
     const cifraRoot = getCifraRoot();
+    const titleParts = getCifraClubTitleParts();
     const sideAd = getSideAdContainer(cifraRoot);
-    song = cleanText(sideAd?.querySelector("h1")?.textContent);
+    song =
+      cleanText(sideAd?.querySelector("h1")?.textContent) ||
+      titleParts.song ||
+      "";
     artist = cleanText(
       sideAd?.querySelector("h2 a")?.textContent ||
         sideAd?.querySelector("h2")?.textContent,
-    );
+    ) || titleParts.artist || "";
     tom = getFieldValue(cifraRoot, "#cifra_tom");
     tuning = getFieldValue(cifraRoot, "#cifra_afi");
     capo = getFieldValue(cifraRoot, "#cifra_capo");

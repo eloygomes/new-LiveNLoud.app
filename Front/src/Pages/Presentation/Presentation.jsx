@@ -33,7 +33,10 @@ import { usePresentationCifraEditor } from "./hooks/usePresentationCifraEditor";
 import { usePresentationChordTooltip } from "./hooks/usePresentationChordTooltip";
 import { usePresentationInstrumentAvailability } from "./hooks/usePresentationInstrumentAvailability";
 import { usePresentationInstrumentNotes } from "./hooks/usePresentationInstrumentNotes";
-import { usePresentationLayoutStorageSync } from "./hooks/usePresentationLayoutStorageSync";
+import {
+  getAutomaticPresentationLayoutMode,
+  usePresentationLayoutStorageSync,
+} from "./hooks/usePresentationLayoutStorageSync";
 import { usePresentationLayoutUpdater } from "./hooks/usePresentationLayoutUpdater";
 import { usePresentationLiveMode } from "./hooks/usePresentationLiveMode";
 import { usePresentationMediaControls } from "./hooks/usePresentationMediaControls";
@@ -52,8 +55,9 @@ import {
   selectAllEditableContent,
 } from "./helpers/editableCifraDom";
 import { findSongIndexInList } from "../shared/setlistNavigation";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
 
-function getInitialExpandedCifraState({ artist, song, instrument }) {
+function getInitialPresentationLayoutState({ artist, song, instrument }) {
   if (typeof window === "undefined") return false;
 
   const storageKey = getPresentationLayoutModeStorageKey({
@@ -62,7 +66,12 @@ function getInitialExpandedCifraState({ artist, song, instrument }) {
     instrument,
   });
 
-  return window.localStorage.getItem(storageKey) === "expanded";
+  const storedMode = window.localStorage.getItem(storageKey);
+  if (["default", "expanded"].includes(storedMode)) {
+    return storedMode === "expanded";
+  }
+
+  return getAutomaticPresentationLayoutMode(window) === "expanded";
 }
 
 function getIsPresentationTouchLayout() {
@@ -218,6 +227,7 @@ function PresentationLiveSetlistScreen({
 }
 
 function Presentation() {
+  const isCompactAppLayout = useCompactAppLayout();
   const navigate = useNavigate();
   const {
     artist: routeArtist,
@@ -250,12 +260,23 @@ function Presentation() {
 
   const [transposeSteps, setTransposeSteps] = useState(0);
   const [isExpandedCifra, setIsExpandedCifra] = useState(() =>
-    getInitialExpandedCifraState({
+    getInitialPresentationLayoutState({
       artist: decodedRouteArtist,
       song: decodedRouteSong,
       instrument: decodedRouteInstrument,
     }),
   );
+  const [isLayoutModeManual, setIsLayoutModeManual] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const storageKey = getPresentationLayoutModeStorageKey({
+      artist: decodedRouteArtist,
+      song: decodedRouteSong,
+      instrument: decodedRouteInstrument,
+    });
+    return ["default", "expanded"].includes(
+      window.localStorage.getItem(storageKey),
+    );
+  });
 
   const [isEditing, setIsEditing] = useState(false);
   const [hasEditedCifraContent, setHasEditedCifraContent] = useState(false);
@@ -352,10 +373,15 @@ function Presentation() {
   } = usePresentationSongData({
     instrumentSelected,
     isExpandedCifra,
+    isLayoutModeManual,
     normalizeCifra,
     songDataFetched,
   });
   const isTouchLayout = getIsPresentationTouchLayout();
+  const isPortraitTabletLayout =
+    isCompactAppLayout &&
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768;
   const {
     adjustLiveCifraZoom,
     blockSpacingLabel,
@@ -447,6 +473,7 @@ function Presentation() {
     presentationLayoutSettingsSnapshot,
     presentationLayoutStorageKey,
     setIsExpandedCifra,
+    setIsLayoutModeManual,
     setSongDataFetched,
     songDataFetched,
   });
@@ -907,6 +934,7 @@ function Presentation() {
           <PresentationTopBar
             visible={!effectiveLiveMode}
             isTouchLayout={isTouchLayout}
+            isPortraitTabletLayout={isPortraitTabletLayout}
             isTouchVideoActive={isTouchVideoActive}
             songFromURL={songFromURL}
             artistFromURL={artistFromURL}
@@ -923,7 +951,11 @@ function Presentation() {
               toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
             }
             isExpandedCifra={isExpandedCifra}
-            onToggleExpanded={() => setIsExpandedCifra((value) => !value)}
+            isLayoutModeManual={isLayoutModeManual}
+            onToggleExpanded={() => {
+              setIsLayoutModeManual(true);
+              setIsExpandedCifra((value) => !value);
+            }}
             onGoToEditSong={goToEditSong}
             instrumentSelected={instrumentSelected}
             canOpenGuitarPro={canOpenGuitarPro}

@@ -10,7 +10,7 @@ function GuitarProIcon({
     return (
       <span
         title={title}
-        className={`inline-flex h-5 w-5 items-center justify-center rounded-[6px] border text-[0.48rem] font-black uppercase leading-none ${
+        className={`inline-flex h-5 w-5 items-center justify-center rounded-[6px] border text-[0.48rem] font-bold uppercase leading-none ${
           active
             ? "border-black bg-transparent text-black"
             : "border-gray-300 bg-white/50 text-gray-400"

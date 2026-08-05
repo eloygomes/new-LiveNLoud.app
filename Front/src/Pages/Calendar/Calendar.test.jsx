@@ -41,6 +41,10 @@ describe("Calendar", () => {
       value: 1200,
       configurable: true,
     });
+    Object.defineProperty(window, "innerHeight", {
+      value: 800,
+      configurable: true,
+    });
 
     fetchCurrentUserProfile.mockResolvedValue({
       email: "owner@example.com",
@@ -114,5 +118,42 @@ describe("Calendar", () => {
         "accepted",
       );
     });
+  });
+
+  it("uses the full editorial planning workspace on portrait tablets", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 768,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1024,
+      configurable: true,
+    });
+
+    renderCalendar();
+
+    await waitFor(() => {
+      expect(fetchCalendarEvents).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.getByTestId("tablet-tool-shell")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Give every rehearsal a clear place in the week.",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Calendar planning illustration" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "New event" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Selected Day")).toBeInTheDocument();
+    expect(screen.getByText("Upcoming")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "week" }));
+    expect(
+      screen.getByRole("heading", { level: 2, name: / - / }),
+    ).toBeInTheDocument();
   });
 });

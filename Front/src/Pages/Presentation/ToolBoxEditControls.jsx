@@ -18,8 +18,8 @@ function ToolBoxEditControls({
         type="button"
         className={
           isTouchLayout
-            ? "rounded-[14px] bg-green-700 px-4 py-3 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[0_12px_26px_rgba(21,128,61,0.34)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-            : "rounded-[16px] bg-green-700 px-4 py-4 text-base font-black uppercase tracking-[0.08em] text-white shadow-[0_16px_32px_rgba(21,128,61,0.38)] transition hover:bg-green-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            ? "rounded-[14px] bg-green-700 px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-white shadow-[0_12px_26px_rgba(21,128,61,0.34)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+            : "rounded-[16px] bg-green-700 px-4 py-4 text-base font-bold uppercase tracking-[0.08em] text-white shadow-[0_16px_32px_rgba(21,128,61,0.38)] transition hover:bg-green-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         }
         onClick={handleSaveCifra}
         disabled={isSavingCifra || !hasDraftChanges}

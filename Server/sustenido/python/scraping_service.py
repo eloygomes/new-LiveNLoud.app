@@ -1,7 +1,16 @@
-from importlib import import_module
 from urllib.parse import urlparse
 
 from source_rules import detect_source, get_source_rule
+from scraping_service_cifraclub import get_cifraclub_data
+from scraping_service_letrasmus import get_letrasmus_data
+from scraping_service_ultimate_guitar import get_ultimate_guitar_data
+
+
+SCRAPER_BY_SOURCE = {
+    "cifraclub": get_cifraclub_data,
+    "ultimate_guitar": get_ultimate_guitar_data,
+    "letrasmus": get_letrasmus_data,
+}
 
 
 def _build_default_cifraclub_url(artist: str, song: str) -> str:
@@ -28,19 +37,17 @@ def get_song_data(url: str, artist: str = "", song: str = ""):
     if not target_url:
         return None
 
+    source_name = detect_source(target_url)
     rule = get_source_rule(target_url)
-    if not rule:
+    scraper = SCRAPER_BY_SOURCE.get(source_name)
+    if not rule or not scraper:
         print(f"Unsupported source for URL: {target_url}")
         return None
 
-    module = import_module(rule["service_module"])
-    service_fn = getattr(module, rule["service_function"])
-
-    song_data = service_fn(target_url)
+    song_data = scraper(target_url)
     if not song_data:
         return None
 
-    source_name = detect_source(target_url)
     for item in song_data:
         item.setdefault("source", source_name)
         item.setdefault("source_url", target_url)

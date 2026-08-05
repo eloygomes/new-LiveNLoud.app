@@ -78,12 +78,12 @@ export function ChromeExtensionInfoModal({ onClose }) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
               Quick Add
             </p>
             <h2
               id="chrome-extension-title"
-              className="mt-1.5 text-[1.4rem] font-black leading-none tracking-tight text-black"
+              className="mt-1.5 text-[1.4rem] font-bold leading-none tracking-tight text-black"
             >
               Chrome Extension
             </h2>
@@ -103,7 +103,7 @@ export function ChromeExtensionInfoModal({ onClose }) {
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[goldenrod]/15 text-[12px] text-[goldenrod]">
               <FaPuzzlePiece aria-hidden="true" />
             </span>
-            <p className="text-[12px] font-black leading-4 text-gray-800">
+            <p className="text-[12px] font-bold leading-4 text-gray-800">
               Save the song open in your browser directly to Sustenido.
             </p>
           </div>
@@ -115,7 +115,7 @@ export function ChromeExtensionInfoModal({ onClose }) {
                   key={step}
                   className="rounded-[10px] bg-black/[0.035] px-1.5 py-2"
                 >
-                  <span className="block text-[8px] font-black text-[goldenrod]">
+                  <span className="block text-[8px] font-bold text-[goldenrod]">
                     0{index + 1}
                   </span>
                   <span className="mt-0.5 block text-[9px] font-bold leading-3 text-gray-600">
@@ -127,7 +127,7 @@ export function ChromeExtensionInfoModal({ onClose }) {
           </div>
 
           <div className="mt-3 border-t border-black/5 pt-3">
-            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-gray-500">
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
               Supported sites
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -150,7 +150,7 @@ export function ChromeExtensionInfoModal({ onClose }) {
             href={QUICK_ADD_EXTENSION_DOWNLOAD_URL}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[goldenrod] px-3 text-[11px] font-black uppercase tracking-[0.12em] text-black shadow-[0_6px_15px_rgba(162,113,0,0.2)]"
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[11px] bg-[goldenrod] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-black shadow-[0_6px_15px_rgba(162,113,0,0.2)]"
           >
             <FaDownload className="text-[10px]" aria-hidden="true" />
             Download extension
@@ -963,7 +963,7 @@ function NewSongInputLinkBox({
               <FaChrome aria-hidden="true" />
             </span>
             <span className="min-w-0">
-              <span className="block text-[9px] font-black uppercase tracking-[0.18em] md:text-[11px]">
+              <span className="block text-[9px] font-bold uppercase tracking-[0.18em] md:text-[11px]">
                 Chrome Extension
               </span>
               <span className="mt-0.5 block text-[11px] font-bold leading-4 md:mt-1 md:text-sm md:leading-5">
@@ -971,7 +971,7 @@ function NewSongInputLinkBox({
               </span>
             </span>
           </span>
-          <span className="shrink-0 text-[10px] font-black" aria-hidden="true">
+          <span className="shrink-0 text-[10px] font-bold" aria-hidden="true">
             ↗
           </span>
         </button>
@@ -1123,7 +1123,7 @@ function NewSongInputLinkBox({
           >
             <FaMinus />
           </button>
-          <div className="min-w-[5rem] text-center text-xl font-black text-black md:text-2xl">
+          <div className="min-w-[5rem] text-center text-xl font-bold text-black md:text-2xl">
             {rangeProgress}
           </div>
           <button

@@ -174,7 +174,7 @@ export default function DrumMachine() {
   };
 
   return (
-    <main className={`drum-page machine-${machine} ${visualTheme === "neumorphic" ? "neumorphic-theme" : "hardware-theme"}`}>
+    <div className={`drum-page machine-${machine} ${visualTheme === "neumorphic" ? "neumorphic-theme" : "hardware-theme"}`}>
       <section className="drum-shell" aria-label="Sustenido drum machine">
         <header className="drum-header">
           <div><p>SUSTENIDO INSTRUMENTS</p><h1>DRUM MACHINE</h1></div>
@@ -192,7 +192,7 @@ export default function DrumMachine() {
 
         <div className="drum-display">
           <div><small>PATTERN</small><div className="bank-switch">{["A", "B"].map((item) => <button className={bank === item ? "active" : ""} key={item} onClick={() => setBank(item)}>{item}</button>)}</div></div>
-          <div className="tempo"><small>TEMPO · DRAG ↑↓</small><strong className="bpm-drag" onPointerDown={startBpmDrag} onPointerMove={moveBpmDrag} onPointerUp={endBpmDrag} onPointerCancel={endBpmDrag}>{bpm}</strong><span>BPM</span></div>
+          <div className="tempo"><small>TEMPO · DRAG ↑↓</small><strong className="bpm-drag" role="spinbutton" tabIndex={0} aria-label="Tempo in beats per minute" aria-valuemin={40} aria-valuemax={240} aria-valuenow={bpm} onKeyDown={(event) => { if (event.key === "ArrowUp" || event.key === "ArrowRight") { event.preventDefault(); setBpm((current) => Math.min(240, current + 1)); } else if (event.key === "ArrowDown" || event.key === "ArrowLeft") { event.preventDefault(); setBpm((current) => Math.max(40, current - 1)); } }} onPointerDown={startBpmDrag} onPointerMove={moveBpmDrag} onPointerUp={endBpmDrag} onPointerCancel={endBpmDrag}>{bpm}</strong><span>BPM</span></div>
           <div><small>BAR</small><div className="bar-switch">{Array.from({ length: BARS }, (_, i) => <button className={bar === i ? "active" : ""} key={i} onClick={() => setBar(i)}>{i + 1}</button>)}</div></div>
         </div>
 
@@ -214,6 +214,6 @@ export default function DrumMachine() {
           <div className="transport"><button className="stop" onClick={() => { engineRef.current.stop(); setPlaying(false); setPlayhead(0); setBar(activeBars[0]); setActiveVoices([]); setNotice("Stopped — returned to first active bar"); }}><FaStop /><span>STOP</span></button><button className="play" onClick={togglePlay}>{playing ? <FaPause /> : <FaPlay />}<span>{playing ? "PAUSE" : "PLAY"}</span></button><p aria-live="polite">Space: Play/Pause · {notice}</p></div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

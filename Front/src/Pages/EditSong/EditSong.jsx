@@ -230,9 +230,9 @@ function EditSong() {
                 </button>
                 <div className="flex min-w-0 items-center justify-center gap-2 px-2 text-center">
                   {ActiveSectionIcon ? <ActiveSectionIcon className="h-4 w-4 shrink-0" /> : null}
-                  <h1 className="truncate text-[1.05rem] font-black uppercase">{activeSection?.label}</h1>
+                  <h1 className="truncate text-[1.05rem] font-bold uppercase">{activeSection?.label}</h1>
                 </div>
-                <button type="button" className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[goldenrod] text-[10px] font-black text-black shadow-[0_5px_14px_rgba(218,165,32,0.2)] disabled:opacity-40" onClick={pageActions?.onUpdate} disabled={!pageActions?.canUpdate} aria-label="Update song">Save</button>
+                <button type="button" className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[goldenrod] text-[10px] font-bold text-black shadow-[0_5px_14px_rgba(218,165,32,0.2)] disabled:opacity-40" onClick={pageActions?.onUpdate} disabled={!pageActions?.canUpdate} aria-label="Update song">Save</button>
               </div>
             )}
           </section>
@@ -243,7 +243,7 @@ function EditSong() {
                 {mobileSections.map(({ id, label, description, icon: Icon }) => (
                   <button key={id} type="button" className="relative flex min-h-[112px] w-full flex-col items-start overflow-hidden rounded-[18px] border border-black/5 bg-white/70 p-3 text-left shadow-[0_6px_16px_rgba(0,0,0,0.05)] active:scale-[0.985]" onClick={() => setMobileSection(id)} aria-label={`Open ${label}`}>
                     <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[goldenrod]/15 text-black"><Icon className="h-4 w-4" /></span>
-                    <span className="mt-2 min-w-0 flex-1"><span className="block text-[13px] font-black text-black">{label}</span><span className="mt-1 block text-[10px] font-semibold leading-[0.85rem] text-gray-500">{description}</span></span>
+                    <span className="mt-2 min-w-0 flex-1"><span className="block text-[13px] font-bold text-black">{label}</span><span className="mt-1 block text-[10px] font-semibold leading-[0.85rem] text-gray-500">{description}</span></span>
                     <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-[10px] bg-black/[0.035] text-gray-500"><FaChevronRight className="h-3 w-3" /></span>
                   </button>
                 ))}
@@ -251,7 +251,7 @@ function EditSong() {
               <SetlistNavigationButtons previousSetlistSong={previousSetlistSong} nextSetlistSong={nextSetlistSong} onGoToSetlistSong={goToSetlistSong} touchLayout />
               <div className="mt-4 grid grid-cols-[0.72fr_1.28fr] gap-2 border-t border-black/5 pt-4">
                 <button className="min-h-11 rounded-[13px] border border-red-200 bg-white text-[11px] font-bold text-red-600" onClick={pageActions?.onDelete}>{t("songPages.delete")}</button>
-                <button className="min-h-11 rounded-[13px] bg-[goldenrod] text-[11px] font-black text-black shadow-[0_6px_16px_rgba(218,165,32,0.22)] disabled:opacity-40" onClick={pageActions?.onUpdate} disabled={!pageActions?.canUpdate}>{t("songPages.update")}</button>
+                <button className="min-h-11 rounded-[13px] bg-[goldenrod] text-[11px] font-bold text-black shadow-[0_6px_16px_rgba(218,165,32,0.22)] disabled:opacity-40" onClick={pageActions?.onUpdate} disabled={!pageActions?.canUpdate}>{t("songPages.update")}</button>
               </div>
             </div>
           ) : null}

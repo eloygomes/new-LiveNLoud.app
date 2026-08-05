@@ -9,6 +9,9 @@ from storage_service import store_in_mongo
 app = Flask(__name__)
 
 
+REQUIRED_FIELDS = ("email", "instrument")
+
+
 def sanitize_scrape_link(link: str) -> str:
     raw = str(link or "").strip()
     if not raw:
@@ -25,11 +28,32 @@ def _normalized_host(url: str) -> str:
     return urlparse(str(url or "")).netloc.lower().replace("www.", "")
 
 
+def _build_scrape_payload(data: dict) -> dict:
+    link_url = sanitize_scrape_link(data.get("link"))
+    return {
+        "artist": data.get("artist"),
+        "song": data.get("song"),
+        "instrument": data.get("instrument"),
+        "email": data.get("email"),
+        "instrument_progressbar": data.get("instrument_progressbar"),
+        "link": link_url,
+        "url_to_fetch": link_url.strip(),
+    }
+
+
+def _validate_scrape_payload(payload: dict):
+    missing_fields = [field for field in REQUIRED_FIELDS if not payload.get(field)]
+    if missing_fields:
+        return f"Missing required fields: {', '.join(missing_fields)}"
+
+    if not payload["url_to_fetch"] and not (payload.get("artist") and payload.get("song")):
+        return "Missing link or artist/song"
+
+    return None
+
+
 @app.route('/scrape', methods=['POST'])
 def scrape_and_store():
-    print("[SCRAPER DEBUG] request.host =", request.host, flush=True)
-    print("[SCRAPER DEBUG] Host header =", request.headers.get("Host"), flush=True)
-    print("[SCRAPER DEBUG] headers =", dict(request.headers), flush=True)
     data = request.get_json(silent=True) or {}
 
     if not data:
@@ -38,26 +62,18 @@ def scrape_and_store():
             "details": "The scraper expected application/json with artist, song, instrument, email and link.",
         }), 400
 
-    link_url = sanitize_scrape_link(data.get('link'))
-    artist = data.get('artist')
-    song = data.get('song')
-    instrument = data.get('instrument')
-    userEmail = data.get('email')
-    instrument_progressbar = data.get('instrument_progressbar')
+    payload = _build_scrape_payload(data)
+    validation_error = _validate_scrape_payload(payload)
+    if validation_error:
+        return jsonify({"message": validation_error}), 400
 
-    if not userEmail or not instrument:
-        return jsonify({"message": "Missing required fields"}), 400
-
-    url_to_fetch = (link_url or "").strip()
-    if not url_to_fetch and not (artist and song):
-        return jsonify({"message": "Missing link or artist/song"}), 400
-
+    url_to_fetch = payload["url_to_fetch"]
     source_name = detect_source(url_to_fetch) if url_to_fetch else "cifraclub"
     link_host = _normalized_host(url_to_fetch)
 
-    if source_name == "letrasmus" and instrument != "voice":
+    if source_name == "letrasmus" and payload["instrument"] != "voice":
         print("[SCRAPER] letrasmus rejected for non-voice instrument", {
-            "instrument": instrument,
+            "instrument": payload["instrument"],
             "link": url_to_fetch,
             "host": link_host,
         })
@@ -68,7 +84,11 @@ def scrape_and_store():
         }), 400
 
     try:
-        songData = get_song_data(url_to_fetch, artist=artist, song=song)
+        songData = get_song_data(
+            url_to_fetch,
+            artist=payload["artist"],
+            song=payload["song"],
+        )
     except Exception as err:
         print(f"[SCRAPER] source='{source_name}' error: {err}")
         return jsonify({
@@ -79,7 +99,13 @@ def scrape_and_store():
         }), 500
 
     if songData:
-        store_in_mongo(songData, instrument, userEmail, instrument_progressbar, link_url)
+        store_in_mongo(
+            songData,
+            payload["instrument"],
+            payload["email"],
+            payload["instrument_progressbar"],
+            payload["link"],
+        )
         return jsonify({
             "message": "Data stored successfully",
             "songData": songData[0] if songData else None,

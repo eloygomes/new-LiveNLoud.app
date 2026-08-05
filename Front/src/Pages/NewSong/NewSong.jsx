@@ -205,13 +205,13 @@ function NewSong() {
                     {ActiveSectionIcon ? (
                       <ActiveSectionIcon className="h-4 w-4 shrink-0" />
                     ) : null}
-                    <h1 className="truncate text-[1.05rem] font-black uppercase">
+                    <h1 className="truncate text-[1.05rem] font-bold uppercase">
                       {activeSection?.label}
                     </h1>
                   </div>
                   <button
                     type="button"
-                    className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[goldenrod] text-[11px] font-black text-black shadow-[0_5px_14px_rgba(218,165,32,0.2)] disabled:opacity-40"
+                    className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[goldenrod] text-[11px] font-bold text-black shadow-[0_5px_14px_rgba(218,165,32,0.2)] disabled:opacity-40"
                     onClick={pageActions?.onSave}
                     disabled={!pageActions?.canSave}
                     aria-label="Save new song"
@@ -241,7 +241,7 @@ function NewSong() {
                           <Icon className="h-4 w-4" />
                         </span>
                         <span className="mt-2 min-w-0 flex-1">
-                          <span className="block text-[13px] font-black text-black">
+                          <span className="block text-[13px] font-bold text-black">
                             {label}
                           </span>
                           <span className="mt-1 block text-[10px] font-semibold leading-[0.85rem] text-gray-500">
@@ -264,7 +264,7 @@ function NewSong() {
                     {t("songPages.delete")}
                   </button>
                   <button
-                    className="min-h-11 rounded-[13px] bg-[goldenrod] text-[11px] font-black text-black shadow-[0_6px_16px_rgba(218,165,32,0.22)] disabled:opacity-40"
+                    className="min-h-11 rounded-[13px] bg-[goldenrod] text-[11px] font-bold text-black shadow-[0_6px_16px_rgba(218,165,32,0.22)] disabled:opacity-40"
                     onClick={pageActions?.onSave}
                     disabled={!pageActions?.canSave}
                   >

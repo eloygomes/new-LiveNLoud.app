@@ -79,7 +79,7 @@ export default function AuthShell({
 
             <section className="flex h-[calc(100dvh-2.5rem)] w-full items-center justify-center overflow-y-auto rounded-[6px] bg-[#f4f4f2] px-5 py-8 sm:px-8 lg:h-full lg:px-12">
               <div className="w-full max-w-md">
-                <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full bg-[#efefef] text-xl font-black uppercase text-black shadow-[6px_6px_14px_rgba(180,180,180,0.65),-6px_-6px_14px_rgba(255,255,255,0.95)]">
+                <div className="mx-auto mb-8 flex h-14 w-14 items-center justify-center rounded-full bg-[#efefef] text-xl font-bold uppercase text-black shadow-[6px_6px_14px_rgba(180,180,180,0.65),-6px_-6px_14px_rgba(255,255,255,0.95)]">
                   #
                 </div>
                 <div className="text-center text-[11px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">

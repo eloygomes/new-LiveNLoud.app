@@ -631,7 +631,7 @@ function EditSongInputLinkBox({
             >
               <FaMinus />
             </button>
-            <div className="min-w-[5rem] text-center text-xl font-black text-black md:text-2xl">
+            <div className="min-w-[5rem] text-center text-xl font-bold text-black md:text-2xl">
               {rangeProgress}
             </div>
             <button

@@ -17,6 +17,7 @@ import { loadSelectedSetlists } from "../Tools/Controllers";
 import { lockPageScroll } from "../Tools/scrollLock";
 import NewSongStartChoice from "../Components/NewSongStartChoice";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useCompactAppLayout } from "../Tools/responsiveLayout";
 
 export default function RootLayouts() {
   const { t } = useLanguage();
@@ -28,6 +29,7 @@ export default function RootLayouts() {
     () => loadSelectedSetlists().length > 0,
   );
   const [newSongChoiceOpen, setNewSongChoiceOpen] = useState(false);
+  const isCompactLayout = useCompactAppLayout();
   const searchInputRef = useRef(null);
 
   const navigate = useNavigate();
@@ -52,8 +54,11 @@ export default function RootLayouts() {
     location.pathname.startsWith("/presentation/") ||
     location.pathname.startsWith("/blankpresentation/");
   const isUserProfileRoute = location.pathname.startsWith("/userprofile/");
-  const isTouchDashboardLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const isTouchDashboardLayout = isCompactLayout;
+  const isPortraitTabletCompactLayout =
+    isCompactLayout &&
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768;
   const hasActiveSearch = searchTerm.trim().length > 0;
   const searchButtonClassName = `rounded-full p-3 neuphormism-b-btn ${
     hasActiveSearch ? "blinking-icon text-black" : ""
@@ -76,11 +81,17 @@ export default function RootLayouts() {
     !hideMobileHeader;
   const shouldLockRouteScroll =
     isPresentationRoute ||
-    (isDashboardRoute && !isTouchDashboardLayout) ||
-    (isToolsRoute && isTouchDashboardLayout);
+    isDashboardRoute ||
+    (isToolsRoute && isTouchDashboardLayout) ||
+    (isToolDetailRoute && isPortraitTabletCompactLayout) ||
+    (isUserProfileRoute && isPortraitTabletCompactLayout);
   const desktopZoomViewportHeight = "calc(100vh / var(--desktop-app-zoom))";
+  const compactDashboardViewportHeight =
+    typeof window !== "undefined" && window.innerWidth >= 768
+      ? desktopZoomViewportHeight
+      : "100dvh";
   const mobileTabs = [
-    { to: "/", label: t("nav.songlist"), icon: FaListUl },
+    { to: "/", label: t("nav.dashboard"), icon: FaListUl },
     { to: "/newsong", label: t("nav.plus"), icon: FaPlusCircle },
     { to: "/tools", label: t("nav.tools"), icon: FaTools },
     { to: "/userprofile/1", label: t("nav.user"), icon: FaUser },
@@ -97,7 +108,7 @@ export default function RootLayouts() {
   };
 
   const mobileHeaderCopy = isDashboardRoute
-    ? { eyebrow: t("nav.songlist"), title: t("nav.yourSongs") }
+    ? { eyebrow: t("nav.dashboard"), title: "#SUSTENIDO" }
     : isToolsRoute
       ? { eyebrow: t("nav.tools"), title: t("nav.practiceUtilities") }
       : isUserProfileRoute
@@ -246,9 +257,9 @@ export default function RootLayouts() {
       {/* HEADER */}
       <header>
         {/* Mobile */}
-        {window.innerWidth < 768 && !isToolDetailRoute && !hideMobileHeader ? (
+        {isCompactLayout && !isToolDetailRoute && !hideMobileHeader ? (
           <nav
-            className={`fixed inset-x-0 top-0 z-[11900] bg-[#f0f0f0] px-4 shadow-[0_10px_24px_rgba(240,240,240,0.96)] ${
+            className={`fixed inset-x-0 top-0 z-[11900] border-b border-black/10 bg-[#f0f0f0] px-4 shadow-[0_5px_12px_rgba(0,0,0,0.08)] ${
               isUserProfileRoute ? "pb-2.5 pt-3" : "pb-3 pt-4"
             }`}
           >
@@ -262,7 +273,7 @@ export default function RootLayouts() {
                     className={`font-bold leading-none tracking-tight text-black ${
                       isUserProfileRoute
                         ? "mt-1 text-[1.55rem]"
-                        : "mt-2 text-[1.9rem]"
+                        : "mt-2 text-[1.55rem] min-[768px]:text-[1.75rem]"
                     }`}
                   >
                     {mobileHeaderCopy.title}
@@ -271,11 +282,11 @@ export default function RootLayouts() {
               </div>
 
               {!hideFilterOnTouchRoute ? (
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3 min-[768px]:gap-4">
                   {isDashboardRoute ? (
                     <button
                       type="button"
-                      className={`relative z-[95] ${searchButtonClassName}`}
+                      className={`relative z-[95] min-[768px]:flex min-[768px]:h-12 min-[768px]:w-12 min-[768px]:items-center min-[768px]:justify-center ${searchButtonClassName}`}
                       onClick={openSearch}
                       aria-label={t("nav.openSearch")}
                     >
@@ -284,7 +295,7 @@ export default function RootLayouts() {
                   ) : null}
                   <button
                     type="button"
-                    className={filterButtonClassName}
+                    className={`min-[768px]:flex min-[768px]:h-12 min-[768px]:w-12 min-[768px]:items-center min-[768px]:justify-center ${filterButtonClassName}`}
                     onClick={openFilter}
                     aria-label={t("nav.openFilters")}
                   >
@@ -300,7 +311,7 @@ export default function RootLayouts() {
         ) : null}
 
         {/* Desktop */}
-        {window.innerWidth >= 768 && (
+        {!isCompactLayout && (
           <nav className="neuphormism-b fixed z-[11900] w-full">
             <div className="w-full max-w-none  sm:px-5 lg:px-6 xl:px-10">
               <div className="relative flex h-16 items-center justify-between">
@@ -347,7 +358,7 @@ export default function RootLayouts() {
       </header>
 
       {isDashboardRoute && isSearchOpen ? (
-        window.innerWidth < 768 ? (
+        isCompactLayout ? (
           <div className="fixed inset-0 z-[12100] flex items-center justify-center bg-black/25 px-4">
             <button
               type="button"
@@ -384,7 +395,7 @@ export default function RootLayouts() {
           isPresentationRoute ? "h-screen overflow-hidden" : "min-h-screen"
         }
         style={
-          window.innerWidth >= 768
+          !isCompactLayout
             ? {
                 height: desktopZoomViewportHeight,
                 minHeight: desktopZoomViewportHeight,
@@ -396,20 +407,32 @@ export default function RootLayouts() {
           data-scroll-removed-mongo-user="true"
           className={`flex-1 ${
             shouldLockRouteScroll ? "overflow-y-hidden" : "overflow-y-auto"
-          } tablet-mini-page-offset ${isPresentationRoute ? "h-full" : ""} ${
+          } ${isDashboardRoute ? "tablet-mini-page-offset" : ""} ${isPresentationRoute ? "h-full" : ""} ${
             needsTouchTopOffset ? "pt-[5.25rem]" : "pt-0"
           } ${
-            hideMobileChrome && isPresentationRoute ? "pb-0" : "pb-24"
-          } md:pb-0 md:pt-16`}
+            isCompactLayout && isDashboardRoute ? "bg-[#f0f0f0]" : ""
+          } ${
+            isCompactLayout
+              ? hideMobileChrome && isPresentationRoute
+                ? "pb-0"
+                : "pb-[4.25rem] min-[768px]:pb-[6.375rem]"
+              : "pb-0 pt-16"
+          }`}
           style={{
             height:
-              window.innerWidth >= 768 ? desktopZoomViewportHeight : undefined,
+              !isCompactLayout
+                ? desktopZoomViewportHeight
+                : isDashboardRoute
+                  ? compactDashboardViewportHeight
+                  : undefined,
             maxHeight:
-              isTouchDashboardLayout && !isPresentationRoute
-                ? "none"
-                : desktopZoomViewportHeight,
+              isCompactLayout && isDashboardRoute
+                ? compactDashboardViewportHeight
+                : isTouchDashboardLayout && !isPresentationRoute
+                  ? "none"
+                  : desktopZoomViewportHeight,
             minHeight:
-              window.innerWidth >= 768 ? desktopZoomViewportHeight : undefined,
+              !isCompactLayout ? desktopZoomViewportHeight : undefined,
           }}
           // className={`flex-1 overflow-y-hidden pt-0 md:pt-16`}
           // style={{ maxHeight: "100vh" }}
@@ -419,10 +442,10 @@ export default function RootLayouts() {
         </div>
       </main>
 
-      {window.innerWidth < 768 &&
+      {isCompactLayout &&
         !(isPresentationRoute && hideMobileChrome) && (
           <nav className="fixed bottom-0 left-0 right-0 z-40 px-0 pb-0">
-            <div className="grid grid-cols-4 bg-black px-2 py-2 text-white shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
+            <div className="grid grid-cols-4 bg-black px-2 py-2 text-white shadow-[0_-10px_30px_rgba(0,0,0,0.2)] min-[768px]:h-[6.375rem]">
               {mobileTabs.map(({ to, label, icon: Icon }) =>
                 to === "/newsong" ? (
                   <button
@@ -435,7 +458,7 @@ export default function RootLayouts() {
                     }`}
                     onClick={() => setNewSongChoiceOpen(true)}
                   >
-                    <Icon className="text-[18px]" />
+                    <Icon className="text-[18px] min-[768px]:text-[27px]" />
                     <span>{label}</span>
                   </button>
                 ) : (
@@ -450,7 +473,7 @@ export default function RootLayouts() {
                       }`
                     }
                   >
-                    <Icon className="text-[18px]" />
+                    <Icon className="text-[18px] min-[768px]:text-[27px]" />
                     <span>{label}</span>
                   </NavLink>
                 ),

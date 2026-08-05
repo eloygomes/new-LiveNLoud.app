@@ -132,7 +132,7 @@ const NewSongEmbed = ({ ytEmbedSongList = [], setEmbedLink, compact = false }) =
           Videos
         </p>
         {compact ? (
-          <span className="flex items-center gap-1.5 rounded-full bg-black/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-500">
+          <span className="flex items-center gap-1.5 rounded-full bg-black/[0.035] px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.08em] text-gray-500">
             <FaVideo className="text-[9px]" aria-hidden="true" />
             {videoItems.length} {videoItems.length === 1 ? "video" : "videos"}
           </span>

@@ -88,10 +88,10 @@ export default function Bluetooth() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] bg-[#ececec] text-black">
       <header className="flex shrink-0 flex-col gap-3 border-b border-black/5 px-3 pb-4 md:px-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[goldenrod]">
             Footswitch
           </p>
-          <h2 className="mt-1 text-2xl font-black uppercase leading-none">
+          <h2 className="mt-1 text-2xl font-bold uppercase leading-none">
             Bluetooth &amp; MIDI
           </h2>
         </div>
@@ -107,7 +107,7 @@ export default function Bluetooth() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-[14px] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition active:scale-[0.98] ${
+                className={`rounded-[14px] px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] transition active:scale-[0.98] ${
                   selected
                     ? "neuphormism-b-btn-gold text-black"
                     : "text-gray-500 hover:text-black"
@@ -208,7 +208,7 @@ function ConnectionTab({
             Disconnect
           </button>
           <span
-            className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] ${
+            className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
               bleConnected
                 ? "bg-emerald-100 text-emerald-700"
                 : "bg-gray-200 text-gray-500"
@@ -237,7 +237,7 @@ function ConnectionTab({
 
         <label className="mt-4 flex items-center justify-between gap-4 rounded-[16px] neuphormism-b-se px-4 py-3">
           <span>
-            <span className="block text-sm font-black">Auto-reconnect BLE</span>
+            <span className="block text-sm font-bold">Auto-reconnect BLE</span>
             <span className="block text-xs font-semibold text-gray-500">
               Reconnects when the browser still has permission for the device.
             </span>
@@ -296,7 +296,7 @@ function MappingTab({
       </div>
 
       <div className="mt-4 rounded-[16px] neuphormism-b-se p-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
           Last event
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -337,10 +337,10 @@ function MappingTab({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
                     Function
                   </p>
-                  <h4 className="mt-1 text-sm font-black uppercase leading-tight">
+                  <h4 className="mt-1 text-sm font-bold uppercase leading-tight">
                     {action.label}
                   </h4>
                 </div>
@@ -358,12 +358,12 @@ function MappingTab({
 
               <div className="mt-4 rounded-[14px] bg-white/60 px-3 py-2">
                 {isLearning ? (
-                  <p className="text-xs font-black uppercase tracking-[0.1em] text-black">
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-black">
                     Press a controller button
                   </p>
                 ) : assignedControlId ? (
                   <>
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-500">
                       Assigned to
                     </p>
                     <p
@@ -388,7 +388,7 @@ function MappingTab({
                     setRowAction(assignedControlId, "none");
                     if (learningAction === action.value) setLearningAction("");
                   }}
-                  className="mt-3 inline-flex rounded-[12px] bg-white/70 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-red-700"
+                  className="mt-3 inline-flex rounded-[12px] bg-white/70 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-red-700"
                 >
                   Clear assignment
                 </button>
@@ -401,7 +401,7 @@ function MappingTab({
       <div className="mt-4 max-h-[34vh] overflow-auto rounded-[18px] border border-black/5 bg-white/40">
         <table className="w-full min-w-[880px] border-collapse">
           <thead className="sticky top-0 z-10 bg-[#e8e8e8]">
-            <tr className="text-left text-[11px] font-black uppercase tracking-[0.12em] text-gray-500">
+            <tr className="text-left text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500">
               <th className="w-12 px-4 py-3">On</th>
               <th className="px-4 py-3">Control ID</th>
               <th className="px-4 py-3">Source</th>
@@ -452,7 +452,7 @@ function MappingTab({
                       {meta.lastValue}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex min-w-[10rem] rounded-full bg-white/80 px-3 py-2 text-xs font-black">
+                      <span className="inline-flex min-w-[10rem] rounded-full bg-white/80 px-3 py-2 text-xs font-bold">
                         {fixedActions.find(
                           (action) => action.value === meta.action,
                         )?.label || "(nenhuma)"}
@@ -502,10 +502,10 @@ function LogsTab({ clearLogs, logs }) {
 function SectionHeader({ eyebrow, title, copy }) {
   return (
     <div>
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[goldenrod]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
         {eyebrow}
       </p>
-      <h3 className="mt-1 text-lg font-black uppercase leading-tight">
+      <h3 className="mt-1 text-lg font-bold uppercase leading-tight">
         {title}
       </h3>
       {copy ? (
@@ -520,13 +520,13 @@ function SectionHeader({ eyebrow, title, copy }) {
 function SupportTile({ label, ok }) {
   return (
     <div className="rounded-[16px] neuphormism-b-se px-4 py-3">
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-500">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
         {label}
       </p>
       <div className="mt-2 flex items-center gap-2">
         <Led on={ok} />
         <span
-          className={`text-sm font-black ${ok ? "text-emerald-700" : "text-red-700"}`}
+          className={`text-sm font-bold ${ok ? "text-emerald-700" : "text-red-700"}`}
         >
           {ok ? "Available" : "Unavailable"}
         </span>
@@ -550,7 +550,7 @@ function SourceOption({ checked, label, meta, name, onChange }) {
         className="h-4 w-4 accent-[goldenrod]"
       />
       <span>
-        <span className="block text-sm font-black uppercase">{label}</span>
+        <span className="block text-sm font-bold uppercase">{label}</span>
         <span className="block text-xs font-semibold text-gray-600">
           {meta}
         </span>
@@ -561,7 +561,7 @@ function SourceOption({ checked, label, meta, name, onChange }) {
 
 function Chip({ children }) {
   return (
-    <span className="inline-flex max-w-full items-center rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.06em] text-gray-700">
+    <span className="inline-flex max-w-full items-center rounded-full border border-black/10 bg-white/70 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-gray-700">
       {children}
     </span>
   );

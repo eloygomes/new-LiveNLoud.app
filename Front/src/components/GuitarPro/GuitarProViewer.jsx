@@ -325,7 +325,7 @@ function LiveInstrument({ track, notes, transposition = 0, compact = false }) {
               style={compact ? { top: `${compactStringStart + index * compactStringSpacing}px` } : undefined}
             >
               {!compact ? (
-                <span className="absolute right-[calc(100%+46px)] top-1/2 -translate-y-1/2 text-[11px] font-black text-[#f0dfb6]">
+                <span className="absolute right-[calc(100%+46px)] top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#f0dfb6]">
                   {Number.isFinite(Number(tunings[stringCount - stringNumber]))
                     ? alphaTab.model.Tuning.getTextForTuning(Number(tunings[stringCount - stringNumber]) + transposition, true)
                     : ""}
@@ -1151,7 +1151,7 @@ function GuitarProViewer({
 
   if (isMobileLayout) {
     const mobileToolClass =
-      "neuphormism-b-btn flex h-9 min-w-0 items-center justify-center rounded-[10px] px-1 text-[9px] font-black uppercase tracking-[.04em] text-black active:scale-[.98]";
+      "neuphormism-b-btn flex h-9 min-w-0 items-center justify-center rounded-[10px] px-1 text-[9px] font-bold uppercase tracking-[.04em] text-black active:scale-[.98]";
     const mobileScoreTopClass = instrumentViewOpen ? "top-[184px]" : "top-2";
 
     return (
@@ -1164,10 +1164,10 @@ function GuitarProViewer({
             <GiGuitar className="h-4 w-4" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate text-[9px] font-black uppercase tracking-[.18em] text-[goldenrod]">
+            <div className="truncate text-[9px] font-bold uppercase tracking-[.18em] text-[goldenrod]">
               Guitar Pro · {normalizeTrackLabel(selectedTrack, selectedTrackIndex)}
             </div>
-            <div className="truncate text-[14px] font-black text-black">
+            <div className="truncate text-[14px] font-bold text-black">
               {songTitle || fileName || "Partitura"}
             </div>
             {artistName ? (
@@ -1321,7 +1321,7 @@ function GuitarProViewer({
 
         {zoomMenuOpen ? (
           <section className="absolute left-2 right-2 top-[108px] z-50 rounded-[16px] border border-[#b2aa96] bg-[#efede7] p-3 shadow-[0_14px_35px_rgba(0,0,0,.3)]">
-            <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[.1em]">
+            <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.1em]">
               <span>Zoom da partitura</span>
               <output>{Math.round(zoom * 100)}%</output>
             </div>
@@ -1337,7 +1337,7 @@ function GuitarProViewer({
             />
             <div className="mt-2 grid grid-cols-3 gap-2">
               <button type="button" onClick={() => setZoom((current) => Math.max(0.8, current - 0.1))} className="neuphormism-b-btn grid h-8 place-items-center rounded-lg"><FaMagnifyingGlassMinus /></button>
-              <button type="button" onClick={() => setZoom(1)} className="neuphormism-b-btn h-8 rounded-lg text-[10px] font-black">100%</button>
+              <button type="button" onClick={() => setZoom(1)} className="neuphormism-b-btn h-8 rounded-lg text-[10px] font-bold">100%</button>
               <button type="button" onClick={() => setZoom((current) => Math.min(1.5, current + 0.1))} className="neuphormism-b-btn grid h-8 place-items-center rounded-lg"><FaMagnifyingGlassPlus /></button>
             </div>
           </section>
@@ -1383,7 +1383,7 @@ function GuitarProViewer({
           {instrumentViewOpen && selectedTrack ? (
             <section className="absolute inset-x-0 top-0 z-30 h-[174px] overflow-hidden border-y border-[#c8c3b6] bg-[#dedbd2] pb-1 shadow-[0_12px_28px_rgba(30,30,30,.22)]">
               <div className="flex h-10 items-center justify-between gap-2 px-2">
-                <div className="truncate text-[9px] font-black uppercase tracking-[.13em] text-[#3b3f47]">
+                <div className="truncate text-[9px] font-bold uppercase tracking-[.13em] text-[#3b3f47]">
                   {normalizeTrackLabel(selectedTrack, selectedTrackIndex)} · Live
                 </div>
                 <button
@@ -1426,7 +1426,7 @@ function GuitarProViewer({
             <button type="button" onClick={restartPlayback} disabled={!playerReady || Boolean(renderError)} className={`${buttonBaseClass} h-9 w-full rounded-[10px] ${playerReady && !renderError ? "" : "cursor-not-allowed opacity-45"}`} aria-label="Restart playback"><FaArrowRotateLeft className="h-3 w-3" /></button>
             <button type="button" onClick={togglePlayback} disabled={!playerReady || Boolean(renderError)} className={`${buttonBaseClass} h-10 w-full rounded-[11px] ${playerReady && !renderError ? "neuphormism-b-btn-gold" : "cursor-not-allowed opacity-45"}`} aria-label={isPlaying ? "Pause" : "Play"}>{isPlaying ? <FaPause className="h-4 w-4" /> : <FaPlay className="h-4 w-4" />}</button>
             <button type="button" onClick={stopPlayback} disabled={!playerReady} className={`${buttonBaseClass} h-9 w-full rounded-[10px] ${playerReady ? "" : "cursor-not-allowed opacity-45"}`} aria-label="Stop"><FaStop className="h-3 w-3" /></button>
-            <div className="min-w-0 px-1 text-center text-[10px] font-black tabular-nums text-gray-600">
+            <div className="min-w-0 px-1 text-center text-[10px] font-bold tabular-nums text-gray-600">
               {playerReady
                 ? `${formatDuration(playbackPosition.currentTime)} / ${formatDuration(playbackPosition.endTime)}`
                 : `Player ${playerLoadProgress}%`}
@@ -1456,7 +1456,7 @@ function GuitarProViewer({
               aria-label="Instruments mixer"
               className="pointer-events-auto absolute bottom-2 left-2 right-2 z-10 flex max-h-[calc(100%-4.5rem)] flex-col overflow-hidden rounded-[18px] border border-[#b5b1a6] bg-[#dedbd2] shadow-[0_20px_45px_rgba(0,0,0,.38)]"
             >
-              <header className="flex h-11 shrink-0 items-center justify-between bg-[#4f5257] px-3 text-[10px] font-black uppercase tracking-[.14em] text-white">
+              <header className="flex h-11 shrink-0 items-center justify-between bg-[#4f5257] px-3 text-[10px] font-bold uppercase tracking-[.14em] text-white">
                 <span>Instrumentos · Mixer</span>
                 <button
                   type="button"
@@ -1469,7 +1469,7 @@ function GuitarProViewer({
               </header>
               <div className="min-h-0 flex-1 space-y-2 overflow-auto p-2">
                 <div className="rounded-[14px] border border-[#b79728] bg-[#ead992] p-2 shadow-sm">
-                  <div className="mb-1 flex items-center justify-between text-[9px] font-black uppercase tracking-[.1em]">
+                  <div className="mb-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-[.1em]">
                     <span>Master</span>
                     <output className="rounded-md bg-[#34373c] px-2 py-0.5 text-white">
                       {Math.round(masterVolume * 100)}%
@@ -1486,9 +1486,9 @@ function GuitarProViewer({
                     <article key={`mobile-mixer-${index}`} className={`rounded-[14px] border p-2 shadow-sm ${index === selectedTrackIndex ? "border-[#9c7600] bg-[#f0df9d]" : "border-[#c3bfb4] bg-[#f4f3ef]"}`}>
                       <div className="flex items-center gap-1.5">
                         <button type="button" onClick={() => renderSelectedTrack(index)} className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-[#c7c3b8] bg-white shadow-sm" aria-label={`Select ${label}`}><Icon className="h-4 w-4" /></button>
-                        <button type="button" onClick={() => renderSelectedTrack(index)} className="min-w-0 flex-1 truncate text-left text-[10px] font-black uppercase">{label}</button>
-                        <button type="button" onClick={() => toggleTrackMute(index)} className={`h-7 w-7 rounded-lg border border-[#c7c3b8] text-[9px] font-black shadow-sm ${track.playbackInfo?.isMute ? "bg-[#e46e63] text-white" : "bg-white"}`} aria-label={`Mute ${label}`}>M</button>
-                        <button type="button" onClick={() => toggleTrackSolo(index)} className={`h-7 w-7 rounded-lg border border-[#c7c3b8] text-[9px] font-black shadow-sm ${track.playbackInfo?.isSolo ? "bg-[goldenrod]" : "bg-white"}`} aria-label={`Solo ${label}`}>S</button>
+                        <button type="button" onClick={() => renderSelectedTrack(index)} className="min-w-0 flex-1 truncate text-left text-[10px] font-bold uppercase">{label}</button>
+                        <button type="button" onClick={() => toggleTrackMute(index)} className={`h-7 w-7 rounded-lg border border-[#c7c3b8] text-[9px] font-bold shadow-sm ${track.playbackInfo?.isMute ? "bg-[#e46e63] text-white" : "bg-white"}`} aria-label={`Mute ${label}`}>M</button>
+                        <button type="button" onClick={() => toggleTrackSolo(index)} className={`h-7 w-7 rounded-lg border border-[#c7c3b8] text-[9px] font-bold shadow-sm ${track.playbackInfo?.isSolo ? "bg-[goldenrod]" : "bg-white"}`} aria-label={`Solo ${label}`}>S</button>
                       </div>
                       <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-2">
                         <div>
@@ -1497,7 +1497,7 @@ function GuitarProViewer({
                             {Array.from({ length: 12 }, (_, segment) => <span key={segment} className={`rounded-sm ${level > segment / 12 ? (segment >= 10 ? "bg-[#df493f]" : segment >= 8 ? "bg-[goldenrod]" : "bg-[#4f9d62]") : "bg-[#c7c8c5]"}`} />)}
                           </div>
                         </div>
-                        <output className="min-w-10 rounded-md bg-[#34373c] px-1.5 py-1 text-center text-[9px] font-black text-white">{Math.round(volume * 100)}%</output>
+                        <output className="min-w-10 rounded-md bg-[#34373c] px-1.5 py-1 text-center text-[9px] font-bold text-white">{Math.round(volume * 100)}%</output>
                       </div>
                     </article>
                   );
@@ -1515,7 +1515,7 @@ function GuitarProViewer({
       {instrumentViewOpen && selectedTrack ? (
         <div className="mx-2 mt-2 shrink-0 rounded-[26px] border border-[#c8c3b6] bg-[#dedbd2] px-3 py-3 shadow-[0_8px_22px_rgba(30,30,30,.16)] sm:mx-4 sm:mt-3 sm:px-6 sm:py-4">
           <div className="w-full">
-            <div className="mb-2 text-[11px] font-black uppercase tracking-[.15em] text-[#3b3f47]">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-[.15em] text-[#3b3f47]">
               {normalizeTrackLabel(selectedTrack, selectedTrackIndex)} · Live
             </div>
             <LiveInstrument track={selectedTrack} notes={selectedTrackNotes} transposition={selectedTransposition} />
@@ -2062,7 +2062,7 @@ function GuitarProViewer({
                 setTuningMenuOpen((current) => !current);
                 setZoomMenuOpen(false);
               }}
-              className={`${buttonBaseClass} h-9 px-3 text-[10px] font-black ${tuningMenuOpen ? activeControlClass : ""}`}
+              className={`${buttonBaseClass} h-9 px-3 text-[10px] font-bold ${tuningMenuOpen ? activeControlClass : ""}`}
               title="Mostrar afinação"
             >
               AFIN.
@@ -2124,7 +2124,7 @@ function GuitarProViewer({
                 setZoomMenuOpen((current) => !current);
                 setTuningMenuOpen(false);
               }}
-              className={`${buttonBaseClass} h-9 px-3 text-[10px] font-black ${zoomMenuOpen ? "neuphormism-b-btn-gold" : ""}`}
+              className={`${buttonBaseClass} h-9 px-3 text-[10px] font-bold ${zoomMenuOpen ? "neuphormism-b-btn-gold" : ""}`}
               title="Controlar zoom"
             >
               <FaMagnifyingGlassPlus className="mr-1 h-3 w-3" />
@@ -2132,7 +2132,7 @@ function GuitarProViewer({
             </button>
             {zoomMenuOpen ? (
               <div className="absolute bottom-12 left-0 z-50 w-56 rounded-xl border border-[#b2aa96] bg-[#efede7] p-3 shadow-[0_14px_35px_rgba(0,0,0,.3)]">
-                <div className="mb-2 flex items-center justify-between text-xs font-black">
+                <div className="mb-2 flex items-center justify-between text-xs font-bold">
                   <span>ZOOM DA CIFRA</span>
                   <output>{Math.round(zoom * 100)}%</output>
                 </div>
@@ -2181,7 +2181,7 @@ function GuitarProViewer({
               updateNotationVisibility(showStandardNotation, !showTablature)
             }
             disabled={!showStandardNotation && showTablature}
-            className={`${buttonBaseClass} order-[1] h-9 px-3 text-[10px] font-black ${showTablature ? activeControlClass : ""}`}
+            className={`${buttonBaseClass} order-[1] h-9 px-3 text-[10px] font-bold ${showTablature ? activeControlClass : ""}`}
             title={showTablature ? "Ocultar tablatura" : "Mostrar tablatura"}
           >
             TAB
@@ -2192,7 +2192,7 @@ function GuitarProViewer({
               updateNotationVisibility(!showStandardNotation, showTablature)
             }
             disabled={showStandardNotation && !showTablature}
-            className={`${buttonBaseClass} order-[2] h-9 px-3 text-[10px] font-black ${showStandardNotation ? activeControlClass : ""}`}
+            className={`${buttonBaseClass} order-[2] h-9 px-3 text-[10px] font-bold ${showStandardNotation ? activeControlClass : ""}`}
             title={
               showStandardNotation ? "Ocultar partitura" : "Mostrar partitura"
             }
@@ -2255,7 +2255,7 @@ function GuitarProViewer({
           <button
             type="button"
             onClick={() => setBottomMixerOpen((current) => !current)}
-            className="flex h-11 w-full items-center justify-between bg-[#4f5257] px-5 text-xs font-black uppercase tracking-[.14em] text-white shadow-md"
+            className="flex h-11 w-full items-center justify-between bg-[#4f5257] px-5 text-xs font-bold uppercase tracking-[.14em] text-white shadow-md"
           >
             <span>Instrumentos · Mixer</span>
             <span>{bottomMixerOpen ? "Recolher ↓" : "Abrir ↑"}</span>
@@ -2302,7 +2302,7 @@ function GuitarProViewer({
                       </button>
                     </div>
                     <div className="my-3 rounded-[10px] border border-[#aaa79f] bg-[#deddd8] p-2 shadow-inner">
-                      <div className="mb-1 flex items-center justify-between text-[9px] font-black uppercase tracking-[.08em] text-[#55585f]">
+                      <div className="mb-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-[.08em] text-[#55585f]">
                         <span>Nível ao vivo</span>
                         <output>{gainToDecibels(level)} dB</output>
                       </div>
@@ -2316,7 +2316,7 @@ function GuitarProViewer({
                       <div className="mt-1 flex justify-between text-[7px] font-bold text-[#777]" aria-hidden="true"><span>−∞</span><span>−18</span><span>−6</span><span>0 dB</span></div>
                     </div>
                     <div className="rounded-[10px] border border-[#aaa79f] bg-white/75 p-2 shadow-sm">
-                      <div className="mb-1.5 flex items-center justify-between text-[10px] font-black uppercase tracking-[.08em]"><span>Volume</span><output className="rounded-md bg-[#34373c] px-2 py-0.5 text-white">{Math.round(volume * 100)}%</output></div>
+                      <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]"><span>Volume</span><output className="rounded-md bg-[#34373c] px-2 py-0.5 text-white">{Math.round(volume * 100)}%</output></div>
                       <input
                         type="range"
                         min="0"

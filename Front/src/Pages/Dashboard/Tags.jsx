@@ -17,6 +17,7 @@ export default function Tags({
   handleAddSetlist,
   RiDeleteBin6Line,
   isTouchLayout = false,
+  isPhoneLayout = false,
 }) {
   const [activeTab, setActiveTab] = useState("tags");
   const [isEditing, setIsEditing] = useState(false);
@@ -167,7 +168,9 @@ export default function Tags({
       <section
         className={
           isTouchLayout
-            ? "rounded-[18px] border border-black/5 bg-white/55 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.06)]"
+            ? `rounded-[18px] border border-black/5 bg-white/55 shadow-[0_10px_28px_rgba(0,0,0,0.06)] ${
+                isPhoneLayout ? "p-2" : "p-3"
+              }`
             : "neuphormism-b p-4"
         }
       >
@@ -202,14 +205,18 @@ export default function Tags({
           <div
             className={
               isTouchLayout
-              ? "grid grid-cols-3 gap-1 rounded-[14px] bg-black/[0.04] p-1"
+              ? `grid grid-cols-3 gap-1 rounded-[14px] bg-black/[0.04] p-1 ${
+                  isPhoneLayout ? "mt-[-0.25rem]" : ""
+                }`
                 : "w-1/2 flex flex-row justify-between gap-2"
             }
           >
             <div className={isTouchLayout ? "hidden" : "w-1/4"}></div>
             <button
               type="button"
-              className={`flex min-h-11 items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-colors ${
+              className={`flex items-center justify-center gap-2 px-2 font-bold uppercase transition-colors ${
+                isPhoneLayout ? "min-h-9 py-1.5 text-[10px]" : "min-h-11 py-2 text-xs"
+              } ${
                 isTouchLayout ? "rounded-[11px]" : "rounded-md"
               } ${
                 isTouchLayout ? "" : "flex-1"
@@ -229,7 +236,9 @@ export default function Tags({
             </button>
             <button
               type="button"
-              className={`flex min-h-11 items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-colors ${
+              className={`flex items-center justify-center gap-2 px-2 font-bold uppercase transition-colors ${
+                isPhoneLayout ? "min-h-9 py-1.5 text-[10px]" : "min-h-11 py-2 text-xs"
+              } ${
                 isTouchLayout ? "rounded-[11px]" : "rounded-md"
               } ${
                 isTouchLayout ? "" : "flex-1"
@@ -249,7 +258,9 @@ export default function Tags({
             </button>
             <button
               type="button"
-              className={`flex min-h-11 items-center justify-center gap-2 px-2 py-2 text-xs font-bold uppercase transition-colors ${
+              className={`flex items-center justify-center gap-2 px-2 font-bold uppercase transition-colors ${
+                isPhoneLayout ? "min-h-9 py-1.5 text-[10px]" : "min-h-11 py-2 text-xs"
+              } ${
                 isTouchLayout ? "rounded-[11px]" : "rounded-md"
               } ${
                 isTouchLayout ? "" : "flex-1"
@@ -310,13 +321,13 @@ export default function Tags({
         ) : null}
 
         {activeTab === "tags" ? (
-          <div className="mt-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className={isPhoneLayout ? "mt-2" : "mt-4"}>
+            <div className={`flex items-center justify-between ${isPhoneLayout ? "gap-2" : "flex-wrap gap-3"}`}>
               <div>
                 <h2 className={`text-[11px] font-bold uppercase text-gray-600 ${isTouchLayout ? "mt-1" : "mt-5"}`}>
                   Filter dashboard by setlist
                 </h2>
-                <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                <p className={`mt-1 font-semibold text-gray-500 ${isPhoneLayout ? "text-[9px] leading-3" : "text-[11px]"}`}>
                   {isTouchLayout
                     ? "Tap any setlist to show only its songs. Active filters appear in gold."
                     : "Click one or more setlists to filter the song table. Gold tags are active filters; clicking them again removes them."}
@@ -327,7 +338,7 @@ export default function Tags({
                   <button
                     type="button"
                     onClick={startEditing}
-                    className="rounded-full px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+                    className={`rounded-full font-bold transition-colors neuphormism-b-btn ${isPhoneLayout ? "px-3 py-1.5 text-[11px]" : "px-4 py-2 text-sm"}`}
                   >
                     Edit
                   </button>
@@ -336,14 +347,14 @@ export default function Tags({
                     <button
                       type="button"
                       onClick={cancelEditing}
-                      className="rounded-full px-4 py-2 text-sm font-bold transition-colors neuphormism-b-btn"
+                    className={`rounded-full font-bold transition-colors neuphormism-b-btn ${isPhoneLayout ? "px-2.5 py-1.5 text-[10px]" : "px-4 py-2 text-sm"}`}
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleSaveChanges}
-                      className="rounded-full px-4 py-2 text-sm font-bold transition-colors disabled:opacity-60 neuphormism-b-btn-gold"
+                      className={`rounded-full font-bold transition-colors disabled:opacity-60 neuphormism-b-btn-gold ${isPhoneLayout ? "px-2.5 py-1.5 text-[10px]" : "px-4 py-2 text-sm"}`}
                       disabled={pendingRemovals.length === 0}
                     >
                       Save
@@ -353,14 +364,16 @@ export default function Tags({
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className={isPhoneLayout ? "mt-2" : "mt-4"}>
               {setlists.length === 0 ? (
                 <p className="italic text-sm">Nenhuma setlist cadastrada.</p>
               ) : (
                 <div
                   className={
                     isTouchLayout
-                      ? "grid grid-cols-2 gap-2 sm:grid-cols-3"
+                      ? isPhoneLayout
+                        ? "grid grid-cols-3 gap-1.5"
+                        : "grid grid-cols-2 gap-2 sm:grid-cols-3"
                       : "flex flex-wrap gap-2"
                   }
                 >
@@ -396,13 +409,25 @@ export default function Tags({
                         style={{
                           minWidth: isTouchLayout ? "0" : undefined,
                           margin: isTouchLayout ? "0" : undefined,
-                          padding: isTouchLayout ? "15px 12px" : undefined,
-                          minHeight: isTouchLayout ? "56px" : undefined,
-                          fontSize: isTouchLayout ? "14px" : undefined,
+                          padding: isPhoneLayout
+                            ? "7px 5px"
+                            : isTouchLayout
+                              ? "15px 12px"
+                              : undefined,
+                          minHeight: isPhoneLayout
+                            ? "34px"
+                            : isTouchLayout
+                              ? "56px"
+                              : undefined,
+                          fontSize: isPhoneLayout
+                            ? "10px"
+                            : isTouchLayout
+                              ? "14px"
+                              : undefined,
                           ...tagAnimationStyle,
                         }}
                       >
-                        <span>{tag}</span>
+                        <span className={isPhoneLayout ? "block min-w-0 truncate" : undefined}>{tag}</span>
                         {isEditing && (
                           <RiDeleteBin6Line
                             className={`ml-1 h-4 w-4 ${
@@ -588,14 +613,14 @@ export default function Tags({
           </div>
         ) : null}
 
-        <div className="relative top-auto mt-auto border-t border-black/5 pt-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/50 px-3 py-2 text-[11px] font-bold text-gray-700">
+        <div className={`relative top-auto mt-auto border-t border-black/5 ${isPhoneLayout ? "pt-2" : "pt-3"}`}>
+          <div className={`flex flex-wrap items-center justify-between rounded-lg bg-white/50 font-bold text-gray-700 ${isPhoneLayout ? "gap-1 px-2 py-1.5 text-[9px]" : "gap-2 px-3 py-2 text-[11px]"}`}>
             <span>
               {selectedSetlists.length
                 ? `${selectedSetlists.length} active setlist filter${selectedSetlists.length === 1 ? "" : "s"}`
                 : "No active setlist filter"}
             </span>
-            <span className="rounded-full bg-[goldenrod] px-3 py-1 text-black">
+            <span className={`rounded-full bg-[goldenrod] text-black ${isPhoneLayout ? "px-2 py-1" : "px-3 py-1"}`}>
               {visibleSongsCount} selected song
               {visibleSongsCount === 1 ? "" : "s"}
             </span>

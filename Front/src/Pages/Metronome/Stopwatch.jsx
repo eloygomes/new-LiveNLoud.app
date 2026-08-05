@@ -1,7 +1,7 @@
 // src/Pages/Metronome/Stopwatch.jsx
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 
-const Stopwatch = () => {
+const Stopwatch = ({ variant = "default" }) => {
   const [stopwatchTime, setStopwatchTime] = useState(0);
   const [lapTime, setLapTime] = useState(0);
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
@@ -60,22 +60,50 @@ const Stopwatch = () => {
     }
   };
 
+  useEffect(
+    () => () => {
+      clearInterval(stopwatchIntervalRef.current);
+    },
+    [],
+  );
+
+  const isTablet = variant === "tablet";
+
   return (
-    <div className="flex h-full min-h-0 w-full flex-col rounded-[30px] neuphormism-b p-6">
+    <div
+      className={`flex h-full min-h-0 w-full flex-col neuphormism-b ${
+        isTablet ? "rounded-[24px] p-5" : "rounded-[30px] p-6"
+      }`}
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="w-full flex-shrink-0">
+          {isTablet ? (
+            <div className="mb-4">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                Session stopwatch
+              </p>
+              <h2 className="mt-1 text-[1.25rem] font-bold leading-tight text-black">
+                Measure complete takes and difficult sections.
+              </h2>
+              <p className="mt-2 text-[11px] font-semibold leading-[1rem] text-gray-500">
+                Add a lap after each pass to compare consistency without resetting the full session.
+              </p>
+            </div>
+          ) : null}
           <div className="w-full mx-auto text-center">
-            <h1 className="pt-4 text-[4rem] font-bold text-center leading-[0.9] tracking-[-0.03em] text-black">
+            <h1
+              className={`${isTablet ? "pt-2 text-[3rem]" : "pt-4 text-[4rem]"} font-bold text-center leading-[0.9] tracking-[-0.03em] text-black`}
+            >
               {formatTime(stopwatchTime)}
             </h1>
-            <p className="py-5 text-md font-bold tracking-[0.28em] text-gray-500">
+            <p className={`${isTablet ? "py-4 text-sm" : "py-5 text-md"} font-bold tracking-[0.28em] text-gray-500`}>
               {formatTime(lapTime)}
             </p>
           </div>
-          <div className="flex w-full flex-row gap-4 pb-5">
+          <div className={`flex w-full flex-row gap-3 ${isTablet ? "pb-4" : "pb-5"}`}>
             <div className="w-full">
               <button
-                className="neuphormism-b-se flex w-full items-center justify-center rounded-[18px] px-6 py-4 text-xl font-bold"
+                className={`neuphormism-b-se flex min-h-12 w-full items-center justify-center rounded-[16px] px-4 font-bold ${isTablet ? "text-[0.9rem]" : "text-xl"}`}
                 type="button"
                 onClick={handleLapOrReset}
               >
@@ -84,7 +112,7 @@ const Stopwatch = () => {
             </div>
             <div className="w-full">
               <button
-                className="neuphormism-b-se flex w-full items-center justify-center rounded-[18px] px-6 py-4 text-xl font-bold"
+                className={`neuphormism-b-se flex min-h-12 w-full items-center justify-center rounded-[16px] px-4 font-bold ${isTablet ? "text-[0.9rem]" : "text-xl"}`}
                 type="button"
                 onClick={handleStopwatchStartStop}
               >

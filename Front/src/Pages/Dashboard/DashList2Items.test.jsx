@@ -142,6 +142,30 @@ describe("DashList2Items", () => {
     vi.useRealTimers();
   });
 
+  it("prevents the browser context menu on mobile song cards", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 500,
+      configurable: true,
+    });
+
+    render(
+      <DashList2Items
+        songs={songFixture()}
+        visibleColumns={["progression", "instruments"]}
+      />,
+    );
+
+    const cardButton = screen.getByRole("button", { name: /oceans/i });
+    const contextMenuEvent = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+    });
+
+    cardButton.dispatchEvent(contextMenuEvent);
+
+    expect(contextMenuEvent.defaultPrevented).toBe(true);
+  });
+
   it("navigates to the edit page from the mobile action sheet", async () => {
     vi.useFakeTimers();
     Object.defineProperty(window, "innerWidth", {

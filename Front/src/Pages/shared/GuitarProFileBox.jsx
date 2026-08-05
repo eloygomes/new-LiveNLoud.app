@@ -126,7 +126,7 @@ export default function GuitarProFileBox({
             }
           />
           {compact ? (
-            <span className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-500">
+            <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-gray-500">
               {guitarProFiles.length} {guitarProFiles.length === 1 ? "file" : "files"}
             </span>
           ) : null}
@@ -140,7 +140,7 @@ export default function GuitarProFileBox({
           </span>
         ) : null}
         <div className="min-w-0 flex-1">
-          <div className={`${compact ? "text-[12px] font-black" : "text-sm font-bold"} truncate text-black`}>
+          <div className={`${compact ? "text-[12px] font-bold" : "text-sm font-bold"} truncate text-black`}>
             {hasGuitarProFiles
               ? guitarProFiles[0]?.originalName || "Guitar Pro file"
               : "No file registered"}

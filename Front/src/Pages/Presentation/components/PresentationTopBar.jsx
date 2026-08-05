@@ -15,6 +15,7 @@ import GuitarProIcon from "../../../components/GuitarPro/GuitarProIcon";
 function PresentationTopBar({
   visible,
   isTouchLayout,
+  isPortraitTabletLayout = false,
   isTouchVideoActive,
   songFromURL,
   artistFromURL,
@@ -27,6 +28,7 @@ function PresentationTopBar({
   openEditorToolBox,
   onToggleToolBox,
   isExpandedCifra,
+  isLayoutModeManual = false,
   onToggleExpanded,
   onGoToEditSong,
   instrumentSelected,
@@ -44,7 +46,7 @@ function PresentationTopBar({
 }) {
   if (!visible) return null;
 
-  if (isTouchLayout) {
+  if (isTouchLayout && !isPortraitTabletLayout) {
     return (
       <div
         data-presentation-top-bar="true"
@@ -125,29 +127,48 @@ function PresentationTopBar({
   return (
     <div
       data-presentation-top-bar="true"
-      className="sticky top-0 z-[120] my-5 flex min-h-[7.25rem] shrink-0 flex-col items-stretch justify-between gap-4 neuphormism-b px-10 pb-4 pt-8 xl:flex-row xl:items-center"
+      data-tablet-layout={isPortraitTabletLayout ? "true" : undefined}
+      className={`sticky top-0 z-[120] flex shrink-0 flex-col items-stretch justify-between neuphormism-b ${
+        isPortraitTabletLayout
+          ? "mb-3 mt-0 min-h-0 gap-2 px-6 pb-3 pt-8"
+          : "my-5 min-h-[7.25rem] gap-4 px-10 pb-4 pt-8 xl:flex-row xl:items-center"
+      }`}
     >
-      <div className="pointer-events-none absolute left-10 right-10 top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+      <div
+        className={`pointer-events-none absolute top-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod] ${
+          isPortraitTabletLayout ? "left-6 right-6" : "left-10 right-10"
+        }`}
+      >
         <span>Presentation</span>
         <span>{activeLayoutLabel}</span>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={`flex min-w-0 flex-col ${isPortraitTabletLayout ? "w-full flex-none pr-24" : "flex-1"}`}>
         <h1
-          className="font-bold text-black text-[2.45rem] leading-[1.02]"
+          className={`font-bold leading-[1.02] text-black ${isPortraitTabletLayout ? "text-[2rem]" : "text-[2.45rem]"}`}
           title={songFromURL}
         >
           {songFromURL}
         </h1>
         <h1
-          className="font-bold text-black text-[2rem] leading-[1.02]"
+          className={`font-bold leading-[1.02] text-black ${isPortraitTabletLayout ? "text-[1.5rem]" : "text-[2rem]"}`}
           title={artistFromURL}
         >
           {artistFromURL}
         </h1>
       </div>
-      <div className="flex w-full flex-col items-stretch gap-3 pt-2 xl:w-auto">
-        <div className="flex flex-col gap-2">
-          <div className="order-2 mt-3 grid grid-cols-2 gap-2 opacity-80">
+      <div className={`flex w-full flex-col items-stretch gap-3 ${isPortraitTabletLayout ? "pt-0" : "pt-2 xl:w-auto"}`}>
+        <div
+          className={`flex flex-col gap-2 ${
+            isPortraitTabletLayout ? "presentation-tablet-controls relative" : ""
+          }`}
+        >
+          <div
+            className={`gap-2 opacity-80 ${
+              isPortraitTabletLayout
+                ? "presentation-tablet-navigation absolute bottom-[calc(100%+0.5rem)] right-0 flex justify-end"
+                : "order-2 mt-3 grid grid-cols-2"
+            }`}
+          >
             <button
               type="button"
               disabled={!previousSetlistSong}
@@ -167,8 +188,12 @@ function PresentationTopBar({
               &gt;&gt;
             </button>
           </div>
-          <div className="order-1 flex flex-col items-stretch gap-2">
-            <div className="flex flex-row flex-wrap items-stretch justify-end gap-3">
+          <div
+            className={`flex flex-col items-stretch gap-2 ${
+              isPortraitTabletLayout ? "order-2" : "order-1"
+            }`}
+          >
+            <div className={`flex flex-row flex-wrap items-stretch justify-end ${isPortraitTabletLayout ? "presentation-tablet-actions gap-2" : "gap-3"}`}>
               <button
                 type="button"
                 className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-black ${
@@ -191,7 +216,7 @@ function PresentationTopBar({
                 aria-label="Transpose"
                 title="Transpose"
               >
-                <span className="relative flex h-6 w-7 items-center justify-center text-[0.65rem] font-black leading-none">
+                <span className="relative flex h-6 w-7 items-center justify-center text-[0.65rem] font-bold leading-none">
                   <span>TOM</span>
                   <span className="absolute -right-0.5 -top-1 text-[0.55rem] leading-none">+</span>
                   <span className="absolute -bottom-1 -left-0.5 text-[0.7rem] leading-none">-</span>
@@ -254,16 +279,26 @@ function PresentationTopBar({
               </button>
               <button
                 type="button"
-                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
+                className="relative flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
                 onClick={onToggleExpanded}
                 aria-label={isExpandedCifra ? "Disable expanded layout" : "Enable expanded layout"}
-                title={isExpandedCifra ? "Disable expanded layout" : "Enable expanded layout"}
+                title={`${isExpandedCifra ? "Expanded" : "Default"} layout · ${isLayoutModeManual ? "saved preference" : "automatic by screen orientation"}`}
               >
                 {isExpandedCifra ? (
                   <FaDownLeftAndUpRightToCenter className="h-5 w-5" />
                 ) : (
                   <FaUpRightAndDownLeftFromCenter className="h-5 w-5" />
                 )}
+                <span
+                  className={`absolute -right-1.5 -top-1.5 min-w-[1.35rem] rounded-full px-1 py-0.5 text-[7px] font-bold leading-none shadow-sm ${
+                    isLayoutModeManual
+                      ? "bg-[goldenrod] text-black"
+                      : "bg-gray-700 text-white"
+                  }`}
+                  aria-label={isLayoutModeManual ? "Saved layout preference" : "Automatic layout"}
+                >
+                  {isLayoutModeManual ? "✓" : "AUTO"}
+                </span>
                 <span className="sr-only">Expanded layout</span>
               </button>
               <button

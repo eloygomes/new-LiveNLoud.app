@@ -106,10 +106,10 @@ export default function UserProfileModal() {
           >
             <div className="flex shrink-0 items-center justify-between gap-4 rounded-[22px] neuphormism-b bg-[#ececec] px-5 py-4">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[goldenrod]">
                   {t("userHub.account")}
                 </p>
-                <h1 className="mt-1 text-4xl font-black uppercase leading-none">
+                <h1 className="mt-1 text-4xl font-bold uppercase leading-none">
                   {t("userHub.title")}
                 </h1>
                 <h4 className="mt-1 truncate text-sm font-semibold text-gray-600">
@@ -129,7 +129,7 @@ export default function UserProfileModal() {
             <div className="mt-4 grid min-h-0 flex-1 grid-cols-[minmax(13rem,0.24fr)_minmax(0,1fr)] gap-4 overflow-hidden">
               <aside className="flex min-h-0 flex-col justify-between rounded-[22px] neuphormism-b bg-[#ececec] p-4">
                 <div className="min-h-0">
-                  <p className="px-1 text-[10px] font-black uppercase tracking-[0.28em] text-[goldenrod]">
+                  <p className="px-1 text-[10px] font-bold uppercase tracking-[0.28em] text-[goldenrod]">
                     {t("userHub.menu")}
                   </p>
                   <nav className="mt-4 flex flex-col gap-2">
@@ -139,7 +139,7 @@ export default function UserProfileModal() {
                         <button
                           key={item.value}
                           type="button"
-                          className={`w-full rounded-[14px] px-3 py-3 text-left text-xs font-black uppercase tracking-[0.12em] transition active:scale-[0.98] ${
+                          className={`w-full rounded-[14px] px-3 py-3 text-left text-xs font-bold uppercase tracking-[0.12em] transition active:scale-[0.98] ${
                             active
                               ? "neuphormism-b-btn-gold text-black"
                               : "neuphormism-b-btn text-gray-600 hover:text-black"
@@ -157,7 +157,7 @@ export default function UserProfileModal() {
                   <SoftVersion />
                   <button
                     type="button"
-                    className="neuphormism-b-btn-gold rounded-[14px] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-black active:scale-[0.98]"
+                    className="neuphormism-b-btn-gold rounded-[14px] px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-black active:scale-[0.98]"
                     onClick={() => signOut()}
                     aria-label={t("userHub.signOut")}
                   >

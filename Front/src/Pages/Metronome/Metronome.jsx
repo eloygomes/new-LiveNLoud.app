@@ -10,10 +10,11 @@ import {
   FaVolumeUp,
 } from "react-icons/fa";
 import Stopwatch from "./Stopwatch";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
+import TabletToolShell from "../../components/TabletToolShell";
 
 const BPM_MIN = 40;
 const BPM_MAX = 220;
-const TOUCH_BREAKPOINT = 767;
 const clickSound = "/click.mp3";
 
 function clamp(value, min, max) {
@@ -21,10 +22,12 @@ function clamp(value, min, max) {
 }
 
 function Metronome() {
-  const [isTouchLayout, setIsTouchLayout] = useState(
-    () =>
-      typeof window !== "undefined" && window.innerWidth <= TOUCH_BREAKPOINT,
-  );
+  const isCompactLayout = useCompactAppLayout();
+  const isTabletLayout =
+    isCompactLayout &&
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768;
+  const isTouchLayout = isCompactLayout && !isTabletLayout;
   const [bpm, setBpm] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isOn, setIsOn] = useState(false);
@@ -42,15 +45,6 @@ function Metronome() {
   const intervalIdRef = useRef(null);
   const countdownIntervalRef = useRef(null);
   const audioUnlockedRef = useRef(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsTouchLayout(window.innerWidth <= TOUCH_BREAKPOINT);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   useEffect(() => {
     const loadClickSound = async () => {
@@ -116,6 +110,15 @@ function Metronome() {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.code === "Space" || event.keyCode === 32) {
+        const target = event.target;
+        if (
+          target instanceof HTMLElement &&
+          target.closest(
+            "button, input, select, textarea, a[href], [contenteditable='true']",
+          )
+        ) {
+          return;
+        }
         event.preventDefault();
         setIsPlaying((prev) => !prev);
       }
@@ -400,6 +403,231 @@ function Metronome() {
       )}
     </div>
   );
+
+  if (isTabletLayout) {
+    return (
+      <TabletToolShell
+        eyebrow="Tempo & timing"
+        title="Turn a steady pulse into a repeatable practice habit."
+        description="Shape the tempo, set a focused countdown and capture lap times without leaving the beat. Every primary control stays visible so changes remain immediate while you play."
+        artIndex={3}
+        artLabel="Metronome practice illustration"
+        badges={[
+          `${bpm} BPM`,
+          isTimerActive ? `${formatTime(displayedTimer)} timer` : "Open session",
+          `${Math.round((isMuted ? 0 : volume) * 100)}% volume`,
+        ]}
+        contentClassName="h-full"
+      >
+        <div className="grid h-full min-h-0 grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.72fr)] gap-5">
+          <section className="neuphormism-b flex min-h-0 flex-col gap-4 overflow-hidden rounded-[24px] p-5">
+            <div className="grid shrink-0 grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)] gap-4">
+              <div className="rounded-[18px] bg-white/70 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+                      Focus timer
+                    </p>
+                    <h2 className="mt-1 text-[1rem] font-bold text-black">
+                      Give this run a finish line.
+                    </h2>
+                    <p className="mt-1 text-[11px] font-semibold leading-[1rem] text-gray-500">
+                      When active, playback stops automatically at zero.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className={`min-h-11 shrink-0 rounded-[13px] px-4 text-[10px] font-bold uppercase tracking-[0.1em] ${
+                      isTimerActive
+                        ? "neuphormism-b-btn-gold text-black"
+                        : "neuphormism-b-btn text-gray-600"
+                    }`}
+                    onClick={() => {
+                      setIsTimerActive((current) => {
+                        const next = !current;
+                        if (!next) setTimeLeft(timerDuration);
+                        return next;
+                      });
+                    }}
+                    aria-pressed={isTimerActive}
+                  >
+                    {isTimerActive ? "Timer on" : "Timer off"}
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-[3.25rem_minmax(0,1fr)_3.25rem] items-center gap-2">
+                  <button
+                    type="button"
+                    className="neuphormism-b-btn min-h-11 rounded-[12px] text-[11px] font-bold"
+                    onClick={() => adjustTimer(-10)}
+                    aria-label="Reduce timer by ten seconds"
+                  >
+                    -10
+                  </button>
+                  <div className="text-center text-[1.7rem] font-bold tracking-[-0.055em] text-black">
+                    {formatTime(displayedTimer)}
+                  </div>
+                  <button
+                    type="button"
+                    className="neuphormism-b-btn min-h-11 rounded-[12px] text-[11px] font-bold"
+                    onClick={() => adjustTimer(10)}
+                    aria-label="Add ten seconds to timer"
+                  >
+                    +10
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-[18px] bg-white/70 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+                      Listening level
+                    </p>
+                    <h2 className="mt-1 text-[1rem] font-bold text-black">
+                      Hear the click, not the controls.
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="neuphormism-b-btn flex min-h-11 min-w-11 items-center justify-center rounded-[12px]"
+                    onClick={() => setIsMuted((current) => !current)}
+                    aria-label={isMuted ? "Unmute metronome" : "Mute metronome"}
+                    aria-pressed={isMuted}
+                  >
+                    {isMuted ? <FaVolumeMute /> : <FaVolumeUp />}
+                  </button>
+                </div>
+                <div className="mt-5 flex items-center gap-3">
+                  <FaVolumeMute className="shrink-0 text-gray-400" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={(event) => {
+                      const nextVolume = Number(event.target.value);
+                      setVolume(nextVolume);
+                      setIsMuted(nextVolume === 0);
+                    }}
+                    aria-label="Metronome volume"
+                    className="range-golden w-full appearance-none bg-transparent"
+                  />
+                  <span className="w-10 shrink-0 text-right text-[11px] font-bold text-gray-600">
+                    {Math.round((isMuted ? 0 : volume) * 100)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[24px] px-6 py-5 text-center transition-colors ${
+                isOn ? "bg-black text-white" : "bg-white/80 text-black"
+              }`}
+              aria-live="polite"
+            >
+              <div
+                className={`absolute h-[22rem] w-[22rem] rounded-full border-[2.5rem] transition-all duration-100 ${
+                  isOn
+                    ? "scale-110 border-[goldenrod]/35 opacity-100"
+                    : "scale-90 border-black/[0.025] opacity-80"
+                }`}
+                aria-hidden="true"
+              />
+              <p className="relative z-10 text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                {isPlaying ? "Pulse running" : "Ready for your first count"}
+              </p>
+              <div className="relative z-10 mt-2 text-[clamp(7rem,16vw,12rem)] font-bold leading-[0.82] tracking-[-0.09em]">
+                {bpm}
+              </div>
+              <div className="relative z-10 mt-3 text-[0.9rem] font-bold uppercase tracking-[0.34em] text-gray-500">
+                beats per minute
+              </div>
+            </div>
+
+            <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_7rem_7rem] gap-3">
+              <div className="neuphormism-b rounded-[18px] px-4 py-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                    Tempo range
+                  </span>
+                  <span className="text-[11px] font-bold text-black">
+                    {BPM_MIN}–{BPM_MAX} BPM
+                  </span>
+                </div>
+                <div className="grid grid-cols-[2.75rem_3.5rem_minmax(0,1fr)_3.5rem_2.75rem] items-center gap-2">
+                  {[
+                    ["−", -1, "Reduce tempo by one BPM"],
+                    ["−10", -10, "Reduce tempo by ten BPM"],
+                  ].map(([label, delta, ariaLabel]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className="neuphormism-b-btn min-h-11 rounded-[11px] text-[11px] font-bold"
+                      onClick={() => adjustBpm(delta)}
+                      aria-label={ariaLabel}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <input
+                    type="range"
+                    min={BPM_MIN}
+                    max={BPM_MAX}
+                    step="1"
+                    value={bpm}
+                    onChange={(event) => setBpm(Number(event.target.value))}
+                    aria-label="Tempo in beats per minute"
+                    className="range-golden w-full appearance-none bg-transparent"
+                  />
+                  {[
+                    ["+10", 10, "Increase tempo by ten BPM"],
+                    ["+", 1, "Increase tempo by one BPM"],
+                  ].map(([label, delta, ariaLabel]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className="neuphormism-b-btn min-h-11 rounded-[11px] text-[11px] font-bold"
+                      onClick={() => adjustBpm(delta)}
+                      aria-label={ariaLabel}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="neuphormism-b-btn flex min-h-16 flex-col items-center justify-center rounded-[18px] text-[10px] font-bold uppercase tracking-[0.1em]"
+                onClick={handleTapTempo}
+              >
+                <FaRegHandPaper className="mb-1 text-[1rem]" />
+                Tap
+              </button>
+              <button
+                type="button"
+                className={`flex min-h-16 flex-col items-center justify-center rounded-[18px] text-[10px] font-bold uppercase tracking-[0.1em] ${
+                  isPlaying
+                    ? "bg-black text-[goldenrod] shadow-lg"
+                    : "neuphormism-b-btn-gold text-black"
+                }`}
+                onClick={handlePlayClick}
+                aria-pressed={isPlaying}
+              >
+                {isPlaying ? <FaPause className="mb-1 text-[1rem]" /> : <FaPlay className="mb-1 text-[1rem]" />}
+                {isPlaying ? "Stop" : "Play"}
+              </button>
+            </div>
+          </section>
+
+          <aside className="min-h-0">
+            <Stopwatch variant="tablet" />
+          </aside>
+        </div>
+      </TabletToolShell>
+    );
+  }
 
   if (isTouchLayout) {
     return (

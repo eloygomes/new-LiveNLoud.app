@@ -26,6 +26,7 @@ import { formatDisplayDate, parseDateValue } from "../../Tools/dateFormat";
 import DashboardSongActionSheet from "./DashboardSongActionSheet";
 import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
 import { setLocalStorageItemSafe } from "../../Tools/storageSafe";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
 
 const INSTRUMENT_ICON_SIZE = 26;
 const INSTRUMENT_ICON_BOX_CLASS = "flex h-5 w-5 items-center justify-center";
@@ -53,7 +54,7 @@ function DashList2Items({
   onSongsChanged = () => {},
 }) {
   const [data, setData] = useState([]);
-  const [isMobile, setIsMobile] = useState("");
+  const isMobile = useCompactAppLayout();
   const [selectedSong, setSelectedSong] = useState(null);
   const [tooltipSongKey, setTooltipSongKey] = useState(null);
   const navigate = useNavigate();
@@ -97,14 +98,6 @@ function DashList2Items({
       fetchData();
     }
   }, [songsProp]);
-
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsMobile(true);
-    } else {
-      setIsMobile(false);
-    }
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -630,7 +623,8 @@ function DashList2Items({
               <div className="relative rounded-[20px] bg-[#e0e0e0] px-3 py-2 shadow-[0_8px_18px_rgba(0,0,0,0.05)]">
                 <button
                   type="button"
-                  className="flex w-full justify-between gap-3 text-left"
+                  className="flex w-full select-none justify-between gap-3 text-left"
+                  style={{ WebkitTouchCallout: "none" }}
                   onTouchStart={() => startLongPress(item)}
                   onTouchEnd={cancelLongPress}
                   onTouchMove={cancelLongPress}
@@ -638,23 +632,27 @@ function DashList2Items({
                   onMouseDown={() => startLongPress(item)}
                   onMouseUp={cancelLongPress}
                   onMouseLeave={cancelLongPress}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
                   onClick={(event) =>
                     handleMobileCardClick(event, item, getSongKey(item, index))
                   }
                 >
                   <div className="flex w-full gap-3">
-                    <div className="flex min-w-[28px] items-center justify-center border-r border-[#d1d5db] pr-2.5 text-[12px] font-semibold text-[#7d8594]">
+                    <div className="flex min-w-[20px] items-center justify-center border-r border-[#d1d5db] pr-1 text-[12px] font-semibold text-[#7d8594] min-[768px]:min-w-[28px] min-[768px]:pr-2.5">
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1 self-center">
                       <div
-                        className="truncate text-[1rem] font-bold leading-tight text-black"
+                        className="truncate text-[1rem] font-bold leading-tight text-black min-[768px]:text-[1.3rem]"
                         title={item.song || ""}
                       >
                         {item.song || "N/A"}
                       </div>
                       <div
-                        className="mt-1 truncate text-[14px] font-semibold text-[#565d69]"
+                        className="mt-1 truncate text-[14px] font-semibold text-[#565d69] min-[768px]:text-[1.1rem]"
                         title={item.artist || ""}
                       >
                         {item.artist || "N/A"}
@@ -681,7 +679,7 @@ function DashList2Items({
                         </div>
                       ) : null}
                       {selectedProgressionInstruments.length ? (
-                        <div className="mt-2 flex flex-col gap-1">
+                        <div className="mt-2 flex flex-wrap gap-1.5">
                           {selectedProgressionInstruments.map(
                             (instrumentKey) => {
                               const progress = getInstrumentProgress(
@@ -691,24 +689,19 @@ function DashList2Items({
                               const instrument = instrumentLabels.find(
                                 (label) => label.key === instrumentKey,
                               );
+                              const InstrumentIcon = instrument?.icon;
 
                               return (
-                                <div
+                                <span
                                   key={instrumentKey}
-                                  className="flex items-center gap-2"
+                                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5f5f5] px-2 py-1 text-[10px] font-bold text-gray-600 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.08),inset_-1px_-1px_3px_rgba(255,255,255,0.9)]"
+                                  title={`${instrument?.modalLabel || instrument?.label}: ${progress}%`}
                                 >
-                                  <span className="w-8 text-[10px] font-bold text-gray-500">
-                                    {instrument?.label || ""}
-                                  </span>
-                                  <div className="h-4 min-w-0 flex-1 rounded-full bg-gray-200 input-neumorfismo">
-                                    <div
-                                      className="h-full rounded bg-[#DAA520] text-center text-[9px] font-bold leading-4 text-black"
-                                      style={{ width: `${progress}%` }}
-                                    >
-                                      {progress}%
-                                    </div>
-                                  </div>
-                                </div>
+                                  {InstrumentIcon ? (
+                                    <InstrumentIcon className="h-3 w-3 text-[goldenrod]" />
+                                  ) : null}
+                                  <span>{progress}%</span>
+                                </span>
                               );
                             },
                           )}

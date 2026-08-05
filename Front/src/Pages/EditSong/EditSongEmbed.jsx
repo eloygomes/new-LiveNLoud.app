@@ -190,7 +190,7 @@ const EditSongEmbed = ({
     <div className={compact ? "my-0 flex flex-col rounded-[18px] border border-black/5 bg-white/60 p-3 shadow-[0_8px_20px_rgba(0,0,0,0.06)]" : "my-5 flex flex-col rounded-[30px] neuphormism-b p-5"}>
       <div className={`${compact ? "mb-3" : "pb-5"} flex items-center justify-between gap-3`}>
         <p className={`${compact ? "text-[10px] tracking-[0.22em]" : "text-[11px] tracking-[0.24em]"} font-bold uppercase text-[goldenrod]`}>Videos</p>
-        {compact ? <span className="flex items-center gap-1.5 rounded-full bg-black/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase text-gray-500"><FaVideo className="text-[9px]" />{videoItems.length} {videoItems.length === 1 ? "video" : "videos"}</span> : null}
+        {compact ? <span className="flex items-center gap-1.5 rounded-full bg-black/[0.035] px-2.5 py-1.5 text-[9px] font-bold uppercase text-gray-500"><FaVideo className="text-[9px]" />{videoItems.length} {videoItems.length === 1 ? "video" : "videos"}</span> : null}
       </div>
 
       {selectedVideo && (

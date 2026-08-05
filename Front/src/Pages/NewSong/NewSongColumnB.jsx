@@ -800,7 +800,7 @@ function InstrumentCard({ card, isOpen, onClick, compact = false }) {
             <Icon className={compact ? "text-[11px]" : "text-[14px]"} />
           </div>
           {compact ? (
-            <div className={`truncate text-[12px] font-black ${hasLink ? "text-black" : "text-gray-400"}`}>
+            <div className={`truncate text-[12px] font-bold ${hasLink ? "text-black" : "text-gray-400"}`}>
               {label}
             </div>
           ) : null}
@@ -814,7 +814,7 @@ function InstrumentCard({ card, isOpen, onClick, compact = false }) {
               aria-label="Notes registered"
             />
           ) : null}
-          <span className={`${compact ? "text-[10px]" : "text-sm"} font-black ${hasLink ? "text-black" : "text-gray-400"}`}>
+          <span className={`${compact ? "text-[10px]" : "text-sm"} font-bold ${hasLink ? "text-black" : "text-gray-400"}`}>
             {Number(progress || 0)}%
           </span>
         </div>
@@ -864,7 +864,7 @@ function InstrumentModal({ config, props, onClose }) {
             <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod] md:text-[11px]">
               {t("instrumentModal.details")}
             </p>
-            <div className="mt-1.5 flex items-center gap-2.5 text-[1.35rem] font-black tracking-tight text-black md:text-[2rem]">
+            <div className="mt-1.5 flex items-center gap-2.5 text-[1.35rem] font-bold tracking-tight text-black md:text-[2rem]">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[goldenrod]/15 text-[goldenrod] md:h-11 md:w-11 md:rounded-[14px] md:text-[1.15rem]">
                 <Icon aria-hidden="true" />
               </span>

@@ -1,7 +1,14 @@
 /* eslint-disable no-unused-vars */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEdit, FaSyncAlt } from "react-icons/fa";
-import { FaUserFriends } from "react-icons/fa";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FaDatabase,
+  FaEdit,
+  FaHistory,
+  FaSlidersH,
+  FaSyncAlt,
+  FaUserCircle,
+  FaUserFriends,
+} from "react-icons/fa";
 import userPerfil from "../../assets/userPerfil.jpg";
 import UserProfileAvatarBig from "./UserProfileAvatarBig";
 import {
@@ -29,14 +36,64 @@ import {
   formatDisplayDateTime,
   parseDateValue,
 } from "../../Tools/dateFormat";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
+import CategoryArtwork from "../../components/CategoryArtwork";
+import userHubCategoryArtwork from "../../assets/user-hub-category-illustrations.jpg";
 
-const MOBILE_MENU_OPTIONS = [
-  "USER INFO",
-  "USER DATA",
-  "FRIENDS",
-  "SETTINGS",
-  "LOGS",
+const USER_HUB_SECTIONS = [
+  {
+    id: "USER INFO",
+    mobileLabel: "USER INFO",
+    label: "Overview",
+    eyebrow: "Your music identity",
+    description:
+      "Keep your profile current and see a focused snapshot of your practice library, progress and recent activity.",
+    icon: FaUserCircle,
+    artIndex: 0,
+  },
+  {
+    id: "USER DATA",
+    mobileLabel: "USER DATA",
+    label: "Your data",
+    eyebrow: "Privacy & storage",
+    description:
+      "Understand what is stored in your account, export a personal copy and manage library or account data safely.",
+    icon: FaDatabase,
+    artIndex: 1,
+  },
+  {
+    id: "FRIENDS",
+    mobileLabel: "FRIENDS",
+    label: "Friends",
+    eyebrow: "Your music network",
+    description:
+      "Connect with musicians, review invitations and keep the people you rehearse and share calendars with close at hand.",
+    icon: FaUserFriends,
+    artIndex: 2,
+  },
+  {
+    id: "SETTINGS",
+    mobileLabel: "SETTINGS",
+    label: "Preferences",
+    eyebrow: "Devices & experience",
+    description:
+      "Prepare the connections and interface preferences you use while practicing, rehearsing and performing.",
+    icon: FaSlidersH,
+    artIndex: 3,
+  },
+  {
+    id: "LOGS",
+    mobileLabel: "LOGS",
+    label: "Activity",
+    eyebrow: "Practice history",
+    description:
+      "Read your recent account timeline and understand how your repertoire is distributed across instruments.",
+    icon: FaHistory,
+    artIndex: 4,
+  },
 ];
+
+const MOBILE_MENU_OPTIONS = USER_HUB_SECTIONS.map(({ id }) => id);
 
 function UserProfile() {
   const [data, setData] = useState([]);
@@ -69,8 +126,10 @@ function UserProfile() {
   const [usbEnabled, setUsbEnabled] = useState(false);
   const [bluetoothEnabled, setBluetoothEnabled] = useState(false);
   const [language, setLanguage] = useState("ENG");
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const tabletContentRef = useRef(null);
+  const isTouchLayout = useCompactAppLayout();
+  const isPortraitTabletLayout =
+    isTouchLayout && typeof window !== "undefined" && window.innerWidth >= 768;
 
   const loadMobileUserHub = useCallback(async () => {
     const userEmail = localStorage.getItem("userEmail");
@@ -82,7 +141,8 @@ function UserProfile() {
       fetchUserLogs().catch(() => []),
     ]);
 
-    const parsedResult = JSON.parse(result);
+    const parsedResult =
+      typeof result === "string" ? JSON.parse(result) : result;
 
     if (Array.isArray(parsedResult) && parsedResult[0]) {
       setGetFullName(parsedResult[0].fullName || "");
@@ -142,6 +202,7 @@ function UserProfile() {
       '[data-scroll-removed-mongo-user="true"]',
     );
     if (routeScroller) routeScroller.scrollTop = 0;
+    if (tabletContentRef.current) tabletContentRef.current.scrollTop = 0;
   }, [isTouchLayout, selectedMobileTab]);
 
   const handleEditPasswordClick = () => {
@@ -327,7 +388,7 @@ function UserProfile() {
     const total = data.reduce((sum, item) => {
       const value =
         typeof item.progressBar === "string"
-          ? Number(item.progressBar)
+          ? Number.parseFloat(item.progressBar.replace("%", ""))
           : item.progressBar ?? 0;
       return sum + (Number.isFinite(value) ? value : 0);
     }, 0);
@@ -336,12 +397,12 @@ function UserProfile() {
   }, [data]);
 
   const instrumentMeta = [
-    { key: "guitar01", short: "G1" },
-    { key: "guitar02", short: "G2" },
-    { key: "bass", short: "B" },
-    { key: "keys", short: "K" },
-    { key: "drums", short: "D" },
-    { key: "voice", short: "V" },
+    { key: "guitar01", short: "G1", label: "Guitar 1" },
+    { key: "guitar02", short: "G2", label: "Guitar 2" },
+    { key: "bass", short: "B", label: "Bass" },
+    { key: "keys", short: "K", label: "Keys" },
+    { key: "drums", short: "D", label: "Drums" },
+    { key: "voice", short: "V", label: "Voice" },
   ];
 
   const songsByInstrument = useMemo(
@@ -507,8 +568,31 @@ function UserProfile() {
   );
 
   const renderMobileUserInfo = () => (
-    <div className="flex flex-col gap-3">
-      <div className="neuphormism-b rounded-[18px] p-3">
+    <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:items-stretch md:gap-4">
+      {isPortraitTabletLayout ? (
+        <div className="neuphormism-b col-span-2 grid grid-cols-4 gap-2 rounded-[18px] p-3">
+          {[
+            { label: "Songs", value: data.length },
+            { label: "Progress", value: `${averageProgression}%` },
+            { label: "Friends", value: mobileFriends.length },
+            { label: "Activity", value: mobileLogs.length },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[13px] bg-white/55 px-3 py-3 text-center"
+            >
+              <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
+                {item.label}
+              </div>
+              <div className="mt-1 text-[1.2rem] font-bold leading-none text-black">
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="neuphormism-b rounded-[18px] p-3 md:row-span-3 md:flex md:items-center md:p-5">
         <div className="flex items-center gap-3 text-left">
           <label htmlFor="mobileProfileImage" className="cursor-pointer">
             <UserProfileAvatarBig size={96} imageUpdated={imageUpdated} />
@@ -553,7 +637,7 @@ function UserProfile() {
   );
 
   const renderMobileUserData = () => (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 md:grid md:grid-cols-3 md:items-stretch md:gap-4">
       <div className="neuphormism-b rounded-[18px] p-3">
         <div className="text-[13px] font-bold uppercase text-black">
           User Data
@@ -612,14 +696,14 @@ function UserProfile() {
   );
 
   const renderMobileFriends = () => (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:gap-4">
       <div className="neuphormism-b rounded-[18px] p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[13px] font-bold uppercase text-black">
+            <div className="text-[13px] font-bold uppercase text-black md:text-[17px]">
               Friends
             </div>
-            <div className="mt-1 text-[11px] text-gray-500">
+            <div className="mt-1 text-[11px] text-gray-500 md:text-[13px]">
               Manage your music network.
             </div>
           </div>
@@ -637,17 +721,17 @@ function UserProfile() {
             <button
               key={item.value}
               type="button"
-              className={`rounded-[11px] px-1 py-2 text-center ${
+              className={`rounded-[11px] px-1 py-2 text-center md:min-h-14 md:py-3 ${
                 friendsView === item.value
                   ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
                   : "neuphormism-b-btn bg-white text-gray-500"
               }`}
               onClick={() => setFriendsView(item.value)}
             >
-              <span className="block text-[14px] font-bold leading-none">
+              <span className="block text-[14px] font-bold leading-none md:text-[18px]">
                 {item.count}
               </span>
-              <span className="mt-1 block text-[8px] font-bold uppercase tracking-[0.04em]">
+              <span className="mt-1 block text-[8px] font-bold uppercase tracking-[0.04em] md:text-[10px]">
                 {item.label}
               </span>
             </button>
@@ -658,10 +742,10 @@ function UserProfile() {
       <div className="neuphormism-b rounded-[18px] p-3">
         {friendsView === "invite" ? (
           <>
-            <div className="text-[13px] font-bold uppercase text-black">
+            <div className="text-[13px] font-bold uppercase text-black md:text-[17px]">
               Invite A Friend
             </div>
-            <div className="mt-1 text-[11px] leading-4 text-gray-600">
+            <div className="mt-1 text-[11px] leading-4 text-gray-600 md:text-[13px] md:leading-5">
               Invite by email. Calendar sharing becomes available after acceptance.
             </div>
             <input
@@ -671,19 +755,19 @@ function UserProfile() {
                 setInviteEmail(event.target.value.toLowerCase())
               }
               placeholder="friend@email.com"
-              className="neuphormism-b-btn mt-3 h-10 w-full rounded-[12px] border-0 bg-white px-3 text-[12px] outline-none"
+              className="neuphormism-b-btn mt-3 h-10 w-full rounded-[12px] border-0 bg-white px-3 text-[12px] outline-none md:h-12 md:px-4 md:text-[14px]"
             />
             <input
               type="text"
               value={inviteMessage}
               onChange={(event) => setInviteMessage(event.target.value)}
               placeholder="Optional message"
-              className="neuphormism-b-btn mt-2 h-10 w-full rounded-[12px] border-0 bg-white px-3 text-[12px] outline-none"
+              className="neuphormism-b-btn mt-2 h-10 w-full rounded-[12px] border-0 bg-white px-3 text-[12px] outline-none md:h-12 md:px-4 md:text-[14px]"
             />
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
-                className="neuphormism-b-btn-gold rounded-[12px] bg-[goldenrod] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-black"
+                className="neuphormism-b-btn-gold rounded-[12px] bg-[goldenrod] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-black md:min-h-12 md:px-5 md:text-[11px]"
                 disabled={friendActionLoading}
                 onClick={handleSendFriendInvite}
               >
@@ -693,22 +777,22 @@ function UserProfile() {
           </>
         ) : friendsView === "incoming" ? (
           <>
-            <div className="text-[13px] font-bold uppercase text-black">
+            <div className="text-[13px] font-bold uppercase text-black md:text-[17px]">
               Incoming Requests
             </div>
             <div className="mt-2 flex flex-col gap-2">
               {incomingInvitations.length === 0 ? (
-                <p className="text-[11px] text-gray-500">No requests waiting.</p>
+                <p className="text-[11px] text-gray-500 md:text-[13px]">No requests waiting.</p>
               ) : (
                 incomingInvitations.map((invitation) => (
                   <div
                     key={invitation._id}
                     className="neuphormism-b-se rounded-[14px] p-3"
                   >
-                    <div className="break-all text-[12px] font-bold text-black">
+                    <div className="break-all text-[12px] font-bold text-black md:text-[14px]">
                       {invitation.senderEmail?.toLowerCase()}
                     </div>
-                    <div className="mt-1 text-[11px] text-gray-500">
+                    <div className="mt-1 text-[11px] text-gray-500 md:text-[13px]">
                       {invitation.senderFullName ||
                         invitation.senderUsername ||
                         "Friend request"}
@@ -740,22 +824,22 @@ function UserProfile() {
           </>
         ) : friendsView === "sent" ? (
           <>
-            <div className="text-[13px] font-bold uppercase text-black">
+            <div className="text-[13px] font-bold uppercase text-black md:text-[17px]">
               Sent Requests
             </div>
             <div className="mt-2 flex flex-col gap-2">
               {sentInvitations.length === 0 ? (
-                <p className="text-[11px] text-gray-500">No sent requests.</p>
+                <p className="text-[11px] text-gray-500 md:text-[13px]">No sent requests.</p>
               ) : (
                 sentInvitations.map((invitation) => (
                   <div
                     key={invitation._id}
                     className="neuphormism-b-se rounded-[14px] p-3"
                   >
-                    <div className="break-all text-[12px] font-bold text-black">
+                    <div className="break-all text-[12px] font-bold text-black md:text-[14px]">
                       {invitation.receiverEmail?.toLowerCase()}
                     </div>
-                    <div className="mt-1 text-[11px] text-gray-500">
+                    <div className="mt-1 text-[11px] text-gray-500 md:text-[13px]">
                       Waiting for response.
                     </div>
                   </div>
@@ -765,12 +849,12 @@ function UserProfile() {
           </>
         ) : (
           <>
-            <div className="text-[13px] font-bold uppercase text-black">
+            <div className="text-[13px] font-bold uppercase text-black md:text-[17px]">
               Your Friends
             </div>
-            <div className="mt-2 flex max-h-[17rem] flex-col gap-2 overflow-y-auto pr-1">
+            <div className="mt-2 flex max-h-[17rem] flex-col gap-2 overflow-y-auto pr-1 md:max-h-none md:gap-3 md:overflow-visible md:pr-0">
               {mobileFriends.length === 0 ? (
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-gray-500 md:text-[13px] md:leading-5">
                   No friends yet. Use Invite to connect with a musician.
                 </p>
               ) : (
@@ -780,12 +864,12 @@ function UserProfile() {
                     className="neuphormism-b-se flex items-center gap-2 rounded-[14px] p-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[12px] font-bold text-black">
+                      <div className="truncate text-[12px] font-bold text-black md:text-[14px]">
                         {friend.counterpartFullName ||
                           friend.counterpartUsername ||
                           "Friend"}
                       </div>
-                      <div className="mt-1 truncate text-[10px] text-gray-500">
+                      <div className="mt-1 truncate text-[10px] text-gray-500 md:text-[12px]">
                         {friend.counterpartEmail?.toLowerCase()}
                       </div>
                     </div>
@@ -819,7 +903,7 @@ function UserProfile() {
   );
 
   const renderMobileSettings = () => (
-    <div className="neuphormism-b rounded-[18px] p-3">
+    <div className="neuphormism-b rounded-[18px] p-3 md:p-5">
       <div className="text-[13px] font-bold uppercase text-black">
         Connections & Language
       </div>
@@ -903,7 +987,7 @@ function UserProfile() {
   );
 
   const renderMobileLogs = () => (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:items-start md:gap-4">
       <div className="neuphormism-b rounded-[18px] p-3">
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-[13px] bg-white/55 px-3 py-2.5">
@@ -989,6 +1073,490 @@ function UserProfile() {
     </div>
   );
 
+  const renderTabletOverview = () => (
+    <div className="grid grid-cols-12 gap-5">
+      <section className="neuphormism-b col-span-7 cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Profile picture
+        </div>
+        <div className="mt-4 flex items-center gap-6">
+          <UserProfileAvatarBig
+            size={136}
+            src={selectedFile ? previewUrl : undefined}
+            imageUpdated={imageUpdated}
+          />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-[1.55rem] font-bold leading-tight text-black">
+              {mobileProfileSummary.fullName}
+            </h3>
+            <p className="mt-1 truncate text-[0.9rem] font-bold text-gray-500">
+              @{mobileProfileSummary.username}
+            </p>
+            <p className="mt-3 max-w-[30rem] text-[0.82rem] font-semibold leading-[1.25rem] text-gray-600">
+              Use a clear square image so bandmates can recognize you quickly in
+              invitations and shared rehearsal spaces. JPG, PNG or GIF up to 5 MB.
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              id="tabletProfileImage"
+            />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <label
+                htmlFor="tabletProfileImage"
+                className="neuphormism-b-btn flex min-h-11 cursor-pointer items-center justify-center rounded-[12px] bg-white px-4 text-[11px] font-bold uppercase tracking-[0.08em] text-black"
+              >
+                Choose photo
+              </label>
+              <button
+                type="button"
+                onClick={handleUpload}
+                className="neuphormism-b-btn-gold min-h-11 rounded-[12px] bg-[goldenrod] px-4 text-[11px] font-bold uppercase tracking-[0.08em] text-black disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!selectedFile || uploading}
+              >
+                {uploading ? "Uploading..." : "Save photo"}
+              </button>
+            </div>
+            {uploadError ? (
+              <p className="mt-3 text-[12px] font-semibold text-red-600">
+                {uploadError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section className="neuphormism-b col-span-5 cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Practice snapshot
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          Your library at a glance
+        </h3>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {[
+            ["Songs", data.length],
+            ["Progress", `${averageProgression}%`],
+            ["Friends", mobileFriends.length],
+            ["Events", mobileLogs.length],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-[16px] bg-white/60 px-4 py-4">
+              <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-gray-500">
+                {label}
+              </div>
+              <div className="mt-2 text-[1.45rem] font-bold leading-none text-black">
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5">
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.08em] text-gray-600">
+            <span>Average repertoire progress</span>
+            <span>{averageProgression}%</span>
+          </div>
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/10">
+            <div
+              className="h-full rounded-full bg-[goldenrod]"
+              style={{ width: `${Math.min(100, Math.max(0, averageProgression))}%` }}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="neuphormism-b col-span-7 cursor-default rounded-[22px] p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+              Account details
+            </div>
+            <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+              Identity and access
+            </h3>
+          </div>
+          <div className="rounded-full bg-white/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500">
+            Member since {formatDisplayDate(data[0]?.addedIn) || "—"}
+          </div>
+        </div>
+        <div className="mt-4 divide-y divide-black/[0.06] overflow-hidden rounded-[16px] bg-white/45 px-4">
+          {[
+            {
+              label: "Nickname",
+              value: `@${mobileProfileSummary.username}`,
+              action: handleEditUsernameClick,
+            },
+            { label: "Email", value: mobileProfileSummary.email },
+            {
+              label: "Password",
+              value: "••••••••••••",
+              action: handleEditPasswordClick,
+            },
+          ].map((field) => (
+            <div key={field.label} className="flex min-h-[4.5rem] items-center gap-4 py-3">
+              <div className="w-28 shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-500">
+                {field.label}
+              </div>
+              <div className="min-w-0 flex-1 truncate text-[0.9rem] font-bold text-black">
+                {field.value}
+              </div>
+              {field.action ? (
+                <button
+                  type="button"
+                  className="neuphormism-b-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white"
+                  onClick={field.action}
+                  aria-label={`Edit ${field.label}`}
+                >
+                  <FaEdit />
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="neuphormism-b col-span-5 cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Repertoire balance
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          Songs by instrument
+        </h3>
+        <div className="mt-4 space-y-3">
+          {instrumentMeta.map((instrument) => {
+            const count = songsByInstrument[instrument.key] ?? 0;
+            const percentage = data.length ? Math.round((count / data.length) * 100) : 0;
+            return (
+              <div key={instrument.key}>
+                <div className="flex items-center justify-between text-[11px] font-bold text-gray-600">
+                  <span>{instrument.label}</span>
+                  <span>{count} songs</span>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-black/[0.07]">
+                  <div
+                    className="h-full rounded-full bg-[goldenrod]"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderTabletUserData = () => (
+    <div className="grid grid-cols-12 gap-5">
+      <section className="neuphormism-b col-span-7 cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Personal export
+        </div>
+        <h3 className="mt-2 text-[1.45rem] font-bold text-black">
+          Take a copy of your Sustenido data
+        </h3>
+        <p className="mt-3 max-w-[45rem] text-[0.88rem] font-semibold leading-[1.35rem] text-gray-600">
+          Your export brings together account information and the music data
+          stored for your library. Keep it as a personal backup or use it to
+          understand what belongs to your account.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {["Account profile", "Song library", "Practice information"].map((item) => (
+            <span
+              key={item}
+              className="rounded-full bg-white/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.07em] text-gray-600"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="neuphormism-b-btn-gold mt-6 min-h-12 rounded-[13px] bg-[goldenrod] px-5 text-[11px] font-bold uppercase tracking-[0.1em] text-black"
+          onClick={() => downloadUserData()}
+        >
+          Download my data
+        </button>
+      </section>
+
+      <section className="neuphormism-b col-span-5 cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Account inventory
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          What your account contains
+        </h3>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          {[
+            [data.length, "Songs"],
+            [mobileFriends.length, "Friends"],
+            [mobileLogs.length, "Activity events"],
+            [mobileInvitations.length, "Invitations"],
+          ].map(([value, label]) => (
+            <div key={label} className="rounded-[16px] bg-white/60 px-4 py-4">
+              <div className="text-[1.5rem] font-bold leading-none text-black">{value}</div>
+              <div className="mt-2 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-[0.78rem] font-semibold leading-[1.2rem] text-gray-500">
+          Counts update as your library, network and activity history change.
+        </p>
+      </section>
+
+      <section className="col-span-12 rounded-[22px] border border-red-200 bg-red-50/75 p-6 shadow-[0_10px_24px_rgba(127,29,29,0.05)]">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-600">
+          Danger zone
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          Destructive account actions
+        </h3>
+        <p className="mt-2 text-[0.82rem] font-semibold leading-[1.25rem] text-gray-600">
+          These changes cannot be undone. Download your data first if you need a
+          personal backup.
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-4">
+          <div className="rounded-[16px] bg-white/75 p-4">
+            <div className="text-[0.95rem] font-bold text-black">Delete all songs</div>
+            <p className="mt-1 text-[0.76rem] font-semibold leading-[1.1rem] text-gray-600">
+              Clear your music library while keeping your profile and account.
+            </p>
+            <button
+              type="button"
+              className="neuphormism-b-btn-red mt-4 min-h-11 rounded-[12px] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
+              onClick={handleDelete}
+            >
+              Delete songs
+            </button>
+          </div>
+          <div className="rounded-[16px] bg-white/75 p-4">
+            <div className="text-[0.95rem] font-bold text-black">Delete account</div>
+            <p className="mt-1 text-[0.76rem] font-semibold leading-[1.1rem] text-gray-600">
+              Permanently remove the account and all data associated with it.
+            </p>
+            <button
+              type="button"
+              className="neuphormism-b-btn-red mt-4 min-h-11 rounded-[12px] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
+              onClick={handleDeleteAccountClick}
+            >
+              Delete account
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderTabletSettings = () => (
+    <div className="grid grid-cols-2 gap-5">
+      <section className="neuphormism-b cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Connections
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          Practice devices
+        </h3>
+        <p className="mt-2 text-[0.82rem] font-semibold leading-[1.25rem] text-gray-600">
+          Prepare the controller connections you expect to use during this
+          session. Device availability still depends on your browser and hardware.
+        </p>
+        <div className="mt-5 divide-y divide-black/[0.06] overflow-hidden rounded-[16px] bg-white/50 px-4">
+          {[
+            {
+              title: "USB devices",
+              subtitle: "Connected MIDI and compatible controllers",
+              value: usbEnabled,
+              onChange: setUsbEnabled,
+            },
+            {
+              title: "Bluetooth",
+              subtitle: "Wireless controllers available to this device",
+              value: bluetoothEnabled,
+              onChange: setBluetoothEnabled,
+            },
+          ].map((item) => (
+            <div key={item.title} className="flex min-h-[5.5rem] items-center gap-4 py-4">
+              <div className="min-w-0 flex-1">
+                <div className="text-[0.9rem] font-bold text-black">{item.title}</div>
+                <div className="mt-1 text-[0.76rem] font-semibold text-gray-500">
+                  {item.subtitle}
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={item.value}
+                className={`relative h-8 w-14 shrink-0 rounded-full transition ${
+                  item.value ? "bg-[goldenrod]" : "bg-gray-300 shadow-inner"
+                }`}
+                onClick={() => item.onChange(!item.value)}
+                aria-label={`${item.title}: ${item.value ? "on" : "off"}`}
+              >
+                <span
+                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                    item.value ? "left-7" : "left-1"
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="neuphormism-b cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Language & experience
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          Make the interface yours
+        </h3>
+        <p className="mt-2 text-[0.82rem] font-semibold leading-[1.25rem] text-gray-600">
+          Choose the language you want to use across navigation, labels and
+          practice workflows.
+        </p>
+        <div className="mt-5 rounded-[16px] bg-white/50 p-4">
+          <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-500">
+            Interface language
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {[
+              ["ENG", "English"],
+              ["BRA", "Português"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={language === value}
+                className={`min-h-[4.5rem] rounded-[14px] px-4 text-left ${
+                  language === value
+                    ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                    : "neuphormism-b-btn bg-white text-gray-600"
+                }`}
+                onClick={() => setLanguage(value)}
+              >
+                <span className="block text-[0.9rem] font-bold">{label}</span>
+                <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.1em] opacity-70">
+                  {value}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4 rounded-[16px] border border-[goldenrod]/20 bg-[goldenrod]/10 p-4">
+          <div className="text-[0.82rem] font-bold text-black">Session preferences</div>
+          <p className="mt-1 text-[0.75rem] font-semibold leading-[1.1rem] text-gray-600">
+            Connection switches currently describe this session and may reset
+            when the app reloads.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderTabletLogs = () => (
+    <div className="grid grid-cols-12 gap-5">
+      <section className="neuphormism-b col-span-5 cursor-default rounded-[22px] p-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+          Practice distribution
+        </div>
+        <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+          Repertoire by instrument
+        </h3>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-[16px] bg-white/60 p-4">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">Songs</div>
+            <div className="mt-2 text-[1.55rem] font-bold leading-none">{data.length}</div>
+          </div>
+          <div className="rounded-[16px] bg-white/60 p-4">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">Progress</div>
+            <div className="mt-2 text-[1.55rem] font-bold leading-none">{averageProgression}%</div>
+          </div>
+        </div>
+        <div className="mt-5 space-y-3">
+          {instrumentMeta.map((instrument) => {
+            const count = songsByInstrument[instrument.key] ?? 0;
+            return (
+              <div key={instrument.key} className="flex items-center gap-3">
+                <div className="w-20 text-[0.76rem] font-bold text-gray-600">{instrument.label}</div>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/[0.07]">
+                  <div
+                    className="h-full rounded-full bg-[goldenrod]"
+                    style={{ width: `${data.length ? Math.round((count / data.length) * 100) : 0}%` }}
+                  />
+                </div>
+                <div className="w-6 text-right text-[0.76rem] font-bold text-black">{count}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="neuphormism-b col-span-7 cursor-default rounded-[22px] p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+              Recent activity
+            </div>
+            <h3 className="mt-2 text-[1.3rem] font-bold text-black">
+              Your account timeline
+            </h3>
+          </div>
+          <div className="rounded-full bg-white/60 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-gray-500">
+            {mobileLogs.length} events
+          </div>
+        </div>
+        <div className="mt-5 space-y-3">
+          {mobileLogs.length === 0 ? (
+            <div className="rounded-[16px] bg-white/50 p-5 text-[0.82rem] font-semibold text-gray-500">
+              No activity has been recorded yet. Your timeline will appear here
+              as you use the platform.
+            </div>
+          ) : (
+            (showAllLogs ? mobileLogs : mobileLogs.slice(0, 6)).map((log) => (
+              <div key={log._id} className="relative rounded-[16px] bg-white/55 px-5 py-4 pl-10">
+                <span className="absolute left-4 top-5 h-3 w-3 rounded-full bg-[goldenrod] shadow-[0_0_0_5px_rgba(218,165,32,0.14)]" />
+                <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[goldenrod]">
+                  {formatDisplayDateTime(log.createdAt)}
+                </div>
+                <div className="mt-1 text-[0.82rem] font-semibold leading-[1.25rem] text-black">
+                  {log.message}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {mobileLogs.length > 6 ? (
+          <button
+            type="button"
+            className="neuphormism-b-btn mt-4 min-h-11 rounded-[12px] bg-white px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black"
+            onClick={() => setShowAllLogs((current) => !current)}
+          >
+            {showAllLogs ? "Show recent only" : "View all activity"}
+          </button>
+        ) : null}
+      </section>
+    </div>
+  );
+
+  const renderTabletContent = () => {
+    switch (selectedMobileTab) {
+      case "USER DATA":
+        return renderTabletUserData();
+      case "FRIENDS":
+        return <div className="user-hub-tablet-friends">{renderMobileFriends()}</div>;
+      case "SETTINGS":
+        return renderTabletSettings();
+      case "LOGS":
+        return renderTabletLogs();
+      case "USER INFO":
+      default:
+        return renderTabletOverview();
+    }
+  };
+
   const renderMobileContent = () => {
     switch (selectedMobileTab) {
       case "USER DATA":
@@ -1005,11 +1573,23 @@ function UserProfile() {
     }
   };
 
-  console.log(data);
+  const activeUserHubSection =
+    USER_HUB_SECTIONS.find(({ id }) => id === selectedMobileTab) ??
+    USER_HUB_SECTIONS[0];
+  const tabletSectionInsight =
+    selectedMobileTab === "USER INFO"
+      ? `${data.length} songs · ${averageProgression}% progress`
+      : selectedMobileTab === "USER DATA"
+        ? `${data.length + mobileLogs.length + mobileFriends.length} stored items`
+        : selectedMobileTab === "FRIENDS"
+          ? `${mobileFriends.length} friends · ${incomingInvitations.length} waiting`
+          : selectedMobileTab === "SETTINGS"
+            ? "Session preferences"
+            : `${mobileLogs.length} recorded events`;
 
-  if (isTouchLayout) {
+  if (isPortraitTabletLayout) {
     return (
-      <div className="min-h-[calc(100vh-5.25rem)] bg-[#f0f0f0] px-3 pb-4 pt-3">
+      <div className="user-hub-tablet-viewport overflow-hidden bg-[#f0f0f0] px-5 py-5">
         <PasswordResetModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -1026,19 +1606,162 @@ function UserProfile() {
           onSubmit={handleDeleteAccount}
         />
 
-        <div className="mx-auto flex min-h-[calc(100dvh-10.75rem)] w-full max-w-[430px] flex-col">
-          <div className="neuphormism-b relative rounded-[18px] bg-[#f0f0f0] p-2.5">
+        <div className="grid h-full min-h-0 w-full grid-cols-[18rem_minmax(0,1fr)] gap-5">
+          <aside className="neuphormism-b flex min-h-0 cursor-default flex-col rounded-[24px] p-4">
+            <div className="cursor-default rounded-[18px] bg-white/55 p-4">
+              <div className="flex items-center gap-3">
+                <UserProfileAvatarBig
+                  size={68}
+                  src={selectedFile ? previewUrl : undefined}
+                  imageUpdated={imageUpdated}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[0.95rem] font-bold text-black">
+                    {mobileProfileSummary.fullName}
+                  </div>
+                  <div className="mt-1 truncate text-[0.72rem] font-bold text-gray-500">
+                    @{mobileProfileSummary.username}
+                  </div>
+                  <div className="mt-1 truncate text-[0.68rem] font-semibold text-gray-400">
+                    {mobileProfileSummary.email}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 px-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+              User hub
+            </div>
+            <nav className="mt-2 flex min-h-0 flex-1 flex-col gap-2" aria-label="User hub sections">
+              {USER_HUB_SECTIONS.map((section) => {
+                const active = section.id === selectedMobileTab;
+                const Icon = section.icon;
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    aria-current={active ? "page" : undefined}
+                    className={`group flex min-h-[5rem] items-center gap-3 rounded-[16px] p-2.5 text-left transition ${
+                      active
+                        ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
+                        : "neuphormism-b-btn bg-[#f0f0f0] text-gray-600"
+                    }`}
+                    onClick={() => setSelectedMobileTab(section.id)}
+                  >
+                    <CategoryArtwork
+                      src={userHubCategoryArtwork}
+                      index={section.artIndex}
+                      label={`${section.label} category illustration`}
+                      className="relative h-16 w-16 shrink-0 rounded-[13px]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-[0.9rem] font-bold leading-tight">
+                        <Icon className="shrink-0 text-[0.72rem]" />
+                        <span className="truncate">{section.label}</span>
+                      </div>
+                      <div className={`mt-1 line-clamp-2 text-[0.72rem] font-bold leading-[0.98rem] ${active ? "text-black/65" : "text-gray-400"}`}>
+                        {section.description}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className="neuphormism-b-btn flex min-h-11 items-center justify-center gap-2 rounded-[12px] bg-white px-3 text-[9px] font-bold uppercase tracking-[0.07em] text-black"
+                onClick={handleMobileRefresh}
+              >
+                <FaSyncAlt className={mobileRefreshing ? "animate-spin" : ""} />
+                {mobileRefreshing ? "Loading" : "Refresh"}
+              </button>
+              <button
+                type="button"
+                className="neuphormism-b-btn min-h-11 rounded-[12px] bg-white px-3 text-[9px] font-bold uppercase tracking-[0.07em] text-red-600"
+                onClick={handleSignOut}
+              >
+                Sign out
+              </button>
+            </div>
+          </aside>
+
+          <section className="flex min-h-0 min-w-0 flex-col gap-5 overflow-hidden">
+            <header className="neuphormism-b relative grid min-h-[11rem] shrink-0 cursor-default grid-cols-[minmax(0,1fr)_16rem] overflow-hidden rounded-[24px]">
+              <div className="relative z-10 flex min-w-0 flex-col justify-center px-7 py-5">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                  {activeUserHubSection.eyebrow}
+                </div>
+                <h2 className="mt-2 text-[1.8rem] font-bold leading-tight text-black">
+                  {activeUserHubSection.label}
+                </h2>
+                <p className="mt-2 max-w-[52rem] text-[0.95rem] font-semibold leading-[1.45rem] text-gray-600">
+                  {activeUserHubSection.description}
+                </p>
+                <div className="mt-4 w-fit rounded-full bg-white/65 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-gray-500">
+                  {tabletSectionInsight}
+                </div>
+              </div>
+              <CategoryArtwork
+                src={userHubCategoryArtwork}
+                index={activeUserHubSection.artIndex}
+                label={`${activeUserHubSection.label} illustration`}
+                className="relative h-full w-full"
+              />
+              <div className="pointer-events-none absolute inset-y-0 right-[12rem] w-48 bg-gradient-to-r from-[#f0f0f0] via-[#f0f0f0]/75 to-transparent" />
+            </header>
+
+            <div
+              ref={tabletContentRef}
+              className="user-hub-tablet-content min-h-0 flex-1 overflow-y-auto pr-2"
+            >
+              {mobileLoading && !mobileRefreshing ? (
+                <div className="neuphormism-b flex min-h-[16rem] items-center justify-center rounded-[22px] text-[0.9rem] font-bold text-gray-500">
+                  Loading your user hub...
+                </div>
+              ) : (
+                renderTabletContent()
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  if (isTouchLayout) {
+    return (
+      <div className="min-h-[calc(100vh-5.25rem)] bg-[#f0f0f0] px-3 pb-4 pt-3 md:px-6 md:pb-6 md:pt-4">
+        <PasswordResetModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handlePasswordSubmit}
+        />
+        <UsernameEditModal
+          isOpen={isUsernameModalOpen}
+          onClose={() => setIsUsernameModalOpen(false)}
+          onSubmit={handleUsernameSubmit}
+        />
+        <DeleteAccountModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onSubmit={handleDeleteAccount}
+        />
+
+        <div className="mx-auto flex min-h-[calc(100dvh-10.75rem)] w-full max-w-[430px] flex-col md:max-w-[900px]">
+          <div className="neuphormism-b relative rounded-[18px] bg-[#f0f0f0] p-2.5 md:p-3">
             <div className="mb-2 px-1 text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
               Menu
             </div>
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5 md:gap-2">
               {MOBILE_MENU_OPTIONS.map((option) => {
                 const active = option === selectedMobileTab;
                 return (
                   <button
                     key={option}
                     type="button"
-                    className={`flex min-h-11 items-center justify-center rounded-[11px] px-1 py-2 text-center text-[8px] font-bold uppercase leading-[1.15] tracking-[0.04em] ${
+                    className={`flex min-h-11 items-center justify-center rounded-[11px] px-1 py-2 text-center text-[8px] font-bold uppercase leading-[1.15] tracking-[0.04em] md:min-h-12 md:text-[9px] ${
                       active
                         ? "neuphormism-b-btn-gold bg-[goldenrod] text-black"
                         : "neuphormism-b-btn bg-[#f0f0f0] text-gray-500"
@@ -1052,7 +1775,7 @@ function UserProfile() {
             </div>
           </div>
 
-          <div className="mt-3 flex-1">
+          <div className="mt-3 flex-1 md:mt-4">
             {mobileLoading && !mobileRefreshing ? (
               <div className="neuphormism-b rounded-[18px] p-5 text-center text-[12px] text-gray-500">
                 Loading user hub...

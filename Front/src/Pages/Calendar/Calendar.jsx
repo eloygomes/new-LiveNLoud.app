@@ -16,6 +16,8 @@ import {
   formatDisplayDateTime,
   formatDisplayTime,
 } from "../../Tools/dateFormat";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
+import TabletToolShell from "../../components/TabletToolShell";
 
 const VIEW_OPTIONS = ["month", "week", "year"];
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -279,8 +281,12 @@ function InviteResponseModal({
 }
 
 export default function Calendar() {
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const isCompactLayout = useCompactAppLayout();
+  const isTabletLayout =
+    isCompactLayout &&
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768;
+  const isTouchLayout = isCompactLayout && !isTabletLayout;
   const longPressTimerRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
@@ -592,14 +598,59 @@ export default function Calendar() {
     }
   };
 
+  const CalendarRoot = isTabletLayout ? TabletToolShell : "div";
+  const calendarRootProps = isTabletLayout
+    ? {
+        eyebrow: "Schedule & coordinate",
+        title: "Give every rehearsal a clear place in the week.",
+        description:
+          "Plan practice, shows and shared sessions in one workspace. Select a day to review commitments, invite collaborators and keep the next musical milestone visible.",
+        artIndex: 4,
+        artLabel: "Calendar planning illustration",
+        badges: [
+          `${events.length} scheduled`,
+          "Shared invitations",
+          "Month · week · year",
+        ],
+        contentClassName: "h-full",
+        actions: (
+          <>
+            <div className="flex rounded-[12px] bg-white/90 p-1 shadow-sm">
+              {VIEW_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`min-h-10 rounded-[9px] px-3 text-[9px] font-bold uppercase tracking-[0.08em] transition ${
+                    viewMode === option
+                      ? "bg-black text-white"
+                      : "text-gray-500 hover:text-black"
+                  }`}
+                  onClick={() => setViewMode(option)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="neuphormism-b-btn-gold min-h-11 rounded-[12px] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black"
+              onClick={() => openNewEventModal(new Date())}
+            >
+              New event
+            </button>
+          </>
+        ),
+      }
+    : {
+        className: `flex justify-center ${
+          isTouchLayout
+            ? "min-h-screen bg-[#f0f0f0] pb-4 pt-3"
+            : "h-[calc((100vh/var(--desktop-app-zoom))-4rem)] overflow-hidden bg-[#f0f0f0]"
+        }`,
+      };
+
   return (
-    <div
-      className={`flex justify-center ${
-        isTouchLayout
-          ? "min-h-screen bg-[#f0f0f0] pb-4 pt-3"
-          : "h-[calc((100vh/var(--desktop-app-zoom))-4rem)] overflow-hidden bg-[#f0f0f0]"
-      }`}
-    >
+    <CalendarRoot {...calendarRootProps}>
       <InviteResponseModal
         open={inviteModalOpen}
         event={inviteEvent}
@@ -627,11 +678,14 @@ export default function Calendar() {
       <div className="mx-auto h-full w-full max-w-none">
         <div
           className={`${
-            isTouchLayout
+            isTabletLayout
+              ? "flex h-full min-h-0 w-full flex-col"
+              : isTouchLayout
               ? "w-full px-3 pb-4"
               : "flex h-full min-h-0 w-full flex-col px-6 pb-4"
           }`}
         >
+          {!isTabletLayout ? (
           <div
             className={`mb-3 neuphormism-b ${
               isTouchLayout
@@ -711,6 +765,7 @@ export default function Calendar() {
               </button>
             </div>
           </div>
+          ) : null}
 
           {error ? (
             <div className="neuphormism-b p-4 text-red-600">{error}</div>
@@ -718,7 +773,9 @@ export default function Calendar() {
 
           <div
             className={`grid grid-cols-1 items-stretch ${
-              isTouchLayout
+              isTabletLayout
+                ? "h-full min-h-0 flex-1 grid-cols-[minmax(0,1.7fr)_20rem] gap-5"
+                : isTouchLayout
                 ? "gap-3"
                 : "min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,1.65fr),360px]"
             }`}
@@ -793,12 +850,21 @@ export default function Calendar() {
                       const isToday = sameDay(day, new Date());
 
                       return (
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Select ${formatDisplayDate(day)}`}
                           key={key}
                           onClick={() => setSelectedDay(day)}
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " ") {
+                              return;
+                            }
+                            event.preventDefault();
+                            setSelectedDay(day);
+                          }}
                           onPointerDown={() =>
-                            isTouchLayout
+                            isCompactLayout
                               ? startDayLongPress(day, dayEvents)
                               : undefined
                           }
@@ -861,7 +927,7 @@ export default function Calendar() {
                               </div>
                             ) : null}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1067,7 +1133,7 @@ export default function Calendar() {
                           className="w-full rounded-[14px] bg-white p-3 text-left sm:rounded-3xl sm:p-4"
                           onDoubleClick={() => openEventEditor(event)}
                           onPointerDown={() =>
-                            isTouchLayout
+                            isCompactLayout
                               ? startDayLongPress(new Date(event.startsAt), [
                                   event,
                                 ])
@@ -1152,6 +1218,6 @@ export default function Calendar() {
           </div>
         </div>
       </div>
-    </div>
+    </CalendarRoot>
   );
 }

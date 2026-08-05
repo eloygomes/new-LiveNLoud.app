@@ -323,6 +323,7 @@ describe("Presentation extracted components", () => {
         openEditorToolBox={openEditorToolBox}
         onToggleToolBox={vi.fn()}
         isExpandedCifra={false}
+        isLayoutModeManual={false}
         onToggleExpanded={onToggleExpanded}
         onGoToEditSong={vi.fn()}
         instrumentSelected="keys"
@@ -343,10 +344,50 @@ describe("Presentation extracted components", () => {
 
     expect(openEditorToolBox).toHaveBeenCalled();
     expect(onToggleExpanded).toHaveBeenCalled();
+    expect(screen.getByLabelText("Automatic layout")).toHaveTextContent("AUTO");
     expect(onGoToSetlistSong).toHaveBeenCalledWith({
       artist: "Next",
       song: "Next Song",
     });
+  });
+
+  it("stacks tablet presentation identity before its action buttons", () => {
+    const { container } = render(
+      <PresentationTopBar
+        visible
+        isTouchLayout
+        isPortraitTabletLayout
+        isTouchVideoActive={false}
+        songFromURL="Tablet Song"
+        artistFromURL="Tablet Artist"
+        activeLayoutLabel="Default layout"
+        toolBoxBtnStatus={false}
+        isEditing={false}
+        isVideoModalOpen={false}
+        openEditorToolBox={vi.fn()}
+        onToggleToolBox={vi.fn()}
+        isExpandedCifra={false}
+        onToggleExpanded={vi.fn()}
+        onGoToEditSong={vi.fn()}
+        instrumentSelected="keys"
+        canOpenGuitarPro={false}
+        onOpenGuitarProViewer={vi.fn()}
+        onEnterLiveMode={vi.fn()}
+        onGoToSetlistSong={vi.fn()}
+      />,
+    );
+
+    const topBar = container.querySelector("[data-presentation-top-bar='true']");
+    const songTitle = screen.getByText("Tablet Song");
+    const firstAction = screen.getByRole("button", { name: "Open cifra editor" });
+
+    expect(topBar).toHaveAttribute("data-tablet-layout", "true");
+    expect(
+      container.querySelector(".presentation-tablet-actions"),
+    ).toHaveClass("justify-end");
+    expect(
+      songTitle.compareDocumentPosition(firstAction) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("shows active edit button state while editing", () => {

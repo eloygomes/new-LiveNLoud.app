@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ChordShapeData from "./ChordShapeData.json";
 import ChordDisplay from "./ChordDisplay";
+import TabletToolShell from "../../components/TabletToolShell";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
 
 const ROOT_ORDER = [
   "C",
@@ -330,9 +332,59 @@ function MobileSelectField({ label, value, options, onChange }) {
   );
 }
 
+function TabletSelectorSection({
+  title,
+  description,
+  value,
+  options,
+  onSelect,
+  columns = 4,
+}) {
+  return (
+    <section className="rounded-[18px] border border-black/[0.045] bg-white/65 p-4 shadow-[0_8px_20px_rgba(0,0,0,0.045)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-black">
+            {title}
+          </h3>
+          <p className="mt-1 text-[11px] font-semibold leading-[1rem] text-gray-500">
+            {description}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-[goldenrod]/15 px-2.5 py-1.5 text-[10px] font-bold text-black">
+          {value}
+        </span>
+      </div>
+      <div
+        className="mt-3 grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={value === option}
+            className={`flex min-h-11 min-w-0 items-center justify-center rounded-[11px] px-2 py-2 text-[10px] font-bold uppercase tracking-[0.08em] transition active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod] ${
+              value === option
+                ? "bg-[goldenrod] text-black shadow-[0_8px_16px_rgba(218,165,32,0.22)]"
+                : "bg-[#efefef] text-gray-600 shadow-[3px_3px_8px_rgba(190,190,190,0.42),-3px_-3px_8px_rgba(255,255,255,0.86)]"
+            }`}
+            onClick={() => onSelect(option)}
+          >
+            <span className="truncate">{option}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ChordLibrary() {
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const isCompactLayout = useCompactAppLayout();
+  const viewportWidth =
+    typeof window === "undefined" ? 1280 : window.innerWidth;
+  const isTouchLayout = isCompactLayout && viewportWidth < 768;
+  const isTabletLayout = isCompactLayout && viewportWidth >= 768;
   const [root, setRoot] = useState(roots[0] || "C");
   const [mode, setMode] = useState("Major");
   const [quality, setQuality] = useState("None");
@@ -374,6 +426,180 @@ function ChordLibrary() {
     if (variations.length <= 1) return;
     setVariationIndex((current) => (current + 1) % variations.length);
   };
+
+  if (isTabletLayout) {
+    const guideNotes = chordNotes.length
+      ? chordNotes
+      : [
+          "This voicing is available in the local library and ready to compare with its alternate fingerings.",
+          "Keep the fretting hand relaxed, let every selected string ring, and mute only the strings marked with an X.",
+        ];
+
+    return (
+      <TabletToolShell
+        title="Build voicings that serve the song."
+        description="Choose the harmonic foundation, compare practical fingerings and understand how each bass note changes the shape before you start playing."
+        artIndex={1}
+        artLabel="Chord library workspace illustration"
+        badges={[
+          `${variations.length} ${variations.length === 1 ? "voicing" : "voicings"}`,
+          `${root} root`,
+          bass === "None" ? "Root position" : `${bass} in the bass`,
+        ]}
+        contentClassName="grid grid-cols-[minmax(22rem,0.92fr)_minmax(0,1.38fr)] gap-5 overflow-hidden"
+      >
+        <aside className="neuphormism-b flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] p-5">
+          <div className="shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+              Shape builder
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-[1.35rem] font-bold leading-none text-black">
+                  Design the chord
+                </h2>
+                <p className="mt-2 max-w-[30rem] text-[12px] font-semibold leading-[1.1rem] text-gray-500">
+                  Start with the root, define its character, then add color or
+                  choose a specific lowest note.
+                </p>
+              </div>
+              <div className="rounded-[14px] bg-black px-3 py-2 text-center text-white">
+                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[goldenrod]">
+                  Current
+                </div>
+                <div className="mt-1 text-[1.05rem] font-bold leading-none">
+                  {chordLabel}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden">
+            <TabletSelectorSection
+              title="Root"
+              description="The note everything is built around."
+              value={root}
+              options={roots}
+              onSelect={setRoot}
+              columns={4}
+            />
+            <TabletSelectorSection
+              title="Character"
+              description="Choose a bright major or darker minor base."
+              value={mode}
+              options={majorMinorOptions}
+              onSelect={setMode}
+              columns={2}
+            />
+            <TabletSelectorSection
+              title="Color"
+              description="Add tension, suspension or a seventh."
+              value={quality}
+              options={qualityOptions}
+              onSelect={setQuality}
+              columns={4}
+            />
+            <TabletSelectorSection
+              title="Bass note"
+              description="Create inversions and slash voicings."
+              value={bass}
+              options={bassOptions}
+              onSelect={setBass}
+              columns={4}
+            />
+          </div>
+        </aside>
+
+        <section className="neuphormism-b grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[24px] p-5">
+          <div className="flex shrink-0 items-center justify-between gap-5 rounded-[18px] bg-white/65 px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                Selected voicing
+              </p>
+              <h2 className="mt-1 truncate text-[2.15rem] font-bold leading-none tracking-[-0.045em] text-black">
+                {chordLabel}
+              </h2>
+            </div>
+            <div className="grid shrink-0 grid-cols-3 gap-2">
+              {[
+                ["Variation", variations.length ? `${safeVariationIndex + 1}/${variations.length}` : "0/0"],
+                ["Mode", mode],
+                ["Bass", bass],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="min-w-[6.2rem] rounded-[13px] bg-black/[0.035] px-3 py-2.5 text-center"
+                >
+                  <div className="text-[8px] font-bold uppercase tracking-[0.14em] text-gray-500">
+                    {label}
+                  </div>
+                  <div className="mt-1 truncate text-[11px] font-bold text-black">
+                    {value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid min-h-0 grid-cols-[minmax(19rem,1.12fr)_minmax(14rem,0.88fr)] gap-4 py-4">
+            <div className="flex min-h-0 items-center justify-center overflow-hidden rounded-[20px] bg-white/70 p-3">
+              <ChordDisplay
+                fingering={fingering}
+                chordName={chordLabel}
+                size={300}
+              />
+            </div>
+
+            <div className="flex min-h-0 flex-col gap-3">
+              <div className="rounded-[18px] bg-black p-4 text-white">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+                  Playing guide
+                </p>
+                <h3 className="mt-2 text-[1rem] font-bold leading-tight">
+                  Make every note intentional.
+                </h3>
+                <p className="mt-2 text-[11px] font-semibold leading-[1.05rem] text-white/70">
+                  Dots show finger placement, O means an open string and X means
+                  that string should stay silent.
+                </p>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-[18px] bg-white/70 p-4 overscroll-contain">
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                  About this shape
+                </p>
+                <div className="mt-3 space-y-3">
+                  {guideNotes.map((note) => (
+                    <div key={note} className="flex gap-3">
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[goldenrod]" />
+                      <p className="text-[11px] font-semibold leading-[1.05rem] text-gray-600">
+                        {note}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            className={`flex min-h-12 w-full shrink-0 items-center justify-center rounded-[14px] px-5 text-[10px] font-bold uppercase tracking-[0.14em] transition active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black ${
+              variations.length > 1
+                ? "bg-[goldenrod] text-black shadow-[0_10px_18px_rgba(217,173,38,0.25)]"
+                : "bg-[#d8d8d8] text-[#7f8794]"
+            }`}
+            type="button"
+            disabled={variations.length <= 1}
+            onClick={handleNextVariation}
+          >
+            {variations.length > 1
+              ? `Compare next voicing · ${safeVariationIndex + 1} of ${variations.length}`
+              : "This chord has one available voicing"}
+          </button>
+        </section>
+      </TabletToolShell>
+    );
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-4 pt-3 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">

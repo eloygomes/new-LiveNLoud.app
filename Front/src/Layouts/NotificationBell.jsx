@@ -11,6 +11,7 @@ import {
 } from "../Tools/Controllers";
 import { formatDisplayDateTime } from "../Tools/dateFormat";
 import { lockPageScroll } from "../Tools/scrollLock";
+import { useCompactAppLayout } from "../Tools/responsiveLayout";
 
 function closeAllModals() {
   window.dispatchEvent(new CustomEvent("close-all-modals"));
@@ -154,8 +155,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [profile, setProfile] = useState(null);
   const [panelStyle, setPanelStyle] = useState({ top: 76, right: 24 });
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const isTouchLayout = useCompactAppLayout();
   const [setlistShareModal, setSetlistShareModal] = useState({
     open: false,
     share: null,
@@ -358,7 +358,7 @@ export default function NotificationBell() {
     <div className="relative z-[10020]" ref={bellRef}>
       <button
         type="button"
-        className="relative neuphormism-b-btn p-3 rounded-full"
+        className="relative rounded-full p-3 neuphormism-b-btn min-[768px]:flex min-[768px]:h-12 min-[768px]:w-12 min-[768px]:items-center min-[768px]:justify-center"
         aria-label="Notifications"
         onClick={handleOpen}
       >

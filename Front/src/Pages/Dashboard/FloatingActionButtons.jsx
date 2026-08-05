@@ -4,13 +4,13 @@ import Fab from "@mui/material/Fab";
 import AddIcon from "@mui/icons-material/Add";
 import { useNavigate } from "react-router-dom";
 import NewSongStartChoice from "../../Components/NewSongStartChoice";
+import { useCompactAppLayout } from "../../Tools/responsiveLayout";
 
 export default function FloatingActionButtons() {
   const navigate = useNavigate();
   const [choiceOpen, setChoiceOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
-  const isTouchLayout =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const isTouchLayout = useCompactAppLayout();
 
   useEffect(() => {
     const handleOptionsVisibility = (event) => {

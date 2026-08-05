@@ -17,17 +17,24 @@ import {
 const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+export function getAutomaticPresentationLayoutMode(windowRef) {
+  if (!windowRef) return "default";
+  return windowRef.innerHeight >= windowRef.innerWidth ? "default" : "expanded";
+}
+
 export function usePresentationLayoutStorageSync({
   currentInstrumentData,
   instrumentPresentationLayouts,
   instrumentSelected,
   isExpandedCifra,
+  isLayoutModeManual = false,
   isRouteSongLoading,
   presentationLayoutIdentity,
   presentationLayoutModeStorageKey,
   presentationLayoutSettingsSnapshot,
   presentationLayoutStorageKey,
   setIsExpandedCifra,
+  setIsLayoutModeManual = () => {},
   setSongDataFetched,
   songDataFetched,
 }) {
@@ -44,8 +51,39 @@ export function usePresentationLayoutStorageSync({
     const storedLayoutMode = window.localStorage.getItem(
       presentationLayoutModeStorageKey,
     );
-    setIsExpandedCifra(storedLayoutMode === "expanded");
-  }, [presentationLayoutModeStorageKey, setIsExpandedCifra]);
+    const hasStoredManualMode = ["default", "expanded"].includes(
+      storedLayoutMode,
+    );
+    setIsLayoutModeManual(hasStoredManualMode);
+    setIsExpandedCifra(
+      hasStoredManualMode
+        ? storedLayoutMode === "expanded"
+        : getAutomaticPresentationLayoutMode(window) === "expanded",
+    );
+  }, [
+    presentationLayoutModeStorageKey,
+    setIsExpandedCifra,
+    setIsLayoutModeManual,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isLayoutModeManual) return undefined;
+
+    const applyAutomaticLayout = () => {
+      setIsExpandedCifra(
+        getAutomaticPresentationLayoutMode(window) === "expanded",
+      );
+    };
+
+    applyAutomaticLayout();
+    window.addEventListener("resize", applyAutomaticLayout);
+    window.addEventListener("orientationchange", applyAutomaticLayout);
+
+    return () => {
+      window.removeEventListener("resize", applyAutomaticLayout);
+      window.removeEventListener("orientationchange", applyAutomaticLayout);
+    };
+  }, [isLayoutModeManual, setIsExpandedCifra]);
 
   useBrowserLayoutEffect(() => {
     if (
@@ -210,6 +248,7 @@ export function usePresentationLayoutStorageSync({
       skipNextModePersistRef.current = false;
       return;
     }
+    if (!isLayoutModeManual) return;
 
     try {
       setLocalStorageItemSafe(
@@ -219,5 +258,5 @@ export function usePresentationLayoutStorageSync({
     } catch (error) {
       console.error("Erro ao persistir modo da presentation:", error);
     }
-  }, [isExpandedCifra, presentationLayoutModeStorageKey]);
+  }, [isExpandedCifra, isLayoutModeManual, presentationLayoutModeStorageKey]);
 }

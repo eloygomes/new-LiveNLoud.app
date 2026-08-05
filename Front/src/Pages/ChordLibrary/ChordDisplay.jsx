@@ -196,8 +196,7 @@ function isFretVisible(fret, displayFirstFret) {
   );
 }
 
-function ChordDiagram({ fingering }) {
-  const size = 240;
+function ChordDiagram({ fingering, size = 240 }) {
   const pad = 20; // margem interna
   const stringGap = (size - pad * 2) / 5; // distância entre cordas
   const fretGap = (size - pad * 2) / 4; // distância entre trastes
@@ -369,11 +368,15 @@ function ChordDiagram({ fingering }) {
   );
 }
 
-export default function ChordDisplay({ fingering, chordName }) {
+export default function ChordDisplay({ fingering, chordName, size = 240 }) {
   return (
     <div className="flex justify-center items-center ">
       <div className="rounded-lg bg-white p-3 shadow-lg sm:p-5">
-        <ChordDiagram fingering={fingering} chordName={chordName} />
+        <ChordDiagram
+          fingering={fingering}
+          chordName={chordName}
+          size={size}
+        />
       </div>
     </div>
   );
