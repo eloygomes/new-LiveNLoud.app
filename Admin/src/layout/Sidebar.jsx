@@ -1,9 +1,10 @@
-import { Activity, BarChart3, Gauge, Handshake, PanelLeftClose, PanelLeftOpen, UserCheck, Users } from "lucide-react";
+import { Activity, BarChart3, Gauge, Handshake, Music2, PanelLeftClose, PanelLeftOpen, UserCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const items = [
   { to: "/", label: "Dashboard", icon: Gauge },
+  { to: "/songs", label: "Musicas", icon: Music2 },
   { to: "/pending", label: "Aprovacoes", icon: UserCheck },
   { to: "/users", label: "Usuarios", icon: Users },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },

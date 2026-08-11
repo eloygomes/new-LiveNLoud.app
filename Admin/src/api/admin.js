@@ -10,6 +10,9 @@ function withQuery(path, params = {}) {
 }
 
 export const getSummary = () => apiRequest("/summary");
+export const listGeneralSongs = (params = {}) => apiRequest(withQuery("/songs", params));
+export const deleteGeneralSong = (songId, payload) =>
+  apiRequest(`/songs/${encodeURIComponent(songId)}`, { method: "DELETE", body: JSON.stringify(payload) });
 export const listUsers = (params = {}) => apiRequest(withQuery("/users", params));
 export const listPendingUsers = () => apiRequest("/users/pending");
 export const getUserDetails = (userId) => apiRequest(`/users/${userId}`);

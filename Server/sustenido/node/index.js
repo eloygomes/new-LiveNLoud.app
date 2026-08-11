@@ -372,12 +372,19 @@ async function findGeneralCifraDoc({ instrument, link, artist, song }) {
     ],
   };
 
-  // 3) último recurso: artist + song (pode haver múltiplos; pegamos o mais recente)
-  const byTitle = { artist, song };
+  // 3) último recurso: artist + song, sem perder o escopo do instrumento.
+  const byTitle = {
+    artist,
+    song,
+    $or: [
+      { [`instruments.${inst}`]: true },
+      { [`instruments.${inst}`]: "true" },
+    ],
+  };
 
-  let doc = await collection.findOne(byNorm);
-  if (!doc) doc = await collection.findOne(byRaw);
-  if (!doc) doc = await collection.findOne(byTitle);
+  let doc = await collection.find(byNorm).sort({ _id: -1 }).limit(1).next();
+  if (!doc) doc = await collection.find(byRaw).sort({ _id: -1 }).limit(1).next();
+  if (!doc) doc = await collection.find(byTitle).sort({ _id: -1 }).limit(1).next();
 
   return doc || null;
 }
@@ -4668,7 +4675,7 @@ app.put("/api/v1/updateSetlists", authenticateJWT, async (req, res) => {
 
 app.get("/api/v1/generalCifra", async (req, res) => {
   try {
-    let { instrument, link } = req.query || {};
+    let { instrument, link, artist, song } = req.query || {};
     if (!instrument || !link) {
       return res
         .status(400)
@@ -4718,8 +4725,18 @@ app.get("/api/v1/generalCifra", async (req, res) => {
       ],
     };
 
-    let doc = await collection.findOne(filter);
-    if (!doc) doc = await collection.findOne(fallback);
+    let doc = await collection.find(filter).sort({ _id: -1 }).limit(1).next();
+    if (!doc) doc = await collection.find(fallback).sort({ _id: -1 }).limit(1).next();
+    if (!doc && artist && song) {
+      const titleCandidates = await collection.find({}).sort({ _id: -1 }).toArray();
+      doc = titleCandidates.find(
+        (candidate) =>
+          normalizeName(candidate.artist) === normalizeName(artist) &&
+          normalizeName(candidate.song) === normalizeName(song) &&
+          (candidate?.instruments?.[instrument] === true ||
+            candidate?.instruments?.[instrument] === "true"),
+      );
+    }
 
     if (!doc)
       return res.status(404).json({ message: "Documento não encontrado" });

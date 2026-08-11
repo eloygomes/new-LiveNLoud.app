@@ -149,6 +149,22 @@ function formatTime(value) {
   return formatDisplayTime(value);
 }
 
+function formatDurationMs(value) {
+  const milliseconds = Math.max(0, Number(value) || 0);
+  const minutes = Math.floor(milliseconds / 60000);
+  const seconds = Math.floor((milliseconds % 60000) / 1000);
+  const hundredths = Math.floor((milliseconds % 1000) / 10);
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
+}
+
+function getEventTypeLabel(eventType) {
+  return {
+    training: "Training",
+    song_added: "New song",
+    friend_added: "Friendship",
+  }[eventType] || "Event";
+}
+
 function getWeekLabel(viewDate) {
   const first = startOfWeek(viewDate);
   const last = addDays(first, 6);
@@ -287,6 +303,7 @@ export default function Calendar() {
     typeof window !== "undefined" &&
     window.innerWidth >= 768;
   const isTouchLayout = isCompactLayout && !isTabletLayout;
+  const usesEditorialShell = !isTouchLayout;
   const longPressTimerRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
@@ -598,8 +615,8 @@ export default function Calendar() {
     }
   };
 
-  const CalendarRoot = isTabletLayout ? TabletToolShell : "div";
-  const calendarRootProps = isTabletLayout
+  const CalendarRoot = usesEditorialShell ? TabletToolShell : "div";
+  const calendarRootProps = usesEditorialShell
     ? {
         eyebrow: "Schedule & coordinate",
         title: "Give every rehearsal a clear place in the week.",
@@ -613,6 +630,7 @@ export default function Calendar() {
           "Month · week · year",
         ],
         contentClassName: "h-full",
+        compactHeader: true,
         actions: (
           <>
             <div className="flex rounded-[12px] bg-white/90 p-1 shadow-sm">
@@ -642,11 +660,8 @@ export default function Calendar() {
         ),
       }
     : {
-        className: `flex justify-center ${
-          isTouchLayout
-            ? "min-h-screen bg-[#f0f0f0] pb-4 pt-3"
-            : "h-[calc((100vh/var(--desktop-app-zoom))-4rem)] overflow-hidden bg-[#f0f0f0]"
-        }`,
+        className:
+          "flex min-h-screen justify-center bg-[#f0f0f0] pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3",
       };
 
   return (
@@ -678,53 +693,27 @@ export default function Calendar() {
       <div className="mx-auto h-full w-full max-w-none">
         <div
           className={`${
-            isTabletLayout
+            usesEditorialShell
               ? "flex h-full min-h-0 w-full flex-col"
-              : isTouchLayout
-              ? "w-full px-3 pb-4"
-              : "flex h-full min-h-0 w-full flex-col px-6 pb-4"
+              : "w-full px-3"
           }`}
         >
-          {!isTabletLayout ? (
+          {!usesEditorialShell ? (
           <div
-            className={`mb-3 neuphormism-b ${
-              isTouchLayout
-                ? "flex flex-col gap-3 rounded-[18px] p-3"
-                : "flex flex-row items-center gap-6 p-5 mt-5"
-            }`}
+            className="relative mb-3 overflow-hidden rounded-[20px] neuphormism-b"
           >
-            {!isTouchLayout ? (
-              <div>
-              <h1
-                className={`${isTouchLayout ? "mt-2 text-[2rem]" : "text-4xl"} font-bold`}
-              >
-                CALENDAR
+            <div className="px-4 pb-3 pt-4">
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
+                Schedule &amp; coordinate
+              </p>
+              <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-[-0.035em] text-black">
+                Plan the session
               </h1>
-              </div>
-            ) : null}
-            {isTouchLayout ? (
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                  Calendar
-                </p>
-                <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight text-black">
-                  Plan The Session
-                </h1>
-              </div>
-            ) : null}
-            <div
-              className={`${
-                isTouchLayout
-                  ? "flex items-center justify-between gap-3"
-                  : "ml-auto flex items-center gap-4"
-              }`}
-            >
-              {!isTouchLayout ? (
-                <h4 className="max-w-[360px] text-right text-sm">
-                  Schedule rehearsals, sessions, and invite other users with
-                  their email.
-                </h4>
-              ) : null}
+              <p className="mt-2 max-w-[19rem] text-[11px] font-semibold leading-[1rem] text-gray-600">
+                Keep rehearsals, shows and shared sessions visible in one place.
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t border-black/5 bg-white/35 p-2.5">
               <div className="flex rounded-[12px] bg-white p-1">
                 {VIEW_OPTIONS.map((option) => (
                   <button
@@ -743,25 +732,17 @@ export default function Calendar() {
               </div>
               <button
                 type="button"
-                className={`neuphormism-b-btn-gold flex items-center justify-center px-5 py-3 text-xs font-bold uppercase ${
-                  isTouchLayout
-                    ? "h-10 w-10 rounded-[12px] p-0 text-[1rem] text-black"
-                    : ""
-                }`}
+                className="neuphormism-b-btn-gold flex h-10 w-10 items-center justify-center rounded-[12px] p-0 text-[1rem] font-bold uppercase text-black"
                 onClick={() => {
                   openNewEventModal(new Date());
                 }}
                 aria-label="New event"
               >
-                {isTouchLayout ? (
-                  <FaPlus
-                    aria-hidden="true"
-                    size={14}
-                    style={{ color: "#000" }}
-                  />
-                ) : (
-                  "New Event"
-                )}
+                <FaPlus
+                  aria-hidden="true"
+                  size={14}
+                  style={{ color: "#000" }}
+                />
               </button>
             </div>
           </div>
@@ -773,7 +754,7 @@ export default function Calendar() {
 
           <div
             className={`grid grid-cols-1 items-stretch ${
-              isTabletLayout
+              usesEditorialShell
                 ? "h-full min-h-0 flex-1 grid-cols-[minmax(0,1.7fr)_20rem] gap-5"
                 : isTouchLayout
                 ? "gap-3"
@@ -1161,6 +1142,30 @@ export default function Calendar() {
                               {event.description}
                             </p>
                           ) : null}
+                          {event.eventType && event.eventType !== "manual" ? (
+                            <div className="mt-3 rounded-[12px] bg-[#f4f3ef] p-3">
+                              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[goldenrod]">
+                                {getEventTypeLabel(event.eventType)}
+                              </p>
+                              {event.endsAt ? (
+                                <p className="mt-1 text-[11px] font-semibold text-gray-600">
+                                  {formatReadableDate(event.startsAt)} – {formatReadableDate(event.endsAt)}
+                                </p>
+                              ) : null}
+                              {event.eventType === "training" ? (
+                                <div className="mt-2 space-y-1 text-[11px] font-semibold text-gray-600">
+                                  <p>
+                                    {event.metadata?.lapCount || 0} laps · {formatDurationMs(event.metadata?.durationMs)} total · {event.metadata?.bpm || "—"} BPM
+                                  </p>
+                                  {(event.metadata?.laps || []).map((lap) => (
+                                    <p key={lap.lapNumber}>
+                                      Lap {lap.lapNumber}: {formatDurationMs(lap.splitMs)}
+                                    </p>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
                           {event.invitedUsers?.length ? (
                             <p className="text-[11px] text-gray-500 mt-3 break-all">
                               Guests:{" "}
@@ -1199,6 +1204,9 @@ export default function Calendar() {
                           <div className="min-w-0">
                             <div className="font-bold truncate">
                               {event.title}
+                            </div>
+                            <div className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[goldenrod]">
+                              {getEventTypeLabel(event.eventType)}
                             </div>
                             <div className="text-[11px] text-gray-500 mt-1">
                               {formatCompactDate(event.startsAt)}

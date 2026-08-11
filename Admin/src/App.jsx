@@ -10,6 +10,7 @@ import { Friendships } from "./pages/Friendships.jsx";
 import { AdminLogs } from "./pages/AdminLogs.jsx";
 import { Analytics } from "./pages/Analytics.jsx";
 import { AccessDenied } from "./pages/AccessDenied.jsx";
+import { Songs } from "./pages/Songs.jsx";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="songs" element={<Songs />} />
         <Route path="pending" element={<PendingUsers />} />
         <Route path="users" element={<Users />} />
         <Route path="users/:userId" element={<UserDetails />} />

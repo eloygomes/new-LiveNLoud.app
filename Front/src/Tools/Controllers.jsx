@@ -1787,6 +1787,16 @@ export async function checkCifraExists({ instrumentName, link, artist, song }) {
     const res = await fetchApi.get("/api/v1/generalCifra", {
       params: { instrument: instrumentName, link, artist, song },
     });
+    const candidateKeys = instrumentName === "guitar01" || instrumentName === "guitar02"
+      ? ["guitar01", "guitar02"]
+      : [instrumentName];
+    const hasUsableVersion = candidateKeys.some((key) => {
+      const block = res.data?.[key];
+      return block && typeof block === "object" && Boolean(
+        block.songCifra || block.songLyrics || block.songTabs || block.songChords,
+      );
+    });
+    if (!hasUsableVersion) return { exists: false };
     console.log("[checkCifraExists] ✔ encontrado:", res.data);
     return { exists: true, data: res.data };
   } catch (err) {
@@ -1833,6 +1843,39 @@ export async function scrapeCifra({
   });
 
   return res.data;
+}
+
+export async function addGeneralCifraToUser({ document, email, instrumentName }) {
+  const instrumentKeys = ["guitar01", "guitar02", "bass", "keys", "drums", "voice"];
+  const sourceBlock = instrumentKeys
+    .map((key) => document?.[key])
+    .find((block) => block && typeof block === "object" && (block.songCifra || block.songLyrics || block.songTabs || block.songChords));
+  if (!sourceBlock) throw new Error("A cifra existente não possui conteúdo utilizável.");
+
+  const instruments = { [instrumentName]: true };
+  const instrumentBlocks = { [instrumentName]: { ...sourceBlock, active: true } };
+
+  const { data } = await fetchApi.post("/api/v1/newsong", {
+    databaseComing: "sustenido",
+    collectionComing: "data",
+    userdata: {
+      song: document.song,
+      artist: document.artist,
+      capo: sourceBlock.capo || document.capo || "",
+      tom: document.tom || document.tone || document.key || "",
+      tuning: sourceBlock.tuning || document.tuning || "",
+      instrumentName,
+      progressBar: 0,
+      instruments,
+      ...instrumentBlocks,
+      embedVideos: document.embedVideos || [],
+      setlist: document.setlist || [],
+      addedIn: new Date().toISOString().split("T")[0],
+      updateIn: new Date().toISOString().split("T")[0],
+      email,
+    },
+  });
+  return data;
 }
 
 /** Cria/atualiza no banco geral manualmente (se precisar). */

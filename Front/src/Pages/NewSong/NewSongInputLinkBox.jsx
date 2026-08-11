@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa";
 import {
   checkCifraExists,
+  addGeneralCifraToUser,
   deleteGuitarProFile,
   API_BASE,
   scrapeCifra,
@@ -314,6 +315,8 @@ function NewSongInputLinkBox({
     Boolean(window.__LIVENLOUD_QUICK_ADD_EXTENSION__?.installed),
   );
   const [extensionInfoOpen, setExtensionInfoOpen] = useState(false);
+  const [cifraConflict, setCifraConflict] = useState(null);
+  const cifraConflictResolver = useRef(null);
   const inFlightRef = useRef(false);
   const blurTimer = useRef(null);
   const isLocked = Boolean(instrument?.trim());
@@ -342,6 +345,20 @@ function NewSongInputLinkBox({
   const notify = (title, message) => {
     setShowSnackBar?.(true);
     setSnackbarMessage?.({ title, message });
+  };
+
+  const chooseCifraVersion = useCallback((existingDocument, targetInstrument) => (
+    new Promise((resolve) => {
+      cifraConflictResolver.current = resolve;
+      setCifraConflict({ existingDocument, targetInstrument });
+    })
+  ), []);
+
+  const resolveCifraConflict = (choice) => {
+    const resolve = cifraConflictResolver.current;
+    cifraConflictResolver.current = null;
+    setCifraConflict(null);
+    resolve?.(choice);
   };
 
   const updateScrapeStatus = useCallback(
@@ -623,47 +640,53 @@ function NewSongInputLinkBox({
         setLoading(true);
         notify("Load", "Carregando...");
 
-        // 2) Verifica se já existe no banco geral (para evitar scrape desnecessário)
-        console.time(`[${effectiveInstrumentName}] checkCifraExists`);
-        const existsRes = await checkCifraExists({
+        const existingResult = await checkCifraExists({
           instrumentName: effectiveInstrumentName,
           link,
           artist: finalArtist,
           song: finalSong,
         });
-        console.timeEnd(`[${effectiveInstrumentName}] checkCifraExists`);
+        const choice = existingResult?.exists
+          ? await chooseCifraVersion(existingResult.data, effectiveInstrumentName)
+          : "new";
 
-        if (existsRes?.exists) {
-          console.log(`[${effectiveInstrumentName}] já existe no DB`, existsRes.data);
+        if (choice === "existing") {
+          await addGeneralCifraToUser({
+            document: existingResult.data,
+            email,
+            instrumentName: effectiveInstrumentName,
+          });
           setCifraExiste?.(true);
-          setCifraFROMDB?.(existsRes.data);
-          setLocalStorageJsonSafe("cifraFROMDB", existsRes.data);
+          setCifraFROMDB?.(existingResult.data);
+          setLocalStorageJsonSafe("cifraFROMDB", existingResult.data);
           setLocalStorageItemSafe("fromWHERE", "DB");
-
-          if (!artistName && existsRes.data?.artist)
-            setArtistName?.(existsRes.data.artist);
-          if (!songName && existsRes.data?.song)
-            setSongName?.(existsRes.data.song);
-
-          notify("Info", "Essa cifra já está na sua biblioteca.");
+          await gettingSongData?.();
+          notify("Success", "Versão da biblioteca geral adicionada!");
           updateScrapeStatus(true);
           onLinkAdded?.();
-          const fresh = await gettingSongData?.();
-          console.log("[gettingSongData()] (DB-hit) =>", fresh);
-          console.groupEnd();
           return;
         }
 
-        console.log(
-          `[${effectiveInstrumentName}] não encontrado no DB. Fazendo scrape…`
-        );
+        let scrapeInstrumentName = effectiveInstrumentName;
+        if (choice === "both") {
+          const alternateInstrument = effectiveInstrumentName === "guitar01" ? "guitar02" : "guitar01";
+          await addGeneralCifraToUser({
+            document: existingResult.data,
+            email,
+            instrumentName: effectiveInstrumentName,
+          });
+          scrapeInstrumentName = alternateInstrument;
+          onResolvedInstrumentLink?.(alternateInstrument, link);
+        }
 
-        // 3) Scrape → Python grava no user DB e manda para generalCifras internamente
+        console.log(`[${scrapeInstrumentName}] coletando a versao atual da URL…`);
+
+        // 2) Scrape → Python grava no user DB e manda para generalCifras internamente
         const payload = {
           artist: finalArtist,
           song: finalSong,
           email,
-          instrumentName: effectiveInstrumentName,
+          instrumentName: scrapeInstrumentName,
           progress,
           link,
         };
@@ -674,8 +697,8 @@ function NewSongInputLinkBox({
         console.timeEnd(`[${effectiveInstrumentName}] scrapeCifra`);
         console.log("🔎 scrapeCifra RAW:", scrapedRaw);
 
-        // 4) Se o backend já retornar o doc, atualiza UI; caso contrário, segue o fluxo normal
-        const parsed = normalizeScrapeDoc(scrapedRaw, effectiveInstrumentName);
+        // 3) Se o backend já retornar o doc, atualiza UI; caso contrário, segue o fluxo normal
+        const parsed = normalizeScrapeDoc(scrapedRaw, scrapeInstrumentName);
         console.log("✅ parsed:", parsed);
         if (parsed?.doc) {
           setCifraFROMDB?.(parsed.doc);
@@ -705,7 +728,7 @@ function NewSongInputLinkBox({
           }
         }
 
-        // 5) Polling opcional para refletir criação no generalCifras (feito pelo Python)
+        // 4) Polling opcional para refletir criação no generalCifras (feito pelo Python)
         let found = null;
         const MAX_RETRIES = 10;
         const INTERVAL_MS = 800;
@@ -713,7 +736,7 @@ function NewSongInputLinkBox({
           try {
             console.time(`[${instrumentName}] polling #${i}`);
             const chk = await checkCifraExists({
-              instrumentName: effectiveInstrumentName,
+              instrumentName: scrapeInstrumentName,
               link,
               artist: finalArtist,
               song: finalSong,
@@ -744,7 +767,7 @@ function NewSongInputLinkBox({
           );
         }
 
-        // 6) Atualiza UI (carrega dados do user DB)
+        // 5) Atualiza UI (carrega dados do user DB)
         console.time("[gettingSongData()]");
         const fresh = await gettingSongData?.();
         console.timeEnd("[gettingSongData()]");
@@ -792,6 +815,7 @@ function NewSongInputLinkBox({
       primeArtistSongFromLink,
       updateScrapeStatus,
       buildUserErrorMessage,
+      chooseCifraVersion,
       onLinkAdded,
     ]
   );
@@ -1236,6 +1260,22 @@ function NewSongInputLinkBox({
         <ChromeExtensionInfoModal
           onClose={() => setExtensionInfoOpen(false)}
         />
+      ) : null}
+      {cifraConflict ? (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/45 px-3">
+          <section role="dialog" aria-modal="true" aria-labelledby="cifra-conflict-title" className="w-[min(100%,440px)] rounded-[20px] bg-[#f2f2f2] p-5 shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">Cifra encontrada</p>
+            <h2 id="cifra-conflict-title" className="mt-2 text-xl font-bold text-black">Qual versão deseja usar?</h2>
+            <p className="mt-2 text-[12px] font-medium leading-5 text-gray-600">Esta música já existe na biblioteca geral. Escolha a versão que será adicionada ao seu perfil.</p>
+            <div className="mt-5 grid gap-2">
+              <button type="button" className="h-11 rounded-[12px] bg-[goldenrod] text-[11px] font-bold uppercase text-black shadow-[0_6px_15px_rgba(162,113,0,0.2)]" onClick={() => resolveCifraConflict("new")}>Usar nova</button>
+              <button type="button" className="neuphormism-b-btn h-11 rounded-[12px] text-[11px] font-bold uppercase text-black" onClick={() => resolveCifraConflict("existing")}>Usar existente</button>
+              {cifraConflict.targetInstrument === "guitar01" || cifraConflict.targetInstrument === "guitar02" ? (
+                <button type="button" className="neuphormism-b-btn h-11 rounded-[12px] text-[11px] font-bold uppercase text-black" onClick={() => resolveCifraConflict("both")}>Usar as duas</button>
+              ) : null}
+            </div>
+          </section>
+        </div>
       ) : null}
     </div>
   );

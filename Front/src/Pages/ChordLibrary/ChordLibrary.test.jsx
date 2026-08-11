@@ -21,7 +21,20 @@ describe("ChordLibrary", () => {
 
     render(<ChordLibrary />);
 
-    expect(screen.getByText("CHORD LIBRARY")).toBeInTheDocument();
+    expect(screen.getByTestId("tablet-tool-shell")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Build voicings that serve the song.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Chord builder controls")).toHaveAttribute(
+      "data-condensed",
+      "true",
+    );
+    expect(screen.getByTestId("tablet-chord-shape-panel")).toHaveTextContent(
+      "Playing guide",
+    );
+    expect(screen.queryByLabelText("Playing guides")).not.toBeInTheDocument();
     expect(screen.getByText("Chord display: C")).toBeInTheDocument();
     expect(screen.getByText(/^\d+\/\d+$/)).toBeInTheDocument();
   });
@@ -53,7 +66,9 @@ describe("ChordLibrary", () => {
     const initialCounter = screen.getByText(/^\d+\/\d+$/).textContent;
     const initialFretText = screen.getByText(/^Frets:/).textContent;
 
-    fireEvent.click(screen.getByRole("button", { name: "Next variation" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Compare next voicing/i }),
+    );
 
     expect(screen.getByText(/^\d+\/\d+$/).textContent).not.toBe(initialCounter);
     expect(screen.getByText(/^Frets:/).textContent).not.toBe(initialFretText);
@@ -86,6 +101,14 @@ describe("ChordLibrary", () => {
       "data-size",
       "300",
     );
+    expect(
+      screen.getByLabelText("Chord builder controls"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("tablet-chord-shape-panel"),
+    ).not.toHaveTextContent("Playing guide");
+    expect(screen.queryByLabelText("Playing guides")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current")).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Minor", pressed: false }),
@@ -94,6 +117,49 @@ describe("ChordLibrary", () => {
     expect(screen.getByText("Chord display: Cm")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Minor", pressed: true }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the bottom playing guides on larger tablets", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 1024,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 1366,
+      configurable: true,
+    });
+
+    render(<ChordLibrary />);
+
+    expect(screen.getByLabelText("Playing guides")).toBeInTheDocument();
+    expect(screen.queryByText("Current")).not.toBeInTheDocument();
+  });
+
+  it("uses four compact selector actions on smartphones", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 375,
+      configurable: true,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      value: 667,
+      configurable: true,
+    });
+
+    render(<ChordLibrary />);
+
+    expect(screen.getByText("Current chord")).toBeInTheDocument();
+    expect(screen.getByLabelText("Chord controls").children).toHaveLength(4);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Choose root, current C" }),
+    );
+    expect(screen.getByLabelText("Root selector")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "D", pressed: false }));
+    expect(screen.getByText("Chord display: D")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Choose root, current D" }),
     ).toBeInTheDocument();
   });
 });

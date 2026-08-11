@@ -37,6 +37,18 @@ body,
   }
 }
 
+.tuner-touch-safe-viewport {
+  width: 100%;
+  height: calc(100dvh - 4.25rem);
+  min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .tuner-touch-safe-viewport {
+    height: calc((100dvh / var(--desktop-app-zoom)) - 6.375rem);
+  }
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -470,12 +482,16 @@ main{
 }
 
 @media (min-width: 768px) {
-  .tools-hub-viewport,
+  .tools-hub-viewport {
+    width: 100%;
+    height: calc(100dvh - 9.5rem);
+    padding-bottom: 1.25rem;
+    scroll-padding-bottom: 1.25rem;
+  }
+
   .user-hub-tablet-viewport {
     width: 100%;
-    height: calc(
-      (100dvh / var(--desktop-app-zoom)) - 9.5rem
-    );
+    height: calc((100dvh / var(--desktop-app-zoom)) - 9.5rem);
   }
 
   .user-hub-tablet-content {
@@ -493,7 +509,7 @@ main{
 
   .tablet-tool-detail-viewport {
     width: 100%;
-    height: calc((100dvh / var(--desktop-app-zoom)) - 4.25rem);
+    height: calc((100dvh / var(--desktop-app-zoom)) - 6.375rem);
   }
 }
 

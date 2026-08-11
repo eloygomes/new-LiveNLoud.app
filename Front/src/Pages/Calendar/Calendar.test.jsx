@@ -83,7 +83,12 @@ describe("Calendar", () => {
       expect(fetchCalendarEvents).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText("CALENDAR")).toBeInTheDocument();
+    expect(screen.getByTestId("tablet-tool-shell")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Give every rehearsal a clear place in the week.",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Band Rehearsal")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New event" })).toBeInTheDocument();
   });

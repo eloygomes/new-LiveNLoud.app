@@ -358,16 +358,18 @@ export default function Tuner() {
 
     return (
       <TabletToolShell
+        eyebrow="Pitch & tuning"
         title="Tune with clarity before the first note."
         description="Select your instrument and tuning, isolate one string, then use the live cents meter to make precise adjustments with confidence."
         artIndex={2}
         artLabel="Tuner workspace illustration"
+        compactHeader
         badges={[
           instrumentType,
           tuningName,
           autoDetectString ? "Automatic string detection" : "Manual string selection",
         ]}
-        contentClassName="grid grid-cols-[minmax(21rem,0.82fr)_minmax(0,1.48fr)] gap-5 overflow-hidden"
+        contentClassName="grid grid-cols-[minmax(21rem,0.82fr)_minmax(0,1.48fr)] gap-4 overflow-hidden"
       >
         <aside className="neuphormism-b flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] p-5">
           <div className="shrink-0">
@@ -563,13 +565,7 @@ export default function Tuner() {
             </div>
           </div>
 
-          <div
-            className={`mt-4 flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[22px] px-7 py-5 text-center transition-colors ${
-              Math.abs(cents) <= 5 && liveFreq
-                ? "bg-black text-white"
-                : "bg-white/70 text-black"
-            }`}
-          >
+          <div className="mt-4 flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[22px] bg-[#111] px-7 py-5 text-center text-white">
             <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
               {tunerStatus}
             </div>
@@ -577,11 +573,7 @@ export default function Tuner() {
               {noteLabel}
             </div>
             <p
-              className={`mt-4 text-[1.25rem] font-bold ${
-                Math.abs(cents) <= 5 && liveFreq
-                  ? "text-white/75"
-                  : "text-gray-500"
-              }`}
+              className="mt-4 text-[1.25rem] font-bold text-white/70"
             >
               {liveFreq ? `${liveFreq.toFixed(2)} Hz` : "No pitch detected"}
             </p>
@@ -589,11 +581,7 @@ export default function Tuner() {
             <div className="mt-5 w-full max-w-[56rem]">
               <div className="relative h-10">
                 <div
-                  className={`absolute left-0 right-0 top-1/2 h-4 -translate-y-1/2 rounded-full shadow-[inset_1px_1px_3px_rgba(0,0,0,0.14)] ${
-                    Math.abs(cents) <= 5 && liveFreq
-                      ? "bg-white/20"
-                      : "bg-[#e7e7e7]"
-                  }`}
+                  className="absolute left-0 right-0 top-1/2 h-4 -translate-y-1/2 rounded-full bg-white/15 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.14)]"
                 />
                 {[-50, -25, 0, 25, 50].map((mark) => (
                   <span
@@ -601,28 +589,18 @@ export default function Tuner() {
                     className={`absolute top-1 h-8 w-[3px] rounded-full ${
                       mark === 0
                         ? "bg-[goldenrod]"
-                        : Math.abs(cents) <= 5 && liveFreq
-                          ? "bg-white/35"
-                          : "bg-gray-400/60"
+                        : "bg-white/35"
                     }`}
                     style={{ left: `${((mark + 50) / 100) * 100}%` }}
                   />
                 ))}
                 <span
-                  className={`absolute top-0 h-10 w-[6px] -translate-x-1/2 rounded-full transition-all ${
-                    Math.abs(cents) <= 5 && liveFreq
-                      ? "bg-white"
-                      : "bg-black"
-                  }`}
+                  className="absolute top-0 h-10 w-[6px] -translate-x-1/2 rounded-full bg-[goldenrod] transition-all"
                   style={{ left: `${indicatorLeft}%` }}
                 />
               </div>
               <div
-                className={`mt-1 flex justify-between text-[9px] font-bold uppercase tracking-[0.18em] ${
-                  Math.abs(cents) <= 5 && liveFreq
-                    ? "text-white/60"
-                    : "text-gray-500"
-                }`}
+                className="mt-1 flex justify-between text-[9px] font-bold uppercase tracking-[0.18em] text-white/55"
               >
                 <span>Flat</span>
                 <span>{Math.round(cents)} cents</span>
@@ -633,11 +611,7 @@ export default function Tuner() {
             <div className="mt-5 max-w-[38rem]">
               <p className="text-[1.05rem] font-bold">{tuneMessage}</p>
               <p
-                className={`mt-1.5 text-[11px] font-semibold leading-[1rem] ${
-                  Math.abs(cents) <= 5 && liveFreq
-                    ? "text-white/60"
-                    : "text-gray-500"
-                }`}
+                className="mt-1.5 text-[11px] font-semibold leading-[1rem] text-white/55"
               >
                 {centsDirection}
               </p>
@@ -678,42 +652,94 @@ export default function Tuner() {
     );
   }
 
-  return (
-    <div
-      className={`flex min-h-[calc(100dvh-6rem)] flex-col overflow-x-hidden bg-[#f0f0f0] px-3 pb-4 pt-3 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4`}
-    >
-      <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col sm:max-w-none">
-        <div className="flex w-full flex-1 flex-col lg:pb-0">
-          <div
-            className={`mb-3 ${
-              isTouchLayout
-                ? "px-1 py-1"
-                : "flex items-center gap-6 neuphormism-b p-5"
-            }`}
-          >
-            <div>
-              {isTouchLayout ? (
-                <>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
-                    Tuner
-                  </p>
-                  <h1 className="mt-1 text-[1.55rem] font-bold leading-none tracking-tight text-black">
-                    Tune The Sound
-                  </h1>
-                </>
-              ) : (
-                <h1 className="text-4xl font-bold">TUNER</h1>
-              )}
+  if (isTouchLayout) {
+    return (
+      <div className="tuner-touch-safe-viewport flex flex-col overflow-hidden bg-[#f4f3ef] px-3 pb-3 pt-3">
+        <div className="mx-auto flex min-h-0 w-full max-w-[430px] flex-1 flex-col gap-2.5">
+          <header className="shrink-0 rounded-[18px] border border-black/[0.055] bg-white/80 px-4 py-3 shadow-[0_9px_22px_rgba(0,0,0,0.065)]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">Pitch & tuning</p>
+            <div className="mt-1 flex items-end justify-between gap-3">
+              <h1 className="text-[1.35rem] font-bold leading-none tracking-[-0.04em] text-black">Tune with clarity.</h1>
+              <span className="text-[9px] font-bold uppercase tracking-[0.13em] text-gray-500">{instrumentType} · {tuningName}</span>
             </div>
-            <div className={`ml-auto ${isTouchLayout ? "hidden" : ""}`}>
-              <h4 className="max-w-[320px] text-right text-sm">
-                Keep it tuned.
-              </h4>
-            </div>
-          </div>
+          </header>
 
-          <div className="flex flex-1 flex-col gap-3 lg:gap-4">
-            <section className="neuphormism-b rounded-[16px] p-2.5 sm:p-4">
+          <section className="shrink-0 rounded-[16px] border border-black/[0.05] bg-white/75 p-3 shadow-[0_9px_22px_rgba(0,0,0,0.06)]">
+            <button type="button" className="flex w-full items-center justify-between" onClick={() => setSettingsOpen((current) => !current)} aria-expanded={settingsOpen}>
+              <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">Tuning setup</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-500">{settingsOpen ? "Close" : "Change"}</span>
+            </button>
+            {settingsOpen ? (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-gray-500">Instrument</span>
+                  <select aria-label="Instrument type" className="h-10 rounded-[11px] bg-[#f0efeb] px-3 text-[11px] font-bold" value={instrumentType} onChange={(event) => setInstrumentType(event.target.value)}>
+                    {instrumentOptions.map((instrument) => <option key={instrument}>{instrument}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[8px] font-bold uppercase tracking-[0.14em] text-gray-500">Tuning</span>
+                  <select aria-label="Tuning" className="h-10 rounded-[11px] bg-[#f0efeb] px-3 text-[11px] font-bold" value={tuningName} onChange={(event) => setTuningName(event.target.value)}>
+                    {tuningOptions.map((tuning) => <option key={tuning}>{tuning}</option>)}
+                  </select>
+                </label>
+                <button type="button" className={`col-span-2 flex h-10 items-center justify-between rounded-[11px] px-3 text-[9px] font-bold uppercase tracking-[0.1em] ${autoDetectString ? "bg-[goldenrod] text-black" : "bg-[#f0efeb] text-gray-600"}`} onClick={() => setAutoDetectString((current) => !current)} aria-pressed={autoDetectString}>
+                  String detection <span>{autoDetectString ? "Automatic" : "Manual"}</span>
+                </button>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="grid shrink-0 gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(currentStrings.length, 6)}, minmax(0, 1fr))` }} aria-label="Target strings">
+            {currentStrings.map((string, index) => (
+              <button key={`${string.name}-${index}`} type="button" aria-label={`${string.name}, ${string.freq.toFixed(2)} Hz`} aria-pressed={index === selectedStringIndex} className={`min-h-11 rounded-[11px] px-1 text-[11px] font-bold shadow-[0_6px_14px_rgba(0,0,0,0.06)] ${index === selectedStringIndex ? "bg-[goldenrod] text-black" : "bg-white text-gray-600"}`} onClick={() => { setAutoDetectString(false); setSelectedStringIndex(index); setDisplayNote(string.name); setLiveFreq(null); setCents(0); }}>
+                {string.name}
+              </button>
+            ))}
+          </section>
+
+          <section className="flex min-h-[220px] flex-1 flex-col items-center justify-center overflow-hidden rounded-[18px] bg-[#111] px-4 py-4 text-center text-white shadow-[0_12px_28px_rgba(0,0,0,0.14)]">
+            <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">{tunerStatus}</p>
+            <div className="mt-2 text-[clamp(5.5rem,27vw,7rem)] font-bold leading-[0.8] tracking-[-0.09em]">{noteLabel}</div>
+            <p className="mt-3 text-[12px] font-bold text-white/60">{liveFreq ? `${liveFreq.toFixed(2)} Hz` : "No pitch detected"}</p>
+            <div className="mt-4 w-full">
+              <div className="relative h-8">
+                <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white/15" />
+                {[-50, -25, 0, 25, 50].map((mark) => <span key={mark} className={`absolute top-1 h-6 w-0.5 ${mark === 0 ? "bg-[goldenrod]" : "bg-white/30"}`} style={{ left: `${mark + 50}%` }} />)}
+                <span className="absolute top-0 h-8 w-1 -translate-x-1/2 rounded-full bg-white transition-all" style={{ left: `${indicatorLeft}%` }} />
+              </div>
+              <div className="flex justify-between text-[8px] font-bold uppercase tracking-[0.14em] text-white/45"><span>Flat</span><span>{Math.round(cents)} cents</span><span>Sharp</span></div>
+            </div>
+            <p className="mt-3 text-[1rem] font-bold text-[goldenrod]">{tuneMessage}</p>
+          </section>
+
+          <button type="button" className={`flex h-12 shrink-0 items-center justify-center rounded-[13px] text-[10px] font-bold uppercase tracking-[0.13em] ${isTuning ? "bg-black text-[goldenrod]" : "bg-[goldenrod] text-black"}`} onClick={toggleTuner}>
+            {isTuning ? "Stop listening" : "Start tuning"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc((100vh/var(--desktop-app-zoom))-4rem)] min-h-0 flex-col overflow-hidden bg-[#f4f3ef] px-6 pb-6 pt-5">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col">
+        <div className="flex w-full flex-1 flex-col lg:pb-0">
+          <header className="mb-5 grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-8 rounded-[24px] border border-black/[0.055] bg-white/80 px-7 py-5 shadow-[0_12px_30px_rgba(0,0,0,0.07)]">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">Pitch & tuning</p>
+              <h1 className="mt-2 text-[2rem] font-bold leading-none tracking-[-0.045em] text-black">Tune with clarity before the first note.</h1>
+              <p className="mt-2 max-w-[52rem] text-[0.88rem] font-semibold leading-[1.35rem] text-gray-600">Choose the setup, listen to one clear string and center the pitch without leaving your practice workspace.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2" aria-label="Tuner overview">
+              {[[instrumentType, "Instrument"], [tuningName, "Tuning"], [autoDetectString ? "AUTO" : "MANUAL", "Detection"]].map(([value, label]) => (
+                <div key={label} className="min-w-[7rem] rounded-[16px] bg-[#f3f2ee] px-4 py-3 text-center"><div className="truncate text-[1rem] font-bold leading-none text-black">{value}</div><div className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-gray-500">{label}</div></div>
+              ))}
+            </div>
+          </header>
+
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
+            <section className="shrink-0 rounded-[18px] border border-black/[0.055] bg-white/75 p-4 shadow-[0_12px_28px_rgba(0,0,0,0.065)]">
               <button
                 type="button"
                 className="flex w-full items-center justify-between text-left lg:hidden"
@@ -873,8 +899,8 @@ export default function Tuner() {
               )}
             </section>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-3 lg:grid lg:h-[calc(100vh-315px)] lg:grid-cols-[minmax(96px,10%)_minmax(0,1fr)] lg:gap-4">
-              <section className="order-2 shrink-0 neuphormism-b rounded-[16px] p-2.5 sm:p-4 lg:order-1 lg:h-full lg:min-h-0 lg:px-3">
+            <div className="grid min-h-0 flex-1 grid-cols-[minmax(9rem,0.18fr)_minmax(0,1fr)] gap-4">
+              <section className="min-h-0 rounded-[20px] border border-black/[0.055] bg-white/75 p-3 shadow-[0_12px_28px_rgba(0,0,0,0.065)]">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#697180]">
                     Strings
@@ -919,13 +945,13 @@ export default function Tuner() {
                 </div>
               </section>
 
-              <section className="order-1 flex min-h-0 flex-1 neuphormism-b rounded-[16px] p-2.5 sm:p-4 lg:order-2 lg:h-full">
-                <div className="flex h-full min-h-0 w-full flex-col justify-center rounded-[16px] px-3 py-3 text-center shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)] sm:rounded-[24px] sm:px-8 lg:py-6">
+              <section className="flex min-h-0 rounded-[20px] border border-black/[0.055] bg-white/75 p-4 shadow-[0_12px_28px_rgba(0,0,0,0.065)]">
+                <div className="flex h-full min-h-0 w-full flex-col justify-center rounded-[20px] bg-[#111] px-8 py-6 text-center text-white">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="rounded-[10px] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-black shadow-[0_6px_12px_rgba(0,0,0,0.06)] neuphormism-b">
+                    <span className="rounded-[10px] bg-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                       {tunerStatus}
                     </span>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#697180]">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
                       Target: {targetString?.name || "—"}{" "}
                       {targetFrequency
                         ? `${targetFrequency.toFixed(2)} Hz`
@@ -933,15 +959,15 @@ export default function Tuner() {
                     </span>
                   </div>
 
-                  <div className="mt-3 text-[3.8rem] font-bold leading-none tracking-[-0.08em] text-black sm:text-[7rem] lg:text-[8rem]">
+                  <div className="mt-3 text-[8rem] font-bold leading-none tracking-[-0.08em] text-white">
                     {noteLabel}
                   </div>
-                  <div className="mt-2 text-[16px] font-bold text-[#697180] sm:text-3xl">
+                  <div className="mt-2 text-3xl font-bold text-white/65">
                     {liveFreq
                       ? `${liveFreq.toFixed(2)} Hz`
                       : "No pitch detected"}
                   </div>
-                  <div className="mt-1 text-[12px] font-bold text-[#697180] sm:text-lg">
+                  <div className="mt-1 text-lg font-bold text-white/45">
                     {targetFrequency
                       ? `Target: ${targetFrequency.toFixed(2)} Hz`
                       : "Choose a string"}
@@ -949,20 +975,20 @@ export default function Tuner() {
 
                   <div className="mx-auto mt-4 w-full max-w-[820px]">
                     <div className="relative h-8">
-                      <div className="absolute left-0 right-0 top-1/2 h-4 -translate-y-1/2 rounded-full bg-white shadow-[inset_1px_1px_3px_rgba(190,190,190,0.45),inset_-1px_-1px_3px_rgba(255,255,255,0.85)]" />
+                      <div className="absolute left-0 right-0 top-1/2 h-4 -translate-y-1/2 rounded-full bg-white/15" />
                       {[-50, -25, 0, 25, 50].map((mark) => (
                         <span
                           key={mark}
-                          className={`absolute top-0 h-8 w-[3px] rounded-full ${mark === 0 ? "bg-[goldenrod]" : "bg-[#697180]/50"}`}
+                          className={`absolute top-0 h-8 w-[3px] rounded-full ${mark === 0 ? "bg-[goldenrod]" : "bg-white/30"}`}
                           style={{ left: `${((mark + 50) / 100) * 100}%` }}
                         />
                       ))}
                       <span
-                        className="absolute top-[-6px] h-11 w-[5px] -translate-x-1/2 rounded-full bg-black transition-all"
+                        className="absolute top-[-6px] h-11 w-[5px] -translate-x-1/2 rounded-full bg-white transition-all"
                         style={{ left: `${indicatorLeft}%` }}
                       />
                     </div>
-                    <div className="mt-2 flex justify-between text-xs font-bold uppercase tracking-[0.18em] text-[#697180]">
+                    <div className="mt-2 flex justify-between text-xs font-bold uppercase tracking-[0.18em] text-white/50">
                       <span>Flat</span>
                       <span>{Math.round(cents)} cents</span>
                       <span>Sharp</span>
@@ -970,7 +996,7 @@ export default function Tuner() {
                   </div>
 
                   <p
-                    className={`mt-3 text-[16px] font-bold sm:text-2xl ${Math.abs(cents) <= 5 && liveFreq ? "text-[goldenrod]" : "text-black"}`}
+                    className="mt-3 text-2xl font-bold text-[goldenrod]"
                   >
                     {tuneMessage}
                   </p>

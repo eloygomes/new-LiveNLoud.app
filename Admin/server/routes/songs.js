@@ -1,8 +1,30 @@
 import { addAdminLog } from "../services/adminLogs.js";
-import { deleteAllUserSongs, deleteUserSong } from "../services/songs.js";
+import { deleteAllUserSongs, deleteGeneralSong, deleteUserSong, listGeneralSongs } from "../services/songs.js";
 import { getUserWithData } from "../services/users.js";
 
 export function registerSongRoutes(app, { authenticateJWT, requireAdmin, requireTargetDb, proxyAdminDataApi }) {
+  app.get("/api/songs", authenticateJWT, requireAdmin, requireTargetDb, async (req, res) => {
+    const result = await listGeneralSongs({ query: req.query.q, limit: req.query.limit });
+    return res.json(result);
+  });
+
+  app.delete("/api/songs/:songId", authenticateJWT, requireAdmin, requireTargetDb, async (req, res) => {
+    const reason = String(req.body?.reason || "").trim();
+    if (!reason) return res.status(400).json({ message: "Motivo obrigatorio." });
+
+    const deletion = await deleteGeneralSong(req.params.songId);
+    if (!deletion.deletedCount) return res.status(404).json({ message: "Musica nao encontrada." });
+
+    await addAdminLog({
+      req,
+      action: "general_song_deleted",
+      targetType: "song",
+      metadata: deletion.song,
+      reason,
+    });
+    return res.json(deletion);
+  });
+
   app.get("/api/users/:userId/songs", authenticateJWT, requireAdmin, proxyAdminDataApi);
 
   app.delete("/api/users/:userId/songs", authenticateJWT, requireAdmin, requireTargetDb, async (req, res) => {

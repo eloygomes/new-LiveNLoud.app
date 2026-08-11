@@ -380,6 +380,79 @@ textarea:focus {
   min-width: 260px;
 }
 
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0, 0, 0, 0);
+}
+
+.song-search {
+  align-items: center;
+  display: flex;
+  min-width: min(420px, 45vw);
+  position: relative;
+}
+
+.song-search svg {
+  color: var(--muted);
+  left: 12px;
+  position: absolute;
+  z-index: 1;
+}
+
+.song-search input {
+  background: #eeeeee;
+  padding-left: 38px;
+}
+
+.songs-panel-title {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.songs-panel-title h2 {
+  margin-bottom: 3px;
+}
+
+.songs-table tbody tr {
+  cursor: pointer;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.songs-table tbody tr:hover,
+.songs-table tbody tr:focus,
+.songs-table tbody tr.selected {
+  background: rgba(217, 170, 46, 0.14);
+  outline: none;
+}
+
+.songs-table tbody tr.selected {
+  box-shadow: inset 4px 0 0 var(--gold);
+}
+
+.song-title {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 850;
+  gap: 9px;
+}
+
+.song-title svg {
+  color: var(--gold-dark);
+}
+
+.songs-limit {
+  margin-top: 12px;
+  text-align: right;
+}
+
 .button,
 .icon-button {
   align-items: center;
@@ -843,6 +916,16 @@ th {
   }
 
   .page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .song-search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .songs-panel-title {
     align-items: stretch;
     flex-direction: column;
   }

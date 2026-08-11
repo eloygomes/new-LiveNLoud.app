@@ -70,7 +70,7 @@ describe("Tuner responsive layouts", () => {
 
     expect(screen.queryByTestId("tablet-tool-shell")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Tune The Sound" }),
+      screen.getByRole("heading", { name: "Tune with clarity." }),
     ).toBeInTheDocument();
   });
 
@@ -80,6 +80,10 @@ describe("Tuner responsive layouts", () => {
     render(<Tuner />);
 
     expect(screen.queryByTestId("tablet-tool-shell")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "TUNER" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Tune with clarity before the first note.",
+      }),
+    ).toBeInTheDocument();
   });
 });

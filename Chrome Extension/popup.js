@@ -1,20 +1,8 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
-const ADMIN_DESTINATION_EMAIL = "eloy.gomes@icloud.com";
-const EXTENSION_VERSION = "0.63.6.1";
-const DEFAULT_DESTINATION = "sustenido";
-const DESTINATIONS = {
-  sustenido: {
-    label: "Sustenido",
-    apiBase: "https://api.sustenido.eloygomes.com",
-    database: "sustenido",
-  },
-  live: {
-    label: "Live",
-    apiBase: "https://api.live.eloygomes.com",
-    database: "liveNloud_",
-  },
-};
+const EXTENSION_VERSION = "0.65.1.1";
+const SUSTENIDO_API_BASE = "https://api.sustenido.eloygomes.com";
+const SUSTENIDO_DATABASE = "sustenido";
 const NOT_AVAILABLE = "N/A";
 const PAGE_RETRY_DELAY_MS = 2000;
 const PAGE_RETRY_MAX_ATTEMPTS = 6;
@@ -30,7 +18,6 @@ const STORAGE_KEYS = {
   email: "livenloud_user_email",
   expiresAt: "livenloud_session_expires_at",
   rememberSession: "livenloud_remember_session",
-  destination: "livenloud_destination",
 };
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -88,20 +75,13 @@ const state = {
   selectedInstrumentLinks: {},
   guitarProSelected: false,
   guitarProTouched: false,
-  destination: DEFAULT_DESTINATION,
   sessionEmail: "",
 };
 
 const elements = {
   statusCard: document.getElementById("statusCard"),
   statusText: document.getElementById("statusText"),
-  destinationCard: document.getElementById("destinationCard"),
-  destinationLabel: document.getElementById("destinationLabel"),
-  destinationToggle: document.getElementById("destinationToggle"),
   versionBadge: document.getElementById("versionBadge"),
-  destinationInputs: Array.from(
-    document.querySelectorAll("input[name='destination']"),
-  ),
   unavailableView: document.getElementById("unavailableView"),
   loginView: document.getElementById("loginView"),
   songView: document.getElementById("songView"),
@@ -132,6 +112,11 @@ const elements = {
   saveButton: document.getElementById("saveButton"),
   discardButton: document.getElementById("discardButton"),
   logoutButton: document.getElementById("logoutButton"),
+  finalStateCard: document.getElementById("finalStateCard"),
+  finalIcon: document.getElementById("finalIcon"),
+  finalEyebrow: document.getElementById("finalEyebrow"),
+  finalTitle: document.getElementById("finalTitle"),
+  finalHint: document.getElementById("finalHint"),
   finalMessage: document.getElementById("finalMessage"),
   saveModeInputs: Array.from(document.querySelectorAll("input[name='saveMode']")),
   instrumentLinksField: document.querySelector(".instrument-links-field"),
@@ -139,6 +124,11 @@ const elements = {
   guitarProSuggestion: document.getElementById("guitarProSuggestion"),
   guitarProInput: document.getElementById("guitarProInput"),
   guitarProDetails: document.getElementById("guitarProDetails"),
+  cifraChoiceDialog: document.getElementById("cifraChoiceDialog"),
+  cifraChoiceDescription: document.getElementById("cifraChoiceDescription"),
+  useNewCifraButton: document.getElementById("useNewCifraButton"),
+  useExistingCifraButton: document.getElementById("useExistingCifraButton"),
+  useBothCifrasButton: document.getElementById("useBothCifrasButton"),
 };
 
 const DEBUG_PREFIX = "[#Sustenido Extension]";
@@ -156,82 +146,14 @@ function debugError(step, error) {
   console.error(`${DEBUG_PREFIX} ${step}`, error);
 }
 
-function normalizeEmail(value) {
-  return cleanText(value).toLowerCase();
-}
-
-function isAdminDestinationUser(email) {
-  return normalizeEmail(email) === ADMIN_DESTINATION_EMAIL;
-}
-
-function normalizeDestination(value) {
-  return Object.prototype.hasOwnProperty.call(DESTINATIONS, value)
-    ? value
-    : DEFAULT_DESTINATION;
-}
-
-function getDestinationConfig(destination = state.destination) {
-  return DESTINATIONS[normalizeDestination(destination)];
-}
-
 function getApiBase() {
-  return getDestinationConfig().apiBase;
-}
-
-async function readStoredDestination() {
-  const data = await readFromStorageArea(extensionApi.storage.local, [
-    STORAGE_KEYS.destination,
-  ]);
-  return normalizeDestination(data[STORAGE_KEYS.destination]);
-}
-
-async function writeStoredDestination(destination) {
-  await writeToStorageArea(extensionApi.storage.local, {
-    [STORAGE_KEYS.destination]: normalizeDestination(destination),
-  });
-}
-
-function renderDestinationControls(email = state.sessionEmail) {
-  const canChooseDestination = isAdminDestinationUser(email);
-  state.destination = canChooseDestination
-    ? normalizeDestination(state.destination)
-    : DEFAULT_DESTINATION;
-
-  if (elements.destinationLabel) {
-    elements.destinationLabel.textContent = getDestinationConfig().label;
-  }
-
-  elements.destinationInputs.forEach((input) => {
-    input.checked = input.value === state.destination;
-  });
-
-  if (elements.destinationToggle) {
-    elements.destinationToggle.classList.toggle("hidden", !canChooseDestination);
-  }
+  return SUSTENIDO_API_BASE;
 }
 
 function renderExtensionVersion() {
   if (!elements.versionBadge) return;
   const manifestVersion = extensionApi.runtime?.getManifest?.().version;
   elements.versionBadge.textContent = `v${manifestVersion || EXTENSION_VERSION}`;
-}
-
-async function setDestination(destination, options = {}) {
-  const nextDestination = normalizeDestination(destination);
-  if (nextDestination === state.destination) {
-    renderDestinationControls(options.email);
-    return;
-  }
-
-  state.destination = nextDestination;
-  await writeStoredDestination(nextDestination);
-  renderDestinationControls(options.email);
-
-  if (options.clearSession) {
-    await clearSessionState({ keepDestination: true });
-    showLogin();
-    setStatus("Destino alterado. Faça login novamente.");
-  }
 }
 
 function cleanText(value) {
@@ -342,18 +264,29 @@ function setStatus(message) {
 function showFinalMessage(message, type) {
   const normalized = cleanText(message);
   elements.finalMessage.textContent = normalized;
-  elements.finalMessage.classList.remove("hidden", "is-success", "is-error");
-  if (type) {
-    elements.finalMessage.classList.add(
-      type === "success" ? "is-success" : "is-error",
-    );
+  const isSuccess = type === "success";
+  elements.finalStateCard?.classList.toggle("is-success", isSuccess);
+  elements.finalStateCard?.classList.toggle("is-error", !isSuccess);
+  if (elements.finalIcon) elements.finalIcon.textContent = isSuccess ? "✓" : "!";
+  if (elements.finalEyebrow) {
+    elements.finalEyebrow.textContent = isSuccess
+      ? "IMPORTAÇÃO CONCLUÍDA"
+      : "NÃO FOI POSSÍVEL CONCLUIR";
+  }
+  if (elements.finalTitle) {
+    elements.finalTitle.textContent = isSuccess
+      ? "Tudo certo!"
+      : "Algo saiu do ritmo";
+  }
+  if (elements.finalHint) {
+    elements.finalHint.textContent = isSuccess
+      ? "Você pode continuar navegando. O Quick Add acompanhará a aba ativa."
+      : "Revise a página atual e tente novamente. Nenhum outro instrumento será removido.";
   }
 }
 
 function hideFinalMessage() {
   elements.finalMessage.textContent = "";
-  elements.finalMessage.classList.add("hidden");
-  elements.finalMessage.classList.remove("is-success", "is-error");
 }
 
 function hideAllViews() {
@@ -366,18 +299,21 @@ function hideAllViews() {
 function showFinalOnly(message, type) {
   hideAllViews();
   elements.statusCard.classList.add("hidden");
+  elements.logoutButton?.classList.remove("hidden");
   elements.successView.classList.remove("hidden");
   showFinalMessage(message, type);
 }
 
 function showLogin() {
   hideAllViews();
+  elements.logoutButton?.classList.add("hidden");
   elements.statusCard.classList.remove("hidden");
   elements.loginView.classList.remove("hidden");
 }
 
 function showSongView() {
   hideAllViews();
+  elements.logoutButton?.classList.remove("hidden");
   elements.statusCard.classList.remove("hidden");
   elements.songView.classList.remove("hidden");
 }
@@ -580,10 +516,15 @@ function getConfirmedInstrumentLinks() {
     const instrumentName = getSelectedInstrument();
     const detectedLink = cleanText(state.detectedInstrumentLinks[instrumentName]);
     const pageLink = cleanText(state.pageContext.link);
-
-    return {
+    const confirmedLinks = {
       [instrumentName]: detectedLink || pageLink,
     };
+    const voiceLink = cleanText(state.detectedInstrumentLinks.voice);
+    const canIncludeAutomaticVoice = state.pageContext.source === "cifraclub";
+    if (canIncludeAutomaticVoice && instrumentName !== "voice" && voiceLink) {
+      confirmedLinks.voice = voiceLink;
+    }
+    return confirmedLinks;
   }
 
   return Object.entries(state.detectedInstrumentLinks).reduce(
@@ -1088,8 +1029,6 @@ async function refreshExtensionAccessToken(session) {
   session.accessToken = data.accessToken;
   await writeSessionState(nextSession);
   state.sessionEmail = nextSession.email;
-  renderDestinationControls(nextSession.email);
-
   return nextSession;
 }
 
@@ -1337,7 +1276,15 @@ function normalizeScrapeDoc(scraped, instrumentName = getSelectedInstrument()) {
 
   if (!doc) return null;
 
-  const instrumentDoc = doc?.[instrumentName] || {};
+  const requestedInstrumentDoc = doc?.[instrumentName] || {};
+  const guitarFallbackKeys = instrumentName === "guitar01" || instrumentName === "guitar02"
+    ? ["guitar01", "guitar02"]
+    : [];
+  const instrumentDoc = hasPresentationContent(requestedInstrumentDoc)
+    ? requestedInstrumentDoc
+    : guitarFallbackKeys
+        .map((key) => doc?.[key])
+        .find((block) => hasPresentationContent(block)) || requestedInstrumentDoc;
 
   const songLyrics = instrumentDoc.songLyrics || doc.songLyrics || "";
   const songCifra = instrumentDoc.songCifra || doc.songCifra || songLyrics || "";
@@ -1432,59 +1379,190 @@ async function fetchExistingSongDoc(session, pageContext, options = {}) {
     throw new Error(data?.message || "Could not load existing song data.");
   }
 
-  return normalizeScrapeDoc({ document: data }, instrumentName);
+  const exactInstrumentIsActive =
+    data?.instruments?.[instrumentName] === true ||
+    data?.instruments?.[instrumentName] === "true" ||
+    data?.[instrumentName]?.active === true ||
+    data?.[instrumentName]?.active === "true";
+  if (!exactInstrumentIsActive || !hasPresentationContent(data?.[instrumentName])) {
+    return null;
+  }
+
+  const normalized = normalizeScrapeDoc({ document: data }, instrumentName);
+  return normalized && hasPresentationContent(normalized) ? normalized : null;
+}
+
+function isGuitarInstrument(instrumentName) {
+  return instrumentName === "guitar01" || instrumentName === "guitar02";
+}
+
+function getAlternateGuitarInstrument(instrumentName) {
+  return instrumentName === "guitar02" ? "guitar01" : "guitar02";
+}
+
+function chooseCifraVersion(instrumentName, pageContext, options = {}) {
+  const allowSecondGuitar =
+    isGuitarInstrument(instrumentName) && options.alternateGuitarAvailable;
+  const instrumentLabel = getInstrumentDisplayName(instrumentName);
+  elements.cifraChoiceDescription.textContent = allowSecondGuitar
+    ? `${instrumentLabel} já possui uma cifra de ${pageContext.song}. Você pode substituir essa versão, continuar usando a antiga ou salvar a nova no outro espaço de guitarra.`
+    : `${instrumentLabel} já possui uma cifra de ${pageContext.song}. Escolha se deseja substituí-la pela página atual ou continuar usando a versão antiga.`;
+  elements.useNewCifraButton.textContent = "SUBSTITUIR CIFRA";
+  elements.useExistingCifraButton.textContent = "MANTER ANTIGA";
+  elements.useBothCifrasButton.textContent = "ADICIONAR COMO SEGUNDA GUITARRA";
+  elements.useBothCifrasButton.classList.toggle("hidden", !allowSecondGuitar);
+  elements.cifraChoiceDialog.classList.remove("hidden");
+
+  return new Promise((resolve) => {
+    const finish = (choice) => {
+      elements.cifraChoiceDialog.classList.add("hidden");
+      elements.useNewCifraButton.onclick = null;
+      elements.useExistingCifraButton.onclick = null;
+      elements.useBothCifrasButton.onclick = null;
+      resolve(choice);
+    };
+    elements.useNewCifraButton.onclick = () => finish("replace");
+    elements.useExistingCifraButton.onclick = () => finish("keep");
+    elements.useBothCifrasButton.onclick = () => finish("second");
+  });
 }
 
 async function collectScrapedDocsForConfirmedInstruments(session, pageContext) {
   const confirmedInstrumentLinks = getConfirmedInstrumentLinks();
   const entries = Object.entries(confirmedInstrumentLinks);
   const scrapedDocsByInstrument = {};
+  const dualGuitarAssignments = [];
 
   for (const [instrumentName, link] of entries) {
     setNotice(
       `Buscando dados de ${getInstrumentDisplayName(instrumentName)}...`,
     );
 
-    let scrapedDoc = null;
+    let existingDoc = null;
     try {
-      scrapedDoc = await fetchExistingSongDoc(session, pageContext, {
+      existingDoc = await fetchExistingSongDoc(session, pageContext, {
         instrumentName,
         link,
       });
     } catch (lookupError) {
-      debugError(
-        `Existing song lookup failed for ${instrumentName}`,
-        lookupError,
-      );
+      debugError(`Existing song lookup failed for ${instrumentName}`, lookupError);
     }
 
-    if (!scrapedDoc) {
+    let alternateGuitarAvailable = false;
+    if (existingDoc && isGuitarInstrument(instrumentName)) {
+      const alternateInstrument = getAlternateGuitarInstrument(instrumentName);
+      const alternateExistingDoc = await fetchExistingSongDoc(session, pageContext, {
+        instrumentName: alternateInstrument,
+        link,
+      }).catch((lookupError) => {
+        debugError(`Alternate guitar lookup failed for ${alternateInstrument}`, lookupError);
+        return null;
+      });
+      alternateGuitarAvailable = !alternateExistingDoc;
+    }
+
+    const choice = existingDoc
+      ? await chooseCifraVersion(instrumentName, pageContext, {
+          alternateGuitarAvailable,
+        })
+      : "replace";
+    let targetInstrument = instrumentName;
+    let scrapedDoc = choice === "keep" ? existingDoc : null;
+
+    if (choice === "second") {
+      targetInstrument = getAlternateGuitarInstrument(instrumentName);
+      state.selectedInstrument = targetInstrument;
+      state.instrumentTouched = true;
+      if (elements.instrumentSelect) {
+        elements.instrumentSelect.value = targetInstrument;
+      }
+      syncInstrumentSetlistTags();
+      renderSetlistTags();
+    }
+
+    if (choice !== "keep") {
       try {
         scrapedDoc = await scrapeSong(session, pageContext, {
-          instrumentName,
+          instrumentName: targetInstrument,
           link,
         });
       } catch (scrapeError) {
-        debugError(`Scrape failed for ${instrumentName}`, scrapeError);
-        scrapedDoc = null;
+        debugError(`Scrape failed for ${targetInstrument}`, scrapeError);
+        if (choice === "second") {
+          throw new Error(
+            "Não foi possível importar a nova cifra para a segunda guitarra. A guitarra existente foi preservada.",
+          );
+        }
+        if (existingDoc) scrapedDoc = existingDoc;
       }
     }
 
     const docWithFallback = withPageLyricsFallback(
       scrapedDoc,
-      instrumentName,
+      targetInstrument,
       pageContext,
     );
 
     if (docWithFallback) {
-      scrapedDocsByInstrument[instrumentName] = {
+      scrapedDocsByInstrument[targetInstrument] = {
         ...docWithFallback,
         link: cleanText(docWithFallback.link) || link,
       };
     }
+
+    if (choice === "second" && existingDoc && scrapedDoc) {
+      scrapedDocsByInstrument[instrumentName] = existingDoc;
+      dualGuitarAssignments.push({ existingInstrument: instrumentName, newInstrument: targetInstrument });
+    }
   }
 
-  return scrapedDocsByInstrument;
+  return { scrapedDocsByInstrument, dualGuitarAssignments };
+}
+
+function applyDualGuitarAssignments(payload, scrapedDocsByInstrument, assignments) {
+  assignments.forEach(({ existingInstrument, newInstrument }) => {
+    [existingInstrument, newInstrument].forEach((instrumentName) => {
+      const doc = scrapedDocsByInstrument[instrumentName];
+      const cifra = getPresentationSourceText(doc);
+      payload.userdata.instruments[instrumentName] = true;
+      payload.userdata[instrumentName] = {
+        ...emptyInstrument,
+        active: true,
+        capo: cleanText(doc?.capo),
+        link: cleanText(doc?.link || state.pageContext.link),
+        progress: 0,
+        songCifra: doc?.songCifra || "",
+        songTabs: doc?.songTabs || "",
+        songChords: doc?.songChords || "",
+        songLyrics: doc?.songLyrics || "",
+        presentationLayouts: doc?.presentationLayouts || (cifra.trim() ? buildInitialPresentationLayouts(cifra) : undefined),
+        tuning: cleanText(doc?.tuning),
+      };
+    });
+    payload.userdata.setlist = Array.from(new Set([
+      ...(payload.userdata.setlist || []),
+      getInstrumentSetlistTag(existingInstrument),
+      getInstrumentSetlistTag(newInstrument),
+    ].filter(Boolean)));
+  });
+  return payload;
+}
+
+function preserveUnchangedInstrumentPayloads(payload) {
+  const songData = payload?.userdata;
+  if (!songData) return payload;
+
+  Object.keys(getEmptyInstrumentsMap()).forEach((instrumentName) => {
+    const isActiveInThisSave = songData.instruments?.[instrumentName] === true;
+    if (isActiveInThisSave) return;
+
+    // Missing means "do not change". Sending an empty/false block means
+    // "remove", which is not an operation offered by Quick Add.
+    delete songData[instrumentName];
+    delete songData.instruments?.[instrumentName];
+  });
+
+  return payload;
 }
 
 function buildSongPayload(
@@ -1611,7 +1689,7 @@ function buildSongPayload(
   );
 
   return {
-    databaseComing: getDestinationConfig().database,
+    databaseComing: SUSTENIDO_DATABASE,
     collectionComing: "data",
     userdata: {
       song: mergedSong,
@@ -1737,7 +1815,8 @@ async function attachSelectedGuitarPro(session, payload) {
 }
 
 function shouldAutoCloseAfterProcess(session) {
-  return cleanText(session?.email).toLowerCase() !== ADMIN_DESTINATION_EMAIL;
+  if (extensionApi?.sidePanel) return false;
+  return Boolean(session);
 }
 
 function scheduleAutoCloseAfterProcess(session) {
@@ -1752,7 +1831,6 @@ async function ensureSession() {
   const accessToken = storage.accessToken;
   const email = storage.email;
   state.sessionEmail = email;
-  renderDestinationControls(email);
 
   if (!accessToken || !email) {
     showLogin();
@@ -1776,7 +1854,6 @@ async function loadSongView(session) {
   setStatus("Carregando página...");
   hideFinalMessage();
   state.sessionEmail = session.email;
-  renderDestinationControls(session.email);
   state.selectedSetlists = [];
   state.managedInstrumentTags = [];
   state.instrumentTouched = false;
@@ -1825,12 +1902,6 @@ elements.loginForm.addEventListener("submit", async (event) => {
     const password = elements.passwordInput.value;
     state.sessionEmail = email;
 
-    if (!isAdminDestinationUser(email)) {
-      state.destination = DEFAULT_DESTINATION;
-      await writeStoredDestination(DEFAULT_DESTINATION);
-    }
-
-    renderDestinationControls(email);
     const loginData = await loginRequest(email, password);
 
     const nextSession = {
@@ -1846,21 +1917,6 @@ elements.loginForm.addEventListener("submit", async (event) => {
     debugError("Login flow failed", error);
     setStatus(error.message || "Login failed.");
   }
-});
-
-elements.emailInput.addEventListener("input", () => {
-  renderDestinationControls(elements.emailInput.value);
-});
-
-elements.destinationInputs.forEach((input) => {
-  input.addEventListener("change", async () => {
-    if (!input.checked) return;
-
-    await setDestination(input.value, {
-      email: state.sessionEmail || elements.emailInput.value,
-      clearSession: true,
-    });
-  });
 });
 
 elements.progressInput.addEventListener("input", () => {
@@ -1938,7 +1994,7 @@ elements.saveButton.addEventListener("click", async () => {
   setNotice("Buscando dados da cifra...");
 
   try {
-    const scrapedDocsByInstrument =
+    const { scrapedDocsByInstrument, dualGuitarAssignments } =
       await collectScrapedDocsForConfirmedInstruments(
         session,
         freshPageContext,
@@ -1947,10 +2003,16 @@ elements.saveButton.addEventListener("click", async () => {
       scrapedDocsByInstrument[getSelectedInstrument()] ||
       Object.values(scrapedDocsByInstrument)[0] ||
       null;
-    const payload = buildSongPayload(
-      session.email,
-      scrapedDoc,
-      scrapedDocsByInstrument,
+    const payload = preserveUnchangedInstrumentPayloads(
+      applyDualGuitarAssignments(
+        buildSongPayload(
+          session.email,
+          scrapedDoc,
+          scrapedDocsByInstrument,
+        ),
+        scrapedDocsByInstrument,
+        dualGuitarAssignments,
+      ),
     );
     setNotice("Salvando cifra...");
     await saveSong(payload, session);
@@ -2005,10 +2067,9 @@ elements.logoutButton.addEventListener("click", async () => {
 async function boot() {
   renderExtensionVersion();
   setStatus("");
-  state.destination = await readStoredDestination();
   const storedSession = await readSessionState();
   state.sessionEmail = storedSession.email;
-  renderDestinationControls(storedSession.email || elements.emailInput.value);
+  elements.logoutButton?.classList.toggle("hidden", !storedSession.email);
   const initialPageContext = await getPageContext();
   if (!initialPageContext.compatible) {
     showUnavailableSite();
@@ -2026,3 +2087,26 @@ async function boot() {
 }
 
 boot();
+
+let activeTabRefreshTimer = null;
+
+async function refreshSidePanelContext() {
+  clearTimeout(activeTabRefreshTimer);
+  activeTabRefreshTimer = setTimeout(async () => {
+    const pageContext = await getPageContext();
+    renderPageContext(pageContext);
+    if (!pageContext.compatible) {
+      showUnavailableSite();
+      return;
+    }
+    const session = await ensureSession();
+    if (session) await loadSongView(session);
+  }, 180);
+}
+
+extensionApi.tabs?.onActivated?.addListener(refreshSidePanelContext);
+extensionApi.tabs?.onUpdated?.addListener((_tabId, changeInfo, tab) => {
+  if (tab?.active && (changeInfo.status === "complete" || changeInfo.url)) {
+    refreshSidePanelContext();
+  }
+});

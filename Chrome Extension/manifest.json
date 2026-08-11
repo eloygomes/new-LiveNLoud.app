@@ -1,16 +1,16 @@
 {
   "manifest_version": 3,
   "name": "#Sustenido Quick Add",
-  "version": "0.63.6.1",
+  "version": "0.65.1.1",
   "description": "Add the current song page to #Sustenido from the browser toolbar.",
   "permissions": [
     "storage",
     "tabs",
-    "scripting"
+    "scripting",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://api.sustenido.eloygomes.com/*",
-    "https://api.live.eloygomes.com/*",
     "https://www.cifraclub.com.br/*",
     "https://cifraclub.com.br/*",
     "https://www.cifralub.com.br/*",
@@ -25,13 +25,18 @@
   ],
   "action": {
     "default_title": "#Sustenido Quick Add",
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
   },
   "icons": {
     "16": "icons/icon16.png",

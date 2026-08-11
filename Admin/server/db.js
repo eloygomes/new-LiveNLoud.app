@@ -135,6 +135,13 @@ export function getTargetDb() {
   return targetDatabase;
 }
 
+export function getGeneralCifrasDb() {
+  if (!targetClient) {
+    throw new Error("Target database not connected");
+  }
+  return targetClient.db(process.env.GENERAL_CIFRAS_DB_NAME || "generalCifras");
+}
+
 export async function closeDb() {
   if (adminClient) {
     await adminClient.close();

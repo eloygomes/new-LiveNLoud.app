@@ -36,6 +36,13 @@ describe("Metronome responsive layouts", () => {
         name: "Metronome practice illustration",
       }),
     ).toBeInTheDocument();
+    const bpmPanel = screen.getByTestId("tablet-bpm-panel");
+    expect(bpmPanel).toHaveAttribute("data-beat-active", "false");
+    expect(screen.queryByRole("img", { name: /tempo pulse/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Focus timer controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Volume controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tempo range controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Playback controls")).toBeInTheDocument();
     expect(screen.getByRole("slider", { name: "Metronome volume" })).toBeInTheDocument();
     expect(
       screen.getByRole("slider", { name: "Tempo in beats per minute" }),
@@ -71,7 +78,33 @@ describe("Metronome responsive layouts", () => {
 
     expect(screen.queryByTestId("tablet-tool-shell")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Keep The Pulse" }),
+      screen.getByRole("heading", { name: "Keep the pulse." }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("smartphone-bpm-panel")).toHaveAttribute(
+      "data-beat-active",
+      "false",
+    );
+  });
+
+  it("renders the editorial desktop metronome cockpit", () => {
+    setViewport(1440, 1000);
+
+    render(<Metronome />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Build a steadier internal clock.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("desktop-bpm-panel")).toHaveAttribute(
+      "data-beat-active",
+      "false",
+    );
+    const tempoSlider = screen.getByRole("slider", {
+      name: "Tempo in beats per minute",
+    });
+    expect(tempoSlider).toHaveValue("120");
+    expect(tempoSlider).toHaveAttribute("max", "300");
+    expect(screen.getByText("Compare every complete take.")).toBeInTheDocument();
   });
 });

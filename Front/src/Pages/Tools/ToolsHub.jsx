@@ -77,7 +77,7 @@ export default function ToolsHub() {
   if (isTabletLayout) {
     return (
       <div className="tools-hub-viewport overflow-y-auto overflow-x-hidden bg-[#f0f0f0] px-5 py-5 overscroll-contain">
-        <div className="flex min-h-full w-full min-w-0 flex-col gap-5">
+        <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-4">
           <section className="neuphormism-b grid shrink-0 cursor-default grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-[24px] px-7 py-5">
             <div className="min-w-0">
               <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[goldenrod]">
@@ -114,9 +114,8 @@ export default function ToolsHub() {
           </section>
 
           <section
-            className="grid min-h-[50rem] flex-1 grid-cols-2 gap-4"
+            className="grid min-h-0 flex-1 grid-cols-2 grid-rows-3 gap-4"
             aria-label="Practice tools"
-            style={{ gridTemplateRows: "repeat(3, minmax(16rem, 1fr))" }}
           >
             {TOOL_LINKS.map((tool, index) => {
               const Icon = tool.icon;

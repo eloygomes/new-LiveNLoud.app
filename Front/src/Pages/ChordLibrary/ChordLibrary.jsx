@@ -1,4 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  FaArrowDownLong,
+  FaChevronDown,
+  FaCircleHalfStroke,
+  FaLayerGroup,
+  FaMusic,
+} from "react-icons/fa6";
 import ChordShapeData from "./ChordShapeData.json";
 import ChordDisplay from "./ChordDisplay";
 import TabletToolShell from "../../components/TabletToolShell";
@@ -313,7 +320,7 @@ function SelectionBadge({ label, value }) {
 
 function MobileSelectField({ label, value, options, onChange }) {
   return (
-    <label className="flex min-w-0 flex-1 flex-col gap-1">
+    <label className="flex min-w-0 flex-1 flex-col gap-2 rounded-[14px] bg-white/65 p-3 shadow-[0_7px_18px_rgba(0,0,0,0.045)]">
       <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#697180]">
         {label}
       </span>
@@ -339,15 +346,27 @@ function TabletSelectorSection({
   options,
   onSelect,
   columns = 4,
+  compact = false,
+  dense = false,
 }) {
   return (
-    <section className="rounded-[18px] border border-black/[0.045] bg-white/65 p-4 shadow-[0_8px_20px_rgba(0,0,0,0.045)]">
+    <section
+      className={`rounded-[18px] border border-black/[0.045] bg-white/65 shadow-[0_8px_20px_rgba(0,0,0,0.045)] ${
+        dense ? "p-2.5" : compact ? "p-3" : "p-4"
+      }`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-black">
             {title}
           </h3>
-          <p className="mt-1 text-[11px] font-semibold leading-[1rem] text-gray-500">
+          <p
+            className={`mt-1 font-semibold text-gray-500 ${
+              compact
+                ? "text-[10px] leading-[0.85rem]"
+                : "text-[11px] leading-[1rem]"
+            }`}
+          >
             {description}
           </p>
         </div>
@@ -356,7 +375,7 @@ function TabletSelectorSection({
         </span>
       </div>
       <div
-        className="mt-3 grid gap-2"
+        className={`grid ${dense ? "mt-1.5 gap-1.5" : compact ? "mt-2 gap-2" : "mt-3 gap-2"}`}
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {options.map((option) => (
@@ -364,7 +383,13 @@ function TabletSelectorSection({
             key={option}
             type="button"
             aria-pressed={value === option}
-            className={`flex min-h-11 min-w-0 items-center justify-center rounded-[11px] px-2 py-2 text-[10px] font-bold uppercase tracking-[0.08em] transition active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod] ${
+            className={`flex min-w-0 items-center justify-center rounded-[11px] px-2 text-[10px] font-bold uppercase tracking-[0.08em] transition active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[goldenrod] ${
+              dense
+                ? "min-h-8 py-1"
+                : compact
+                  ? "min-h-9 py-1.5"
+                  : "min-h-11 py-2"
+            } ${
               value === option
                 ? "bg-[goldenrod] text-black shadow-[0_8px_16px_rgba(218,165,32,0.22)]"
                 : "bg-[#efefef] text-gray-600 shadow-[3px_3px_8px_rgba(190,190,190,0.42),-3px_-3px_8px_rgba(255,255,255,0.86)]"
@@ -383,13 +408,20 @@ function ChordLibrary() {
   const isCompactLayout = useCompactAppLayout();
   const viewportWidth =
     typeof window === "undefined" ? 1280 : window.innerWidth;
+  const viewportHeight =
+    typeof window === "undefined" ? 900 : window.innerHeight;
   const isTouchLayout = isCompactLayout && viewportWidth < 768;
   const isTabletLayout = isCompactLayout && viewportWidth >= 768;
+  const isDesktopLayout = !isCompactLayout && viewportWidth >= 768;
+  const isIpadMiniLayout =
+    isTabletLayout && viewportWidth <= 768 && viewportHeight <= 1024;
+  const useCondensedSelectors = isIpadMiniLayout || isDesktopLayout;
   const [root, setRoot] = useState(roots[0] || "C");
   const [mode, setMode] = useState("Major");
   const [quality, setQuality] = useState("None");
   const [bass, setBass] = useState("None");
   const [variationIndex, setVariationIndex] = useState(0);
+  const [activeMobileSelector, setActiveMobileSelector] = useState(null);
 
   useEffect(() => {
     setVariationIndex(0);
@@ -427,7 +459,7 @@ function ChordLibrary() {
     setVariationIndex((current) => (current + 1) % variations.length);
   };
 
-  if (isTabletLayout) {
+  if (!isTouchLayout) {
     const guideNotes = chordNotes.length
       ? chordNotes
       : [
@@ -437,6 +469,7 @@ function ChordLibrary() {
 
     return (
       <TabletToolShell
+        compactHeader
         title="Build voicings that serve the song."
         description="Choose the harmonic foundation, compare practical fingerings and understand how each bass note changes the shape before you start playing."
         artIndex={1}
@@ -446,35 +479,36 @@ function ChordLibrary() {
           `${root} root`,
           bass === "None" ? "Root position" : `${bass} in the bass`,
         ]}
-        contentClassName="grid grid-cols-[minmax(22rem,0.92fr)_minmax(0,1.38fr)] gap-5 overflow-hidden"
+        contentClassName={`grid min-h-0 overflow-hidden ${
+          isDesktopLayout ? "gap-3" : "gap-4"
+        } ${
+          isIpadMiniLayout
+            ? "grid-rows-[minmax(0,1fr)]"
+            : isDesktopLayout
+              ? "grid-rows-[minmax(0,1fr)]"
+              : "grid-rows-[minmax(0,1fr)_auto]"
+        }`}
       >
-        <aside className="neuphormism-b flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] p-5">
+        <div className={`grid min-h-0 grid-cols-[minmax(18rem,0.72fr)_minmax(0,1.48fr)] overflow-hidden ${isDesktopLayout ? "gap-3" : "gap-4"}`}>
+        <aside aria-label="Chord builder controls" data-condensed={useCondensedSelectors ? "true" : "false"} className={`neuphormism-b flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] ${isDesktopLayout ? "p-3" : "p-4"}`}>
           <div className="shrink-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
               Shape builder
             </p>
-            <div className="mt-2 flex items-end justify-between gap-4">
+            <div className="mt-2">
               <div>
-                <h2 className="text-[1.35rem] font-bold leading-none text-black">
+                <h2 className={`${isDesktopLayout ? "text-[1.15rem]" : "text-[1.35rem]"} font-bold leading-none text-black`}>
                   Design the chord
                 </h2>
-                <p className="mt-2 max-w-[30rem] text-[12px] font-semibold leading-[1.1rem] text-gray-500">
+                <p className={`${isDesktopLayout ? "mt-1.5 text-[10px] leading-[0.9rem]" : "mt-2 text-[12px] leading-[1.1rem]"} max-w-[30rem] font-semibold text-gray-500`}>
                   Start with the root, define its character, then add color or
                   choose a specific lowest note.
                 </p>
               </div>
-              <div className="rounded-[14px] bg-black px-3 py-2 text-center text-white">
-                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[goldenrod]">
-                  Current
-                </div>
-                <div className="mt-1 text-[1.05rem] font-bold leading-none">
-                  {chordLabel}
-                </div>
-              </div>
             </div>
           </div>
 
-          <div className="mt-4 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden">
+          <div className={`flex min-h-0 flex-1 flex-col pr-1 ${isDesktopLayout ? "mt-3 gap-2 overflow-hidden" : "mt-4 gap-3 overflow-y-auto overscroll-contain"}`}>
             <TabletSelectorSection
               title="Root"
               description="The note everything is built around."
@@ -482,6 +516,8 @@ function ChordLibrary() {
               options={roots}
               onSelect={setRoot}
               columns={4}
+              compact={useCondensedSelectors}
+              dense={isDesktopLayout}
             />
             <TabletSelectorSection
               title="Character"
@@ -490,6 +526,8 @@ function ChordLibrary() {
               options={majorMinorOptions}
               onSelect={setMode}
               columns={2}
+              compact={useCondensedSelectors}
+              dense={isDesktopLayout}
             />
             <TabletSelectorSection
               title="Color"
@@ -498,6 +536,8 @@ function ChordLibrary() {
               options={qualityOptions}
               onSelect={setQuality}
               columns={4}
+              compact={useCondensedSelectors}
+              dense={isDesktopLayout}
             />
             <TabletSelectorSection
               title="Bass note"
@@ -506,11 +546,13 @@ function ChordLibrary() {
               options={bassOptions}
               onSelect={setBass}
               columns={4}
+              compact={useCondensedSelectors}
+              dense={isDesktopLayout}
             />
           </div>
         </aside>
 
-        <section className="neuphormism-b grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-[24px] p-5">
+        <section data-testid="tablet-chord-shape-panel" className={`neuphormism-b grid h-full min-h-0 overflow-hidden rounded-[24px] p-4 ${isDesktopLayout ? "grid-rows-[auto_minmax(0,1fr)_auto_auto]" : "grid-rows-[auto_minmax(0,1fr)_auto]"}`}>
           <div className="flex shrink-0 items-center justify-between gap-5 rounded-[18px] bg-white/65 px-5 py-4">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
@@ -541,44 +583,13 @@ function ChordLibrary() {
             </div>
           </div>
 
-          <div className="grid min-h-0 grid-cols-[minmax(19rem,1.12fr)_minmax(14rem,0.88fr)] gap-4 py-4">
-            <div className="flex min-h-0 items-center justify-center overflow-hidden rounded-[20px] bg-white/70 p-3">
+          <div className="flex min-h-0 items-center justify-center overflow-hidden py-3">
+            <div className="flex h-full w-full min-h-0 items-center justify-center overflow-hidden rounded-[20px] bg-white/70 p-3">
               <ChordDisplay
                 fingering={fingering}
                 chordName={chordLabel}
                 size={300}
               />
-            </div>
-
-            <div className="flex min-h-0 flex-col gap-3">
-              <div className="rounded-[18px] bg-black p-4 text-white">
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
-                  Playing guide
-                </p>
-                <h3 className="mt-2 text-[1rem] font-bold leading-tight">
-                  Make every note intentional.
-                </h3>
-                <p className="mt-2 text-[11px] font-semibold leading-[1.05rem] text-white/70">
-                  Dots show finger placement, O means an open string and X means
-                  that string should stay silent.
-                </p>
-              </div>
-
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-[18px] bg-white/70 p-4 overscroll-contain">
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
-                  About this shape
-                </p>
-                <div className="mt-3 space-y-3">
-                  {guideNotes.map((note) => (
-                    <div key={note} className="flex gap-3">
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[goldenrod]" />
-                      <p className="text-[11px] font-semibold leading-[1.05rem] text-gray-600">
-                        {note}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -596,13 +607,291 @@ function ChordLibrary() {
               ? `Compare next voicing · ${safeVariationIndex + 1} of ${variations.length}`
               : "This chord has one available voicing"}
           </button>
+
+          {isDesktopLayout ? (
+            <div className="mt-2 grid grid-cols-[minmax(15rem,0.72fr)_minmax(0,1.28fr)] gap-2">
+              <div className="rounded-[14px] bg-black px-3.5 py-2.5 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[goldenrod]">
+                      Playing guide
+                    </p>
+                    <p className="mt-1 text-[11px] font-bold leading-none">
+                      Make every note intentional.
+                    </p>
+                  </div>
+                  <p className="text-[9px] font-semibold leading-[0.8rem] text-white/65">
+                    Dots mark fingers, O means open and X means silent.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-[14px] bg-white/70 px-3.5 py-2.5">
+                <div className="flex items-center gap-4">
+                  <p className="shrink-0 text-[8px] font-bold uppercase tracking-[0.16em] text-gray-500">
+                    About this shape
+                  </p>
+                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-3">
+                    {guideNotes.map((note) => (
+                      <p
+                        key={note}
+                        className="line-clamp-2 text-[8px] font-semibold leading-[0.72rem] text-gray-600"
+                      >
+                        {note}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
+        </div>
+
+        {!isIpadMiniLayout && !isDesktopLayout ? (
+        <section aria-label="Playing guides" className="neuphormism-b grid shrink-0 grid-cols-[minmax(15rem,0.62fr)_minmax(0,1.38fr)] gap-3 rounded-[22px] p-3">
+          <div className="rounded-[16px] bg-black px-4 py-3 text-white">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+              Playing guide
+            </p>
+            <div className="mt-1.5 flex items-center gap-3">
+              <h3 className="shrink-0 text-[0.95rem] font-bold leading-tight">
+                Make every note intentional.
+              </h3>
+              <p className="text-[10px] font-semibold leading-[0.95rem] text-white/70">
+                Dots show finger placement, O means open and X means silent.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[16px] bg-white/70 px-4 py-3">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              About this shape
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-x-5 gap-y-2">
+              {guideNotes.map((note) => (
+                <div key={note} className="flex min-w-0 gap-2.5">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[goldenrod]" />
+                  <p className="text-[10px] font-semibold leading-[0.95rem] text-gray-600">
+                    {note}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+        ) : null}
       </TabletToolShell>
     );
   }
 
+  if (isTouchLayout) {
+    const mobileSelectors = [
+      {
+        id: "root",
+        label: "Root",
+        value: root,
+        options: roots,
+        onSelect: setRoot,
+        icon: FaMusic,
+      },
+      {
+        id: "mode",
+        label: "Mode",
+        value: mode,
+        options: majorMinorOptions,
+        onSelect: setMode,
+        icon: FaCircleHalfStroke,
+      },
+      {
+        id: "quality",
+        label: "Quality",
+        value: quality,
+        options: qualityOptions,
+        onSelect: setQuality,
+        icon: FaLayerGroup,
+      },
+      {
+        id: "bass",
+        label: "Bass",
+        value: bass,
+        options: bassOptions,
+        onSelect: setBass,
+        icon: FaArrowDownLong,
+      },
+    ];
+    const openSelector = mobileSelectors.find(
+      (selector) => selector.id === activeMobileSelector,
+    );
+
+    return (
+      <main className="min-h-screen bg-[#efefef] px-3 pb-28 pt-3">
+        <section className="overflow-hidden rounded-[22px] bg-white/75 shadow-[0_10px_26px_rgba(0,0,0,0.07)]">
+          <div className="border-b border-black/[0.05] px-4 py-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[goldenrod]">
+              Practice utility
+            </p>
+            <h1 className="mt-1 text-[1.45rem] font-bold leading-none tracking-[-0.035em] text-black">
+              Shape the harmony
+            </h1>
+            <p className="mt-2 text-[11px] font-semibold leading-[1rem] text-gray-500">
+              Build a voicing, compare its shape and take it straight into
+              practice.
+            </p>
+          </div>
+
+          <div className="p-3">
+            <div className="rounded-[18px] bg-black px-4 py-3.5 text-white">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[goldenrod]">
+                    Current chord
+                  </p>
+                  <div className="mt-1 text-[2.15rem] font-bold leading-none tracking-[-0.04em]">
+                    {chordLabel}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 text-right">
+                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-white/75">
+                    {variations.length
+                      ? `${safeVariationIndex + 1}/${variations.length}`
+                      : "0/0"}
+                  </span>
+                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-white/75">
+                    {bass === "None" ? "Root bass" : `${bass} bass`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              aria-label="Chord controls"
+              className="mt-3 grid grid-cols-4 gap-2"
+            >
+              {mobileSelectors.map((selector) => {
+                const Icon = selector.icon;
+                const isOpen = activeMobileSelector === selector.id;
+                return (
+                  <button
+                    key={selector.id}
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-label={`Choose ${selector.label.toLowerCase()}, current ${selector.value}`}
+                    onClick={() =>
+                      setActiveMobileSelector((current) =>
+                        current === selector.id ? null : selector.id,
+                      )
+                    }
+                    className={`flex aspect-square min-w-0 flex-col items-center justify-center rounded-[15px] px-1.5 py-2 text-center transition active:scale-[0.96] ${
+                      isOpen
+                        ? "bg-[goldenrod] text-black shadow-[0_9px_18px_rgba(218,165,32,0.25)]"
+                        : "bg-[#efefef] text-black shadow-[3px_3px_9px_rgba(190,190,190,0.48),-3px_-3px_9px_rgba(255,255,255,0.9)]"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span className="mt-1.5 text-[8px] font-bold uppercase tracking-[0.12em]">
+                      {selector.label}
+                    </span>
+                    <span className="mt-0.5 max-w-full truncate text-[9px] font-bold text-gray-600">
+                      {selector.value}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {openSelector ? (
+              <section
+                aria-label={`${openSelector.label} selector`}
+                className="mt-3 rounded-[18px] border border-black/[0.04] bg-white/80 p-3 shadow-[0_9px_22px_rgba(0,0,0,0.055)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+                      Choose {openSelector.label}
+                    </p>
+                    <p className="mt-1 text-[11px] font-bold text-black">
+                      Current: {openSelector.value}
+                    </p>
+                  </div>
+                  <FaChevronDown className="h-3.5 w-3.5 text-gray-500" />
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {openSelector.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={openSelector.value === option}
+                      onClick={() => {
+                        openSelector.onSelect(option);
+                        setActiveMobileSelector(null);
+                      }}
+                      className={`min-h-10 rounded-[11px] px-1.5 py-2 text-[9px] font-bold uppercase tracking-[0.06em] ${
+                        openSelector.value === option
+                          ? "bg-[goldenrod] text-black"
+                          : "bg-[#efefef] text-gray-600 shadow-[2px_2px_7px_rgba(190,190,190,0.45),-2px_-2px_7px_rgba(255,255,255,0.88)]"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="mt-3 rounded-[22px] bg-white/75 p-3 shadow-[0_10px_26px_rgba(0,0,0,0.07)]">
+          <div className="flex min-h-[17rem] items-center justify-center overflow-hidden rounded-[18px] bg-white">
+            <ChordDisplay
+              fingering={fingering}
+              chordName={chordLabel}
+              size={250}
+            />
+          </div>
+          <button
+            className={`mt-3 min-h-12 w-full rounded-[14px] px-4 text-[9px] font-bold uppercase tracking-[0.13em] ${
+              variations.length > 1
+                ? "bg-[goldenrod] text-black shadow-[0_9px_18px_rgba(218,165,32,0.24)]"
+                : "bg-[#d8d8d8] text-[#7f8794]"
+            }`}
+            type="button"
+            disabled={variations.length <= 1}
+            onClick={handleNextVariation}
+          >
+            {variations.length > 1
+              ? `Next voicing · ${safeVariationIndex + 1} of ${variations.length}`
+              : "One available voicing"}
+          </button>
+        </section>
+
+        {chordNotes.length ? (
+          <section className="mt-3 rounded-[20px] bg-white/75 p-4 shadow-[0_9px_22px_rgba(0,0,0,0.055)]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[goldenrod]">
+              About this shape
+            </p>
+            <div className="mt-2 space-y-2">
+              {chordNotes.map((note) => (
+                <div key={note} className="flex gap-2.5">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[goldenrod]" />
+                  <p className="text-[10px] font-semibold leading-[0.95rem] text-gray-600">
+                    {note}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </main>
+    );
+  }
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#efefef] px-3 pb-4 pt-3 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4">
+    <div
+      className={`min-h-screen overflow-x-hidden bg-[#efefef] px-3 pt-3 sm:px-5 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:overflow-hidden lg:px-6 lg:pb-4 ${
+        isTouchLayout ? "pb-24" : "pb-4"
+      }`}
+    >
       <div className="mx-auto w-full max-w-none">
         <div className="w-full pb-10 lg:pb-0">
           <div
@@ -639,7 +928,7 @@ function ChordLibrary() {
               Build chord
             </p>
             <div className="mt-4 grid gap-3 lg:hidden">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <MobileSelectField
                   label="Root"
                   value={root}
@@ -729,7 +1018,7 @@ function ChordLibrary() {
                 <p className="text-[13px] font-bold uppercase text-black">
                   Build chord
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <MobileSelectField
                     label="Root"
                     value={root}

@@ -383,8 +383,8 @@ async function findGeneralCifraDoc({ instrument, link, artist, song }) {
     ],
   };
 
-  let doc = await collection.findOne(byNorm);
-  if (!doc) doc = await collection.findOne(byRaw);
+  let doc = await collection.find(byNorm).sort({ _id: -1 }).limit(1).next();
+  if (!doc) doc = await collection.find(byRaw).sort({ _id: -1 }).limit(1).next();
   if (!doc && artist && song) {
     const titleCandidates = await collection
       .find({
@@ -393,6 +393,7 @@ async function findGeneralCifraDoc({ instrument, link, artist, song }) {
           { [`instruments.${inst}`]: "true" },
         ],
       })
+      .sort({ _id: -1 })
       .toArray();
     doc = titleCandidates.find(
       (candidate) =>
@@ -432,7 +433,8 @@ app.post("/api/v1/scrape", async (req, res) => {
         .json({ message: "instrument e link são obrigatórios." });
     }
 
-    // 1) evita chamar o Python quando a cifra já está no banco geral
+    // The open source URL is authoritative. A shared document is a fallback
+    // for reads, never a reason to skip collecting a newer arrangement.
     const pyPayload = {
       artist,
       song,
@@ -443,26 +445,7 @@ app.post("/api/v1/scrape", async (req, res) => {
     };
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
-    const existingGeneralDoc = await findGeneralCifraDoc({
-      instrument,
-      link: cleanLink,
-      artist,
-      song,
-    });
-
-    if (existingGeneralDoc) {
-      console.log("[SCRAPE] returning existing general document:", {
-        _id: existingGeneralDoc._id,
-        artist: existingGeneralDoc.artist,
-        song: existingGeneralDoc.song,
-      });
-      return res.status(200).json({
-        message: "Data already available",
-        document: existingGeneralDoc,
-      });
-    }
-
-    // 2) dispara o scraper Python
+    // Always run the scraper so its result can overwrite older content.
     console.time(requestLabel);
     const response = await postJson(`${pythonApiUrl}/scrape`, pyPayload);
     console.timeEnd(requestLabel);
@@ -683,6 +666,13 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
             message: `Added song "${userdata.song}" by ${userdata.artist}.`,
             meta: { song: userdata.song, artist: userdata.artist },
           });
+          await createCalendarActivity({
+            userEmail: userdata.email,
+            title: `New song: ${userdata.song}`,
+            description: `Added "${userdata.song}" by ${userdata.artist} to the library.`,
+            eventType: "song_added",
+            metadata: { song: userdata.song, artist: userdata.artist },
+          });
 
           return res.status(200).json({
             message: "Novo registro adicionado com sucesso!",
@@ -713,6 +703,13 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
           message: `Added song "${userdata.song}" by ${userdata.artist}.`,
           meta: { song: userdata.song, artist: userdata.artist },
         });
+        await createCalendarActivity({
+          userEmail: userdata.email,
+          title: `New song: ${userdata.song}`,
+          description: `Added "${userdata.song}" by ${userdata.artist} to the library.`,
+          eventType: "song_added",
+          metadata: { song: userdata.song, artist: userdata.artist },
+        });
 
         return res.status(200).json({
           message: "Dados atualizados com sucesso!",
@@ -737,6 +734,13 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
         action: "song_added",
         message: `Added song "${userdata.song}" by ${userdata.artist}.`,
         meta: { song: userdata.song, artist: userdata.artist },
+      });
+      await createCalendarActivity({
+        userEmail: userdata.email,
+        title: `New song: ${userdata.song}`,
+        description: `Added "${userdata.song}" by ${userdata.artist} to the library.`,
+        eventType: "song_added",
+        metadata: { song: userdata.song, artist: userdata.artist },
       });
 
       return res.status(201).json({
@@ -1717,11 +1721,53 @@ function serializeCalendarEvent(event = {}) {
     createdAt: event.createdAt || null,
     updatedAt: event.updatedAt || null,
     startsAt: event.startsAt || null,
+    endsAt: event.endsAt || null,
+    eventType: event.eventType || "manual",
+    metadata:
+      event.metadata && typeof event.metadata === "object" ? event.metadata : {},
     invitedUsers: Array.isArray(event.invitedUsers) ? event.invitedUsers : [],
     pendingInvitedUsers: Array.isArray(event.pendingInvitedUsers)
       ? event.pendingInvitedUsers
       : [],
   };
+}
+
+async function createCalendarActivity({
+  userEmail,
+  username = "",
+  title,
+  description = "",
+  startsAt = new Date(),
+  endsAt = null,
+  eventType,
+  metadata = {},
+}) {
+  if (!userEmail || !title || !eventType) return null;
+
+  const now = new Date();
+  const calendarEvent = {
+    title,
+    description,
+    startsAt: new Date(startsAt),
+    endsAt: endsAt ? new Date(endsAt) : null,
+    eventType,
+    metadata,
+    ownerEmail: normalizeEmail(userEmail),
+    ownerUsername: username,
+    invitedUsers: [],
+    pendingInvitedUsers: [],
+    invitedUsersText: "",
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  try {
+    const result = await calendarEventsCollection.insertOne(calendarEvent);
+    return { ...calendarEvent, _id: result.insertedId };
+  } catch (error) {
+    console.error(`Unable to create ${eventType} calendar activity:`, error);
+    return null;
+  }
 }
 
 function serializeSetlistShare(share = {}) {
@@ -3029,6 +3075,26 @@ app.put("/api/v1/invitations/:id/respond", authenticateJWT, async (req, res) => 
         message: `You are now friends with ${invitation.senderEmail}.`,
         meta: { counterpartEmail: invitation.senderEmail },
       });
+      await Promise.all([
+        createCalendarActivity({
+          userEmail: invitation.senderEmail,
+          username: senderUser?.usernameDisplay || "",
+          title: "New friendship",
+          description: `You became friends with ${invitation.receiverEmail}.`,
+          startsAt: acceptedAt,
+          eventType: "friend_added",
+          metadata: { counterpartEmail: invitation.receiverEmail },
+        }),
+        createCalendarActivity({
+          userEmail: invitation.receiverEmail,
+          username: currentUser.usernameDisplay,
+          title: "New friendship",
+          description: `You became friends with ${invitation.senderEmail}.`,
+          startsAt: acceptedAt,
+          eventType: "friend_added",
+          metadata: { counterpartEmail: invitation.senderEmail },
+        }),
+      ]);
     } else {
       await addUserLog({
         userEmail: invitation.senderEmail,
@@ -3199,6 +3265,12 @@ app.post("/api/v1/calendar/events", authenticateJWT, async (req, res) => {
     const description = String(req.body?.description || "").trim();
     const startsAtRaw = req.body?.startsAt;
     const inviteInput = String(req.body?.invitedUsersText || "");
+    const eventType = String(req.body?.eventType || "manual").trim() || "manual";
+    const endsAtRaw = req.body?.endsAt;
+    const metadata =
+      req.body?.metadata && typeof req.body.metadata === "object"
+        ? req.body.metadata
+        : {};
 
     if (!title || !startsAtRaw) {
       return res
@@ -3209,6 +3281,11 @@ app.post("/api/v1/calendar/events", authenticateJWT, async (req, res) => {
     const startsAt = new Date(startsAtRaw);
     if (Number.isNaN(startsAt.getTime())) {
       return res.status(400).json({ message: "Data do evento inválida." });
+    }
+
+    const endsAt = endsAtRaw ? new Date(endsAtRaw) : null;
+    if (endsAt && (Number.isNaN(endsAt.getTime()) || endsAt < startsAt)) {
+      return res.status(400).json({ message: "Data final do evento inválida." });
     }
 
     const invitedEmails = extractEmails(inviteInput);
@@ -3240,6 +3317,9 @@ app.post("/api/v1/calendar/events", authenticateJWT, async (req, res) => {
       title,
       description,
       startsAt,
+      endsAt,
+      eventType,
+      metadata,
       ownerEmail: currentUser.email,
       ownerUsername: currentUser.usernameDisplay,
       invitedUsers: [],
@@ -4630,16 +4710,12 @@ app.get("/api/v1/generalCifra", async (req, res) => {
       ],
     };
 
-    let doc = await collection.findOne(filter);
-    if (!doc) doc = await collection.findOne(fallback);
+    let doc = await collection.find(filter).sort({ _id: -1 }).limit(1).next();
+    if (!doc) doc = await collection.find(fallback).sort({ _id: -1 }).limit(1).next();
     if (!doc && artist && song) {
       const titleCandidates = await collection
-        .find({
-          $or: [
-            { [`instruments.${instrument}`]: true },
-            { [`instruments.${instrument}`]: "true" },
-          ],
-        })
+        .find({})
+        .sort({ _id: -1 })
         .toArray();
       doc = titleCandidates.find(
         (candidate) =>

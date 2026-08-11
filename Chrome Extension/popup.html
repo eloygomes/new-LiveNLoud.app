@@ -14,26 +14,11 @@
           <p class="eyebrow">#Sustenido</p>
           <h1>QUICK ADD</h1>
         </div>
-        <span id="versionBadge" class="version-badge"></span>
-      </header>
-
-      <section id="destinationCard" class="destination-card">
-        <div>
-          <span>Destino ativo</span>
-          <strong id="destinationLabel">Sustenido</strong>
+        <div class="header-session">
+          <span id="versionBadge" class="version-badge"></span>
+          <button id="logoutButton" class="header-logout hidden" type="button">LOGOFF</button>
         </div>
-        <fieldset id="destinationToggle" class="destination-toggle hidden">
-          <legend>Escolher destino</legend>
-          <label>
-            <input type="radio" name="destination" value="sustenido" checked />
-            <span>Sustenido</span>
-          </label>
-          <label>
-            <input type="radio" name="destination" value="live" />
-            <span>Live</span>
-          </label>
-        </fieldset>
-      </section>
+      </header>
 
       <section id="statusCard" class="neumorphism status-card">
         <span class="status-dot" aria-hidden="true"></span>
@@ -171,14 +156,30 @@
 
         <footer class="session-bar">
           <p><span>Connected as</span><strong id="userBadge"></strong></p>
-          <button id="logoutButton" class="ghost-button compact-button" type="button">Logout</button>
         </footer>
       </section>
 
       <section id="successView" class="state-view hidden">
-        <div class="neumorphism state-card">
-          <div class="state-icon success" aria-hidden="true">✓</div>
-          <h2 id="finalMessage">Cifra adicionada com sucesso</h2>
+        <div id="finalStateCard" class="final-state-card is-success">
+          <div id="finalIcon" class="final-state-icon" aria-hidden="true">✓</div>
+          <p id="finalEyebrow" class="eyebrow accent">IMPORTAÇÃO CONCLUÍDA</p>
+          <h2 id="finalTitle">Tudo certo!</h2>
+          <p id="finalMessage" class="final-state-message">Cifra adicionada com sucesso</p>
+          <div class="final-state-rule" aria-hidden="true"></div>
+          <p id="finalHint" class="final-state-hint">Você pode continuar navegando. O Quick Add acompanhará a aba ativa.</p>
+        </div>
+      </section>
+
+      <section id="cifraChoiceDialog" class="choice-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="cifraChoiceTitle">
+        <div class="neumorphism choice-dialog">
+          <p class="eyebrow accent">CIFRA ENCONTRADA</p>
+          <h2 id="cifraChoiceTitle">Qual versão deseja usar?</h2>
+          <p id="cifraChoiceDescription" class="choice-description"></p>
+          <div class="choice-actions">
+            <button id="useNewCifraButton" class="primary-button" type="button">SUBSTITUIR CIFRA</button>
+            <button id="useExistingCifraButton" class="ghost-button" type="button">MANTER ANTIGA</button>
+            <button id="useBothCifrasButton" class="ghost-button hidden" type="button">ADICIONAR COMO SEGUNDA GUITARRA</button>
+          </div>
         </div>
       </section>
     </main>
