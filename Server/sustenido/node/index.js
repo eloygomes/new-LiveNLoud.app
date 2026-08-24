@@ -404,12 +404,33 @@ async function waitForGeneralCifraDoc(
 
 // Rota para chamar o serviço Python e realizar o scrape
 app.post("/api/v1/scrape", async (req, res) => {
-  console.log("[SCRAPE] called", { body: req.body });
+  console.log("[SCRAPE] called", {
+    body: {
+      ...req.body,
+      sourceContent: req.body?.sourceContent
+        ? `[structured content: ${String(req.body.sourceContent).length} chars]`
+        : undefined,
+    },
+  });
 
   try {
-    const { artist, song, instrument, email, instrument_progressbar, link } =
-      req.body;
+    const {
+      artist,
+      song,
+      instrument,
+      email,
+      instrument_progressbar,
+      link,
+      sourceContent,
+      sourceContentFormat,
+    } = req.body;
     const cleanLink = sanitizeScrapeLink(link);
+    const trustedSourceContent =
+      sourceContentFormat === "ultimate_guitar_wiki_tab" &&
+      typeof sourceContent === "string" &&
+      sourceContent.length <= 2_000_000
+        ? sourceContent
+        : "";
 
     if (!instrument || !cleanLink) {
       return res
@@ -425,6 +446,12 @@ app.post("/api/v1/scrape", async (req, res) => {
       email,
       instrument_progressbar,
       link: cleanLink,
+      ...(trustedSourceContent
+        ? {
+            source_content: trustedSourceContent,
+            source_content_format: sourceContentFormat,
+          }
+        : {}),
     };
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
@@ -570,6 +597,7 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
     if (!ownerEmail) return;
 
     userdata.email = ownerEmail;
+    userdata = await hydrateUserdataFromGeneralCifra(userdata);
 
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
@@ -4552,6 +4580,88 @@ function summarizeSongInstrumentsForDebug(song = {}) {
     };
     return summary;
   }, {});
+}
+
+function isUltimateGuitarLink(link = "") {
+  try {
+    const hostname = new URL(String(link)).hostname
+      .replace(/^www\./i, "")
+      .toLowerCase();
+    return (
+      hostname === "ultimate-guitar.com" ||
+      hostname.endsWith(".ultimate-guitar.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function instrumentBlockHasContent(block = {}) {
+  return [
+    "link",
+    "songCifra",
+    "songTabs",
+    "songChords",
+    "songLyrics",
+    "notes",
+  ].some((key) => hasStoredValue(block?.[key]));
+}
+
+/**
+ * O scrape grava primeiro em generalCifras. Para páginas do Ultimate Guitar,
+ * essa versão validada é autoritativa: assim um popup antigo ou um estado
+ * obsoleto do browser não consegue reintroduzir acordes corrompidos em
+ * /newsong logo depois do scrape.
+ */
+async function hydrateUserdataFromGeneralCifra(userdata = {}) {
+  if (!userdata?.artist || !userdata?.song) return userdata;
+
+  const hydrated = { ...userdata };
+
+  for (const instrument of SONG_INSTRUMENT_KEYS) {
+    if (isExplicitInstrumentRemoval(hydrated, instrument)) continue;
+
+    const nestedInstrumentPayload = isPlainObject(
+      hydrated.instruments?.[instrument],
+    )
+      ? hydrated.instruments[instrument]
+      : null;
+    const block = hydrated[instrument] || nestedInstrumentPayload;
+
+    if (
+      !isPlainObject(block) ||
+      !hasStoredValue(block.link) ||
+      !isUltimateGuitarLink(block.link)
+    ) {
+      continue;
+    }
+
+    const generalDoc = await findGeneralCifraDoc({
+      instrument,
+      link: block.link,
+      artist: hydrated.artist,
+      song: hydrated.song,
+    });
+    const generalBlock = generalDoc?.[instrument];
+
+    if (!isPlainObject(generalBlock) || !instrumentBlockHasContent(generalBlock)) {
+      continue;
+    }
+
+    const nextBlock = withLinkNorm(
+      mergeInstrumentBlock(block, generalBlock),
+    );
+    hydrated[instrument] = nextBlock;
+
+    if (nestedInstrumentPayload) {
+      hydrated.instruments = {
+        ...(hydrated.instruments || {}),
+        [instrument]: nextBlock,
+      };
+    }
+  }
+
+  return hydrated;
 }
 
 /** Normaliza link para comparação estável (sem http/https, sem www, minúsculo, sem barra final) */

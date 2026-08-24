@@ -32,7 +32,13 @@ def _normalize_input_url(url: str, artist: str = "", song: str = "") -> str | No
     return None
 
 
-def get_song_data(url: str, artist: str = "", song: str = ""):
+def get_song_data(
+    url: str,
+    artist: str = "",
+    song: str = "",
+    source_content: str = "",
+    source_content_format: str = "",
+):
     target_url = _normalize_input_url(url, artist, song)
     if not target_url:
         return None
@@ -44,7 +50,14 @@ def get_song_data(url: str, artist: str = "", song: str = ""):
         print(f"Unsupported source for URL: {target_url}")
         return None
 
-    song_data = scraper(target_url)
+    if source_name == "ultimate_guitar":
+        song_data = scraper(
+            target_url,
+            source_content=source_content,
+            source_content_format=source_content_format,
+        )
+    else:
+        song_data = scraper(target_url)
     if not song_data:
         return None
 

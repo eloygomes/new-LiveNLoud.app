@@ -415,6 +415,13 @@ main{
   transform: translateY(-1px);
 }
 
+/* Section labels are structural text, not chords, but use the same accent so
+   [Chorus], [Bridge], [Coda], and similar markers remain easy to scan. */
+.presentation-content-flow .presentation-section-label {
+  color: #d4a017 !important;
+  font-weight: 600;
+}
+
 .presentation-cifra-editor .presentation-editor-chord {
   cursor: text;
 }

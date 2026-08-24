@@ -50,6 +50,13 @@ const OFFLINE_SONGS_KEY = "offline:songs";
 const OFFLINE_CONTENT_ENABLED_KEY = "offline:contentEnabled";
 const OFFLINE_REAUTH_REQUIRED_KEY = "offline:reauthRequired";
 
+function notifyDashboardSongsChanged(detail = {}) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("dashboard-refresh-songs", { detail }),
+  );
+}
+
 function buildUrl(path, params) {
   const url = new URL(path, API_BASE);
   if (params) {
@@ -703,6 +710,7 @@ export const updateSongData = async (updatedData) => {
       song,
     });
     setOfflineModeEnabled(false);
+    notifyDashboardSongsChanged({ artist, song, reason: "song-updated" });
     return data;
   } catch (error) {
     console.error("Error updating song data:", error);
@@ -1618,6 +1626,7 @@ export async function syncOfflineQueue() {
   writeOfflineSyncQueue(clearSyncedMutations(nextQueue));
   if (synced > 0) {
     setOfflineModeEnabled(false);
+    notifyDashboardSongsChanged({ reason: "offline-sync" });
     setOfflineReauthRequired(false);
   }
   return { synced };
@@ -1741,6 +1750,11 @@ export async function createNewSongOnServer({
   };
 
   const resp = await fetchApi.post("/api/v1/newsong", payload);
+  notifyDashboardSongsChanged({
+    artist: artistName,
+    song: songName,
+    reason: "song-created",
+  });
   return resp.data;
 }
 
@@ -1874,6 +1888,11 @@ export async function addGeneralCifraToUser({ document, email, instrumentName })
       updateIn: new Date().toISOString().split("T")[0],
       email,
     },
+  });
+  notifyDashboardSongsChanged({
+    artist: document.artist,
+    song: document.song,
+    reason: "general-cifra-added",
   });
   return data;
 }

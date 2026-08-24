@@ -45,6 +45,10 @@ def scrape_and_store():
     instrument = data.get('instrument')
     userEmail = data.get('email')
     instrument_progressbar = data.get('instrument_progressbar')
+    source_content = data.get("source_content")
+    if not isinstance(source_content, str) or len(source_content) > 2_000_000:
+        source_content = ""
+    source_content_format = data.get("source_content_format", "")
 
     if not userEmail or not instrument:
         return jsonify({"message": "Missing required fields"}), 400
@@ -69,7 +73,13 @@ def scrape_and_store():
         }), 400
 
     try:
-        songData = get_song_data(url_to_fetch, artist=artist, song=song)
+        songData = get_song_data(
+            url_to_fetch,
+            artist=artist,
+            song=song,
+            source_content=source_content,
+            source_content_format=source_content_format,
+        )
     except Exception as err:
         print(f"[SCRAPER] source='{source_name}' error: {err}")
         return jsonify({

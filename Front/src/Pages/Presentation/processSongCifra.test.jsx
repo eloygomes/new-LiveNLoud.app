@@ -34,6 +34,41 @@ describe("processSongCifra", () => {
     expect(html.match(/class="notespresentation"/g)).toHaveLength(5);
   });
 
+  it("preserves adjacent chord names, extensions and slash bass notes exactly", () => {
+    const result = processSongCifra(
+      "[Intro]\nA  Amaj7 A  A/G#\n\n[Verse]\nDmaj7/F#   C#7\nSomething inside the cards I know is right",
+    );
+    const html = result.htmlBlocks.join("\n");
+
+    expect(html).toContain('data-chord="A"');
+    expect(html).toContain('data-chord="Amaj7"');
+    expect(html).toContain('data-chord="A/G#"');
+    expect(html).toContain('data-chord="Dmaj7/F#"');
+    expect(html).toContain('data-chord="C#7"');
+    expect(html).not.toContain("AAaA/G");
+    expect(html).not.toContain("DF#j7");
+  });
+
+  it("does not classify section words as chords", () => {
+    const result = processSongCifra("Chorus\nBridge\nCoda");
+    const html = result.htmlBlocks.join("\n");
+
+    expect(html).toContain("Chorus");
+    expect(html).toContain("Bridge");
+    expect(html).toContain("Coda");
+    expect(html).not.toContain('data-chord="Chorus"');
+    expect(html).not.toContain('data-chord="Bridge"');
+    expect(html).not.toContain('data-chord="Coda"');
+  });
+
+  it("marks bracketed section labels with the structural accent class", () => {
+    const result = processSongCifra("[Chorus]\nA E\nSing it");
+    const html = result.htmlBlocks.join("\n");
+
+    expect(html).toContain("presentation-section-label chorus");
+    expect(html).toContain(">[Chorus]</pre>");
+  });
+
   it("marks manually bracketed chords inside lyric lines", () => {
     const result = processSongCifra("Primeira Parte [F]");
     const html = result.htmlBlocks.join("\n");

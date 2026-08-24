@@ -11,8 +11,20 @@ UG_API_ENDPOINT = "https://api.ultimate-guitar.com/api/v1"
 UG_USER_AGENT = "UGT_ANDROID/4.11.1 (Pixel; 8.1.0)"
 UG_API_TIMEOUT_SECONDS = 20
 
-CHORD_TAG_RE = re.compile(r"\[ch\](.*?)\[/ch\]")
-CONTROL_TAG_RE = re.compile(r"\[/?(?:tab|c|b|i|u)\]")
+CHORD_TAG_RE = re.compile(r"\[ch\](.*?)\[/ch\]", re.IGNORECASE)
+CONTROL_TAG_RE = re.compile(r"\[/?(?:tab|c|b|i|u)\]", re.IGNORECASE)
+TAGGED_SLASH_CHORD_RE = re.compile(
+    r"\[ch\](.*?)\[/ch\]\s*/\s*\[ch\](.*?)\[/ch\]",
+    re.IGNORECASE,
+)
+TAGGED_BARE_BASS_RE = re.compile(
+    r"\[ch\](.*?)\[/ch\]\s*/\s*([A-G](?:#|b)?)(?=\s|$)",
+    re.IGNORECASE,
+)
+TRAILING_CHORD_QUALITY_RE = re.compile(
+    r"\[ch\](.*?)\[/ch\](\((?:(?:add|maj|min|sus|dim|aug|omit|no|m|M)?[0-9+#bº°-]+)\))",
+    re.IGNORECASE,
+)
 
 
 def _ug_headers() -> dict:
@@ -43,7 +55,9 @@ def _request_json(path: str, params: dict) -> dict:
 
 def _build_chord_line(chords: list[tuple[int, str]]) -> str:
     chord_line = []
-    for position, chord in chords:
+    for requested_position, chord in chords:
+        minimum_position = len(chord_line) + (1 if chord_line else 0)
+        position = max(requested_position, minimum_position)
         if len(chord_line) < position:
             chord_line.extend(" " * (position - len(chord_line)))
 
@@ -55,6 +69,27 @@ def _build_chord_line(chords: list[tuple[int, str]]) -> str:
             chord_line[position + index] = char
 
     return "".join(chord_line).rstrip()
+
+
+def _normalize_chord_markup(content: str) -> str:
+    normalized = str(content or "").replace("\r\n", "\n")
+    previous = None
+    while previous != normalized:
+        previous = normalized
+        normalized = TAGGED_SLASH_CHORD_RE.sub(
+            lambda match: (
+                f"[ch]{match.group(1).strip()}/{match.group(2).strip()}[/ch]"
+            ),
+            normalized,
+        )
+    normalized = TAGGED_BARE_BASS_RE.sub(
+        lambda match: f"[ch]{match.group(1).strip()}/{match.group(2).strip()}[/ch]",
+        normalized,
+    )
+    return TRAILING_CHORD_QUALITY_RE.sub(
+        lambda match: f"[ch]{match.group(1).strip()}{match.group(2)}[/ch]",
+        normalized,
+    )
 
 
 def _append_chord_line(lines: list[dict], chord_line: str) -> None:
@@ -83,7 +118,7 @@ def _append_lyric_line(lines: list[dict], lyric_line: str) -> None:
 def _parse_content_lines(content: str) -> list[dict]:
     lines = []
 
-    for raw_line in content.replace("\r\n", "\n").split("\n"):
+    for raw_line in _normalize_chord_markup(content).split("\n"):
         line = CONTROL_TAG_RE.sub("", raw_line)
         if not line:
             lines.append({"type": "blank"})
@@ -156,4 +191,3 @@ def dict_from_ultimate_tab(url: str) -> json:
 def json_from_ultimate_tab(url: str) -> json:
     tab_dict = dict_from_ultimate_tab(url)
     return json.dumps(tab_dict, ensure_ascii=False)
-

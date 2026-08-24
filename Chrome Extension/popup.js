@@ -1,6 +1,6 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
-const EXTENSION_VERSION = "0.65.1.1";
+const EXTENSION_VERSION = "0.65.3.0";
 const SUSTENIDO_API_BASE = "https://api.sustenido.eloygomes.com";
 const SUSTENIDO_DATABASE = "sustenido";
 const NOT_AVAILABLE = "N/A";
@@ -53,6 +53,8 @@ const emptyPageContext = {
   tuning: "",
   lyrics: "",
   cifraText: "",
+  cifraRawContent: "",
+  cifraTextSource: "",
   guitarProFiles: [],
   defaults: {
     song: NOT_AVAILABLE,
@@ -1324,6 +1326,77 @@ function buildInitialPresentationLayouts(songCifra = "") {
   };
 }
 
+function getUltimateGuitarPageContent(
+  pageContext,
+  requestedLink,
+  instrumentName,
+) {
+  if (pageContext?.source !== "ultimate_guitar") return null;
+  if (pageContext?.cifraTextSource !== "ultimate_guitar_store") return null;
+
+  const pageLink = String(pageContext?.link || "").trim();
+  const link = String(requestedLink || pageLink).trim();
+  const songCifra = String(pageContext?.cifraText || "").trim();
+
+  // The snapshot belongs only to the tab currently open in the browser. In
+  // all-instruments mode the API may fetch other URLs, which must keep their
+  // own scraped content.
+  if (
+    !songCifra ||
+    !pageLink ||
+    normalizeLinkForApi(link) !== normalizeLinkForApi(pageLink)
+  ) {
+    return null;
+  }
+
+  const path = (() => {
+    try {
+      return new URL(link).pathname.toLowerCase();
+    } catch {
+      return link.toLowerCase();
+    }
+  })();
+  const isTabContent =
+    instrumentName === "bass" ||
+    instrumentName === "drums" ||
+    /-(?:tab|tabs|bass|drums)-\d+(?:\/|$)/.test(path);
+
+  return {
+    songCifra,
+    songTabs: isTabContent ? songCifra : "",
+    songChords: isTabContent ? "" : songCifra,
+    // Ultimate Guitar is imported as a cifra/tab. Separate lyrics remain
+    // reserved for sources that explicitly support lyric extraction.
+    songLyrics: "",
+    presentationLayouts: buildInitialPresentationLayouts(songCifra),
+  };
+}
+
+function withAuthoritativeUltimateGuitarContent(
+  scrapedDoc,
+  pageContext,
+  requestedLink,
+  instrumentName,
+) {
+  const pageContent = getUltimateGuitarPageContent(
+    pageContext,
+    requestedLink,
+    instrumentName,
+  );
+  if (!pageContent) return scrapedDoc;
+
+  return {
+    ...(scrapedDoc || {}),
+    artist: cleanText(scrapedDoc?.artist || pageContext?.artist),
+    song: cleanText(scrapedDoc?.song || pageContext?.song),
+    capo: cleanText(scrapedDoc?.capo || pageContext?.capo),
+    tuning: cleanText(scrapedDoc?.tuning || pageContext?.tuning),
+    tom: cleanText(scrapedDoc?.tom || pageContext?.tom),
+    link: String(requestedLink || pageContext?.link || "").trim(),
+    ...pageContent,
+  };
+}
+
 async function scrapeSong(session, pageContext, options = {}) {
   const progress = getProgressValue();
   const instrumentName = options.instrumentName || getSelectedInstrument();
@@ -1344,6 +1417,14 @@ async function scrapeSong(session, pageContext, options = {}) {
         instrument_progressbar: progress,
         link,
         linkNorm: normalizeLinkForApi(link),
+        ...(pageContext?.source === "ultimate_guitar" &&
+        normalizeLinkForApi(pageContext?.link) === normalizeLinkForApi(link) &&
+        hasText(pageContext?.cifraRawContent)
+          ? {
+              sourceContent: pageContext.cifraRawContent,
+              sourceContentFormat: "ultimate_guitar_wiki_tab",
+            }
+          : {}),
       }),
     },
   );
@@ -1355,7 +1436,12 @@ async function scrapeSong(session, pageContext, options = {}) {
     );
   }
 
-  return normalizeScrapeDoc(data, instrumentName);
+  return withAuthoritativeUltimateGuitarContent(
+    normalizeScrapeDoc(data, instrumentName),
+    pageContext,
+    link,
+    instrumentName,
+  );
 }
 
 async function fetchExistingSongDoc(session, pageContext, options = {}) {
@@ -1737,6 +1823,37 @@ async function saveSong(payload, session) {
   return data;
 }
 
+async function notifySongListsUpdated(payload) {
+  const tabs = await extensionApi.tabs.query({});
+  const supportedDashboardHosts = new Set([
+    "sustenido.eloygomes.com",
+    "admin.sustenido.eloygomes.com",
+    "localhost",
+    "127.0.0.1",
+  ]);
+  const detail = {
+    song: cleanText(payload?.userdata?.song),
+    artist: cleanText(payload?.userdata?.artist),
+  };
+
+  await Promise.allSettled(
+    tabs
+      .filter((tab) => {
+        try {
+          return Boolean(tab?.id) && supportedDashboardHosts.has(new URL(tab.url).hostname);
+        } catch {
+          return false;
+        }
+      })
+      .map((tab) =>
+        extensionApi.tabs.sendMessage(tab.id, {
+          type: "SUSTENIDO_SONGS_UPDATED",
+          detail,
+        }),
+      ),
+  );
+}
+
 function getGuitarProDownloadFileName(candidate, response) {
   const disposition = response.headers.get("content-disposition") || "";
   const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
@@ -2016,6 +2133,7 @@ elements.saveButton.addEventListener("click", async () => {
     );
     setNotice("Salvando cifra...");
     await saveSong(payload, session);
+    await notifySongListsUpdated(payload);
     const selectedGuitarPro = getSelectedGuitarProFile();
     if (selectedGuitarPro) {
       try {

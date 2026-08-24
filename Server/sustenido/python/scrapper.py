@@ -30,6 +30,9 @@ def _normalized_host(url: str) -> str:
 
 def _build_scrape_payload(data: dict) -> dict:
     link_url = sanitize_scrape_link(data.get("link"))
+    source_content = data.get("source_content")
+    if not isinstance(source_content, str) or len(source_content) > 2_000_000:
+        source_content = ""
     return {
         "artist": data.get("artist"),
         "song": data.get("song"),
@@ -38,6 +41,8 @@ def _build_scrape_payload(data: dict) -> dict:
         "instrument_progressbar": data.get("instrument_progressbar"),
         "link": link_url,
         "url_to_fetch": link_url.strip(),
+        "source_content": source_content,
+        "source_content_format": data.get("source_content_format", ""),
     }
 
 
@@ -88,6 +93,8 @@ def scrape_and_store():
             url_to_fetch,
             artist=payload["artist"],
             song=payload["song"],
+            source_content=payload["source_content"],
+            source_content_format=payload["source_content_format"],
         )
     except Exception as err:
         print(f"[SCRAPER] source='{source_name}' error: {err}")

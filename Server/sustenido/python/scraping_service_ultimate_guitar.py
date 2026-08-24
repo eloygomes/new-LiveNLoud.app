@@ -27,8 +27,45 @@ UG_API_ENDPOINT = "https://api.ultimate-guitar.com/api/v1"
 UG_API_USER_AGENT = "UGT_ANDROID/4.11.1 (Pixel; 8.1.0)"
 UG_API_TIMEOUT_SECONDS = 20
 CHORD_TOKEN_RE = re.compile(r"^[A-G][#b]?(?:m|maj|min|sus|dim|aug|add|mmaj)?[0-9/#bA-G()]*$")
-CHORD_TAG_RE = re.compile(r"\[ch\](.*?)\[/ch\]")
-CONTROL_TAG_RE = re.compile(r"\[/?(?:tab|c|b|i|u)\]")
+CHORD_TAG_RE = re.compile(r"\[ch\](.*?)\[/ch\]", re.IGNORECASE)
+CONTROL_TAG_RE = re.compile(r"\[/?(?:tab|c|b|i|u)\]", re.IGNORECASE)
+TAGGED_SLASH_CHORD_RE = re.compile(
+    r"\[ch\](.*?)\[/ch\]\s*/\s*\[ch\](.*?)\[/ch\]",
+    re.IGNORECASE,
+)
+TAGGED_BARE_BASS_RE = re.compile(
+    r"\[ch\](.*?)\[/ch\]\s*/\s*([A-G](?:#|b)?)(?=\s|$)",
+    re.IGNORECASE,
+)
+TRAILING_CHORD_QUALITY_RE = re.compile(
+    r"\[ch\](.*?)\[/ch\](\((?:(?:add|maj|min|sus|dim|aug|omit|no|m|M)?[0-9+#bº°-]+)\))",
+    re.IGNORECASE,
+)
+SECTION_TAG_RE = re.compile(
+    r"\[(verse|chorus|bridge|intro|outro|pre-chorus|prechorus|solo|coda|interlude|refrain|prelude|break|instrumental)(?:=[^\]]*)?\]",
+    re.IGNORECASE,
+)
+SECTION_CLOSE_TAG_RE = re.compile(
+    r"\[/(?:verse|chorus|bridge|intro|outro|pre-chorus|prechorus|solo|coda|interlude|refrain|prelude|break|instrumental)\]",
+    re.IGNORECASE,
+)
+
+SECTION_LABELS = {
+    "verse": "Verse",
+    "chorus": "Chorus",
+    "bridge": "Bridge",
+    "intro": "Intro",
+    "outro": "Outro",
+    "pre-chorus": "Pre-Chorus",
+    "prechorus": "Pre-Chorus",
+    "solo": "Solo",
+    "coda": "Coda",
+    "interlude": "Interlude",
+    "refrain": "Refrain",
+    "prelude": "Prelude",
+    "break": "Break",
+    "instrumental": "Instrumental",
+}
 
 
 class UltimateGuitarScrapeError(RuntimeError):
@@ -150,7 +187,11 @@ def _extract_song_title(soup: BeautifulSoup, fallback_slug: str):
 
 def _build_chord_line(chords: list[tuple[int, str]]) -> str:
     chord_line = []
-    for position, chord in chords:
+    for requested_position, chord in chords:
+        # UG sometimes places adjacent chord tags one source character apart.
+        # Never let a later chord overwrite text already rendered.
+        minimum_position = len(chord_line) + (1 if chord_line else 0)
+        position = max(requested_position, minimum_position)
         if len(chord_line) < position:
             chord_line.extend(" " * (position - len(chord_line)))
 
@@ -164,10 +205,45 @@ def _build_chord_line(chords: list[tuple[int, str]]) -> str:
     return "".join(chord_line).rstrip()
 
 
+def _normalize_ug_markup(content: str) -> str:
+    normalized = str(content or "").replace("\r\n", "\n")
+
+    # Recombine slash chords before calculating their visual positions.
+    previous = None
+    while previous != normalized:
+        previous = normalized
+        normalized = TAGGED_SLASH_CHORD_RE.sub(
+            lambda match: (
+                f"[ch]{match.group(1).strip()}/{match.group(2).strip()}[/ch]"
+            ),
+            normalized,
+        )
+    normalized = TAGGED_BARE_BASS_RE.sub(
+        lambda match: f"[ch]{match.group(1).strip()}/{match.group(2).strip()}[/ch]",
+        normalized,
+    )
+
+    # Qualities immediately following a tag are part of that chord.
+    normalized = TRAILING_CHORD_QUALITY_RE.sub(
+        lambda match: f"[ch]{match.group(1).strip()}{match.group(2)}[/ch]",
+        normalized,
+    )
+
+    # Keep song sections as explicit visible labels for Presentation.
+    normalized = SECTION_TAG_RE.sub(
+        lambda match: (
+            f"\n[{SECTION_LABELS.get(match.group(1).lower(), match.group(1))}]\n"
+        ),
+        normalized,
+    )
+    return SECTION_CLOSE_TAG_RE.sub("\n", normalized)
+
+
 def _parse_ug_content_lines(content: str) -> list[dict]:
     lines = []
+    normalized_content = _normalize_ug_markup(content)
 
-    for raw_line in content.replace("\r\n", "\n").split("\n"):
+    for raw_line in normalized_content.split("\n"):
         line = CONTROL_TAG_RE.sub("", raw_line)
         if not line:
             lines.append({"type": "blank"})
@@ -178,6 +254,21 @@ def _parse_ug_content_lines(content: str) -> list[dict]:
             plain_line = line.strip("\r")
             if plain_line:
                 lines.append({"type": "lyric", "lyric": plain_line})
+            else:
+                lines.append({"type": "blank"})
+            continue
+
+        # A chord-only row already contains the exact visual spacing supplied
+        # by UG. Do not rebuild positions: doing that previously compressed
+        # `A  Amaj7 A  A/G#` and could detach the slash from `Dmaj7/F#`.
+        non_chord_text = CHORD_TAG_RE.sub("", line)
+        if not non_chord_text.strip():
+            chord_line = CHORD_TAG_RE.sub(
+                lambda match: match.group(1).strip(),
+                line,
+            ).rstrip()
+            if chord_line:
+                lines.append({"type": "chords", "chords": chord_line})
             else:
                 lines.append({"type": "blank"})
             continue
@@ -206,7 +297,48 @@ def _parse_ug_content_lines(content: str) -> list[dict]:
         elif not chord_line:
             lines.append({"type": "blank"})
 
+    _assert_ug_chord_integrity(normalized_content, lines)
     return lines
+
+
+def _assert_ug_chord_integrity(content: str, lines: list[dict]) -> None:
+    """Reject any parsing result that changes a structured UG chord token."""
+    expected = [
+        match.group(1).strip()
+        for match in CHORD_TAG_RE.finditer(content)
+        if match.group(1).strip()
+    ]
+    actual = []
+    for line in lines:
+        if line.get("type") != "chords":
+            continue
+        chord_value = line.get("chords", "")
+        if isinstance(chord_value, str):
+            actual.extend(token for token in chord_value.split() if token)
+            continue
+        actual.extend(
+            str(chord.get("note", "")).strip()
+            for chord in chord_value or []
+            if str(chord.get("note", "")).strip()
+        )
+
+    if expected == actual:
+        return
+
+    mismatch_index = next(
+        (
+            index
+            for index, (source, rendered) in enumerate(zip(expected, actual))
+            if source != rendered
+        ),
+        min(len(expected), len(actual)),
+    )
+    source_token = expected[mismatch_index] if mismatch_index < len(expected) else "<missing>"
+    rendered_token = actual[mismatch_index] if mismatch_index < len(actual) else "<missing>"
+    raise UltimateGuitarScrapeError(
+        "Ultimate Guitar chord integrity check failed; refusing to save altered content "
+        f"at token {mismatch_index}: source={source_token!r}, rendered={rendered_token!r}."
+    )
 
 
 def _body_from_ug_lines(lines: list[dict]) -> str:
@@ -421,24 +553,99 @@ def _fetch_ultimate_guitar_from_api(url: str):
     return [result]
 
 
-def _extract_store_content(soup: BeautifulSoup) -> str:
+def _extract_store_raw_content(soup: BeautifulSoup) -> str:
+    paths = (
+        ("store", "page", "data", "tab_view", "wiki_tab", "content"),
+        ("page", "data", "tab_view", "wiki_tab", "content"),
+        ("data", "tab_view", "wiki_tab", "content"),
+        ("tab_view", "wiki_tab", "content"),
+        ("wiki_tab", "content"),
+    )
+
     for store in soup.select(".js-store[data-content], [data-content*='wiki_tab']"):
         try:
             data = json.loads(store.get("data-content", ""))
-            content = (
-                data.get("store", {}).get("page", {}).get("data", {})
-                .get("tab_view", {}).get("wiki_tab", {}).get("content", "")
-            )
-            if content:
-                content_soup = BeautifulSoup(content, "html.parser")
-                content_text = _clean_text(content_soup.get_text("\n"))
-                return _body_from_ug_lines(_parse_ug_content_lines(content_text))
+            for path in paths:
+                content = data
+                for key in path:
+                    if not isinstance(content, dict):
+                        content = ""
+                        break
+                    content = content.get(key, "")
+                if isinstance(content, str) and content.strip():
+                    return content
         except (TypeError, ValueError, AttributeError):
             continue
     return ""
 
 
-def get_ultimate_guitar_data(url: str):
+def _extract_store_content(soup: BeautifulSoup) -> str:
+    raw_content = _extract_store_raw_content(soup)
+    if not raw_content:
+        return ""
+    # wiki_tab.content is authoritative BBCode. Parsing it as HTML destroys
+    # adjacent chord tokens and slash chords.
+    return _body_from_ug_lines(_parse_ug_content_lines(raw_content))
+
+
+def _build_structured_result(
+    url: str,
+    parsed: dict,
+    raw_content: str,
+    *,
+    song_title: str = "",
+    artist_name: str = "",
+    metadata: dict | None = None,
+):
+    lines = _parse_ug_content_lines(raw_content)
+    body = _body_from_ug_lines(lines)
+    if not body:
+        raise UltimateGuitarScrapeError(
+            "Ultimate Guitar structured content produced an empty tab body."
+        )
+
+    metadata = metadata or {}
+    fields = _build_song_fields(parsed["arrangement"], body)
+    return [{
+        "song_title": song_title or _slug_to_title(parsed["song_slug"]),
+        "artist_name": artist_name or _slug_to_title(parsed["artist_slug"]),
+        "song_cifra": fields["song_cifra"],
+        "songTabs": fields["songTabs"],
+        "songChords": fields["songChords"],
+        "songLyrics": fields["songLyrics"],
+        "source": "ultimate_guitar",
+        "arrangement": parsed["arrangement"],
+        "tab_id": parsed["tab_id"],
+        "tuning": metadata.get("tuning", ""),
+        "key": metadata.get("key", ""),
+        "difficulty": metadata.get("difficulty", ""),
+        "rating": metadata.get("rating", ""),
+        "last_edit": metadata.get("last edit", ""),
+        "source_url": url,
+        "ug_lines": lines,
+    }]
+
+
+def _fetch_ultimate_guitar_store_via_http(url: str):
+    response = requests.get(
+        url,
+        headers={
+            "User-Agent": CHROME_UA,
+            "Accept": "text/html,application/xhtml+xml",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        timeout=UG_API_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+    return soup, _extract_store_raw_content(soup)
+
+
+def get_ultimate_guitar_data(
+    url: str,
+    source_content: str = "",
+    source_content_format: str = "",
+):
     if not UG_SCRAPER_ENABLED:
         raise UltimateGuitarScrapeError(
             "Ultimate Guitar scraper is disabled. Set UG_SCRAPER_ENABLED=true to enable it again."
@@ -452,6 +659,39 @@ def get_ultimate_guitar_data(url: str):
         raise UltimateGuitarScrapeError(msg)
 
     try:
+        if (
+            source_content_format == "ultimate_guitar_wiki_tab"
+            and isinstance(source_content, str)
+            and source_content.strip()
+        ):
+            print(
+                "[UG] Using authoritative wiki_tab content supplied by the browser:",
+                {"body_length": len(source_content)},
+            )
+            return _build_structured_result(url, parsed, source_content)
+
+        try:
+            print(f"[UG] Fetching authoritative page store via HTTP: {url}")
+            http_soup, raw_content = _fetch_ultimate_guitar_store_via_http(url)
+            if raw_content:
+                artist_el = http_soup.select_one("h1.tabHeader-h1 .tabHeader-h2")
+                artist_name = (
+                    artist_el.get_text(" ", strip=True)
+                    if artist_el
+                    else _slug_to_title(parsed["artist_slug"])
+                )
+                return _build_structured_result(
+                    url,
+                    parsed,
+                    raw_content,
+                    song_title=_extract_song_title(http_soup, parsed["song_slug"]),
+                    artist_name=artist_name,
+                    metadata=_extract_header_metadata(http_soup),
+                )
+            print("[UG] Page store was not present in the direct HTTP response.")
+        except Exception as http_err:
+            print(f"[UG] Direct page-store fetch failed, trying API: {http_err}")
+
         print(f"[UG] Fetching URL via API: {url}")
         try:
             api_result = _fetch_ultimate_guitar_from_api(url)
@@ -482,25 +722,18 @@ def get_ultimate_guitar_data(url: str):
         song_title = _extract_song_title(soup, parsed["song_slug"])
         print(f"[UG] Parsed header: artist='{artist_name}' song='{song_title}' arrangement='{parsed['arrangement']}'")
 
-        content_el = soup.select_one(
-            "pre.extra, [data-name='tab-content'], .js-tab-content, pre"
-        )
-        song_body = (
-            _clean_text(content_el.get_text("\n"))
-            if content_el
-            else _extract_store_content(soup)
-        )
+        song_body = _extract_store_content(soup)
         if not song_body:
             pre_count = len(soup.select("pre"))
             title_found = bool(soup.select_one("h1.tabHeader-h1"))
             msg = (
-                "Ultimate Guitar tab content not found. "
-                f"selector='pre.extra' pre_count={pre_count} title_found={title_found}"
+                "Ultimate Guitar structured wiki_tab content not found; refusing the "
+                "rendered DOM fallback because it can alter chord tokens. "
+                f"pre_count={pre_count} title_found={title_found}"
             )
             print(f"[UG] {msg}")
             raise UltimateGuitarScrapeError(msg)
 
-        fields = _build_song_fields(parsed["arrangement"], song_body)
         metadata = _extract_header_metadata(soup)
         print(
             "[UG] Metadata:",
@@ -514,23 +747,15 @@ def get_ultimate_guitar_data(url: str):
         )
         print(f"[UG] Body length: {len(song_body)}")
 
-        return [{
-            "song_title": song_title,
-            "artist_name": artist_name,
-            "song_cifra": fields["song_cifra"],
-            "songTabs": fields["songTabs"],
-            "songChords": fields["songChords"],
-            "songLyrics": fields["songLyrics"],
-            "source": "ultimate_guitar",
-            "arrangement": parsed["arrangement"],
-            "tab_id": parsed["tab_id"],
-            "tuning": metadata.get("tuning", ""),
-            "key": metadata.get("key", ""),
-            "difficulty": metadata.get("difficulty", ""),
-            "rating": metadata.get("rating", ""),
-            "last_edit": metadata.get("last edit", ""),
-            "source_url": url,
-        }]
+        raw_content = _extract_store_raw_content(soup)
+        return _build_structured_result(
+            url,
+            parsed,
+            raw_content,
+            song_title=song_title,
+            artist_name=artist_name,
+            metadata=metadata,
+        )
     except Exception as err:
         if isinstance(err, UltimateGuitarScrapeError):
             raise

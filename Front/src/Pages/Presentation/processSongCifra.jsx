@@ -107,8 +107,13 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     "Fontes",
   ];
 
+  // Chord suffixes are deliberately constrained. The previous expression
+  // accepted any letters after A-G, so words such as Chorus, Bridge and Coda
+  // were incorrectly rendered as chords.
+  const chordSuffixString =
+    "(?:(?:maj|min|dim|aug|sus|add|omit|no|m|M)|[0-9º°+#()-])*";
   const chordRegexString =
-    "([A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?(?:\\/[A-G](?:#|b)?(?:[a-zA-Z0-9º°+]*)(?:\\([^)]+\\))?)?)";
+    `([A-G](?:#|b)?${chordSuffixString}(?:\\/[A-G](?:#|b)?)?)`;
   const chordValidationRegex = new RegExp("^" + chordRegexString + "$");
   const bracketedChordPattern = /\[\s*([^\]]+?)\s*\]/g;
   const chordPattern = new RegExp(
@@ -171,7 +176,30 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
   }
 
   function addClassToChords(line) {
-    return addClassToBracketedChords(addClassToBareChords(line));
+    // Do not parse generated markup a second time. Doing so used to match the
+    // [chord] text inserted by renderChordSpan and corrupt slash chords and
+    // adjacent voicings (for example Dmaj7/F# and A Amaj7 A A/G#).
+    const protectedChords = [];
+    const protectedLine = line.replace(
+      bracketedChordPattern,
+      (match, chord, offset) => {
+        const normalizedChord = String(chord || "").trim();
+        if (!isChord(normalizedChord)) return match;
+
+        const token = `\uE000${protectedChords.length}\uE001`;
+        protectedChords.push(
+          renderChordSpan(normalizedChord, {
+            leadingBracketed: String(line || "").slice(0, offset).trim() === "",
+          }),
+        );
+        return token;
+      },
+    );
+
+    const renderedLine = addClassToBareChords(protectedLine);
+    return renderedLine.replace(/\uE000(\d+)\uE001/g, (_match, index) =>
+      protectedChords[Number(index)] || ""
+    );
   }
 
   // Processa 1 linha “isolada”
@@ -306,11 +334,11 @@ ${linesGroup.join("\n")}
         const combined = `[${sectionName}]` + restOfLine;
         const chordLine = addClassToChords(combined);
         groupHTML.push(
-          `<pre id="section-label-${i}" class="mt-1 ${sectionClass}">${chordLine}</pre>`
+          `<pre id="section-label-${i}" class="mt-1 presentation-section-label ${sectionClass}">${chordLine}</pre>`
         );
       } else {
         groupHTML.push(
-          `<pre id="section-label-${i}" class="mt-1 ${sectionClass}">[${sectionName}]</pre>`
+          `<pre id="section-label-${i}" class="mt-1 presentation-section-label ${sectionClass}">[${sectionName}]</pre>`
         );
       }
 

@@ -207,10 +207,24 @@ function DashList2({ searchTerm = "" }) {
   }, [loadSongs]);
 
   useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        loadSongs();
+      }
+    };
+    const refreshTimer = window.setInterval(refreshWhenVisible, 15000);
+
     window.addEventListener("dashboard-refresh-songs", loadSongs);
+    window.addEventListener("sustenido:songs-updated", loadSongs);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
+      window.clearInterval(refreshTimer);
       window.removeEventListener("dashboard-refresh-songs", loadSongs);
+      window.removeEventListener("sustenido:songs-updated", loadSongs);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [loadSongs]);
 

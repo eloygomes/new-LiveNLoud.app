@@ -420,12 +420,33 @@ async function waitForGeneralCifraDoc(
 
 // Rota para chamar o serviço Python e realizar o scrape
 app.post("/api/v1/scrape", async (req, res) => {
-  console.log("[SCRAPE] called", { body: req.body });
+  console.log("[SCRAPE] called", {
+    body: {
+      ...req.body,
+      sourceContent: req.body?.sourceContent
+        ? `[structured content: ${String(req.body.sourceContent).length} chars]`
+        : undefined,
+    },
+  });
 
   try {
-    const { artist, song, instrument, email, instrument_progressbar, link } =
-      req.body;
+    const {
+      artist,
+      song,
+      instrument,
+      email,
+      instrument_progressbar,
+      link,
+      sourceContent,
+      sourceContentFormat,
+    } = req.body;
     const cleanLink = sanitizeScrapeLink(link);
+    const trustedSourceContent =
+      sourceContentFormat === "ultimate_guitar_wiki_tab" &&
+      typeof sourceContent === "string" &&
+      sourceContent.length <= 2_000_000
+        ? sourceContent
+        : "";
 
     if (!instrument || !cleanLink) {
       return res
@@ -442,6 +463,12 @@ app.post("/api/v1/scrape", async (req, res) => {
       email,
       instrument_progressbar,
       link: cleanLink,
+      ...(trustedSourceContent
+        ? {
+            source_content: trustedSourceContent,
+            source_content_format: sourceContentFormat,
+          }
+        : {}),
     };
     const requestLabel = `[SCRAPE] python request ${instrument}:${Date.now()}`;
     console.log("[SCRAPE] normalized link:", cleanLink);
@@ -4470,6 +4497,20 @@ function summarizeSongInstrumentsForDebug(song = {}) {
   }, {});
 }
 
+function isUltimateGuitarLink(link = "") {
+  try {
+    const hostname = new URL(String(link)).hostname
+      .replace(/^www\./i, "")
+      .toLowerCase();
+    return (
+      hostname === "ultimate-guitar.com" ||
+      hostname.endsWith(".ultimate-guitar.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function hydrateUserdataFromGeneralCifra(userdata = {}) {
   if (!userdata?.artist || !userdata?.song) {
     return userdata;
@@ -4501,7 +4542,9 @@ async function hydrateUserdataFromGeneralCifra(userdata = {}) {
       continue;
     }
 
-    if (hasStoredValue(block.songCifra)) {
+    const mustUseValidatedGeneralCopy = isUltimateGuitarLink(block.link);
+
+    if (hasStoredValue(block.songCifra) && !mustUseValidatedGeneralCopy) {
       hydrated[instrument] = prepareInstrumentBlockForStorage(block);
       continue;
     }

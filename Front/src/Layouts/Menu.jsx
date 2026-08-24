@@ -19,10 +19,21 @@ import NewSongStartChoice from "../Components/NewSongStartChoice";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useCompactAppLayout } from "../Tools/responsiveLayout";
 
+const DASHBOARD_SEARCH_STORAGE_KEY = "dashboardSearchTerm";
+
+function loadDashboardSearchTerm() {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(DASHBOARD_SEARCH_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function RootLayouts() {
   const { t } = useLanguage();
   // ===== ESTADO DA BUSCA (navbar) =====
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(loadDashboardSearchTerm);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [hideMobileChrome, setHideMobileChrome] = useState(false);
   const [hasActiveDashboardFilter, setHasActiveDashboardFilter] = useState(
@@ -114,6 +125,14 @@ export default function RootLayouts() {
       : isUserProfileRoute
         ? { eyebrow: t("nav.userHub"), title: t("nav.accountSettings") }
         : { eyebrow: t("nav.sustenido"), title: t("nav.yourRoutine") };
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DASHBOARD_SEARCH_STORAGE_KEY, searchTerm);
+    } catch {
+      // Search remains usable even when storage is unavailable.
+    }
+  }, [searchTerm]);
 
   useEffect(() => {
     const handleVisibilityChange = (event) => {

@@ -1,29 +1,64 @@
 import { Music2, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { deleteGeneralSong, listGeneralSongs } from "../api/admin.js";
 import { ConfirmActionModal } from "../components/ConfirmActionModal.jsx";
 import { DataState } from "../components/DataState.jsx";
 
+const SONG_SEARCH_STORAGE_KEY = "admin:songs-search";
+
+function loadStoredSearch() {
+  try {
+    return window.localStorage.getItem(SONG_SEARCH_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
 export function Songs() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(loadStoredSearch);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  async function load(search = query) {
+  const load = useCallback(async (search = "") => {
     setError("");
     try {
       setData(await listGeneralSongs({ q: search }));
     } catch (loadError) {
       setError(loadError.message);
     }
-  }
+  }, []);
 
   useEffect(() => {
+    try {
+      window.localStorage.setItem(SONG_SEARCH_STORAGE_KEY, query);
+    } catch {
+      // Keep the in-memory search working if storage is blocked.
+    }
+
     const timer = setTimeout(() => load(query), 250);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [load, query]);
+
+  useEffect(() => {
+    const refresh = () => load(query);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const refreshTimer = window.setInterval(refreshWhenVisible, 15000);
+
+    window.addEventListener("sustenido:songs-updated", refresh);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("sustenido:songs-updated", refresh);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [load, query]);
 
   async function handleDelete({ reason }) {
     if (!selected || deleting) return;
@@ -32,7 +67,7 @@ export function Songs() {
     try {
       await deleteGeneralSong(selected.id, { reason });
       setSelected(null);
-      await load();
+      await load(query);
     } catch (deleteError) {
       setError(deleteError.message);
     } finally {

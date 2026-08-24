@@ -23,7 +23,13 @@ def _normalize_input_url(url: str, artist: str = "", song: str = "") -> str | No
     return None
 
 
-def get_song_data(url: str, artist: str = "", song: str = ""):
+def get_song_data(
+    url: str,
+    artist: str = "",
+    song: str = "",
+    source_content: str = "",
+    source_content_format: str = "",
+):
     target_url = _normalize_input_url(url, artist, song)
     if not target_url:
         return None
@@ -36,11 +42,18 @@ def get_song_data(url: str, artist: str = "", song: str = ""):
     module = import_module(rule["service_module"])
     service_fn = getattr(module, rule["service_function"])
 
-    song_data = service_fn(target_url)
+    source_name = detect_source(target_url)
+    if source_name == "ultimate_guitar":
+        song_data = service_fn(
+            target_url,
+            source_content=source_content,
+            source_content_format=source_content_format,
+        )
+    else:
+        song_data = service_fn(target_url)
     if not song_data:
         return None
 
-    source_name = detect_source(target_url)
     for item in song_data:
         item.setdefault("source", source_name)
         item.setdefault("source_url", target_url)

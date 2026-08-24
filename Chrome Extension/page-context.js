@@ -215,20 +215,88 @@ function normalizeUltimateGuitarContent(value) {
   const rawContent = String(value || "");
   if (!rawContent.trim()) return "";
 
-  const container = document.createElement("div");
-  container.innerHTML = rawContent
+  const sectionNames = {
+    verse: "Verse",
+    chorus: "Chorus",
+    bridge: "Bridge",
+    intro: "Intro",
+    outro: "Outro",
+    "pre-chorus": "Pre-Chorus",
+    prechorus: "Pre-Chorus",
+    solo: "Solo",
+    coda: "Coda",
+    interlude: "Interlude",
+    refrain: "Refrain",
+    prelude: "Prelude",
+    break: "Break",
+    instrumental: "Instrumental",
+  };
+
+  // UG sometimes stores a slash chord as two adjacent tags. Recombine it
+  // before removing wrappers so Dmaj7/F# can never become two independent
+  // fragments. Parenthesized qualities immediately after a tag belong to the
+  // same chord for the same reason.
+  let structuredContent = rawContent;
+  let previousContent = "";
+  while (previousContent !== structuredContent) {
+    previousContent = structuredContent;
+    structuredContent = structuredContent.replace(
+      /\[ch\](.*?)\[\/ch\]\s*\/\s*\[ch\](.*?)\[\/ch\]/gi,
+      (_match, chord, bass) => `[ch]${chord.trim()}/${bass.trim()}[/ch]`,
+    );
+  }
+  structuredContent = structuredContent
+    .replace(
+      /\[ch\](.*?)\[\/ch\]\s*\/\s*([A-G](?:#|b)?)(?=\s|$)/gi,
+      (_match, chord, bass) => `[ch]${chord.trim()}/${bass.trim()}[/ch]`,
+    )
+    .replace(
+      /\[ch\](.*?)\[\/ch\](\((?:(?:add|maj|min|sus|dim|aug|omit|no|m|M)?[0-9+#bº°-]+)\))/gi,
+      (_match, chord, quality) => `[ch]${chord.trim()}${quality}[/ch]`,
+    );
+
+  const sourceChords = Array.from(
+    structuredContent.matchAll(/\[ch\](.*?)\[\/ch\]/gi),
+    (match) => match[1].trim(),
+  ).filter(Boolean);
+
+  // Section wrappers carry musical meaning and become visible labels. Chord
+  // and tab wrappers are removed without recalculating positions or spaces.
+  const contentWithSections = structuredContent
+    .replace(
+      /\[(verse|chorus|bridge|intro|outro|pre-chorus|prechorus|solo|coda|interlude|refrain|prelude|break|instrumental)(?:=[^\]]*)?\]/gi,
+      (_match, section) => `\n[${sectionNames[section.toLowerCase()] || section}]\n`,
+    )
+    .replace(
+      /\[\/(?:verse|chorus|bridge|intro|outro|pre-chorus|prechorus|solo|coda|interlude|refrain|prelude|break|instrumental)\]/gi,
+      "\n",
+    )
+    .replace(/\[\/?(?:tab|ch)(?:=[^\]]*)?\]/gi, "");
+
+  // A textarea decodes entities such as &#039; without interpreting the tab as
+  // a visual DOM tree. Reading rendered UG spans is forbidden because it loses
+  // the separators between adjacent chord tokens.
+  const decoder = document.createElement("textarea");
+  decoder.innerHTML = contentWithSections
     .replace(/<br\s*\/?\s*>/gi, "\n")
     .replace(/<\/(?:div|p|pre)>/gi, "\n");
+  const normalizedContent = cleanMultilineText(decoder.value).trim();
 
-  return cleanMultilineText(container.textContent)
-    .replace(
-      /\[\/?(?:tab|ch|verse|chorus|bridge|intro|outro|pre-chorus|prechorus|solo)(?:=[^\]]*)?\]/gi,
-      "",
-    )
-    .trim();
+  // Fail closed if even one structured chord is no longer present in the same
+  // order. The API scraper can still provide the content; corrupted DOM text
+  // must never override it.
+  let cursor = 0;
+  const preservesEveryChord = sourceChords.every((chord) => {
+    const index = normalizedContent.indexOf(chord, cursor);
+    if (index < 0) return false;
+    cursor = index + chord.length;
+    return true;
+  });
+
+  return preservesEveryChord ? normalizedContent : "";
 }
 
-function getUltimateGuitarStoreContent() {
+function getUltimateGuitarStoreSnapshot() {
   const stores = document.querySelectorAll(
     ".js-store[data-content], [data-content*='wiki_tab']",
   );
@@ -242,30 +310,24 @@ function getUltimateGuitarStoreContent() {
         data?.data?.tab_view?.wiki_tab?.content ||
         data?.tab_view?.wiki_tab?.content ||
         data?.wiki_tab?.content;
-      const normalizedContent = normalizeUltimateGuitarContent(content);
-      if (normalizedContent) return normalizedContent;
+      const rawContent = String(content || "");
+      const normalizedContent = normalizeUltimateGuitarContent(rawContent);
+      if (normalizedContent) {
+        return { rawContent, normalizedContent };
+      }
     } catch (_error) {
       // Some unrelated data-content attributes are not JSON.
     }
   }
 
-  return "";
+  return { rawContent: "", normalizedContent: "" };
 }
 
 function getUltimateGuitarCifraText() {
-  const storeContent = getUltimateGuitarStoreContent();
-  if (storeContent) return storeContent;
-
-  const candidates = Array.from(
-    document.querySelectorAll(
-      '[data-name="tab-content"], .js-tab-content, [class*="TabContent"], pre',
-    ),
-  )
-    .map((node) => cleanMultilineText(node.textContent))
-    .filter((text) => text.length >= 40)
-    .sort((left, right) => right.length - left.length);
-
-  return candidates[0] || "";
+  // Only the structured wiki_tab payload is authoritative. The visual DOM
+  // places chord pieces in separate spans and textContent can turn Amaj7 into
+  // Aa or Dmaj7/F# into DF#j7. Returning empty lets the backend API take over.
+  return getUltimateGuitarStoreSnapshot().normalizedContent;
 }
 
 function getLetrasSong() {
@@ -418,6 +480,8 @@ function buildPageContext() {
   let capo = "";
   let lyrics = "";
   let cifraText = "";
+  let cifraRawContent = "";
+  let cifraTextSource = "";
   let guitarProFiles = [];
 
   if (supportedSite?.id === "cifraclub") {
@@ -444,7 +508,10 @@ function buildPageContext() {
     tom = getUltimateGuitarField("key");
     tuning = getUltimateGuitarField("tuning");
     capo = getUltimateGuitarField("capo");
-    cifraText = getUltimateGuitarCifraText();
+    const storeSnapshot = getUltimateGuitarStoreSnapshot();
+    cifraText = storeSnapshot.normalizedContent;
+    cifraRawContent = storeSnapshot.rawContent;
+    cifraTextSource = cifraText ? "ultimate_guitar_store" : "";
   } else if (supportedSite?.id === "letrasmus") {
     song = getLetrasSong();
     artist = getLetrasArtist();
@@ -465,6 +532,8 @@ function buildPageContext() {
     tuning: compatible ? tuning : "",
     lyrics: compatible ? lyrics : "",
     cifraText: compatible ? cifraText : "",
+    cifraRawContent: compatible ? cifraRawContent : "",
+    cifraTextSource: compatible ? cifraTextSource : "",
     guitarProFiles: compatible ? guitarProFiles : [],
     defaults: {
       song: NOT_AVAILABLE,
@@ -480,6 +549,16 @@ function buildPageContext() {
 }
 
 extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "SUSTENIDO_SONGS_UPDATED") {
+    window.dispatchEvent(
+      new CustomEvent("sustenido:songs-updated", {
+        detail: message.detail || {},
+      }),
+    );
+    sendResponse({ received: true });
+    return false;
+  }
+
   if (message?.type !== "GET_PAGE_SONG_CONTEXT") {
     return false;
   }
