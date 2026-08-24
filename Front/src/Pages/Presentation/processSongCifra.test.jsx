@@ -104,6 +104,18 @@ describe("processSongCifra", () => {
     expect(result.htmlBlocks[0]).toContain("E|----|");
   });
 
+  it("keeps a pipe-less bass tab and its technique row in one tab", () => {
+    const result = processSongCifra(
+      "G-----14----|\nD-------12--|\nA-0h12------|\nE-----------|\n  (T) (P)(T)(P)",
+    );
+    const html = result.htmlBlocks.join("\n");
+
+    expect(html).toContain('class="tab"');
+    expect(html).toContain("G-----14----|");
+    expect(html).toContain("(T) (P)(T)(P)");
+    expect(html).not.toContain("notespresentation");
+  });
+
   it("creates an internal column break block without rendering marker text", () => {
     const result = processSongCifra(
       `line one\n${PRESENTATION_COLUMN_BREAK_MARKER}\nline two`,

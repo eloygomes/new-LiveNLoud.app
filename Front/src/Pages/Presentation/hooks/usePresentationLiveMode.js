@@ -14,12 +14,46 @@ const isTextNavigationTarget = (target) =>
     target.isContentEditable);
 
 const getExpandedNavigationItems = (viewport) => {
+  const editorBlocks = Array.from(
+    viewport.querySelectorAll(
+      ".presentation-tiptap-surface.presentation-horizontal-columns .presentation-editor-block",
+    ),
+  );
+  if (editorBlocks.length) return editorBlocks;
+
   const columns = Array.from(
     viewport.querySelectorAll(".presentation-horizontal-columns > .presentation-column"),
   );
   if (columns.length) return columns;
 
   return Array.from(viewport.querySelectorAll(".presentation-render-block"));
+};
+
+const getPaginatedEditorMetrics = (viewport) => {
+  const editor = viewport.querySelector(
+    ".presentation-tiptap-surface.presentation-horizontal-columns .presentation-cifra-editor",
+  );
+  if (!editor || !editor.clientWidth) return null;
+
+  const editorStyle = window.getComputedStyle(editor);
+  const surfaceStyle = editor.parentElement
+    ? window.getComputedStyle(editor.parentElement)
+    : null;
+  const columnGap =
+    Number.parseFloat(editorStyle.columnGap) ||
+    Number.parseFloat(
+      surfaceStyle?.getPropertyValue("--presentation-block-gap") || "",
+    ) ||
+    32;
+  const columnStep = editor.clientWidth + columnGap;
+  const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+
+  if (!columnStep || !maxScrollLeft) return null;
+  return {
+    columnStep,
+    lastColumnIndex: Math.ceil(maxScrollLeft / columnStep),
+    maxScrollLeft,
+  };
 };
 
 export function usePresentationLiveMode({
@@ -56,10 +90,34 @@ export function usePresentationLiveMode({
       const viewport = presentationContentRef.current;
       if (!viewport) return;
 
+      const paginatedEditorMetrics = getPaginatedEditorMetrics(viewport);
+      if (paginatedEditorMetrics) {
+        const { columnStep, lastColumnIndex, maxScrollLeft } =
+          paginatedEditorMetrics;
+        const activeColumnIndex = Math.max(
+          0,
+          Math.min(
+            lastColumnIndex,
+            Math.round(viewport.scrollLeft / columnStep),
+          ),
+        );
+        const targetColumnIndex = Math.max(
+          0,
+          Math.min(lastColumnIndex, activeColumnIndex + direction),
+        );
+
+        viewport.scrollTo({
+          left: Math.min(maxScrollLeft, targetColumnIndex * columnStep),
+          behavior: "auto",
+        });
+        return;
+      }
+
       const navigationItems = getExpandedNavigationItems(viewport);
       if (!navigationItems.length) return;
 
       const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
+      const leadingInset = navigationItems[0]?.offsetLeft || 0;
       const activeIndex = effectiveLiveMode
         ? (navigationItems
             .map((item, index) => ({
@@ -73,7 +131,8 @@ export function usePresentationLiveMode({
         : Math.max(
             0,
             navigationItems.findLastIndex(
-              (item) => item.offsetLeft <= viewport.scrollLeft + 24,
+              (item) =>
+                item.offsetLeft <= viewport.scrollLeft + leadingInset + 2,
             ),
           );
       const targetIndex = getLiveColumnTargetIndex({
@@ -87,7 +146,7 @@ export function usePresentationLiveMode({
       const centeredOffset = effectiveLiveMode
         ? targetItem.offsetLeft -
           (viewport.clientWidth - targetItem.clientWidth) / 2
-        : targetItem.offsetLeft - 20;
+        : targetItem.offsetLeft - leadingInset;
 
       viewport.scrollTo({
         left: Math.max(0, centeredOffset),

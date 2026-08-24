@@ -21,7 +21,6 @@ const TOUCH_PANEL_LABELS = {
 function ToolBox({
   toolBoxBtnStatus,
   setToolBoxBtnStatus,
-  toolBoxBtnStatusChange,
   embedLinks,
   songFromURL,
   artistFromURL,
@@ -68,6 +67,8 @@ function ToolBox({
   onCloseTouchVideo,
   requestedPanel,
   onRequestClose,
+  editorController,
+  editorState,
 }) {
   const [chordModalStatus, setChordModalStatus] = useState(false);
   const [chordPreviewData, setChordPreviewData] = useState(null);
@@ -89,17 +90,14 @@ function ToolBox({
     return null;
   }
 
-  const closeToolBoxAndDiscardEditor = () => {
-    if (isEditing) {
-      handleDiscardDraft();
-    }
+  const closeToolBox = () => {
     setActiveTouchPanel(null);
     onRequestClose?.();
-    toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus);
+    setToolBoxBtnStatus(false);
   };
 
   const closeTouchToolBox = () => {
-    closeToolBoxAndDiscardEditor();
+    closeToolBox();
   };
 
   const hideTouchToolBox = () => {
@@ -253,6 +251,8 @@ function ToolBox({
               isTouchVideoActive={isTouchVideoActive}
               onCloseTouchVideo={onCloseTouchVideo}
               requestedPanel={requestedPanel}
+              editorController={editorController}
+              editorState={editorState}
             />
           </div>
         </div>
@@ -274,7 +274,7 @@ function ToolBox({
                 <h1 className="text-sm font-bold">ToolBox</h1>
                 <button
                   className="text-2xl font-semibold hover:font-bold"
-                  onClick={closeToolBoxAndDiscardEditor}
+                  onClick={closeToolBox}
                   aria-label="Close toolbox"
                   type="button"
                 >
@@ -314,7 +314,7 @@ function ToolBox({
                 decreaseBlockSpacing={decreaseBlockSpacing}
                 increaseBlockSpacing={increaseBlockSpacing}
                 closeToolBox={() =>
-                  closeToolBoxAndDiscardEditor()
+                  closeToolBox()
                 }
                 setNotesModalStatus={setNotesModalStatus}
                 onOpenInstrumentNotes={onOpenInstrumentNotes}
@@ -330,6 +330,8 @@ function ToolBox({
                 isTouchVideoActive={isTouchVideoActive}
                 onCloseTouchVideo={onCloseTouchVideo}
                 requestedPanel={requestedPanel}
+                editorController={editorController}
+                editorState={editorState}
               />
 
               <div className="text-[6pt] font-bold text-center mx-auto w-full bg-gray-500 text-white drag-handle cursor-move select-none">

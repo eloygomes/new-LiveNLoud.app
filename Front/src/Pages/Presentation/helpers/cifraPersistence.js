@@ -9,15 +9,28 @@ export function buildCifraSavePayload({
   currentInstrumentData,
   instrumentSelected,
   nextDraftCifra,
+  nextTiptapDocument,
+  layoutDrafts = {},
   songDataFetched,
 }) {
   const currentLayouts = buildInstrumentPresentationLayouts(
     currentInstrumentData,
   );
-  const persistedLayouts = buildSavedPresentationLayouts(
+  const activePersistedLayouts = buildSavedPresentationLayouts(
     currentLayouts,
     activeLayoutVariant,
     nextDraftCifra,
+    nextTiptapDocument,
+  );
+  const persistedLayouts = Object.entries(layoutDrafts).reduce(
+    (layouts, [variant, draft]) =>
+      buildSavedPresentationLayouts(
+        layouts,
+        variant,
+        draft?.legacyText || "",
+        draft?.document || null,
+      ),
+    activePersistedLayouts,
   );
   const persistedLayoutsWithoutEditorMarks = {
     ...persistedLayouts,

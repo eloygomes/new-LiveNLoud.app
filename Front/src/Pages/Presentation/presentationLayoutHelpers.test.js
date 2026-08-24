@@ -177,6 +177,7 @@ describe("presentationLayoutHelpers", () => {
         progressionMarkOverrides: {
           "block-1": { title: "Intro" },
         },
+        tiptapDocument: null,
       },
       expanded: {
         fontSizeStep: 3,
@@ -187,6 +188,7 @@ describe("presentationLayoutHelpers", () => {
         progressionMarkOverrides: {
           "block-2": { position: 7 },
         },
+        tiptapDocument: null,
       },
     });
   });

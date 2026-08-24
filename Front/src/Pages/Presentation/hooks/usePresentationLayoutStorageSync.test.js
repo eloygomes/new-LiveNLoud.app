@@ -28,10 +28,13 @@ describe("usePresentationLayoutStorageSync", () => {
   it("selects the automatic layout from the screen orientation", () => {
     expect(
       getAutomaticPresentationLayoutMode({ innerWidth: 900, innerHeight: 1200 }),
-    ).toBe("default");
+    ).toBe("vertical");
     expect(
       getAutomaticPresentationLayoutMode({ innerWidth: 1600, innerHeight: 900 }),
-    ).toBe("expanded");
+    ).toBe("horizontal");
+    expect(
+      getAutomaticPresentationLayoutMode({ innerWidth: 900, innerHeight: 900 }),
+    ).toBe("horizontal");
   });
 
   it("hydrates expanded/default mode from localStorage", () => {
@@ -128,7 +131,7 @@ describe("usePresentationLayoutStorageSync", () => {
 
     rerender({ isExpandedCifra: true, isLayoutModeManual: true });
 
-    expect(window.localStorage.getItem("mode-key")).toBe("expanded");
+    expect(window.localStorage.getItem("mode-key")).toBe("horizontal");
   });
 
   it("hydrates stored layouts into song data", () => {
@@ -171,5 +174,28 @@ describe("usePresentationLayoutStorageSync", () => {
     expect(hydrated.keys.songCifra).toBe("stored default");
     expect(hydrated.keys.presentationLayouts.default.fontSizeStep).toBe(2);
     expect(hydrated.keys.presentationLayouts.expanded.fontSizeStep).toBe(3);
+  });
+
+  it("does not persist draft layout changes while editing", () => {
+    renderHook(() =>
+      usePresentationLayoutStorageSync({
+        currentInstrumentData: baseInstrumentData,
+        instrumentPresentationLayouts:
+          buildInstrumentPresentationLayouts(baseInstrumentData),
+        instrumentSelected: "keys",
+        isEditing: true,
+        isExpandedCifra: false,
+        isRouteSongLoading: false,
+        presentationLayoutIdentity: "artist::song::keys",
+        presentationLayoutModeStorageKey: "mode-key",
+        presentationLayoutSettingsSnapshot: "draft-settings",
+        presentationLayoutStorageKey: "layout-key",
+        setIsExpandedCifra: vi.fn(),
+        setSongDataFetched: vi.fn(),
+        songDataFetched: { keys: baseInstrumentData },
+      }),
+    );
+
+    expect(window.localStorage.getItem("layout-key")).toBeNull();
   });
 });

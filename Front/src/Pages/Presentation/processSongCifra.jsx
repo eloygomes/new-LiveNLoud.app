@@ -1,4 +1,8 @@
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
+import {
+  isTablatureLine,
+  isTablatureTechniqueLine,
+} from "./editor/model/ChordParser";
 
 // fallback seguro + modo estrito opcional
 export const processSongCifra = (songCifra, { strict = false } = {}) => {
@@ -49,7 +53,8 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
   const isBlankLine = (line) => line.trim() === "";
   const isColumnBreakLine = (line) =>
     line.trim() === PRESENTATION_COLUMN_BREAK_MARKER;
-  const isTabLine = (line) => /\|[-\s\d|]*\|?/.test(line);
+  const isTabLine = (line) => isTablatureLine(line);
+  const isTabCompanionLine = (line) => isTablatureTechniqueLine(line);
   const isTomLine = (line) => line.toLowerCase().includes("tom");
   const tabStringPrefixes = ["E|", "B|", "G|", "D|", "A|", "E|"];
 
@@ -244,7 +249,10 @@ export const processSongCifra = (songCifra, { strict = false } = {}) => {
     } else if (isTabLine(line)) {
       let tabBlock = [originalLine];
       let j = index;
-      while (j + 1 < totalLines && isTabLine(lines[j + 1])) {
+      while (
+        j + 1 < totalLines &&
+        (isTabLine(lines[j + 1]) || isTabCompanionLine(lines[j + 1]))
+      ) {
         j++;
         tabBlock.push(lines[j]);
       }

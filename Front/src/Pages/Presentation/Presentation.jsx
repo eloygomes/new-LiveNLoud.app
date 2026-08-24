@@ -20,6 +20,7 @@ import PresentationLiveHeader from "./components/PresentationLiveHeader";
 import PresentationTopBar from "./components/PresentationTopBar";
 import PresentationColumns from "./components/PresentationColumns";
 import InformationChannel from "./components/InformationChannel";
+import PresentationTiptapEditor from "./editor/view/PresentationTiptapEditor";
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 import {
   getPresentationLayoutModeStorageKey,
@@ -27,7 +28,6 @@ import {
   logPresentationDebug,
   normalizePresentationInstrumentValue,
   safeDecodeURIComponent,
-  toolBoxBtnStatusChange,
 } from "./helpers/presentationUtils";
 import { usePresentationCifraEditor } from "./hooks/usePresentationCifraEditor";
 import { usePresentationChordTooltip } from "./hooks/usePresentationChordTooltip";
@@ -40,20 +40,14 @@ import {
 import { usePresentationLayoutUpdater } from "./hooks/usePresentationLayoutUpdater";
 import { usePresentationLiveMode } from "./hooks/usePresentationLiveMode";
 import { usePresentationMediaControls } from "./hooks/usePresentationMediaControls";
-import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
+import {
+  usePresentationNavigation,
+  usePresentationSongKeyboardNavigation,
+} from "./hooks/usePresentationNavigation";
 import { usePresentationRenderModel } from "./hooks/usePresentationRenderModel";
 import { usePresentationRouteData } from "./hooks/usePresentationRouteData";
 import { usePresentationSongData } from "./hooks/usePresentationSongData";
 import { usePresentationVisualScale } from "./hooks/usePresentationVisualScale";
-import {
-  deleteSelectedEditableContent,
-  moveEnterToNextEditableBlock,
-  moveToAdjacentEditableBlock,
-  pasteEditableContentAcrossBlocks,
-  removeEmptyEditableLine,
-  replaceSelectedEditableContentWithText,
-  selectAllEditableContent,
-} from "./helpers/editableCifraDom";
 import { findSongIndexInList } from "../shared/setlistNavigation";
 import { useCompactAppLayout } from "../../Tools/responsiveLayout";
 
@@ -67,11 +61,11 @@ function getInitialPresentationLayoutState({ artist, song, instrument }) {
   });
 
   const storedMode = window.localStorage.getItem(storageKey);
-  if (["default", "expanded"].includes(storedMode)) {
-    return storedMode === "expanded";
+  if (["vertical", "horizontal", "default", "expanded"].includes(storedMode)) {
+    return ["horizontal", "expanded"].includes(storedMode);
   }
 
-  return getAutomaticPresentationLayoutMode(window) === "expanded";
+  return getAutomaticPresentationLayoutMode(window) === "horizontal";
 }
 
 function getIsPresentationTouchLayout() {
@@ -273,7 +267,7 @@ function Presentation() {
       song: decodedRouteSong,
       instrument: decodedRouteInstrument,
     });
-    return ["default", "expanded"].includes(
+    return ["vertical", "horizontal", "default", "expanded"].includes(
       window.localStorage.getItem(storageKey),
     );
   });
@@ -291,6 +285,10 @@ function Presentation() {
     message: "",
   });
   const presentationContentRef = useRef(null);
+  const presentationEditorRef = useRef(null);
+  const [presentationEditorController, setPresentationEditorController] =
+    useState(null);
+  const [presentationEditorState, setPresentationEditorState] = useState({});
   const editOriginalCifraRef = useRef("");
   const editOriginalLayoutsRef = useRef(null);
   const {
@@ -370,9 +368,11 @@ function Presentation() {
     showProgressionMarkers,
     songCifraData,
     touchFontSizeStep,
+    tiptapDocument,
   } = usePresentationSongData({
     instrumentSelected,
     isExpandedCifra,
+    isEditing,
     isLayoutModeManual,
     normalizeCifra,
     songDataFetched,
@@ -467,6 +467,7 @@ function Presentation() {
     instrumentPresentationLayouts,
     instrumentSelected,
     isExpandedCifra,
+    isEditing,
     isRouteSongLoading,
     presentationLayoutIdentity,
     presentationLayoutModeStorageKey,
@@ -494,20 +495,21 @@ function Presentation() {
   });
 
   const {
+    draftTiptapDocument,
+    editorDocument,
     handleDiscardDraft,
     handleSaveCifra,
+    handleTiptapUpdate,
     hasDraftChanges,
     isSavingCifra,
-    markCifraContentAsEdited,
-    openEditorToolBox,
     saveError,
     setSaveError,
     startEditingCifra,
     syncEditingCifraBeforeLayoutUpdate,
-    syncRenderedCifraToDraft,
   } = usePresentationCifraEditor({
     activeLayoutVariant,
     activeProgressionRenderColumns,
+    activeTiptapDocument: tiptapDocument,
     currentInstrumentData,
     editableSongCifra,
     editOriginalCifraRef,
@@ -519,6 +521,7 @@ function Presentation() {
     isEditing,
     isExpandedCifra,
     presentationContentRef,
+    presentationEditorRef,
     presentationLayoutIdentity,
     presentationLayoutStorageKey,
     pushSnackbarMessage,
@@ -532,6 +535,12 @@ function Presentation() {
     songDataFetched,
     visibleContentBlocks,
   });
+
+  const handlePresentationEditorReady = useCallback((controller) => {
+    presentationEditorRef.current = controller;
+    setPresentationEditorController(controller);
+    if (!controller) setPresentationEditorState({});
+  }, []);
 
   const {
     adjustActiveBlockSpacingStep,
@@ -582,6 +591,12 @@ function Presentation() {
     setSongFromURL,
     setlistSongs,
     songFromURL,
+  });
+
+  usePresentationSongKeyboardNavigation({
+    goToSetlistSong,
+    nextSetlistSong,
+    previousSetlistSong,
   });
 
   const currentLiveSetlistIndex = useMemo(
@@ -668,6 +683,13 @@ function Presentation() {
     setIsPseudoLiveMode,
     shouldUseHorizontalColumnFlow: shouldUseHorizontalColumnFlow && liveView !== "setlist",
   });
+
+  const navigateHorizontalBlock = useCallback(
+    (direction) => {
+      scrollExpandedLayout(direction);
+    },
+    [scrollExpandedLayout],
+  );
 
   const {
     handleInstrumentNotesChange,
@@ -863,11 +885,10 @@ function Presentation() {
           <SnackBar snackbarMessage={snackbarMessage} />
         )}
       </div>
-      {!effectiveLiveMode && (
+      {!effectiveLiveMode && !isEditing && (
         <ToolBox
           toolBoxBtnStatus={toolBoxBtnStatus}
           setToolBoxBtnStatus={setToolBoxBtnStatus}
-          toolBoxBtnStatusChange={toolBoxBtnStatusChange}
           embedLinks={embedLinks}
           songFromURL={songFromURL}
           artistFromURL={artistFromURL}
@@ -914,6 +935,8 @@ function Presentation() {
           onCloseTouchVideo={closeTouchVideo}
           requestedPanel={toolBoxRequestedPanel}
           onRequestClose={() => setActiveToolBoxPanel(null)}
+          editorController={presentationEditorController}
+          editorState={presentationEditorState}
         />
       )}
       <div
@@ -944,12 +967,7 @@ function Presentation() {
             toolBoxBtnStatus={toolBoxBtnStatus}
             isEditing={isEditing}
             isVideoModalOpen={isVideoModalOpen}
-            openEditorToolBox={
-              isEditing ? handleDiscardDraft : openEditorToolBox
-            }
-            onToggleToolBox={() =>
-              toolBoxBtnStatusChange(toolBoxBtnStatus, setToolBoxBtnStatus)
-            }
+            onStartEditing={startEditingCifra}
             isExpandedCifra={isExpandedCifra}
             isLayoutModeManual={isLayoutModeManual}
             onToggleExpanded={() => {
@@ -969,6 +987,22 @@ function Presentation() {
             onOpenScrolling={() => toggleToolBoxPanel("panel6")}
             onEnterLiveMode={enterLiveMode}
             onGoToSetlistSong={goToSetlistSong}
+            editorController={presentationEditorController}
+            editorState={presentationEditorState}
+            isSavingCifra={isSavingCifra}
+            hasDraftChanges={hasDraftChanges}
+            onSaveCifra={handleSaveCifra}
+            onDiscardDraft={handleDiscardDraft}
+            showProgressionMarkers={showProgressionMarkers}
+            onToggleProgression={() =>
+              setActiveShowProgressionMarkers(!showProgressionMarkers)
+            }
+            fontSizeLabel={touchFontSizeLabel}
+            decreaseFontSize={() => adjustActiveFontSizeStep(-1)}
+            increaseFontSize={() => adjustActiveFontSizeStep(1)}
+            blockSpacingLabel={blockSpacingLabel}
+            decreaseBlockSpacing={() => adjustActiveBlockSpacingStep(-1)}
+            increaseBlockSpacing={() => adjustActiveBlockSpacingStep(1)}
           />
           <PresentationLiveHeader
             effectiveLiveMode={effectiveLiveMode}
@@ -997,7 +1031,7 @@ function Presentation() {
           <PresentationHorizontalNav
             open={shouldUseHorizontalColumnFlow && liveView !== "setlist"}
             effectiveLiveMode={effectiveLiveMode}
-            onNavigate={scrollExpandedLayout}
+            onNavigate={navigateHorizontalBlock}
           />
 
           <div
@@ -1055,6 +1089,29 @@ function Presentation() {
                 availableInstrumentOptions={availableInstrumentOptions}
                 onSelectInstrument={goToInstrument}
               />
+            ) : !effectiveLiveMode ? (
+              <div
+                className={`presentation-content-flow presentation-tiptap-surface ${
+                  shouldUseHorizontalColumnFlow
+                    ? "presentation-horizontal-columns"
+                    : "presentation-vertical-blocks"
+                }`}
+                key={`${presentationLayoutIdentity}-${activeLayoutVariant}`}
+                style={{
+                  "--presentation-block-gap": `${blockSpacingPx}px`,
+                }}
+                data-editing={isEditing ? "true" : undefined}
+              >
+                <PresentationTiptapEditor
+                  document={editorDocument || draftTiptapDocument || tiptapDocument}
+                  editable={isEditing}
+                  horizontal={shouldUseHorizontalColumnFlow}
+                  onReady={handlePresentationEditorReady}
+                  onStateChange={setPresentationEditorState}
+                  onUpdate={handleTiptapUpdate}
+                  transposeSteps={transposeSteps}
+                />
+              </div>
             ) : (
               <div
                 className={`presentation-content-flow ${
@@ -1064,68 +1121,7 @@ function Presentation() {
                     ? "presentation-horizontal-columns"
                     : ""
                 }`}
-                key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}`}
-                style={{
-                  "--presentation-block-gap": `${blockSpacingPx}px`,
-                }}
-                data-editing={isEditing ? "true" : undefined}
-                suppressContentEditableWarning
-                onInput={isEditing ? markCifraContentAsEdited : undefined}
-                onPaste={
-                  isEditing
-                    ? (event) => {
-                        setHasEditedCifraContent(true);
-                        pasteEditableContentAcrossBlocks(event);
-                        window.requestAnimationFrame(() => {
-                          syncRenderedCifraToDraft();
-                        });
-                      }
-                    : undefined
-                }
-                onCut={
-                  isEditing
-                    ? () => {
-                        setHasEditedCifraContent(true);
-                        window.requestAnimationFrame(() => {
-                          syncRenderedCifraToDraft();
-                        });
-                      }
-                    : undefined
-                }
-                onKeyDown={
-                  isEditing
-                    ? (event) => {
-                        if (selectAllEditableContent(event)) {
-                          return;
-                        }
-                        if (
-                          event.key === "ArrowUp" ||
-                          event.key === "ArrowDown"
-                        ) {
-                          event.stopPropagation();
-                          return;
-                        }
-                        if (deleteSelectedEditableContent(event)) {
-                          syncRenderedCifraToDraft();
-                          return;
-                        }
-                        if (replaceSelectedEditableContentWithText(event)) {
-                          syncRenderedCifraToDraft();
-                          return;
-                        }
-                        if (moveToAdjacentEditableBlock(event)) {
-                          syncRenderedCifraToDraft();
-                          return;
-                        }
-                        if (moveEnterToNextEditableBlock(event)) {
-                          return;
-                        }
-                        if (removeEmptyEditableLine(event)) {
-                          syncRenderedCifraToDraft();
-                        }
-                      }
-                    : undefined
-                }
+                style={{ "--presentation-block-gap": `${blockSpacingPx}px` }}
               >
                 <PresentationColumns
                   columns={activeProgressionRenderColumns}
@@ -1134,7 +1130,7 @@ function Presentation() {
                   shouldUseHorizontalColumnFlow={shouldUseHorizontalColumnFlow}
                   selectedBlockKeys={[]}
                   activeLiveColumnKey={activeLiveColumnKey}
-                  isEditing={isEditing}
+                  isEditing={false}
                 />
               </div>
             )}

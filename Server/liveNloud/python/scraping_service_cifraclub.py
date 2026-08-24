@@ -4,6 +4,8 @@ import requests
 from bs4 import NavigableString
 from bs4 import BeautifulSoup
 
+from cifra_utils import _is_tab_line, _is_tab_technique_line, sanitize_song_cifra
+
 
 def _clean_text(text: str) -> str:
     text = str(text or "").replace("\r", "")
@@ -17,26 +19,36 @@ def _split_cifra_sections(song_cifra: str):
     chords = []
     lyrics = []
 
+    previous_was_tab = False
     for raw_line in lines:
         line = raw_line.rstrip()
         stripped = line.strip()
 
         if not stripped:
             lyrics.append("")
+            previous_was_tab = False
             continue
 
         has_chord_markers = any(token in stripped for token in ("[", "]"))
-        likely_tab = any(char in stripped for char in ("|", "-", "~")) and not has_chord_markers
+        likely_tab = _is_tab_line(line) and not has_chord_markers
 
         if likely_tab:
             tabs.append(line)
+            previous_was_tab = True
+            continue
+
+        if previous_was_tab and _is_tab_technique_line(line):
+            tabs.append(line)
+            previous_was_tab = True
             continue
 
         if has_chord_markers:
             chords.append(line)
+            previous_was_tab = False
             continue
 
         lyrics.append(line)
+        previous_was_tab = False
 
     return {
         "songTabs": "\n".join(tabs).strip(),
@@ -126,6 +138,9 @@ def _extract_cifra_text(cifra_el) -> str:
     if not cifra_el:
         return ""
 
+    for blocked_element in cifra_el.find_all(("script", "style", "noscript", "template")):
+        blocked_element.decompose()
+
     for br in cifra_el.find_all("br"):
         br.replace_with("\n")
 
@@ -137,7 +152,7 @@ def _extract_cifra_text(cifra_el) -> str:
     song_cifra = "".join(extracted_parts)
     song_cifra = song_cifra.replace("\r", "")
     song_cifra = "\n".join(line.rstrip() for line in song_cifra.splitlines())
-    return song_cifra.strip("\n")
+    return sanitize_song_cifra(song_cifra.strip("\n"))
 
 
 def get_cifraclub_data(url: str):

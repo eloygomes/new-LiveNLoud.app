@@ -13,7 +13,6 @@ vi.mock("./TollBoxAcoord", () => ({
 const baseProps = {
   toolBoxBtnStatus: true,
   setToolBoxBtnStatus: vi.fn(),
-  toolBoxBtnStatusChange: vi.fn(),
   embedLinks: [],
   songFromURL: "Song",
   artistFromURL: "Artist",
@@ -58,9 +57,8 @@ const baseProps = {
 };
 
 describe("ToolBox", () => {
-  it("discards active editor changes when closing the toolbox", () => {
+  it("keeps active editor changes when closing the toolbox", () => {
     const handleDiscardDraft = vi.fn();
-    const toolBoxBtnStatusChange = vi.fn();
     const setToolBoxBtnStatus = vi.fn();
 
     render(
@@ -68,18 +66,14 @@ describe("ToolBox", () => {
         {...baseProps}
         isEditing
         handleDiscardDraft={handleDiscardDraft}
-        toolBoxBtnStatusChange={toolBoxBtnStatusChange}
         setToolBoxBtnStatus={setToolBoxBtnStatus}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Close toolbox" }));
 
-    expect(handleDiscardDraft).toHaveBeenCalledTimes(1);
-    expect(toolBoxBtnStatusChange).toHaveBeenCalledWith(
-      true,
-      setToolBoxBtnStatus,
-    );
+    expect(handleDiscardDraft).not.toHaveBeenCalled();
+    expect(setToolBoxBtnStatus).toHaveBeenCalledWith(false);
   });
 
   it("does not discard when closing outside edit mode", () => {

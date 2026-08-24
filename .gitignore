@@ -38,6 +38,12 @@ Front/.env.sustenido
 # Local documentation, analyses, and daily logs
 /docs
 /docs/**
+!/docs/
+/docs/*
+!/docs/logs/
+/docs/logs/*
+!/docs/logs/2026-08-24-tiptap-editor-implementation.md
+!/docs/logs/logs_2026-08-24_172131.md
 
 # Local ops configuration and database dumps
 /scripts/ops/config.sh

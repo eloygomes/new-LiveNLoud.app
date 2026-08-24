@@ -1,3 +1,6 @@
+import { CifraDocumentModel } from "./editor/model/CifraDocumentModel";
+import { sanitizeCifraContent } from "./helpers/sanitizeCifraContent";
+
 export const clampPresentationFontSizeStep = (value = 0) =>
   Math.max(-10, Math.min(10, Number.isFinite(value) ? value : 0));
 
@@ -43,27 +46,37 @@ export const normalizeProgressionMarkOverrides = (value) => {
 export const normalizePresentationLayoutVariant = (
   layout = {},
   { fallbackSongCifra = "", defaultTwoColumns = false } = {},
-) => ({
-  songCifra: hasUsablePresentationCifra(layout?.songCifra)
+) => {
+  const rawSongCifra = hasUsablePresentationCifra(layout?.songCifra)
     ? layout.songCifra
-    : fallbackSongCifra,
-  fontSizeStep: clampPresentationFontSizeStep(layout?.fontSizeStep),
-  blockSpacingStep: clampPresentationBlockSpacingStep(
-    Number(layout?.blockSpacingStep),
-  ),
-  twoColumns:
-    typeof layout?.twoColumns === "boolean"
-      ? layout.twoColumns
-      : defaultTwoColumns,
-  showProgressionMarkers:
-    typeof layout?.showProgressionMarkers === "boolean"
-      ? layout.showProgressionMarkers
-      : false,
-  progressionBadgeSide: layout?.progressionBadgeSide === "left" ? "left" : "right",
-  progressionMarkOverrides: normalizeProgressionMarkOverrides(
-    layout?.progressionMarkOverrides,
-  ),
-});
+    : fallbackSongCifra;
+
+  return {
+    songCifra: sanitizeCifraContent(rawSongCifra),
+    fontSizeStep: clampPresentationFontSizeStep(layout?.fontSizeStep),
+    blockSpacingStep: clampPresentationBlockSpacingStep(
+      Number(layout?.blockSpacingStep),
+    ),
+    twoColumns:
+      typeof layout?.twoColumns === "boolean"
+        ? layout.twoColumns
+        : defaultTwoColumns,
+    showProgressionMarkers:
+      typeof layout?.showProgressionMarkers === "boolean"
+        ? layout.showProgressionMarkers
+        : false,
+    progressionBadgeSide:
+      layout?.progressionBadgeSide === "left" ? "left" : "right",
+    progressionMarkOverrides: normalizeProgressionMarkOverrides(
+      layout?.progressionMarkOverrides,
+    ),
+    ...(CifraDocumentModel.isValidDocument(
+      layout?.tiptapDocument?.document || layout?.tiptapDocument,
+    )
+      ? { tiptapDocument: layout.tiptapDocument }
+      : {}),
+  };
+};
 
 export const buildInstrumentPresentationLayouts = (instrumentData = {}) => {
   const storedLayouts =
@@ -127,6 +140,7 @@ export const buildSavedPresentationLayouts = (
   currentLayouts = {},
   activeLayoutVariant = "default",
   nextSongCifra = "",
+  nextTiptapDocument = null,
 ) => {
   const variantKey = activeLayoutVariant === "expanded" ? "expanded" : "default";
   const normalizedCurrentLayouts = toPresentationLayoutPayload(currentLayouts);
@@ -134,6 +148,9 @@ export const buildSavedPresentationLayouts = (
     {
       ...normalizedCurrentLayouts[variantKey],
       songCifra: nextSongCifra,
+      tiptapDocument: nextTiptapDocument
+        ? CifraDocumentModel.toPersistedDocument(nextTiptapDocument)
+        : normalizedCurrentLayouts[variantKey]?.tiptapDocument || null,
     },
     {
       fallbackSongCifra: nextSongCifra,
@@ -191,6 +208,7 @@ export const getPresentationLayoutsDebugSummary = (layouts = {}) => {
       twoColumns: payload.default?.twoColumns,
       showProgressionMarkers: payload.default?.showProgressionMarkers,
       progressionBadgeSide: payload.default?.progressionBadgeSide,
+      hasTiptapDocument: Boolean(payload.default?.tiptapDocument),
       blockSpacingStep: payload.default?.blockSpacingStep,
       blockSpacingPx: getPresentationBlockSpacingPx(
         payload.default?.blockSpacingStep,
@@ -207,6 +225,7 @@ export const getPresentationLayoutsDebugSummary = (layouts = {}) => {
       twoColumns: payload.expanded?.twoColumns,
       showProgressionMarkers: payload.expanded?.showProgressionMarkers,
       progressionBadgeSide: payload.expanded?.progressionBadgeSide,
+      hasTiptapDocument: Boolean(payload.expanded?.tiptapDocument),
       blockSpacingStep: payload.expanded?.blockSpacingStep,
       blockSpacingPx: getPresentationBlockSpacingPx(
         payload.expanded?.blockSpacingStep,
@@ -314,6 +333,7 @@ export const getPresentationLayoutSettingsSnapshot = (layouts = {}) =>
       progressionBadgeSide:
         layouts.default?.progressionBadgeSide === "left" ? "left" : "right",
       progressionMarkOverrides: layouts.default?.progressionMarkOverrides || {},
+      tiptapDocument: layouts.default?.tiptapDocument || null,
     },
     expanded: {
       fontSizeStep: layouts.expanded?.fontSizeStep ?? 0,
@@ -323,6 +343,7 @@ export const getPresentationLayoutSettingsSnapshot = (layouts = {}) =>
       progressionBadgeSide:
         layouts.expanded?.progressionBadgeSide === "left" ? "left" : "right",
       progressionMarkOverrides: layouts.expanded?.progressionMarkOverrides || {},
+      tiptapDocument: layouts.expanded?.tiptapDocument || null,
     },
   });
 

@@ -39,7 +39,7 @@ describe("usePresentationSongData", () => {
     );
 
     expect(result.current.activeLayoutVariant).toBe("default");
-    expect(result.current.activeLayoutLabel).toBe("Default layout");
+    expect(result.current.activeLayoutLabel).toBe("Vertical View");
     expect(result.current.songCifraData).toBe("default cifra");
     expect(result.current.editableSongCifra).toBe("normalized:default cifra");
     expect(result.current.contentSelected).toBe("normalized:default cifra");
@@ -62,7 +62,7 @@ describe("usePresentationSongData", () => {
     );
 
     expect(result.current.activeLayoutVariant).toBe("expanded");
-    expect(result.current.activeLayoutLabel).toBe("Expanded layout");
+    expect(result.current.activeLayoutLabel).toBe("Horizontal View");
     expect(result.current.songCifraData).toBe("expanded cifra");
     expect(result.current.contentSelected).toBe("expanded cifra");
     expect(result.current.isTwoColumns).toBe(true);

@@ -18,8 +18,10 @@ const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function getAutomaticPresentationLayoutMode(windowRef) {
-  if (!windowRef) return "default";
-  return windowRef.innerHeight >= windowRef.innerWidth ? "default" : "expanded";
+  if (!windowRef) return "vertical";
+  return windowRef.innerHeight > windowRef.innerWidth
+    ? "vertical"
+    : "horizontal";
 }
 
 export function usePresentationLayoutStorageSync({
@@ -27,6 +29,7 @@ export function usePresentationLayoutStorageSync({
   instrumentPresentationLayouts,
   instrumentSelected,
   isExpandedCifra,
+  isEditing = false,
   isLayoutModeManual = false,
   isRouteSongLoading,
   presentationLayoutIdentity,
@@ -51,14 +54,19 @@ export function usePresentationLayoutStorageSync({
     const storedLayoutMode = window.localStorage.getItem(
       presentationLayoutModeStorageKey,
     );
-    const hasStoredManualMode = ["default", "expanded"].includes(
+    const hasStoredManualMode = [
+      "vertical",
+      "horizontal",
+      "default",
+      "expanded",
+    ].includes(
       storedLayoutMode,
     );
     setIsLayoutModeManual(hasStoredManualMode);
     setIsExpandedCifra(
       hasStoredManualMode
-        ? storedLayoutMode === "expanded"
-        : getAutomaticPresentationLayoutMode(window) === "expanded",
+        ? ["horizontal", "expanded"].includes(storedLayoutMode)
+        : getAutomaticPresentationLayoutMode(window) === "horizontal",
     );
   }, [
     presentationLayoutModeStorageKey,
@@ -71,7 +79,7 @@ export function usePresentationLayoutStorageSync({
 
     const applyAutomaticLayout = () => {
       setIsExpandedCifra(
-        getAutomaticPresentationLayoutMode(window) === "expanded",
+        getAutomaticPresentationLayoutMode(window) === "horizontal",
       );
     };
 
@@ -188,6 +196,7 @@ export function usePresentationLayoutStorageSync({
 
   useEffect(() => {
     if (!presentationLayoutStorageKey || typeof window === "undefined") return;
+    if (isEditing) return;
     if (
       isRouteSongLoading ||
       !songDataFetched ||
@@ -233,6 +242,7 @@ export function usePresentationLayoutStorageSync({
     currentInstrumentData,
     instrumentPresentationLayouts,
     instrumentSelected,
+    isEditing,
     isRouteSongLoading,
     presentationLayoutIdentity,
     presentationLayoutSettingsSnapshot,
@@ -248,15 +258,21 @@ export function usePresentationLayoutStorageSync({
       skipNextModePersistRef.current = false;
       return;
     }
+    if (isEditing) return;
     if (!isLayoutModeManual) return;
 
     try {
       setLocalStorageItemSafe(
         presentationLayoutModeStorageKey,
-        isExpandedCifra ? "expanded" : "default",
+        isExpandedCifra ? "horizontal" : "vertical",
       );
     } catch (error) {
       console.error("Erro ao persistir modo da presentation:", error);
     }
-  }, [isExpandedCifra, isLayoutModeManual, presentationLayoutModeStorageKey]);
+  }, [
+    isEditing,
+    isExpandedCifra,
+    isLayoutModeManual,
+    presentationLayoutModeStorageKey,
+  ]);
 }

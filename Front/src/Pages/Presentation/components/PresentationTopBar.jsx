@@ -11,6 +11,7 @@ import {
 } from "react-icons/io5";
 import { GiGuitar } from "react-icons/gi";
 import GuitarProIcon from "../../../components/GuitarPro/GuitarProIcon";
+import PresentationInlineEditToolbar from "./PresentationInlineEditToolbar";
 
 function PresentationTopBar({
   visible,
@@ -25,8 +26,7 @@ function PresentationTopBar({
   toolBoxBtnStatus,
   isEditing,
   isVideoModalOpen,
-  openEditorToolBox,
-  onToggleToolBox,
+  onStartEditing,
   isExpandedCifra,
   isLayoutModeManual = false,
   onToggleExpanded,
@@ -43,10 +43,54 @@ function PresentationTopBar({
   onOpenScrolling,
   onEnterLiveMode,
   onGoToSetlistSong,
+  editorController,
+  editorState,
+  isSavingCifra,
+  hasDraftChanges,
+  onSaveCifra,
+  onDiscardDraft,
+  showProgressionMarkers,
+  onToggleProgression,
+  fontSizeLabel,
+  decreaseFontSize,
+  increaseFontSize,
+  blockSpacingLabel,
+  decreaseBlockSpacing,
+  increaseBlockSpacing,
 }) {
   if (!visible) return null;
 
   if (isTouchLayout && !isPortraitTabletLayout) {
+    if (isEditing) {
+      return (
+        <div
+          data-presentation-top-bar="true"
+          className="sticky top-0 z-[120] my-3 flex shrink-0 items-center gap-3 neuphormism-b px-3 py-2"
+        >
+          <div className="min-w-0 max-w-[8.5rem] shrink-0">
+            <h1 className="truncate text-sm font-bold text-black" title={songFromURL}>{songFromURL}</h1>
+            <h2 className="truncate text-xs font-bold text-black/70" title={artistFromURL}>{artistFromURL}</h2>
+          </div>
+          <PresentationInlineEditToolbar
+            blockSpacingLabel={blockSpacingLabel}
+            decreaseBlockSpacing={decreaseBlockSpacing}
+            decreaseGlobalFontSize={decreaseFontSize}
+            editorController={editorController}
+            editorState={editorState}
+            fontSizeLabel={fontSizeLabel}
+            hasDraftChanges={hasDraftChanges}
+            increaseBlockSpacing={increaseBlockSpacing}
+            increaseGlobalFontSize={increaseFontSize}
+            isSaving={isSavingCifra}
+            onDiscard={onDiscardDraft}
+            onSave={onSaveCifra}
+            onToggleProgression={onToggleProgression}
+            showProgression={showProgressionMarkers}
+          />
+        </div>
+      );
+    }
+
     return (
       <div
         data-presentation-top-bar="true"
@@ -76,12 +120,12 @@ function PresentationTopBar({
                 ? "animate-[mobile-gear-blink_1.2s_ease-in-out_infinite]"
                 : ""
             }`}
-            onClick={onToggleToolBox}
-            aria-label="Options"
-            title="Open presentation options"
+            onClick={onStartEditing}
+            aria-label="Edit cifra"
+            title="Edit cifra"
           >
-            <FaGear className="h-[1.38rem] w-[1.38rem]" />
-            <span className="sr-only">Options</span>
+            <FaFilePen className="h-[1.38rem] w-[1.38rem]" />
+            <span className="sr-only">Edit cifra</span>
           </button>
         </div>
 
@@ -157,6 +201,24 @@ function PresentationTopBar({
         </h1>
       </div>
       <div className={`flex w-full flex-col items-stretch gap-3 ${isPortraitTabletLayout ? "pt-0" : "pt-2 xl:w-auto"}`}>
+        {isEditing ? (
+          <PresentationInlineEditToolbar
+            blockSpacingLabel={blockSpacingLabel}
+            decreaseBlockSpacing={decreaseBlockSpacing}
+            decreaseGlobalFontSize={decreaseFontSize}
+            editorController={editorController}
+            editorState={editorState}
+            fontSizeLabel={fontSizeLabel}
+            hasDraftChanges={hasDraftChanges}
+            increaseBlockSpacing={increaseBlockSpacing}
+            increaseGlobalFontSize={increaseFontSize}
+            isSaving={isSavingCifra}
+            onDiscard={onDiscardDraft}
+            onSave={onSaveCifra}
+            onToggleProgression={onToggleProgression}
+            showProgression={showProgressionMarkers}
+          />
+        ) : (
         <div
           className={`flex flex-col gap-2 ${
             isPortraitTabletLayout ? "presentation-tablet-controls relative" : ""
@@ -201,9 +263,9 @@ function PresentationTopBar({
                     ? "neuphormism-b-btn-gold bg-[goldenrod] shadow-[0_10px_24px_rgba(218,165,32,0.35)]"
                     : "neuphormism-b-btn"
                 }`}
-                onClick={openEditorToolBox}
-                aria-label={isEditing ? "Close cifra editor" : "Open cifra editor"}
-                title={isEditing ? "Close cifra editor" : "Open cifra editor"}
+                onClick={onStartEditing}
+                aria-label="Edit cifra"
+                title="Edit cifra"
                 aria-pressed={isEditing ? "true" : "false"}
               >
                 <FaFilePen className="h-5 w-5" />
@@ -271,7 +333,7 @@ function PresentationTopBar({
                 title={
                   isScrollingAvailable
                     ? "Scrolling"
-                    : "Scrolling is unavailable in expanded layout"
+                    : "Scrolling is unavailable in Horizontal View"
                 }
               >
                 <IoArrowDownCircle className="h-5 w-5" />
@@ -281,8 +343,8 @@ function PresentationTopBar({
                 type="button"
                 className="relative flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
                 onClick={onToggleExpanded}
-                aria-label={isExpandedCifra ? "Disable expanded layout" : "Enable expanded layout"}
-                title={`${isExpandedCifra ? "Expanded" : "Default"} layout · ${isLayoutModeManual ? "saved preference" : "automatic by screen orientation"}`}
+                aria-label={isExpandedCifra ? "Switch to Vertical View" : "Switch to Horizontal View"}
+                title={`${isExpandedCifra ? "Horizontal View" : "Vertical View"} · ${isLayoutModeManual ? "saved preference" : "automatic by screen orientation"}`}
               >
                 {isExpandedCifra ? (
                   <FaDownLeftAndUpRightToCenter className="h-5 w-5" />
@@ -299,7 +361,7 @@ function PresentationTopBar({
                 >
                   {isLayoutModeManual ? "✓" : "AUTO"}
                 </span>
-                <span className="sr-only">Expanded layout</span>
+                <span className="sr-only">Horizontal View</span>
               </button>
               <button
                 type="button"
@@ -342,6 +404,7 @@ function PresentationTopBar({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

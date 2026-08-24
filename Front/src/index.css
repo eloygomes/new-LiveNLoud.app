@@ -423,7 +423,7 @@ main{
 }
 
 .presentation-cifra-editor .presentation-editor-chord {
-  cursor: text;
+  cursor: pointer;
 }
 
 .presentation-cifra-editor .presentation-editor-chord:hover {
@@ -437,6 +437,250 @@ main{
 
 .presentation-cifra-editor p + p {
   margin-top: 0.25rem;
+}
+
+.presentation-tiptap-surface > div {
+  width: 100%;
+  min-width: 0;
+}
+
+.presentation-cifra-editor {
+  min-height: 100%;
+  width: 100%;
+  white-space: pre-wrap;
+  outline: none;
+}
+
+.presentation-vertical-blocks .presentation-cifra-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--presentation-block-gap, 2rem);
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns {
+  display: block;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  max-height: none;
+  width: 100%;
+  min-width: 100%;
+  padding-bottom: 0;
+  overflow: visible;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns > div {
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns .presentation-cifra-editor {
+  display: block;
+  box-sizing: border-box;
+  width: min(42vw, 42rem);
+  min-width: min(42vw, 42rem);
+  max-width: min(42vw, 42rem);
+  height: 100%;
+  min-height: 100%;
+  column-count: 1;
+  column-fill: auto;
+  column-gap: var(--presentation-block-gap, 2rem);
+  column-width: min(42vw, 42rem);
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.presentation-editor-block {
+  min-height: 2.75rem;
+  border-radius: 10px;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  transition: box-shadow 140ms ease, background 140ms ease;
+}
+
+.presentation-editor-tab-block {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-ligatures: none;
+  font-kerning: none;
+  letter-spacing: 0;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  tab-size: 4;
+  text-rendering: geometricPrecision;
+  white-space: pre;
+  word-break: normal;
+}
+
+.presentation-editor-tab-line {
+  font-size: var(--presentation-tab-fit-font-size, 1em);
+}
+
+.presentation-editor-tab-block[data-tab-fit-scale]
+  .presentation-editor-tab-line,
+.presentation-editor-tab-block[data-tab-fit-scale]
+  .presentation-editor-tab-line * {
+  font-size: var(--presentation-tab-fit-font-size) !important;
+}
+
+.presentation-editor-block:hover,
+.presentation-editor-block:focus-within {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(212, 160, 23, 0.16);
+}
+
+.presentation-horizontal-columns .presentation-editor-block {
+  flex: 0 0 min(42vw, 42rem);
+  width: min(42vw, 42rem);
+  min-height: min(68vh, 760px);
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns
+  .presentation-editor-block {
+  box-sizing: border-box;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  break-after: column;
+  break-inside: auto;
+  overflow: visible;
+  orphans: 1;
+  widows: 1;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns
+  .presentation-editor-block:last-child {
+  break-after: auto;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns
+  .presentation-editor-tab-block {
+  overflow: visible;
+}
+
+.presentation-editor-level-1 {
+  font-size: 1.6em;
+  font-weight: 700;
+}
+
+.presentation-editor-level-2 {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.presentation-editor-level-3 {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.presentation-editor-chord {
+  color: goldenrod;
+  font-weight: 700;
+}
+
+.presentation-editor-chord-bracket {
+  display: none;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-editor-chord,
+.presentation-content-flow[data-editing="true"] .presentation-editor-chord-bracket {
+  cursor: text;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  position: static;
+  transform: none;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-editor-chord-bracket {
+  color: goldenrod;
+  font-weight: 700;
+}
+
+.presentation-content-flow:not([data-editing="true"])
+  .presentation-editor-chord[data-transpose-active="true"] {
+  color: transparent;
+  display: inline-block;
+  position: relative;
+}
+
+.presentation-content-flow:not([data-editing="true"])
+  .presentation-editor-chord[data-transpose-active="true"]::after {
+  color: goldenrod;
+  content: attr(data-display-chord);
+  inset-inline-start: 0;
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.presentation-inline-edit-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: -0.4rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow: visible;
+  padding: 0.4rem;
+}
+
+.presentation-inline-edit-row {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+  grid-template-columns: repeat(10, 2.75rem);
+  justify-content: end;
+}
+
+.presentation-inline-edit-button {
+  align-items: center;
+  border: 0;
+  color: #111;
+  display: inline-flex;
+  height: 2.75rem;
+  justify-content: center;
+  min-width: 2.75rem;
+  padding: 0;
+  transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  width: 2.75rem;
+}
+
+.presentation-inline-edit-button > svg {
+  height: 1rem;
+  width: 1rem;
+}
+
+@media (max-width: 767px) {
+  .presentation-inline-edit-toolbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    width: 100%;
+  }
+}
+
+.presentation-inline-edit-button:focus-visible {
+  outline: 2px solid goldenrod;
+  outline-offset: 2px;
+}
+
+.presentation-inline-edit-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.presentation-inline-edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.presentation-cifra-editor.ProseMirror-focused {
+  caret-color: #c91f1f;
 }
 
 .presentation-editor-expanded-horizontal {

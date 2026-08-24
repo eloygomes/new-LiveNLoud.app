@@ -194,12 +194,22 @@ export function usePresentationChordTooltip({ contentRef, isEditing }) {
       scheduleTooltipHide();
     };
 
+    const handleChordClick = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.closest(".notespresentation[data-chord]")) return;
+      event.preventDefault();
+      updateTooltip(target);
+    };
+
     contentNode.addEventListener("mouseover", handleMouseEnter);
     contentNode.addEventListener("mouseout", handleMouseOut);
+    contentNode.addEventListener("click", handleChordClick);
 
     return () => {
       contentNode.removeEventListener("mouseover", handleMouseEnter);
       contentNode.removeEventListener("mouseout", handleMouseOut);
+      contentNode.removeEventListener("click", handleChordClick);
     };
   }, [contentRef, isEditing, scheduleTooltipHide, updateTooltip]);
 

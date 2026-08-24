@@ -25,6 +25,7 @@ import ScrollControlPanel from "./ScrollControlPanel";
 import ToolBoxEditControls from "./ToolBoxEditControls";
 import SongInstrumentNotes from "../SongInstrumentNotes";
 import GuitarProIcon from "../../components/GuitarPro/GuitarProIcon";
+import ToolBoxFormattingControls from "./editor/view/ToolBoxFormattingControls";
 
 // Uma lista de instrumentos, igual ao que você usa em DashList2Items
 const instrumentLabels = [
@@ -95,6 +96,8 @@ export default function TollBoxAcoord({
   isTouchVideoActive = false,
   onCloseTouchVideo,
   requestedPanel,
+  editorController,
+  editorState,
 }) {
   const [instLinkPageStatus, setInstLinkPageStatus] = useState({}); // Armazena quais instrumentos estão ativos (true/false)
 
@@ -281,6 +284,10 @@ export default function TollBoxAcoord({
 
   const renderEditorContent = () => (
     <div className={isTouchLayout ? "space-y-3" : "space-y-4"}>
+      <ToolBoxFormattingControls
+        controller={editorController}
+        state={editorState}
+      />
       <div className={isTouchLayout ? "space-y-2" : "space-y-3"}>
         {renderLayoutContent()}
       </div>
