@@ -63,6 +63,11 @@ function ToolBox({
   canOpenGuitarPro = false,
   onOpenGuitarProViewer,
   onEnterLiveMode,
+  onToggleExpanded,
+  layoutMode = "automatic",
+  previousSetlistSong,
+  nextSetlistSong,
+  onGoToSetlistSong,
   isTouchVideoActive = false,
   onCloseTouchVideo,
   requestedPanel,
@@ -184,7 +189,7 @@ function ToolBox({
             onClick={isEditing ? hideTouchToolBox : closeTouchToolBox}
             aria-label="Close toolbox"
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[78dvh] overflow-y-auto rounded-t-[18px] bg-[#f2f2f2] px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[78dvh] flex-col overflow-hidden rounded-t-[18px] bg-[#f2f2f2] px-3 pt-3 shadow-[0_-12px_32px_rgba(0,0,0,0.16)]">
             <div className="mb-3 flex items-center justify-between">
               <h1 className="min-w-0 truncate text-sm font-bold leading-6 text-black">
                 {`ToolBox${activeTouchPanelLabel ? ` - ${activeTouchPanelLabel}` : ""}`}
@@ -203,8 +208,9 @@ function ToolBox({
               </button>
             </div>
 
-            <TollBoxAcoord
-              embedLinks={embedLinks}
+            <div className="min-h-0 flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
+              <TollBoxAcoord
+                embedLinks={embedLinks}
               setLinktoplay={setLinktoplay}
               setVideoModalStatus={setVideoModalStatus}
               linktoplay={linktoplay}
@@ -248,12 +254,42 @@ function ToolBox({
               canOpenGuitarPro={canOpenGuitarPro}
               onOpenGuitarProViewer={onOpenGuitarProViewer}
               onEnterLiveMode={onEnterLiveMode}
+              onToggleExpanded={onToggleExpanded}
+              layoutMode={layoutMode}
+                previousSetlistSong={previousSetlistSong}
+                nextSetlistSong={nextSetlistSong}
+                onGoToSetlistSong={onGoToSetlistSong}
               isTouchVideoActive={isTouchVideoActive}
               onCloseTouchVideo={onCloseTouchVideo}
               requestedPanel={requestedPanel}
               editorController={editorController}
-              editorState={editorState}
-            />
+                editorState={editorState}
+              />
+            </div>
+
+            <div
+              className="absolute inset-x-0 bottom-0 z-10 grid grid-cols-2 gap-2 bg-[#f2f2f2]/95 px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_22px_rgba(0,0,0,0.12)] backdrop-blur-sm"
+              data-mobile-song-navigation="true"
+            >
+              <button
+                type="button"
+                disabled={!previousSetlistSong}
+                className="neuphormism-b-btn min-h-12 rounded-[14px] px-3 text-xs font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
+                onClick={() => onGoToSetlistSong?.(previousSetlistSong)}
+                aria-label="Previous song"
+              >
+                &lt;&lt;
+              </button>
+              <button
+                type="button"
+                disabled={!nextSetlistSong}
+                className="neuphormism-b-btn min-h-12 rounded-[14px] px-3 text-xs font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
+                onClick={() => onGoToSetlistSong?.(nextSetlistSong)}
+                aria-label="Next song"
+              >
+                &gt;&gt;
+              </button>
+            </div>
           </div>
         </div>
       ) : toolBoxBtnStatus ? (
@@ -327,6 +363,11 @@ function ToolBox({
                 canOpenGuitarPro={canOpenGuitarPro}
                 onOpenGuitarProViewer={onOpenGuitarProViewer}
                 onEnterLiveMode={onEnterLiveMode}
+                onToggleExpanded={onToggleExpanded}
+                layoutMode={layoutMode}
+                previousSetlistSong={previousSetlistSong}
+                nextSetlistSong={nextSetlistSong}
+                onGoToSetlistSong={onGoToSetlistSong}
                 isTouchVideoActive={isTouchVideoActive}
                 onCloseTouchVideo={onCloseTouchVideo}
                 requestedPanel={requestedPanel}

@@ -1,7 +1,13 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import { FaFilePen, FaSliders } from "react-icons/fa6";
+import {
+  FaArrowsLeftRight,
+  FaArrowsUpDown,
+  FaFilePen,
+  FaSliders,
+  FaWandMagicSparkles,
+} from "react-icons/fa6";
 import {
   GiDrumKit,
   GiGuitar,
@@ -93,6 +99,8 @@ export default function TollBoxAcoord({
   canOpenGuitarPro = false,
   onOpenGuitarProViewer,
   onEnterLiveMode,
+  onToggleExpanded,
+  layoutMode = "automatic",
   isTouchVideoActive = false,
   onCloseTouchVideo,
   requestedPanel,
@@ -601,6 +609,20 @@ export default function TollBoxAcoord({
 
   if (isTouchLayout) {
     const touchMenuIconClass = "h-4 w-4";
+    const layoutModePresentation = {
+      automatic: {
+        label: "Automatic layout",
+        icon: <FaWandMagicSparkles className={touchMenuIconClass} />,
+      },
+      horizontal: {
+        label: "Horizontal layout",
+        icon: <FaArrowsLeftRight className={touchMenuIconClass} />,
+      },
+      vertical: {
+        label: "Vertical layout",
+        icon: <FaArrowsUpDown className={touchMenuIconClass} />,
+      },
+    }[layoutMode];
     const editorTouchSection = {
       id: "panel-editor",
       label: "Editor",
@@ -683,26 +705,30 @@ export default function TollBoxAcoord({
         icon: <IoMusicalNotes className={touchMenuIconClass} />,
         content: renderInstrumentsContent(),
       },
-      ...(hasVideos
+      {
+        id: "panel2",
+        label: "Videos",
+        icon: <IoVideocam className={touchMenuIconClass} />,
+        content: renderVideosContent(),
+        disabled: !hasVideos,
+      },
+      {
+        id: "panel6",
+        label: "Scrolling",
+        icon: <IoArrowDownCircle className={touchMenuIconClass} />,
+        content: renderScrollingContent(),
+        disabled: isExpandedCifra,
+      },
+      ...(typeof onToggleExpanded === "function"
         ? [
             {
-              id: "panel2",
-              label: "Videos",
-              icon: <IoVideocam className={touchMenuIconClass} />,
-              content: renderVideosContent(),
+              id: "action-layout-mode",
+              label: layoutModePresentation.label,
+              icon: layoutModePresentation.icon,
+              action: () => runTouchAction(onToggleExpanded),
             },
           ]
         : []),
-      ...(isExpandedCifra
-        ? []
-        : [
-            {
-              id: "panel6",
-              label: "Scrolling",
-              icon: <IoArrowDownCircle className={touchMenuIconClass} />,
-              content: renderScrollingContent(),
-            },
-          ]),
     ];
     const touchSections = [editorTouchSection, ...menuTouchSections];
 
@@ -716,7 +742,7 @@ export default function TollBoxAcoord({
 
     return (
       <div className="space-y-2">
-        {menuTouchSections.map((section) => {
+        {[editorTouchSection, ...menuTouchSections].map((section) => {
           const shouldBlinkEditor =
             section.id === "panel-editor" &&
             isEditing &&

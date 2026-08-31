@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PresentationEditorController } from "./PresentationEditorController";
 import { CifraDocumentModel } from "../model/CifraDocumentModel";
 import { handlePresentationEditorKeyDown } from "../extensions/PresentationEditorExtensions";
@@ -149,7 +149,7 @@ describe("PresentationEditorController", () => {
     expect(controller.getEditor().state.selection.from).toBeLessThan(5);
   });
 
-  it("keeps horizontal arrows in the text until the block boundary", () => {
+  it("leaves horizontal arrows native even at a block boundary", () => {
     const controller = createController("one\n\ntwo\n\nthree", true);
     const editor = controller.getEditor();
     editor.commands.setTextSelection(7);
@@ -158,18 +158,18 @@ describe("PresentationEditorController", () => {
     expect(editor.state.selection.from).toBe(7);
 
     editor.commands.setTextSelection(9);
-    expect(dispatchEditorKey(editor, "ArrowRight").defaultPrevented).toBe(true);
-    expect(editor.state.selection.from).toBeGreaterThan(10);
+    expect(dispatchEditorKey(editor, "ArrowRight").defaultPrevented).toBe(false);
+    expect(editor.state.selection.from).toBe(9);
   });
 
-  it("moves ArrowRight from a chord to the next line in the same block", () => {
+  it("leaves ArrowRight native beside a chord", () => {
     const controller = createController("[G]\nlyric", true);
     const editor = controller.getEditor();
     editor.commands.setTextSelection(2);
 
-    expect(dispatchEditorKey(editor, "ArrowRight").defaultPrevented).toBe(true);
+    expect(dispatchEditorKey(editor, "ArrowRight").defaultPrevented).toBe(false);
     expect(controller.getJSON().content).toHaveLength(1);
-    expect(editor.state.selection.from).toBe(5);
+    expect(editor.state.selection.from).toBe(2);
   });
 
   it("does not turn left/right into block navigation in Vertical View", () => {
@@ -200,7 +200,22 @@ describe("PresentationEditorController", () => {
     });
   });
 
-  it("uses vertical arrows for blocks only at the first or last caret position", () => {
+  it("reads toolbar state without stealing focus or clearing the DOM selection", () => {
+    const controller = createController("select this text", false);
+    const editor = controller.getEditor();
+    editor.commands.setTextSelection({ from: 1, to: 7 });
+    const focusSpy = vi.spyOn(editor.view, "focus");
+
+    const selectionBefore = editor.state.selection;
+    const state = controller.getState();
+
+    expect(state).toEqual(expect.objectContaining({ canUndo: false }));
+    expect(editor.state.selection.from).toBe(selectionBefore.from);
+    expect(editor.state.selection.to).toBe(selectionBefore.to);
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it("leaves vertical arrows native at every block position", () => {
     const controller = createController("one\nline\n\ntwo\nline", false);
     const editor = controller.getEditor();
 
@@ -210,8 +225,27 @@ describe("PresentationEditorController", () => {
 
     editor.commands.setTextSelection(9);
     expect(runEditorKeyHandler(editor, "ArrowDown", "vertical").defaultPrevented)
-      .toBe(true);
-    expect(editor.state.selection.from).toBeGreaterThan(9);
+      .toBe(false);
+    expect(editor.state.selection.from).toBe(9);
+  });
+
+  it("maps a primary mouse click to a text selection without cancelling native selection", () => {
+    const controller = createController("click this text", false);
+    const editor = controller.getEditor();
+    editor.commands.setTextSelection(1);
+    vi.spyOn(editor.view, "posAtCoords").mockReturnValue({ pos: 7, inside: 0 });
+
+    const event = new MouseEvent("mousedown", {
+      bubbles: true,
+      button: 0,
+      clientX: 120,
+      clientY: 80,
+    });
+    editor.view.dom.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(editor.state.selection.from).toBe(7);
+    expect(editor.state.selection.to).toBe(7);
   });
 
   it("preserves marks in structured JSON and serializes bare chords for legacy clients", () => {

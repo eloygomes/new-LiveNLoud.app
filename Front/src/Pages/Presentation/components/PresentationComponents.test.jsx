@@ -304,6 +304,7 @@ describe("Presentation extracted components", () => {
 
   it("renders top bar actions", () => {
     const onStartEditing = vi.fn();
+    const onToggleToolBox = vi.fn();
     const onToggleExpanded = vi.fn();
     const onGoToSetlistSong = vi.fn();
 
@@ -321,7 +322,7 @@ describe("Presentation extracted components", () => {
         isEditing={false}
         isVideoModalOpen={false}
         onStartEditing={onStartEditing}
-        onToggleToolBox={vi.fn()}
+        onToggleToolBox={onToggleToolBox}
         isExpandedCifra={false}
         isLayoutModeManual={false}
         onToggleExpanded={onToggleExpanded}
@@ -335,7 +336,7 @@ describe("Presentation extracted components", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Edit cifra" }));
-    fireEvent.click(screen.getByRole("button", { name: "Switch to Horizontal View" }));
+    fireEvent.click(screen.getByRole("button", { name: "Automatic layout" }));
     fireEvent.click(
       screen.getAllByRole("button", {
         name: "Next song in selected setlist",
@@ -344,7 +345,7 @@ describe("Presentation extracted components", () => {
 
     expect(onStartEditing).toHaveBeenCalled();
     expect(onToggleExpanded).toHaveBeenCalled();
-    expect(screen.getByLabelText("Automatic layout")).toHaveTextContent("AUTO");
+    expect(screen.getByLabelText("Automatic layout status")).toHaveTextContent("AUTO");
     expect(onGoToSetlistSong).toHaveBeenCalledWith({
       artist: "Next",
       song: "Next Song",
@@ -445,9 +446,10 @@ describe("Presentation extracted components", () => {
     expect(onDiscardDraft).toHaveBeenCalled();
   });
 
-  it("keeps only edit and song navigation in the touch top bar", () => {
+  it("keeps only identity and one action trigger in the touch top bar", () => {
     const onStartEditing = vi.fn();
     const onGoToSetlistSong = vi.fn();
+    const onToggleToolBox = vi.fn();
 
     render(
       <PresentationTopBar
@@ -463,7 +465,7 @@ describe("Presentation extracted components", () => {
         isEditing={false}
         isVideoModalOpen={false}
         onStartEditing={onStartEditing}
-        onToggleToolBox={vi.fn()}
+        onToggleToolBox={onToggleToolBox}
         isExpandedCifra={false}
         onToggleExpanded={vi.fn()}
         onGoToEditSong={vi.fn()}
@@ -490,17 +492,19 @@ describe("Presentation extracted components", () => {
       screen.queryByRole("button", { name: "Song settings" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit cifra" }));
+    expect(
+      screen.queryByRole("button", { name: "Edit cifra" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Next song in selected setlist" }),
+    ).not.toBeInTheDocument();
+
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Next song in selected setlist",
-      }),
+      screen.getByRole("button", { name: "Open presentation actions" }),
     );
 
-    expect(onStartEditing).toHaveBeenCalled();
-    expect(onGoToSetlistSong).toHaveBeenCalledWith({
-      artist: "Next",
-      song: "Next Song",
-    });
+    expect(onToggleToolBox).toHaveBeenCalled();
+    expect(onStartEditing).not.toHaveBeenCalled();
+    expect(onGoToSetlistSong).not.toHaveBeenCalled();
   });
 });

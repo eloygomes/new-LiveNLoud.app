@@ -1,4 +1,5 @@
 import { Editor } from "@tiptap/core";
+import { TextSelection } from "@tiptap/pm/state";
 import { CifraDocumentModel } from "../model/CifraDocumentModel";
 import {
   createPresentationEditorExtensions,
@@ -49,6 +50,38 @@ export class PresentationEditorController {
             event,
             this.horizontal ? "horizontal" : "vertical",
           ),
+        handleDOMEvents: {
+          mousedown: (view, event) => {
+            if (
+              !view.editable ||
+              event.button !== 0 ||
+              event.shiftKey ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.altKey
+            ) {
+              return false;
+            }
+
+            const mappedPosition = view.posAtCoords({
+              left: event.clientX,
+              top: event.clientY,
+            });
+            if (!mappedPosition) return false;
+
+            const selection = TextSelection.near(
+              view.state.doc.resolve(mappedPosition.pos),
+              1,
+            );
+            if (!selection.eq(view.state.selection)) {
+              view.dispatch(view.state.tr.setSelection(selection));
+            }
+
+            // Keep the native event alive so dragging, double-clicking and
+            // extending a selection continue to work like a regular editor.
+            return false;
+          },
+        },
       },
       onFocus: () => onFocus?.(),
       onUpdate: () => this.emitUpdate(),
@@ -75,8 +108,8 @@ export class PresentationEditorController {
     if (!this.editor || this.editor.isDestroyed) return DEFAULT_STATE;
     const attrs = this.editor.getAttributes("songBlock");
     return {
-      canUndo: this.editor.can().chain().focus().undo().run(),
-      canRedo: this.editor.can().chain().focus().redo().run(),
+      canUndo: this.editor.can().undo(),
+      canRedo: this.editor.can().redo(),
       bold: this.editor.isActive("bold"),
       italic: this.editor.isActive("italic"),
       underline: this.editor.isActive("underline"),

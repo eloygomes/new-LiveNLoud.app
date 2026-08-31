@@ -430,53 +430,7 @@ export function navigateToAdjacentBlock(editor, direction) {
   return true;
 }
 
-function selectionTouchesChord(state) {
-  if (!state.selection.empty) return false;
-  const resolved = state.doc.resolve(state.selection.from);
-  const nearbyMarks = [
-    ...resolved.marks(),
-    ...(resolved.nodeBefore?.marks || []),
-    ...(resolved.nodeAfter?.marks || []),
-  ];
-  return nearbyMarks.some((mark) =>
-    ["chord", "chordBracket"].includes(mark.type.name),
-  );
-}
-
-export function moveCursorToNextLine(editor) {
-  const { state, view } = editor;
-  const active = findActiveBlock(state.doc, state.selection.from);
-  if (!active) return false;
-
-  let nextBreakPosition = null;
-  state.doc.nodesBetween(
-    state.selection.from,
-    active.contentEnd,
-    (node, position) => {
-      if (nextBreakPosition === null && node.type.name === "hardBreak") {
-        nextBreakPosition = position;
-      }
-      return nextBreakPosition === null;
-    },
-  );
-  if (nextBreakPosition === null) return false;
-
-  const nextLinePosition = Math.min(
-    nextBreakPosition + 1,
-    active.contentEnd,
-  );
-  view.dispatch(
-    state.tr
-      .setSelection(
-        TextSelection.near(state.doc.resolve(nextLinePosition), 1),
-      )
-      .scrollIntoView(),
-  );
-  view.focus();
-  return true;
-}
-
-export function handlePresentationEditorKeyDown(editor, event, layout) {
+export function handlePresentationEditorKeyDown(editor, event, _layout) {
   const hasSystemModifier = event.ctrlKey || event.metaKey || event.altKey;
 
   if (event.key === "Tab" && !event.shiftKey && !hasSystemModifier) {
@@ -501,52 +455,9 @@ export function handlePresentationEditorKeyDown(editor, event, layout) {
     return editor.commands.setHardBreak();
   }
 
-  const active = findActiveBlock(editor.state.doc, editor.state.selection.from);
-  if (
-    event.key === "ArrowRight" &&
-    selectionTouchesChord(editor.state) &&
-    moveCursorToNextLine(editor)
-  ) {
-    event.preventDefault();
-    return true;
-  }
-
-  if (
-    layout === "horizontal" &&
-    event.key === "ArrowLeft" &&
-    active &&
-    editor.state.selection.empty &&
-    editor.state.selection.from === active.contentStart
-  ) {
-    event.preventDefault();
-    return navigateToAdjacentBlock(editor, -1);
-  }
-
-  if (
-    layout === "horizontal" &&
-    event.key === "ArrowRight" &&
-    active &&
-    editor.state.selection.empty &&
-    editor.state.selection.from === active.contentEnd
-  ) {
-    event.preventDefault();
-    return navigateToAdjacentBlock(editor, 1);
-  }
-
-  const verticalDirection =
-    event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
-  const isAtVerticalBoundary =
-    active &&
-    editor.state.selection.empty &&
-    (
-      (verticalDirection < 0 && editor.state.selection.from === active.contentStart) ||
-      (verticalDirection > 0 && editor.state.selection.from === active.contentEnd)
-    );
-  if (layout === "vertical" && verticalDirection && isAtVerticalBoundary) {
-    event.preventDefault();
-    return navigateToAdjacentBlock(editor, verticalDirection);
-  }
-
+  // Arrow keys deliberately fall through to ProseMirror/the browser. Custom
+  // block navigation made the caret jump or become stuck near chords and at
+  // block boundaries, unlike a conventional document editor.
   return false;
 }
 

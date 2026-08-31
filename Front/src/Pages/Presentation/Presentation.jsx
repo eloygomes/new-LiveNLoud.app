@@ -24,6 +24,7 @@ import PresentationTiptapEditor from "./editor/view/PresentationTiptapEditor";
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 import {
   getPresentationLayoutModeStorageKey,
+  getPresentationLiveSettingsStorageKey,
   getPresentationLayoutsStorageKey,
   logPresentationDebug,
   normalizePresentationInstrumentValue,
@@ -384,16 +385,26 @@ function Presentation() {
     window.innerWidth >= 768;
   const {
     adjustLiveCifraZoom,
+    adjustLiveBlockSpacing,
     blockSpacingLabel,
     blockSpacingPx,
     liveCifraZoomLabel,
     liveCifraZoomScale,
+    liveBlockSpacingLabel,
+    liveBlockSpacingPx,
+    liveTabsVisible,
     presentationFontScale,
     touchFontSizeLabel,
     touchFontSizeRem,
+    toggleLiveTabs,
   } = usePresentationVisualScale({
     blockSpacingStep,
     isTouchLayout,
+    liveSettingsStorageKey: getPresentationLiveSettingsStorageKey({
+      artist: artistFromURL,
+      song: songFromURL,
+      instrument: instrumentSelected,
+    }),
     touchFontSizeStep,
   });
 
@@ -456,6 +467,30 @@ function Presentation() {
       }),
     [artistFromURL, instrumentSelected, songFromURL],
   );
+  const presentationLayoutMode = isLayoutModeManual
+    ? isExpandedCifra
+      ? "horizontal"
+      : "vertical"
+    : "automatic";
+  const cyclePresentationLayoutMode = useCallback(() => {
+    if (presentationLayoutMode === "automatic") {
+      setIsLayoutModeManual(true);
+      setIsExpandedCifra(true);
+      return;
+    }
+
+    if (presentationLayoutMode === "horizontal") {
+      setIsLayoutModeManual(true);
+      setIsExpandedCifra(false);
+      return;
+    }
+
+    window.localStorage.removeItem(presentationLayoutModeStorageKey);
+    setIsLayoutModeManual(false);
+    setIsExpandedCifra(
+      getAutomaticPresentationLayoutMode(window) === "horizontal",
+    );
+  }, [presentationLayoutMode, presentationLayoutModeStorageKey]);
   const presentationLayoutSettingsSnapshot = useMemo(
     () => getPresentationLayoutSettingsSnapshot(instrumentPresentationLayouts),
     [instrumentPresentationLayouts],
@@ -885,7 +920,7 @@ function Presentation() {
           <SnackBar snackbarMessage={snackbarMessage} />
         )}
       </div>
-      {!effectiveLiveMode && !isEditing && (
+      {!effectiveLiveMode && (
         <ToolBox
           toolBoxBtnStatus={toolBoxBtnStatus}
           setToolBoxBtnStatus={setToolBoxBtnStatus}
@@ -931,6 +966,11 @@ function Presentation() {
           canOpenGuitarPro={canOpenGuitarPro}
           onOpenGuitarProViewer={openGuitarProViewer}
           onEnterLiveMode={enterLiveMode}
+          layoutMode={presentationLayoutMode}
+          onToggleExpanded={cyclePresentationLayoutMode}
+          previousSetlistSong={previousSetlistSong}
+          nextSetlistSong={nextSetlistSong}
+          onGoToSetlistSong={goToSetlistSong}
           isTouchVideoActive={isTouchVideoActive}
           onCloseTouchVideo={closeTouchVideo}
           requestedPanel={toolBoxRequestedPanel}
@@ -968,12 +1008,11 @@ function Presentation() {
             isEditing={isEditing}
             isVideoModalOpen={isVideoModalOpen}
             onStartEditing={startEditingCifra}
+            onToggleToolBox={() => toggleToolBoxPanel(null)}
             isExpandedCifra={isExpandedCifra}
             isLayoutModeManual={isLayoutModeManual}
-            onToggleExpanded={() => {
-              setIsLayoutModeManual(true);
-              setIsExpandedCifra((value) => !value);
-            }}
+            layoutMode={presentationLayoutMode}
+            onToggleExpanded={cyclePresentationLayoutMode}
             onGoToEditSong={goToEditSong}
             instrumentSelected={instrumentSelected}
             canOpenGuitarPro={canOpenGuitarPro}
@@ -1013,11 +1052,13 @@ function Presentation() {
             nextSetlistSong={nextSetlistSong}
             liveView={liveView}
             liveCifraZoomLabel={liveCifraZoomLabel}
-            blockSpacingLabel={blockSpacingLabel}
+            blockSpacingLabel={liveBlockSpacingLabel}
+            tabsVisible={liveTabsVisible}
+            onToggleTabs={toggleLiveTabs}
             onDecreaseZoom={() => adjustLiveCifraZoom(-10)}
             onIncreaseZoom={() => adjustLiveCifraZoom(10)}
-            onDecreaseSpacing={() => adjustActiveBlockSpacingStep(-1)}
-            onIncreaseSpacing={() => adjustActiveBlockSpacingStep(1)}
+            onDecreaseSpacing={() => adjustLiveBlockSpacing(-1)}
+            onIncreaseSpacing={() => adjustLiveBlockSpacing(1)}
             onOpenSetlist={() => setLiveView("setlist")}
             onCloseSetlist={() => setLiveView("cifra")}
             onGoToSetlistSong={goToLiveSetlistSong}
@@ -1115,13 +1156,17 @@ function Presentation() {
             ) : (
               <div
                 className={`presentation-content-flow ${
+                  liveTabsVisible ? "" : "presentation-live-tabs-hidden"
+                } ${
                   shouldUseTwoColumns ? "presentation-two-columns" : ""
                 } ${
                   shouldUseHorizontalColumnFlow
                     ? "presentation-horizontal-columns"
                     : ""
                 }`}
-                style={{ "--presentation-block-gap": `${blockSpacingPx}px` }}
+                style={{
+                  "--presentation-block-gap": `${liveBlockSpacingPx}px`,
+                }}
               >
                 <PresentationColumns
                   columns={activeProgressionRenderColumns}

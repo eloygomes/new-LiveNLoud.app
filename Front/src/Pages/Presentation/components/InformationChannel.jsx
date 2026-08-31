@@ -4,7 +4,7 @@ function InformationChannel({ visible }) {
   if (!visible) return null;
 
   return (
-    <div className="w-full shrink-0 bg-[goldenrod] px-4 py-1 text-center text-[10px] font-bold uppercase leading-none tracking-[0.32em] text-black shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
+    <div className="relative z-[121] w-full shrink-0 bg-[goldenrod] px-4 py-1 text-center text-[10px] font-bold uppercase leading-none tracking-[0.32em] text-black">
       Editor is on
     </div>
   );
