@@ -2,15 +2,63 @@ import re
 
 # ———————————————— Helpers ————————————————
 
-# (1) Tab lines: your original logic
+# (1) Tab lines: pipe-style guitar tabs and pipe-less bass tabs
 _TAB_STARTS = ("e|", "B|", "G|", "D|", "A|", "E|", "e:", "B:", "G:", "D:", "A:", "E:")
+_TAB_WITHOUT_PIPE_RE = re.compile(r"^\s*\[?\s*[EADGBeB](?:#|b)?\s*\]?\s*-{3,}")
+_TAB_TECHNIQUE_RE = re.compile(r"^\s*(?:\((?:T|P)\)\s*){2,}$", re.IGNORECASE)
+
+_EMBEDDED_PAGE_PAYLOAD_PATTERNS = (
+    re.compile(r"self\.__next_f\.push\s*\(", re.IGNORECASE),
+    re.compile(
+        r'(?:\(\s*[A-G]\s*\))?\s*\d+\s*:\s*\[\s*\\?"\$\\?"\s*,\s*\\?"\$L\d+',
+        re.IGNORECASE,
+    ),
+    re.compile(r'\[\s*\\?"\$\\?"\s*,\s*\\?"\$L\d+', re.IGNORECASE),
+    re.compile(r"<script\b", re.IGNORECASE),
+    re.compile(r"application/ld\+json", re.IGNORECASE),
+    re.compile(r'\\?"dangerouslySetInnerHTML\\?"\s*:', re.IGNORECASE),
+    re.compile(
+        r'\{?\s*\\?"@context\\?"\s*:\s*\\?"https?://schema\.org',
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r'\\?"translations\\?"\s*:\s*\{\s*\}\s*,\s*\\?"language\\?"\s*:',
+        re.IGNORECASE,
+    ),
+)
+
+
+def sanitize_song_cifra(value: str) -> str:
+    content = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+    positions = [
+        match.start()
+        for pattern in _EMBEDDED_PAGE_PAYLOAD_PATTERNS
+        if (match := pattern.search(content))
+    ]
+    if not positions:
+        return content
+
+    payload_start = min(positions)
+    line_start = content.rfind("\n", 0, payload_start) + 1
+    prefix = content[line_start:payload_start].strip()
+    code_prefix = re.fullmatch(
+        r'(?:\(\s*[A-G]\s*\))?\s*\d*\s*:?\s*[\[{"\'\\$]*',
+        prefix,
+    )
+    cut_at = line_start if not prefix or code_prefix else payload_start
+    return content[:cut_at].rstrip()
 
 
 def _is_tab_line(line: str) -> bool:
     return (
         line.lstrip().startswith(_TAB_STARTS)
+        or bool(_TAB_WITHOUT_PIPE_RE.match(line))
         or line.count("-") >= 5
     )
+
+
+def _is_tab_technique_line(line: str) -> bool:
+    return bool(_TAB_TECHNIQUE_RE.match(str(line or "")))
 
 
 def _extract_tabs(cifra: str) -> str:
@@ -20,7 +68,9 @@ def _extract_tabs(cifra: str) -> str:
     while i < len(lines):
         if _is_tab_line(lines[i]) and i + 2 < len(lines) \
            and _is_tab_line(lines[i+1]) and _is_tab_line(lines[i+2]):
-            while i < len(lines) and _is_tab_line(lines[i]):
+            while i < len(lines) and (
+                _is_tab_line(lines[i]) or _is_tab_technique_line(lines[i])
+            ):
                 out.append(lines[i].rstrip())
                 i += 1
             out.append("")  # blank line between tab-blocks

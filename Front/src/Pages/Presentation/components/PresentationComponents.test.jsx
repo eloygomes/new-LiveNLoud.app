@@ -65,12 +65,12 @@ describe("Presentation extracted components", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Navigate left through expanded cifra",
+        name: "Navigate to previous block",
       }),
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Navigate right through expanded cifra",
+        name: "Navigate to next block",
       }),
     );
 
@@ -303,7 +303,8 @@ describe("Presentation extracted components", () => {
   });
 
   it("renders top bar actions", () => {
-    const openEditorToolBox = vi.fn();
+    const onStartEditing = vi.fn();
+    const onToggleToolBox = vi.fn();
     const onToggleExpanded = vi.fn();
     const onGoToSetlistSong = vi.fn();
 
@@ -314,14 +315,14 @@ describe("Presentation extracted components", () => {
         isTouchVideoActive={false}
         songFromURL="Song"
         artistFromURL="Artist"
-        activeLayoutLabel="Default layout"
+        activeLayoutLabel="Vertical View"
         previousSetlistSong={{ artist: "Prev", song: "Prev Song" }}
         nextSetlistSong={{ artist: "Next", song: "Next Song" }}
         toolBoxBtnStatus={false}
         isEditing={false}
         isVideoModalOpen={false}
-        openEditorToolBox={openEditorToolBox}
-        onToggleToolBox={vi.fn()}
+        onStartEditing={onStartEditing}
+        onToggleToolBox={onToggleToolBox}
         isExpandedCifra={false}
         isLayoutModeManual={false}
         onToggleExpanded={onToggleExpanded}
@@ -334,17 +335,17 @@ describe("Presentation extracted components", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Open cifra editor" }));
-    fireEvent.click(screen.getByRole("button", { name: "Enable expanded layout" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit cifra" }));
+    fireEvent.click(screen.getByRole("button", { name: "Automatic layout" }));
     fireEvent.click(
       screen.getAllByRole("button", {
         name: "Next song in selected setlist",
       })[0],
     );
 
-    expect(openEditorToolBox).toHaveBeenCalled();
+    expect(onStartEditing).toHaveBeenCalled();
     expect(onToggleExpanded).toHaveBeenCalled();
-    expect(screen.getByLabelText("Automatic layout")).toHaveTextContent("AUTO");
+    expect(screen.getByLabelText("Automatic layout status")).toHaveTextContent("AUTO");
     expect(onGoToSetlistSong).toHaveBeenCalledWith({
       artist: "Next",
       song: "Next Song",
@@ -360,11 +361,11 @@ describe("Presentation extracted components", () => {
         isTouchVideoActive={false}
         songFromURL="Tablet Song"
         artistFromURL="Tablet Artist"
-        activeLayoutLabel="Default layout"
+        activeLayoutLabel="Vertical View"
         toolBoxBtnStatus={false}
         isEditing={false}
         isVideoModalOpen={false}
-        openEditorToolBox={vi.fn()}
+        onStartEditing={vi.fn()}
         onToggleToolBox={vi.fn()}
         isExpandedCifra={false}
         onToggleExpanded={vi.fn()}
@@ -379,7 +380,7 @@ describe("Presentation extracted components", () => {
 
     const topBar = container.querySelector("[data-presentation-top-bar='true']");
     const songTitle = screen.getByText("Tablet Song");
-    const firstAction = screen.getByRole("button", { name: "Open cifra editor" });
+    const firstAction = screen.getByRole("button", { name: "Edit cifra" });
 
     expect(topBar).toHaveAttribute("data-tablet-layout", "true");
     expect(
@@ -390,8 +391,9 @@ describe("Presentation extracted components", () => {
     ).toBeTruthy();
   });
 
-  it("shows active edit button state while editing", () => {
-    const openEditorToolBox = vi.fn();
+  it("replaces presentation actions with a symmetric two-row edit toolbar", () => {
+    const onSaveCifra = vi.fn();
+    const onDiscardDraft = vi.fn();
 
     render(
       <PresentationTopBar
@@ -400,11 +402,11 @@ describe("Presentation extracted components", () => {
         isTouchVideoActive={false}
         songFromURL="Song"
         artistFromURL="Artist"
-        activeLayoutLabel="Default layout"
+        activeLayoutLabel="Vertical View"
         toolBoxBtnStatus={false}
         isEditing
         isVideoModalOpen={false}
-        openEditorToolBox={openEditorToolBox}
+        onStartEditing={vi.fn()}
         onToggleToolBox={vi.fn()}
         isExpandedCifra={false}
         onToggleExpanded={vi.fn()}
@@ -414,22 +416,40 @@ describe("Presentation extracted components", () => {
         onOpenGuitarProViewer={vi.fn()}
         onEnterLiveMode={vi.fn()}
         onGoToSetlistSong={vi.fn()}
+        hasDraftChanges
+        onSaveCifra={onSaveCifra}
+        onDiscardDraft={onDiscardDraft}
+        editorState={{ canUndo: false, canRedo: false, align: "left" }}
       />,
     );
 
-    const editButton = screen.getByRole("button", {
-      name: "Close cifra editor",
-    });
-    expect(editButton).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("button", { name: "Transpose" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "LIVE" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next song in selected setlist" })).not.toBeInTheDocument();
 
-    fireEvent.click(editButton);
+    const rows = document.querySelectorAll("[data-editor-toolbar-row]");
+    expect(rows).toHaveLength(2);
+    expect(rows[0].querySelectorAll("button, label")).toHaveLength(10);
+    expect(rows[1].querySelectorAll("button, label")).toHaveLength(10);
+    expect(rows[0].lastElementChild).toHaveAccessibleName("Save");
+    expect(rows[1].lastElementChild).toHaveAccessibleName("Discard changes");
+    expect(screen.getByRole("button", { name: "Bold" })).toHaveClass(
+      "neuphormism-b-btn",
+    );
+    expect(screen.getByRole("button", { name: "Save" })).toHaveClass(
+      "neuphormism-b-btn",
+    );
 
-    expect(openEditorToolBox).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(onSaveCifra).toHaveBeenCalled();
+    expect(onDiscardDraft).toHaveBeenCalled();
   });
 
-  it("keeps only options and song navigation in the touch top bar", () => {
-    const onToggleToolBox = vi.fn();
+  it("keeps only identity and one action trigger in the touch top bar", () => {
+    const onStartEditing = vi.fn();
     const onGoToSetlistSong = vi.fn();
+    const onToggleToolBox = vi.fn();
 
     render(
       <PresentationTopBar
@@ -438,13 +458,13 @@ describe("Presentation extracted components", () => {
         isTouchVideoActive={false}
         songFromURL="Song"
         artistFromURL="Artist"
-        activeLayoutLabel="Default layout"
+        activeLayoutLabel="Vertical View"
         previousSetlistSong={{ artist: "Prev", song: "Prev Song" }}
         nextSetlistSong={{ artist: "Next", song: "Next Song" }}
         toolBoxBtnStatus={false}
         isEditing={false}
         isVideoModalOpen={false}
-        openEditorToolBox={vi.fn()}
+        onStartEditing={onStartEditing}
         onToggleToolBox={onToggleToolBox}
         isExpandedCifra={false}
         onToggleExpanded={vi.fn()}
@@ -463,26 +483,28 @@ describe("Presentation extracted components", () => {
     expect(topBar).toHaveClass("sticky", "top-0", "z-[120]");
 
     expect(
-      screen.queryByRole("button", { name: "Open cifra editor" }),
+      screen.queryByRole("button", { name: "Open editor tools" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Enable expanded layout" }),
+      screen.queryByRole("button", { name: "Switch to Horizontal View" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Song settings" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Options" }));
+    expect(
+      screen.queryByRole("button", { name: "Edit cifra" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Next song in selected setlist" }),
+    ).not.toBeInTheDocument();
+
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Next song in selected setlist",
-      }),
+      screen.getByRole("button", { name: "Open presentation actions" }),
     );
 
     expect(onToggleToolBox).toHaveBeenCalled();
-    expect(onGoToSetlistSong).toHaveBeenCalledWith({
-      artist: "Next",
-      song: "Next Song",
-    });
+    expect(onStartEditing).not.toHaveBeenCalled();
+    expect(onGoToSetlistSong).not.toHaveBeenCalled();
   });
 });

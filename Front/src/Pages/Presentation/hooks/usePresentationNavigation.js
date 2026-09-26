@@ -1,8 +1,44 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { normalizePresentationInstrumentValue } from "../helpers/presentationUtils";
 import { setLocalStorageItemSafe } from "../../../Tools/storageSafe";
 
 const PRESERVED_LIVE_NAVIGATION_KEY = "presentation:preserve-live-navigation";
+
+export function usePresentationSongKeyboardNavigation({
+  goToSetlistSong,
+  nextSetlistSong,
+  previousSetlistSong,
+}) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const usesControlShortcut = event.ctrlKey && !event.shiftKey;
+      const usesShiftShortcut = event.shiftKey && !event.ctrlKey;
+      if (
+        event.defaultPrevented ||
+        (!usesControlShortcut && !usesShiftShortcut) ||
+        event.metaKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const targetSong =
+        event.key === "ArrowLeft"
+          ? previousSetlistSong
+          : event.key === "ArrowRight"
+            ? nextSetlistSong
+            : null;
+      if (!targetSong) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      goToSetlistSong(targetSong);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [goToSetlistSong, nextSetlistSong, previousSetlistSong]);
+}
 
 export function usePresentationNavigation({
   artistFromURL,

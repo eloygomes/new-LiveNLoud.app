@@ -330,6 +330,18 @@ export const getPresentationLayoutModeStorageKey = ({
     String(instrument || "").trim().toLowerCase(),
   ].join("::");
 
+export const getPresentationLiveSettingsStorageKey = ({
+  artist = "",
+  song = "",
+  instrument = "",
+} = {}) =>
+  [
+    "presentation-live-settings",
+    String(artist || "").trim().toLowerCase(),
+    String(song || "").trim().toLowerCase(),
+    String(instrument || "").trim().toLowerCase(),
+  ].join("::");
+
 export const instrumentHasPresentationContent = (instrumentData) => {
   if (!instrumentData) return false;
 

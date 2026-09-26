@@ -5,8 +5,72 @@ import {
   persistPresentationLayoutsToStorage,
   restoreOriginalLayoutsInSongData,
 } from "./cifraPersistence";
+import { CifraDocumentModel } from "../editor/model/CifraDocumentModel";
 
 describe("cifraPersistence", () => {
+  it("persists Tiptap JSON beside the legacy songCifra contract", () => {
+    const document = CifraDocumentModel.fromLegacyText("[Am] structured");
+    const result = buildCifraSavePayload({
+      activeLayoutVariant: "default",
+      currentInstrumentData: { songCifra: "legacy" },
+      instrumentSelected: "keys",
+      nextDraftCifra: "Am structured",
+      nextTiptapDocument: document,
+      songDataFetched: { keys: { songCifra: "legacy" } },
+    });
+
+    expect(result.updatedBlock.songCifra).toBe("Am structured");
+    expect(
+      result.persistedLayouts.default.tiptapDocument.document,
+    ).toEqual(document);
+  });
+
+  it("saves drafts from both layout variants in one explicit save", () => {
+    const defaultDocument = CifraDocumentModel.fromLegacyText("[G] default");
+    const expandedDocument = CifraDocumentModel.fromLegacyText("[C] expanded");
+    const payload = buildCifraSavePayload({
+      activeLayoutVariant: "default",
+      currentInstrumentData: {
+        songCifra: "old default",
+        presentationLayouts: {
+          default: { songCifra: "old default" },
+          expanded: { songCifra: "old expanded" },
+        },
+      },
+      instrumentSelected: "keys",
+      nextDraftCifra: "G default",
+      nextTiptapDocument: defaultDocument,
+      layoutDrafts: {
+        default: { legacyText: "G default", document: defaultDocument },
+        expanded: { legacyText: "C expanded", document: expandedDocument },
+      },
+      songDataFetched: { keys: {} },
+    });
+
+    expect(payload.persistedLayouts.default.songCifra).toBe("G default");
+    expect(payload.persistedLayouts.expanded.songCifra).toBe("C expanded");
+  });
+
+  it("never persists embedded source-page payloads in any layout", () => {
+    const leaked = 'lyrics\n5:["$","$L14",null,{"dangerouslySetInnerHTML":{}}]';
+    const payload = buildCifraSavePayload({
+      activeLayoutVariant: "default",
+      currentInstrumentData: {
+        songCifra: leaked,
+        presentationLayouts: {
+          default: { songCifra: leaked },
+          expanded: { songCifra: leaked },
+        },
+      },
+      instrumentSelected: "guitar01",
+      nextDraftCifra: leaked,
+      songDataFetched: { guitar01: {} },
+    });
+
+    expect(payload.updatedBlock.songCifra).toBe("lyrics");
+    expect(payload.persistedLayouts.default.songCifra).toBe("lyrics");
+    expect(payload.persistedLayouts.expanded.songCifra).toBe("lyrics");
+  });
   it("builds a save payload with persisted layouts for the active variant", () => {
     const payload = buildCifraSavePayload({
       activeLayoutVariant: "expanded",

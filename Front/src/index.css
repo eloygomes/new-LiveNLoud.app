@@ -423,7 +423,7 @@ main{
 }
 
 .presentation-cifra-editor .presentation-editor-chord {
-  cursor: text;
+  cursor: pointer;
 }
 
 .presentation-cifra-editor .presentation-editor-chord:hover {
@@ -437,6 +437,270 @@ main{
 
 .presentation-cifra-editor p + p {
   margin-top: 0.25rem;
+}
+
+.presentation-tiptap-surface > div {
+  width: 100%;
+  min-width: 0;
+}
+
+.presentation-cifra-editor {
+  min-height: 100%;
+  width: 100%;
+  white-space: pre-wrap;
+  outline: none;
+}
+
+.presentation-vertical-blocks .presentation-cifra-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--presentation-block-gap, 2rem);
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns {
+  display: block;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  max-height: none;
+  width: 100%;
+  min-width: 100%;
+  padding-bottom: 0;
+  overflow: visible;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns > div {
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns .presentation-cifra-editor {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  box-sizing: border-box;
+  gap: var(--presentation-block-gap, 2rem);
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 100%;
+  column-count: auto;
+  column-fill: balance;
+  column-gap: normal;
+  column-width: auto;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.presentation-editor-block {
+  min-height: 2.75rem;
+  border-radius: 10px;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  transition: box-shadow 140ms ease, background 140ms ease;
+}
+
+.presentation-editor-tab-block {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-ligatures: none;
+  font-kerning: none;
+  letter-spacing: 0;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  tab-size: 4;
+  text-rendering: geometricPrecision;
+  white-space: pre;
+  word-break: normal;
+}
+
+.presentation-editor-tab-line {
+  font-size: var(--presentation-tab-fit-font-size, 1em);
+}
+
+.presentation-editor-tab-block[data-tab-fit-scale]
+  .presentation-editor-tab-line,
+.presentation-editor-tab-block[data-tab-fit-scale]
+  .presentation-editor-tab-line * {
+  font-size: var(--presentation-tab-fit-font-size) !important;
+}
+
+.presentation-editor-block:hover,
+.presentation-editor-block:focus-within {
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(212, 160, 23, 0.16);
+}
+
+.presentation-horizontal-columns .presentation-editor-block {
+  flex: 0 0 min(42vw, 42rem);
+  width: min(42vw, 42rem);
+  min-height: min(68vh, 760px);
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns
+  .presentation-editor-block {
+  box-sizing: border-box;
+  flex: 0 0 min(42vw, 42rem);
+  width: min(42vw, 42rem);
+  height: auto;
+  min-height: min(68vh, 760px);
+  max-height: none;
+  break-after: auto;
+  break-inside: auto;
+  overflow: visible;
+  orphans: 1;
+  widows: 1;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns
+  .presentation-editor-block:last-child {
+  break-after: auto;
+}
+
+.presentation-tiptap-surface.presentation-horizontal-columns
+  .presentation-editor-tab-block {
+  overflow: visible;
+}
+
+.presentation-editor-level-1 {
+  font-size: 1.6em;
+  font-weight: 700;
+}
+
+.presentation-editor-level-2 {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+
+.presentation-editor-level-3 {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.presentation-editor-chord {
+  color: goldenrod;
+  font-weight: 700;
+}
+
+.presentation-editor-chord-bracket {
+  display: none;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-editor-chord,
+.presentation-content-flow[data-editing="true"] .presentation-editor-chord-bracket {
+  cursor: text;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  position: static;
+  transform: none;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-editor-chord-bracket {
+  color: goldenrod;
+  font-weight: 700;
+}
+
+.presentation-content-flow:not([data-editing="true"])
+  .presentation-editor-chord[data-transpose-active="true"] {
+  color: transparent;
+  display: inline-block;
+  position: relative;
+}
+
+.presentation-content-flow:not([data-editing="true"])
+  .presentation-editor-chord[data-transpose-active="true"]::after {
+  color: goldenrod;
+  content: attr(data-display-chord);
+  inset-inline-start: 0;
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.presentation-inline-edit-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: -0.4rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow: visible;
+  padding: 0.4rem;
+}
+
+.presentation-inline-edit-row {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+  grid-template-columns: repeat(10, 2.75rem);
+  justify-content: end;
+}
+
+.presentation-inline-edit-button {
+  align-items: center;
+  border: 0;
+  color: #111;
+  display: inline-flex;
+  height: 2.75rem;
+  justify-content: center;
+  min-width: 2.75rem;
+  padding: 0;
+  transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  width: 2.75rem;
+}
+
+.presentation-inline-edit-button > svg {
+  height: 1rem;
+  width: 1rem;
+}
+
+@media (max-width: 767px) {
+  .presentation-inline-edit-toolbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    width: 100%;
+  }
+}
+
+.presentation-inline-edit-button:focus-visible {
+  outline: 2px solid goldenrod;
+  outline-offset: 2px;
+}
+
+.presentation-inline-edit-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.presentation-inline-edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.presentation-cifra-editor.ProseMirror-focused {
+  caret-color: #c91f1f;
+}
+
+.presentation-content-flow[data-editing="true"] .presentation-cifra-editor {
+  caret-color: #c91f1f;
+  cursor: text;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.presentation-content-flow[data-editing="true"]
+  .presentation-cifra-editor::selection,
+.presentation-content-flow[data-editing="true"]
+  .presentation-cifra-editor *::selection {
+  background: rgba(220, 38, 38, 0.34);
+  color: inherit;
 }
 
 .presentation-editor-expanded-horizontal {
@@ -486,6 +750,46 @@ main{
   min-width: 0;
   height: clamp(2.25rem, 4.6vw, 2.65rem);
   padding: 0;
+}
+
+[data-presentation-top-bar][data-tablet-layout="true"] {
+  height: 10rem;
+  min-height: 10rem;
+  overflow: visible;
+}
+
+[data-presentation-top-bar][data-tablet-layout="true"]
+  .presentation-inline-edit-toolbar {
+  gap: 0.5rem;
+  margin: -0.3rem;
+  padding: 0.3rem;
+  width: 100%;
+}
+
+[data-presentation-top-bar][data-tablet-layout="true"]
+  .presentation-inline-edit-row {
+  gap: 0.5rem;
+  grid-template-columns: repeat(10, clamp(2.25rem, 4.6vw, 2.65rem));
+  justify-content: end;
+}
+
+[data-presentation-top-bar][data-tablet-layout="true"]
+  .presentation-inline-edit-button {
+  height: clamp(2.25rem, 4.6vw, 2.65rem);
+  min-width: clamp(2.25rem, 4.6vw, 2.65rem);
+  width: clamp(2.25rem, 4.6vw, 2.65rem);
+}
+
+@media (max-width: 767px) {
+  .presentation-inline-edit-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .presentation-inline-edit-button {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 @media (min-width: 768px) {
@@ -1195,7 +1499,7 @@ main{
 
 .presentation-live-content.presentation-expanded-cifra-horizontal {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -1422,6 +1726,37 @@ main{
   gap: 0.55rem;
 }
 
+.presentation-live-tabs-toggle {
+  min-height: 3.6rem;
+  padding: 0 1rem;
+  border: 1px solid rgba(212, 160, 23, 0.38);
+  border-radius: 4px;
+  background: rgba(4, 15, 28, 0.86);
+  color: rgba(247, 227, 163, 0.58);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.presentation-live-tabs-toggle.is-active {
+  background: #d4a017;
+  color: #050505;
+  box-shadow: 0 0 18px rgba(212, 160, 23, 0.2);
+}
+
+.presentation-live-mobile-toolbar .presentation-live-tabs-toggle {
+  min-height: 2.65rem;
+  padding-inline: 0.75rem;
+}
+
+.presentation-live-tabs-hidden .tab,
+.presentation-live-tabs-hidden .presentation-tab,
+.presentation-live-tabs-hidden .presentation-tab-section,
+.presentation-live-tabs-hidden [data-tablature="true"] {
+  display: none !important;
+}
+
 .presentation-live-step-control {
   display: inline-grid;
   grid-template-columns: auto 2.5rem minmax(4.5rem, auto) 2.5rem;
@@ -1490,7 +1825,8 @@ main{
 .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns {
   --presentation-live-column-width: clamp(38rem, 46vw, 62rem);
   box-sizing: border-box;
-  height: 100%;
+  height: auto;
+  min-height: 100%;
   width: max-content;
   min-width: 100%;
   align-items: center;
@@ -1500,6 +1836,17 @@ main{
     clamp(0.75rem, 1.4vw, 1.5rem)
     clamp(1rem, 2.4vw, 3rem)
     6rem;
+}
+
+.presentation-live-content.presentation-expanded-cifra-horizontal
+  .presentation-horizontal-columns,
+.presentation-live-content.presentation-expanded-cifra-horizontal
+  .presentation-column,
+.presentation-live-content.presentation-expanded-cifra-horizontal
+  .presentation-render-block,
+.presentation-live-content.presentation-expanded-cifra-horizontal
+  .presentation-progression-block {
+  overflow: visible;
 }
 
 .presentation-live-content.presentation-expanded-cifra-horizontal .presentation-horizontal-columns {

@@ -21,6 +21,7 @@ import {
 export function usePresentationCifraEditor({
   activeLayoutVariant,
   activeProgressionRenderColumns,
+  activeTiptapDocument,
   currentInstrumentData,
   editableSongCifra,
   editOriginalCifraRef,
@@ -32,6 +33,7 @@ export function usePresentationCifraEditor({
   isEditing,
   isExpandedCifra,
   presentationContentRef,
+  presentationEditorRef,
   presentationLayoutIdentity,
   presentationLayoutStorageKey,
   pushSnackbarMessage,
@@ -46,10 +48,15 @@ export function usePresentationCifraEditor({
   visibleContentBlocks,
 }) {
   const [draftCifra, setDraftCifra] = useState("");
+  const [draftTiptapDocument, setDraftTiptapDocument] = useState(
+    activeTiptapDocument || null,
+  );
   const [isSavingCifra, setIsSavingCifra] = useState(false);
   const [lastSaveTimestamp, setLastSaveTimestamp] = useState("");
   const [saveError, setSaveError] = useState("");
   const previousActiveLayoutVariantRef = useRef(activeLayoutVariant);
+  const originalTiptapDocumentRef = useRef(null);
+  const layoutDraftsRef = useRef({});
 
   const updateEditedCifraContent = useCallback(
     (value) => {
@@ -60,22 +67,50 @@ export function usePresentationCifraEditor({
 
   useEffect(() => {
     if (!isEditing) {
+      layoutDraftsRef.current = {};
       setDraftCifra(editableSongCifra);
+      setDraftTiptapDocument(activeTiptapDocument || null);
       updateEditedCifraContent(false);
     }
-  }, [editableSongCifra, isEditing, updateEditedCifraContent]);
+  }, [activeTiptapDocument, editableSongCifra, isEditing, updateEditedCifraContent]);
 
   useEffect(() => {
     if (previousActiveLayoutVariantRef.current === activeLayoutVariant) return;
 
+    const previousVariant = previousActiveLayoutVariantRef.current;
+    if (isEditing) {
+      const editorController = presentationEditorRef?.current;
+      if (editorController) {
+        layoutDraftsRef.current[previousVariant] = {
+          document: editorController.getJSON(),
+          legacyText: editorController.getLegacyText(),
+        };
+      }
+    }
+
     previousActiveLayoutVariantRef.current = activeLayoutVariant;
-    setDraftCifra(editableSongCifra);
-    updateEditedCifraContent(false);
+    const nextDraft = layoutDraftsRef.current[activeLayoutVariant];
+    setDraftCifra(nextDraft?.legacyText ?? editableSongCifra);
+    setDraftTiptapDocument(nextDraft?.document || activeTiptapDocument || null);
+    if (!isEditing) updateEditedCifraContent(false);
     setSaveError("");
-  }, [activeLayoutVariant, editableSongCifra, updateEditedCifraContent]);
+  }, [
+    activeLayoutVariant,
+    activeTiptapDocument,
+    editableSongCifra,
+    isEditing,
+    presentationEditorRef,
+    updateEditedCifraContent,
+  ]);
 
   const startEditingCifra = useCallback(() => {
-    editOriginalCifraRef.current = editableSongCifra;
+    setToolBoxBtnStatus(false);
+    setToolBoxRequestedPanel(null);
+    const editorController = presentationEditorRef?.current;
+    editOriginalCifraRef.current =
+      editorController?.getLegacyText?.() || editableSongCifra;
+    originalTiptapDocumentRef.current =
+      editorController?.getJSON?.() || activeTiptapDocument || null;
     editOriginalLayoutsRef.current = toPresentationLayoutPayload(
       instrumentPresentationLayouts,
     );
@@ -96,35 +131,31 @@ export function usePresentationCifraEditor({
     setIsEditing(true);
     updateEditedCifraContent(false);
     setDraftCifra(editableSongCifra);
+    const initialDocument =
+      originalTiptapDocumentRef.current || activeTiptapDocument || null;
+    setDraftTiptapDocument(initialDocument);
+    layoutDraftsRef.current = {
+      [activeLayoutVariant]: {
+        document: initialDocument,
+        legacyText: editableSongCifra,
+      },
+    };
   }, [
     activeLayoutVariant,
     activeProgressionRenderColumns,
+    activeTiptapDocument,
     editableSongCifra,
     editOriginalCifraRef,
     editOriginalLayoutsRef,
     instrumentPresentationLayouts,
     isExpandedCifra,
     presentationLayoutIdentity,
+    presentationEditorRef,
     setIsEditing,
-    updateEditedCifraContent,
-    visibleContentBlocks,
-  ]);
-
-  const openEditorToolBox = useCallback(() => {
-    if (!isEditing && editableSongCifra) {
-      startEditingCifra();
-    }
-    setToolBoxRequestedPanel({
-      id: "panel-editor",
-      requestId: Date.now(),
-    });
-    setToolBoxBtnStatus(true);
-  }, [
-    editableSongCifra,
-    isEditing,
     setToolBoxBtnStatus,
     setToolBoxRequestedPanel,
-    startEditingCifra,
+    updateEditedCifraContent,
+    visibleContentBlocks,
   ]);
 
   const handleDiscardDraft = useCallback(() => {
@@ -139,26 +170,31 @@ export function usePresentationCifraEditor({
         });
       });
 
-      persistPresentationLayoutsToStorage({
-        storageKey: presentationLayoutStorageKey,
-        layouts: originalLayouts,
-      });
     }
 
     setDraftCifra(editOriginalCifraRef.current || editableSongCifra);
+    const originalDocument =
+      originalTiptapDocumentRef.current || activeTiptapDocument || null;
+    setDraftTiptapDocument(originalDocument);
+    if (originalDocument) {
+      presentationEditorRef?.current?.setDocument?.(originalDocument);
+    }
     setIsEditing(false);
     setToolBoxBtnStatus(false);
     setToolBoxRequestedPanel(null);
     updateEditedCifraContent(false);
     setHasEditedLayoutContent(false);
     editOriginalLayoutsRef.current = null;
+    originalTiptapDocumentRef.current = null;
+    layoutDraftsRef.current = {};
     setSaveError("");
   }, [
+    activeTiptapDocument,
     editableSongCifra,
     editOriginalCifraRef,
     editOriginalLayoutsRef,
     instrumentSelected,
-    presentationLayoutStorageKey,
+    presentationEditorRef,
     setHasEditedLayoutContent,
     setIsEditing,
     setSongDataFetched,
@@ -175,6 +211,16 @@ export function usePresentationCifraEditor({
   }, [draftCifra, editableSongCifra]);
 
   const collectEditedCifraModel = useCallback(() => {
+    const editorController = presentationEditorRef?.current;
+    if (editorController?.getLegacyText) {
+      return {
+        text: editorController.getLegacyText(),
+        type: "tiptap-json",
+        preserveColumnBreaks: isExpandedCifra,
+        persistVisualColumnBreaks: shouldUseHorizontalColumnFlow,
+      };
+    }
+
     // Layout contract: expanded horizontal editing must save the columns exactly
     // as the user left them. `persistVisualColumnBreaks` is deliberately tied to
     // `shouldUseHorizontalColumnFlow`; removing it causes saved content to be
@@ -190,13 +236,17 @@ export function usePresentationCifraEditor({
     getFallbackDraftCifra,
     isExpandedCifra,
     presentationContentRef,
+    presentationEditorRef,
     shouldUseHorizontalColumnFlow,
     visibleContentBlocks,
   ]);
 
   const syncRenderedCifraToDraft = useCallback(
     ({ markEdited = true } = {}) => {
-      if (!isEditing || !presentationContentRef.current) {
+      if (
+        !isEditing ||
+        (!presentationEditorRef?.current && !presentationContentRef.current)
+      ) {
         return getFallbackDraftCifra();
       }
 
@@ -243,6 +293,7 @@ export function usePresentationCifraEditor({
       hasEditedCifraContent,
       isEditing,
       presentationContentRef,
+      presentationEditorRef,
       presentationLayoutIdentity,
       updateEditedCifraContent,
     ],
@@ -258,8 +309,26 @@ export function usePresentationCifraEditor({
     [syncRenderedCifraToDraft],
   );
 
+  const handleTiptapUpdate = useCallback(
+    ({ document, legacyText }) => {
+      setDraftTiptapDocument(document);
+      setDraftCifra(legacyText);
+      layoutDraftsRef.current[activeLayoutVariant] = {
+        document,
+        legacyText,
+      };
+      updateEditedCifraContent(true);
+    },
+    [activeLayoutVariant, updateEditedCifraContent],
+  );
+
   const syncEditingCifraBeforeLayoutUpdate = useCallback(() => {
-    if (!isEditing || !presentationContentRef.current) return null;
+    if (
+      !isEditing ||
+      (!presentationEditorRef?.current && !presentationContentRef.current)
+    ) {
+      return null;
+    }
 
     const nextCifra = syncRenderedCifraToDraft();
 
@@ -272,6 +341,7 @@ export function usePresentationCifraEditor({
   }, [
     isEditing,
     presentationContentRef,
+    presentationEditorRef,
     presentationLayoutIdentity,
     syncRenderedCifraToDraft,
   ]);
@@ -291,12 +361,26 @@ export function usePresentationCifraEditor({
     const nextDraftCifra = isEditing
       ? syncRenderedCifraToDraft({ markEdited: hasEditedCifraContent })
       : editableSongCifra || draftCifra;
+    const nextTiptapDocument =
+      presentationEditorRef?.current?.getJSON?.() ||
+      draftTiptapDocument ||
+      activeTiptapDocument ||
+      null;
+    const layoutDrafts = {
+      ...layoutDraftsRef.current,
+      [activeLayoutVariant]: {
+        document: nextTiptapDocument,
+        legacyText: nextDraftCifra,
+      },
+    };
     const { currentLayouts, nextSongData, persistedLayouts, updatedBlock } =
       buildCifraSavePayload({
         activeLayoutVariant,
         currentInstrumentData,
         instrumentSelected,
         nextDraftCifra,
+        nextTiptapDocument,
+        layoutDrafts,
         songDataFetched,
       });
 
@@ -346,6 +430,7 @@ export function usePresentationCifraEditor({
       }
 
       setDraftCifra(nextDraftCifra);
+      setDraftTiptapDocument(nextTiptapDocument);
       setSongDataFetched((prev) => {
         logPresentationDebug("save:state-merge", {
           identity: presentationLayoutIdentity,
@@ -373,6 +458,8 @@ export function usePresentationCifraEditor({
       updateEditedCifraContent(false);
       setHasEditedLayoutContent(false);
       editOriginalLayoutsRef.current = null;
+      originalTiptapDocumentRef.current = null;
+      layoutDraftsRef.current = {};
       const timestamp = new Date().toLocaleTimeString();
       setLastSaveTimestamp(timestamp);
       pushSnackbarMessage("Salvo", `Último salvamento às ${timestamp}`);
@@ -389,8 +476,10 @@ export function usePresentationCifraEditor({
   }, [
     activeLayoutVariant,
     activeProgressionRenderColumns,
+    activeTiptapDocument,
     currentInstrumentData,
     draftCifra,
+    draftTiptapDocument,
     editableSongCifra,
     editOriginalLayoutsRef,
     hasEditedCifraContent,
@@ -399,6 +488,7 @@ export function usePresentationCifraEditor({
     isEditing,
     presentationLayoutIdentity,
     presentationLayoutStorageKey,
+    presentationEditorRef,
     pushSnackbarMessage,
     setHasEditedLayoutContent,
     setIsEditing,
@@ -426,15 +516,23 @@ export function usePresentationCifraEditor({
     ],
   );
 
+  const editorDocument = isEditing
+    ? layoutDraftsRef.current[activeLayoutVariant]?.document ||
+      activeTiptapDocument ||
+      null
+    : activeTiptapDocument || null;
+
   return {
     draftCifra,
+    draftTiptapDocument,
+    editorDocument,
     handleDiscardDraft,
     handleSaveCifra,
+    handleTiptapUpdate,
     hasDraftChanges,
     isSavingCifra,
     lastSaveTimestamp,
     markCifraContentAsEdited,
-    openEditorToolBox,
     saveError,
     setDraftCifra,
     setSaveError,

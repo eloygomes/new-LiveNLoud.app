@@ -106,9 +106,7 @@ describe("TollBoxAcoord", () => {
       />,
     );
 
-    expect(
-      screen.queryByRole("button", { name: /Editor/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Editor/i })).toBeInTheDocument();
 
     rerender(
       <TollBoxAcoord

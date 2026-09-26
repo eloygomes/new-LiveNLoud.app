@@ -16,7 +16,7 @@ function PresentationHorizontalNav({
             effectiveLiveMode ? "" : "neuphormism-b"
           }`}
           role="group"
-          aria-label="Expanded layout navigation"
+          aria-label="Horizontal View block navigation"
         >
           <div className="presentation-horizontal-nav-buttons">
             <button
@@ -25,7 +25,7 @@ function PresentationHorizontalNav({
                 effectiveLiveMode ? "" : "neuphormism-b-btn font-bold text-black"
               }`}
               onClick={() => onNavigate(-1)}
-              aria-label="Navigate left through expanded cifra"
+              aria-label="Navigate to previous block"
             >
               {effectiveLiveMode ? (
                 <>
@@ -42,7 +42,7 @@ function PresentationHorizontalNav({
                 effectiveLiveMode ? "" : "neuphormism-b-btn font-bold text-black"
               }`}
               onClick={() => onNavigate(1)}
-              aria-label="Navigate right through expanded cifra"
+              aria-label="Navigate to next block"
             >
               {effectiveLiveMode ? (
                 <>

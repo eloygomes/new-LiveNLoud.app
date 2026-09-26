@@ -1,8 +1,10 @@
 import {
-  FaDownLeftAndUpRightToCenter,
+  FaArrowsLeftRight,
+  FaArrowsUpDown,
+  FaEllipsisVertical,
   FaFilePen,
   FaGear,
-  FaUpRightAndDownLeftFromCenter,
+  FaWandMagicSparkles,
 } from "react-icons/fa6";
 import {
   IoArrowDownCircle,
@@ -11,6 +13,7 @@ import {
 } from "react-icons/io5";
 import { GiGuitar } from "react-icons/gi";
 import GuitarProIcon from "../../../components/GuitarPro/GuitarProIcon";
+import PresentationInlineEditToolbar from "./PresentationInlineEditToolbar";
 
 function PresentationTopBar({
   visible,
@@ -25,10 +28,11 @@ function PresentationTopBar({
   toolBoxBtnStatus,
   isEditing,
   isVideoModalOpen,
-  openEditorToolBox,
+  onStartEditing,
   onToggleToolBox,
   isExpandedCifra,
   isLayoutModeManual = false,
+  layoutMode = "automatic",
   onToggleExpanded,
   onGoToEditSong,
   instrumentSelected,
@@ -43,6 +47,20 @@ function PresentationTopBar({
   onOpenScrolling,
   onEnterLiveMode,
   onGoToSetlistSong,
+  editorController,
+  editorState,
+  isSavingCifra,
+  hasDraftChanges,
+  onSaveCifra,
+  onDiscardDraft,
+  showProgressionMarkers,
+  onToggleProgression,
+  fontSizeLabel,
+  decreaseFontSize,
+  increaseFontSize,
+  blockSpacingLabel,
+  decreaseBlockSpacing,
+  increaseBlockSpacing,
 }) {
   if (!visible) return null;
 
@@ -50,10 +68,10 @@ function PresentationTopBar({
     return (
       <div
         data-presentation-top-bar="true"
-        className="sticky top-0 z-[120] my-3 flex shrink-0 flex-col gap-3 neuphormism-b px-4 py-3"
+        className="sticky top-0 z-[120] my-3 flex h-[4.75rem] shrink-0 items-center neuphormism-b px-4 py-3"
       >
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+        <div className="flex w-full min-w-0 items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
             <h1
               className="truncate text-[1.6rem] font-bold leading-[1.7rem] text-black"
               title={songFromURL}
@@ -66,8 +84,8 @@ function PresentationTopBar({
             >
               {artistFromURL}
             </h2>
-          </div>
-          <button
+            </div>
+            <button
             type="button"
             className={`neuphormism-b-btn flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] font-bold text-black ${
               toolBoxBtnStatus ||
@@ -77,35 +95,13 @@ function PresentationTopBar({
                 : ""
             }`}
             onClick={onToggleToolBox}
-            aria-label="Options"
-            title="Open presentation options"
+            aria-label="Open presentation actions"
+            title="Presentation actions"
           >
-            <FaGear className="h-[1.38rem] w-[1.38rem]" />
-            <span className="sr-only">Options</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 opacity-85">
-          <button
-            type="button"
-            disabled={!previousSetlistSong}
-            className="neuphormism-b-btn h-9 px-3 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
-            onClick={() => onGoToSetlistSong(previousSetlistSong)}
-            aria-label="Previous song in selected setlist"
-          >
-            &lt;&lt;
-          </button>
-          <button
-            type="button"
-            disabled={!nextSetlistSong}
-            className="neuphormism-b-btn h-9 px-3 text-[11px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-35"
-            onClick={() => onGoToSetlistSong(nextSetlistSong)}
-            aria-label="Next song in selected setlist"
-          >
-            &gt;&gt;
-          </button>
-        </div>
-
+            <FaEllipsisVertical className="h-[1.38rem] w-[1.38rem]" />
+            <span className="sr-only">Presentation actions</span>
+            </button>
+          </div>
         <style>{`
           @keyframes mobile-gear-blink {
             0%, 100% {
@@ -123,6 +119,28 @@ function PresentationTopBar({
       </div>
     );
   }
+
+  const layoutModePresentation = {
+    automatic: {
+      label: "Automatic layout",
+      title: "Automatic layout · follows screen orientation",
+      icon: FaWandMagicSparkles,
+      badge: "AUTO",
+    },
+    horizontal: {
+      label: "Horizontal layout",
+      title: "Horizontal layout · saved preference",
+      icon: FaArrowsLeftRight,
+      badge: "H",
+    },
+    vertical: {
+      label: "Vertical layout",
+      title: "Vertical layout · saved preference",
+      icon: FaArrowsUpDown,
+      badge: "V",
+    },
+  }[layoutMode];
+  const LayoutModeIcon = layoutModePresentation.icon;
 
   return (
     <div
@@ -157,6 +175,24 @@ function PresentationTopBar({
         </h1>
       </div>
       <div className={`flex w-full flex-col items-stretch gap-3 ${isPortraitTabletLayout ? "pt-0" : "pt-2 xl:w-auto"}`}>
+        {isEditing ? (
+          <PresentationInlineEditToolbar
+            blockSpacingLabel={blockSpacingLabel}
+            decreaseBlockSpacing={decreaseBlockSpacing}
+            decreaseGlobalFontSize={decreaseFontSize}
+            editorController={editorController}
+            editorState={editorState}
+            fontSizeLabel={fontSizeLabel}
+            hasDraftChanges={hasDraftChanges}
+            increaseBlockSpacing={increaseBlockSpacing}
+            increaseGlobalFontSize={increaseFontSize}
+            isSaving={isSavingCifra}
+            onDiscard={onDiscardDraft}
+            onSave={onSaveCifra}
+            onToggleProgression={onToggleProgression}
+            showProgression={showProgressionMarkers}
+          />
+        ) : (
         <div
           className={`flex flex-col gap-2 ${
             isPortraitTabletLayout ? "presentation-tablet-controls relative" : ""
@@ -201,9 +237,9 @@ function PresentationTopBar({
                     ? "neuphormism-b-btn-gold bg-[goldenrod] shadow-[0_10px_24px_rgba(218,165,32,0.35)]"
                     : "neuphormism-b-btn"
                 }`}
-                onClick={openEditorToolBox}
-                aria-label={isEditing ? "Close cifra editor" : "Open cifra editor"}
-                title={isEditing ? "Close cifra editor" : "Open cifra editor"}
+                onClick={onStartEditing}
+                aria-label="Edit cifra"
+                title="Edit cifra"
                 aria-pressed={isEditing ? "true" : "false"}
               >
                 <FaFilePen className="h-5 w-5" />
@@ -271,7 +307,7 @@ function PresentationTopBar({
                 title={
                   isScrollingAvailable
                     ? "Scrolling"
-                    : "Scrolling is unavailable in expanded layout"
+                    : "Scrolling is unavailable in Horizontal View"
                 }
               >
                 <IoArrowDownCircle className="h-5 w-5" />
@@ -281,25 +317,21 @@ function PresentationTopBar({
                 type="button"
                 className="relative flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
                 onClick={onToggleExpanded}
-                aria-label={isExpandedCifra ? "Disable expanded layout" : "Enable expanded layout"}
-                title={`${isExpandedCifra ? "Expanded" : "Default"} layout · ${isLayoutModeManual ? "saved preference" : "automatic by screen orientation"}`}
+                aria-label={layoutModePresentation.label}
+                title={layoutModePresentation.title}
               >
-                {isExpandedCifra ? (
-                  <FaDownLeftAndUpRightToCenter className="h-5 w-5" />
-                ) : (
-                  <FaUpRightAndDownLeftFromCenter className="h-5 w-5" />
-                )}
+                <LayoutModeIcon className="h-5 w-5" />
                 <span
                   className={`absolute -right-1.5 -top-1.5 min-w-[1.35rem] rounded-full px-1 py-0.5 text-[7px] font-bold leading-none shadow-sm ${
                     isLayoutModeManual
                       ? "bg-[goldenrod] text-black"
                       : "bg-gray-700 text-white"
                   }`}
-                  aria-label={isLayoutModeManual ? "Saved layout preference" : "Automatic layout"}
+                  aria-label={`${layoutModePresentation.label} status`}
                 >
-                  {isLayoutModeManual ? "✓" : "AUTO"}
+                  {layoutModePresentation.badge}
                 </span>
-                <span className="sr-only">Expanded layout</span>
+                <span className="sr-only">Horizontal View</span>
               </button>
               <button
                 type="button"
@@ -342,6 +374,7 @@ function PresentationTopBar({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

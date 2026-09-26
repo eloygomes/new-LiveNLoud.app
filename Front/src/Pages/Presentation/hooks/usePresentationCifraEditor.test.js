@@ -60,12 +60,12 @@ describe("usePresentationCifraEditor", () => {
     updateSongEntryMock.mockResolvedValue({ queued: true });
   });
 
-  it("starts editing and opens the editor toolbox", () => {
+  it("starts editing inline without opening the toolbox", () => {
     const props = makeProps();
     const { result } = renderHook(() => usePresentationCifraEditor(props));
 
     act(() => {
-      result.current.openEditorToolBox();
+      result.current.startEditingCifra();
     });
 
     expect(props.editOriginalCifraRef.current).toBe("original cifra");
@@ -74,10 +74,27 @@ describe("usePresentationCifraEditor", () => {
     );
     expect(props.setIsEditing).toHaveBeenCalledWith(true);
     expect(props.setHasEditedCifraContent).toHaveBeenCalledWith(false);
-    expect(props.setToolBoxRequestedPanel).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "panel-editor" }),
-    );
-    expect(props.setToolBoxBtnStatus).toHaveBeenCalledWith(true);
+    expect(props.setToolBoxRequestedPanel).toHaveBeenCalledWith(null);
+    expect(props.setToolBoxBtnStatus).toHaveBeenCalledWith(false);
+  });
+
+  it("keeps tiptap updates in the draft until Save is clicked", () => {
+    const setSongDataFetched = vi.fn();
+    const setHasEditedCifraContent = vi.fn();
+    const props = makeProps({ setSongDataFetched, setHasEditedCifraContent });
+    const { result } = renderHook(() => usePresentationCifraEditor(props));
+
+    act(() => {
+      result.current.handleTiptapUpdate({
+        document: { type: "doc", content: [] },
+        legacyText: "draft only",
+      });
+    });
+
+    expect(result.current.draftCifra).toBe("draft only");
+    expect(setHasEditedCifraContent).toHaveBeenCalledWith(true);
+    expect(setSongDataFetched).not.toHaveBeenCalled();
+    expect(updateSongEntryMock).not.toHaveBeenCalled();
   });
 
   it("discards draft changes and restores original layouts", () => {

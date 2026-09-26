@@ -82,4 +82,81 @@ describe("usePresentationLiveMode", () => {
     expect(props.setIsLiveMode).toHaveBeenCalledWith(false);
     expect(props.closeTouchVideo).toHaveBeenCalled();
   });
+
+  it("scrolls Tiptap columns so each next block aligns with the first one", () => {
+    const props = makeProps();
+    const viewport = props.presentationContentRef.current;
+    const surface = document.createElement("div");
+    surface.className =
+      "presentation-tiptap-surface presentation-horizontal-columns";
+
+    [40, 500, 960].forEach((offsetLeft) => {
+      const block = document.createElement("div");
+      block.className = "presentation-editor-block";
+      Object.defineProperty(block, "offsetLeft", { value: offsetLeft });
+      Object.defineProperty(block, "clientWidth", { value: 400 });
+      surface.appendChild(block);
+    });
+    viewport.appendChild(surface);
+    Object.defineProperty(viewport, "clientWidth", { value: 900 });
+    Object.defineProperty(viewport, "scrollLeft", {
+      configurable: true,
+      value: 0,
+      writable: true,
+    });
+
+    const { result } = renderHook(() => usePresentationLiveMode(props));
+
+    act(() => result.current.scrollExpandedLayout(1));
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 460,
+      behavior: "auto",
+    });
+
+    viewport.scrollLeft = 460;
+    act(() => result.current.scrollExpandedLayout(1));
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 920,
+      behavior: "auto",
+    });
+  });
+
+  it("navigates through visual continuation columns inside the fixed horizontal page", () => {
+    const props = makeProps();
+    const viewport = props.presentationContentRef.current;
+    const surface = document.createElement("div");
+    const editorWrapper = document.createElement("div");
+    const editor = document.createElement("div");
+    surface.className =
+      "presentation-tiptap-surface presentation-horizontal-columns";
+    surface.style.setProperty("--presentation-block-gap", "32px");
+    editor.className = "presentation-cifra-editor";
+    editorWrapper.appendChild(editor);
+    surface.appendChild(editorWrapper);
+    viewport.appendChild(surface);
+
+    Object.defineProperty(editor, "clientWidth", { value: 400 });
+    Object.defineProperty(viewport, "clientWidth", { value: 900 });
+    Object.defineProperty(viewport, "scrollWidth", { value: 2200 });
+    Object.defineProperty(viewport, "scrollLeft", {
+      configurable: true,
+      value: 0,
+      writable: true,
+    });
+
+    const { result } = renderHook(() => usePresentationLiveMode(props));
+
+    act(() => result.current.scrollExpandedLayout(1));
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 432,
+      behavior: "auto",
+    });
+
+    viewport.scrollLeft = 432;
+    act(() => result.current.scrollExpandedLayout(1));
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 864,
+      behavior: "auto",
+    });
+  });
 });

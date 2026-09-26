@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { buildInstrumentPresentationLayouts } from "../presentationLayoutHelpers";
+import { CifraDocumentModel } from "../editor/model/CifraDocumentModel";
 
 export function usePresentationSongData({
   instrumentSelected,
@@ -29,14 +30,22 @@ export function usePresentationSongData({
   const touchFontSizeStep = activePresentationLayout?.fontSizeStep ?? 0;
   const blockSpacingStep = activePresentationLayout?.blockSpacingStep ?? 0;
   const activeLayoutLabel = isExpandedCifra
-    ? "Expanded layout"
-    : "Default layout";
+    ? "Horizontal View"
+    : "Vertical View";
 
   const normalizedSongCifra = useMemo(
     () => normalizeCifra(songCifraData),
     [songCifraData, normalizeCifra],
   );
   const editableSongCifra = normalizedSongCifra;
+  const tiptapDocument = useMemo(
+    () =>
+      CifraDocumentModel.fromPersistedDocument(
+        activePresentationLayout?.tiptapDocument,
+        normalizedSongCifra,
+      ),
+    [activePresentationLayout?.tiptapDocument, normalizedSongCifra],
+  );
 
   const contentSelected = normalizedSongCifra;
 
@@ -54,5 +63,6 @@ export function usePresentationSongData({
     showProgressionMarkers,
     songCifraData,
     touchFontSizeStep,
+    tiptapDocument,
   };
 }

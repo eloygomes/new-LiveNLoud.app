@@ -1,6 +1,9 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { usePresentationNavigation } from "./usePresentationNavigation";
+import {
+  usePresentationNavigation,
+  usePresentationSongKeyboardNavigation,
+} from "./usePresentationNavigation";
 
 const baseProps = () => ({
   artistFromURL: "Current Artist",
@@ -115,5 +118,39 @@ describe("usePresentationNavigation", () => {
     expect(props.navigate).toHaveBeenCalledWith(
       "/editsong/Current%20Artist/Current%20Song",
     );
+  });
+});
+
+describe("usePresentationSongKeyboardNavigation", () => {
+  it("reuses setlist navigation for Control or Shift + horizontal arrows", () => {
+    const goToSetlistSong = vi.fn();
+    const previousSetlistSong = { artist: "A", song: "Previous" };
+    const nextSetlistSong = { artist: "A", song: "Next" };
+
+    renderHook(() =>
+      usePresentationSongKeyboardNavigation({
+        goToSetlistSong,
+        nextSetlistSong,
+        previousSetlistSong,
+      }),
+    );
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowLeft", ctrlKey: true }),
+    );
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowRight", ctrlKey: true }),
+    );
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowLeft", shiftKey: true }),
+    );
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowRight", shiftKey: true }),
+    );
+
+    expect(goToSetlistSong).toHaveBeenNthCalledWith(1, previousSetlistSong);
+    expect(goToSetlistSong).toHaveBeenNthCalledWith(2, nextSetlistSong);
+    expect(goToSetlistSong).toHaveBeenNthCalledWith(3, previousSetlistSong);
+    expect(goToSetlistSong).toHaveBeenNthCalledWith(4, nextSetlistSong);
   });
 });

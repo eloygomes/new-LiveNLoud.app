@@ -6,6 +6,7 @@ import requests
 from pymongo import MongoClient
 
 from config import MONGO_URI, MONGO_DB_NAME, MONGO_COLLECTION_NAME, NODE_API_URL
+from cifra_utils import sanitize_song_cifra
 
 # ---------------------------------------------------
 # Constantes e helpers internos
@@ -150,10 +151,10 @@ def _build_instrument_block(
             "capo": get_val("capo", ""),
             "tuning": get_val("tuning", ""),
             "lastPlay": last_play,
-            "songCifra": get_val("song_cifra", ""),
-            "songTabs": get_val("songTabs", ""),
-            "songChords": get_val("songChords", ""),
-            "songLyrics": get_val("songLyrics", ""),
+            "songCifra": sanitize_song_cifra(get_val("song_cifra", "")),
+            "songTabs": sanitize_song_cifra(get_val("songTabs", "")),
+            "songChords": sanitize_song_cifra(get_val("songChords", "")),
+            "songLyrics": sanitize_song_cifra(get_val("songLyrics", "")),
             "progress": progress_value,
             "link": link_url or "",
         }

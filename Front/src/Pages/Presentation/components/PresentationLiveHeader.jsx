@@ -19,6 +19,8 @@ function PresentationLiveHeader({
   liveView = "cifra",
   liveCifraZoomLabel,
   blockSpacingLabel,
+  tabsVisible = true,
+  onToggleTabs = () => {},
   onDecreaseZoom,
   onIncreaseZoom,
   onDecreaseSpacing,
@@ -68,6 +70,15 @@ function PresentationLiveHeader({
             className="presentation-live-mobile-toolbar"
             data-presentation-live-actions
           >
+            <button
+              type="button"
+              className={`presentation-live-tabs-toggle ${tabsVisible ? "is-active" : ""}`}
+              onClick={onToggleTabs}
+              aria-label={tabsVisible ? "Hide tabs" : "Show tabs"}
+              aria-pressed={tabsVisible}
+            >
+              TABS
+            </button>
             <div
               className="presentation-live-mobile-step-control"
               role="group"
@@ -181,7 +192,16 @@ function PresentationLiveHeader({
             {artistFromURL}
           </div>
         </div>
-        <div className="presentation-live-desktop-actions">
+          <div className="presentation-live-desktop-actions">
+          <button
+            type="button"
+            className={`presentation-live-tabs-toggle ${tabsVisible ? "is-active" : ""}`}
+            onClick={onToggleTabs}
+            aria-label={tabsVisible ? "Hide tabs" : "Show tabs"}
+            aria-pressed={tabsVisible}
+          >
+            TABS
+          </button>
           <div className="presentation-live-header-controls">
             <div
               className="presentation-live-step-control"
