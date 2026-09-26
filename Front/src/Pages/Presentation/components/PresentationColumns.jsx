@@ -12,6 +12,8 @@ function PresentationColumns({
   shouldUseHorizontalColumnFlow,
   selectedBlockKeys,
   activeLiveColumnKey,
+  activeSyncBlockId = "",
+  syncNavigationMode = false,
   isEditing = false,
 }) {
   return columns.map(
@@ -47,6 +49,9 @@ function PresentationColumns({
       const isBlockSelected = blockKeys.some((blockKey) =>
         selectedBlockKeys.includes(blockKey),
       );
+      const isSyncActive = blocks.some(
+        (entry) => entry.syncBlockId && entry.syncBlockId === activeSyncBlockId,
+      );
       const contentBlockHtml = blocks.map((entry) => entry.block).join("\n");
       const liveColumnState = getLiveColumnDisplayState({
         columnKey: groupKey,
@@ -70,6 +75,8 @@ function PresentationColumns({
               : ""
           } ${
             isBlockSelected ? "presentation-progression-column-selected" : ""
+          } ${
+            isSyncActive ? "presentation-sync-column-active" : ""
           } ${
             effectiveLiveMode && shouldUseHorizontalColumnFlow
               ? liveColumnState.className
@@ -101,6 +108,10 @@ function PresentationColumns({
                 : ""
             } ${
               isBlockSelected ? "presentation-progression-block-selected" : ""
+            } ${
+              isSyncActive ? "presentation-sync-block-active" : ""
+            } ${
+              syncNavigationMode ? "presentation-sync-navigation-block" : ""
             }`}
           >
             <div

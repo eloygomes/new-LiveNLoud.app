@@ -7,6 +7,7 @@ import {
   PRESENTATION_INSTRUMENTS,
 } from "./presentationConstants";
 import { buildInstrumentPresentationLayouts } from "../presentationLayoutHelpers";
+import { getSyncBlockIdFromHtml } from "../sync/syncBlockModel";
 
 export const shouldLogPresentationDebug = () => {
   if (typeof window === "undefined") return false;
@@ -262,21 +263,26 @@ export const buildProgressionBlocks = (
   let progressionCounter = 0;
 
   return htmlBlocks.reduce((blocksToRender, block, index) => {
-    const classMatch = block.match(/class="([^"]*)"/);
+    const blockHtml = typeof block === "string" ? block : block?.html || "";
+    const syncBlockId =
+      typeof block === "object" && block?.syncBlockId ? block.syncBlockId : null;
+    const stableSyncBlockId = syncBlockId || getSyncBlockIdFromHtml(blockHtml);
+    const classMatch = blockHtml.match(/class="([^"]*)"/);
     const classes = classMatch ? classMatch[1].split(" ") : [];
     const isBlankLineBlock =
       classes.includes("presentation-blank-line") ||
-      block.includes('class="presentation-blank-line"');
+      blockHtml.includes('class="presentation-blank-line"');
     const isColumnBreakBlock =
       classes.includes("presentation-column-break") ||
-      block.includes('data-column-break="true"');
+      blockHtml.includes('data-column-break="true"');
 
     if (isColumnBreakBlock) {
       blocksToRender.push({
-        block,
+        block: blockHtml,
         classes,
         index,
         blockKey: `column-break-${index}`,
+        syncBlockId: stableSyncBlockId,
         isColumnBreak: true,
         isProgressionEligible: false,
         progressionIndex: null,
@@ -293,13 +299,14 @@ export const buildProgressionBlocks = (
     const progressionIndex = isProgressionEligible ? ++progressionCounter : null;
 
     blocksToRender.push({
-      block,
+      block: blockHtml,
       classes,
       index,
-      blockKey: `block-${index}`,
+      blockKey: stableSyncBlockId || `block-${index}`,
+      syncBlockId: stableSyncBlockId,
       isProgressionEligible,
       progressionIndex,
-      progressionTitle: getProgressionMarkerTitle(block, progressionIndex),
+      progressionTitle: getProgressionMarkerTitle(blockHtml, progressionIndex),
     });
 
     return blocksToRender;

@@ -25,6 +25,7 @@ import ChordLibrary from "./Pages/ChordLibrary/ChordLibrary";
 import Tuner from "./Pages/Tuner/Tuner";
 import Calendar from "./Pages/Calendar/Calendar";
 import Presentation from "./Pages/Presentation/Presentation";
+import SyncPresentation from "./Pages/Presentation/SyncPresentation";
 import BlankPresentation from "./Pages/Presentation/BlankPresentation";
 import Login from "./Pages/Login/Login";
 import NewPassword from "./Pages/NewPassword/NewPassword";
@@ -373,6 +374,10 @@ const router = createBrowserRouter(
         <Route
           path="/presentation/:artist/:song/:instrument"
           element={<ProtectedRoute element={PresentationRoute} />}
+        />
+        <Route
+          path="/sync-presentation/:artist/:song/:instrument"
+          element={<ProtectedRoute element={SyncPresentation} />}
         />
         <Route
           path="/blankpresentation/:artist/:song/:instrument"

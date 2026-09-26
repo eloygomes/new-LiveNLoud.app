@@ -19,6 +19,7 @@ import PresentationStatusState from "./components/PresentationStatusState";
 import PresentationLiveHeader from "./components/PresentationLiveHeader";
 import PresentationTopBar from "./components/PresentationTopBar";
 import PresentationColumns from "./components/PresentationColumns";
+import PresentationSyncControls from "./components/PresentationSyncControls";
 import InformationChannel from "./components/InformationChannel";
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
 import {
@@ -30,6 +31,7 @@ import {
   toolBoxBtnStatusChange,
 } from "./helpers/presentationUtils";
 import { usePresentationCifraEditor } from "./hooks/usePresentationCifraEditor";
+import { usePresentationEditableColumns } from "./hooks/usePresentationEditableColumns";
 import { usePresentationChordTooltip } from "./hooks/usePresentationChordTooltip";
 import { usePresentationInstrumentAvailability } from "./hooks/usePresentationInstrumentAvailability";
 import { usePresentationInstrumentNotes } from "./hooks/usePresentationInstrumentNotes";
@@ -44,7 +46,9 @@ import { usePresentationNavigation } from "./hooks/usePresentationNavigation";
 import { usePresentationRenderModel } from "./hooks/usePresentationRenderModel";
 import { usePresentationRouteData } from "./hooks/usePresentationRouteData";
 import { usePresentationSongData } from "./hooks/usePresentationSongData";
+import { usePresentationSync } from "./hooks/usePresentationSync";
 import { usePresentationVisualScale } from "./hooks/usePresentationVisualScale";
+import { reconcilePlaybackSyncToBlocks } from "./sync/syncBlockModel";
 import {
   deleteSelectedEditableContent,
   moveEnterToNextEditableBlock,
@@ -95,6 +99,74 @@ function getIsPresentationTouchLayout() {
 }
 
 const PRESERVED_LIVE_NAVIGATION_KEY = "presentation:preserve-live-navigation";
+
+function buildSyncDrivenPresentationColumns({
+  syncPoints = [],
+  visibleContentBlocks = [],
+}) {
+  if (!syncPoints.length || !visibleContentBlocks.length) return [];
+
+  const blockIndexBySyncId = new Map(
+    visibleContentBlocks
+      .map((block, index) => [block.syncBlockId, { block, index }])
+      .filter(([syncBlockId]) => syncBlockId),
+  );
+  const anchors = syncPoints
+    .map((point) => ({
+      ...point,
+      match: blockIndexBySyncId.get(point.syncBlockId),
+    }))
+    .filter((point) => point.match)
+    .sort((left, right) => left.time - right.time);
+
+  if (!anchors.length) return [];
+
+  const columnRanges = [];
+  const firstAnchorIndex = anchors[0].match.index;
+
+  if (firstAnchorIndex > 0) {
+    columnRanges.push({
+      groupKey: "sync-before-first",
+      startIndex: 0,
+      endIndex: firstAnchorIndex,
+      label: "00",
+    });
+  }
+
+  anchors.forEach((anchor, index) => {
+    const startIndex = anchor.match.index;
+    const nextAnchorIndex = anchors[index + 1]?.match?.index;
+    const endIndex =
+      Number.isFinite(nextAnchorIndex) && nextAnchorIndex > startIndex
+        ? nextAnchorIndex
+        : visibleContentBlocks.length;
+    columnRanges.push({
+      groupKey: `sync-${anchor.syncBlockId}`,
+      startIndex,
+      endIndex,
+      label: String(columnRanges.length + 1).padStart(2, "0"),
+    });
+  });
+
+  return columnRanges.map((range, index) => {
+    const blocks = visibleContentBlocks
+      .slice(range.startIndex, range.endIndex)
+      .filter((block) => !block.isColumnBreak);
+    const visualColumnIndex = index + 1;
+
+    return {
+      groupKey: range.groupKey,
+      baseGroupKey: range.groupKey,
+      blockKeys: blocks.map((block) => block.blockKey),
+      blocks,
+      isProgressionEligible: true,
+      displayPosition: visualColumnIndex,
+      firstVisibleIndex: range.startIndex,
+      visualColumnIndex,
+      visualColumnLabel: range.label || String(visualColumnIndex).padStart(2, "0"),
+    };
+  }).filter((column) => column.blocks.length);
+}
 
 export function useLiveSetlistKeyboardNavigation({
   effectiveLiveMode,
@@ -427,6 +499,7 @@ function Presentation() {
     getShouldRestorePreservedLiveMode(),
   );
   const [liveView, setLiveView] = useState("cifra");
+  const [isSyncPanelVisible, setIsSyncPanelVisible] = useState(false);
   const [selectedLiveSetlistIndex, setSelectedLiveSetlistIndex] = useState(0);
   const [activeLiveColumnKey, setActiveLiveColumnKey] = useState("");
   const [notesModalStatus, setNotesModalStatus] = useState(false);
@@ -491,6 +564,12 @@ function Presentation() {
     isTwoColumns,
     progressionMarkOverrides,
     transposeSteps,
+  });
+
+  const { editableColumns, createNextBlock } = usePresentationEditableColumns({
+    columns: activeProgressionRenderColumns,
+    isEditing,
+    sessionKey: `${presentationLayoutIdentity}-${activeLayoutVariant}`,
   });
 
   const {
@@ -584,6 +663,23 @@ function Presentation() {
     songFromURL,
   });
 
+  const openSyncPresentation = useCallback(() => {
+    resetTransientPresentationState();
+    navigate(
+      `/sync-presentation/${encodeURIComponent(
+        artistFromURL,
+      )}/${encodeURIComponent(songFromURL)}/${encodeURIComponent(
+        instrumentSelected,
+      )}`,
+    );
+  }, [
+    artistFromURL,
+    instrumentSelected,
+    navigate,
+    resetTransientPresentationState,
+    songFromURL,
+  ]);
+
   const currentLiveSetlistIndex = useMemo(
     () => findSongIndexInList(setlistSongs, artistFromURL, songFromURL),
     [artistFromURL, setlistSongs, songFromURL],
@@ -668,6 +764,84 @@ function Presentation() {
     setIsPseudoLiveMode,
     shouldUseHorizontalColumnFlow: shouldUseHorizontalColumnFlow && liveView !== "setlist",
   });
+  const reconciledPlaybackSync = useMemo(
+    () =>
+      reconcilePlaybackSyncToBlocks(
+        songDataFetched?.playbackSync,
+        visibleContentBlocks,
+      ),
+    [songDataFetched?.playbackSync, visibleContentBlocks],
+  );
+
+  const presentationSync = usePresentationSync({
+    isEditing,
+    isTouchLayout,
+    liveView,
+    playbackSync: reconciledPlaybackSync,
+    presentationContentRef,
+    setActiveLiveColumnKey,
+    shouldUseHorizontalColumnFlow:
+      shouldUseHorizontalColumnFlow && liveView !== "setlist",
+  });
+
+  useEffect(() => {
+    if (presentationSync.canSync) return;
+    setIsSyncPanelVisible(false);
+  }, [presentationSync.canSync]);
+
+  useEffect(() => {
+    setIsSyncPanelVisible(false);
+  }, [presentationRouteKey]);
+  const syncDrivenPresentationColumns = useMemo(
+    () =>
+      buildSyncDrivenPresentationColumns({
+        syncPoints: presentationSync.syncPoints,
+        visibleContentBlocks,
+      }),
+    [presentationSync.syncPoints, visibleContentBlocks],
+  );
+  const renderedProgressionColumns =
+    presentationSync.enabled && syncDrivenPresentationColumns.length
+      ? syncDrivenPresentationColumns
+      : activeProgressionRenderColumns;
+  const columnsToRender = isEditing ? editableColumns : renderedProgressionColumns;
+
+  useEffect(() => {
+    if (liveView === "setlist") return;
+
+    requestAnimationFrame(() => {
+      presentationContentRef.current?.scrollTo?.({
+        left: 0,
+        top: 0,
+        behavior: "auto",
+      });
+    });
+  }, [
+    liveView,
+    presentationSync.enabled,
+    syncDrivenPresentationColumns.length,
+  ]);
+
+  const handleSyncNavigationClick = useCallback(
+    (event) => {
+      if (
+        !presentationSync.enabled ||
+        !presentationSync.navigationMode ||
+        isEditing
+      ) {
+        return;
+      }
+
+      const syncTarget = event.target?.closest?.("[data-sync-block-id]");
+      const syncBlockId = syncTarget?.dataset?.syncBlockId;
+      if (!syncBlockId) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      presentationSync.seekToSyncBlock(syncBlockId);
+    },
+    [isEditing, presentationSync],
+  );
 
   const {
     handleInstrumentNotesChange,
@@ -957,6 +1131,14 @@ function Presentation() {
               setIsExpandedCifra((value) => !value);
             }}
             onGoToEditSong={goToEditSong}
+            onOpenSyncPresentation={openSyncPresentation}
+            onToggleSyncPanel={() =>
+              setIsSyncPanelVisible((current) =>
+                presentationSync.canSync ? !current : false,
+              )
+            }
+            isSyncPanelVisible={isSyncPanelVisible}
+            canToggleSyncPanel={presentationSync.canSync}
             instrumentSelected={instrumentSelected}
             canOpenGuitarPro={canOpenGuitarPro}
             onOpenGuitarProViewer={openGuitarProViewer}
@@ -970,6 +1152,38 @@ function Presentation() {
             onEnterLiveMode={enterLiveMode}
             onGoToSetlistSong={goToSetlistSong}
           />
+          {liveView !== "setlist" ? (
+            <div className={isSyncPanelVisible ? "" : "hidden"}>
+              <PresentationSyncControls
+                activePoint={presentationSync.activePoint}
+                canSync={presentationSync.canSync}
+                compact={effectiveLiveMode}
+                currentTime={presentationSync.currentTime}
+                enabled={presentationSync.enabled}
+                isLandscapeBlocked={presentationSync.isLandscapeBlocked}
+                isPlaying={presentationSync.isPlaying}
+                loopBounds={presentationSync.loopBounds}
+                loopMode={presentationSync.loopMode}
+                navigationMode={presentationSync.navigationMode}
+                offset={presentationSync.offset}
+                onAdjustOffset={presentationSync.adjustOffset}
+                onSeekAdjacent={presentationSync.seekToAdjacentPoint}
+                onSeekRelative={presentationSync.seekRelative}
+                onToggleEnabled={presentationSync.toggleEnabled}
+                onToggleLoopMode={() =>
+                  presentationSync.setLoopMode((current) => !current)
+                }
+                onToggleNavigationMode={() =>
+                  presentationSync.setNavigationMode((current) => !current)
+                }
+                onTogglePlayback={presentationSync.togglePlayback}
+                playerDisplayMode={presentationSync.playerDisplayMode}
+                playerHostRef={presentationSync.playerHostRef}
+                setPlayerDisplayMode={presentationSync.setPlayerDisplayMode}
+                syncPoints={presentationSync.syncPoints}
+              />
+            </div>
+          ) : null}
           <PresentationLiveHeader
             effectiveLiveMode={effectiveLiveMode}
             isTouchLayout={isTouchLayout}
@@ -1064,13 +1278,16 @@ function Presentation() {
                     ? "presentation-horizontal-columns"
                     : ""
                 }`}
-                key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}`}
+                key={`${activeLayoutVariant}-${isEditing ? "editing" : "viewing"}-${
+                  presentationSync.enabled ? "sync" : "free"
+                }`}
                 style={{
                   "--presentation-block-gap": `${blockSpacingPx}px`,
                 }}
                 data-editing={isEditing ? "true" : undefined}
                 suppressContentEditableWarning
                 onInput={isEditing ? markCifraContentAsEdited : undefined}
+                onClick={handleSyncNavigationClick}
                 onPaste={
                   isEditing
                     ? (event) => {
@@ -1113,7 +1330,7 @@ function Presentation() {
                           syncRenderedCifraToDraft();
                           return;
                         }
-                        if (moveToAdjacentEditableBlock(event)) {
+                        if (moveToAdjacentEditableBlock(event, { createNextBlock })) {
                           syncRenderedCifraToDraft();
                           return;
                         }
@@ -1128,12 +1345,16 @@ function Presentation() {
                 }
               >
                 <PresentationColumns
-                  columns={activeProgressionRenderColumns}
+                  columns={columnsToRender}
                   showProgressionMarkers={showProgressionMarkers}
                   effectiveLiveMode={effectiveLiveMode}
                   shouldUseHorizontalColumnFlow={shouldUseHorizontalColumnFlow}
                   selectedBlockKeys={[]}
                   activeLiveColumnKey={activeLiveColumnKey}
+                  activeSyncBlockId={presentationSync.activeSyncBlockId}
+                  syncNavigationMode={
+                    presentationSync.enabled && presentationSync.navigationMode
+                  }
                   isEditing={isEditing}
                 />
               </div>

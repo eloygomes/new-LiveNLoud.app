@@ -31,6 +31,10 @@ function PresentationTopBar({
   isLayoutModeManual = false,
   onToggleExpanded,
   onGoToEditSong,
+  onOpenSyncPresentation,
+  onToggleSyncPanel,
+  isSyncPanelVisible = false,
+  canToggleSyncPanel = false,
   instrumentSelected,
   canOpenGuitarPro,
   onOpenGuitarProViewer,
@@ -300,6 +304,38 @@ function PresentationTopBar({
                   {isLayoutModeManual ? "✓" : "AUTO"}
                 </span>
                 <span className="sr-only">Expanded layout</span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 neuphormism-b-btn font-bold text-black px-4 py-3 text-sm"
+                onClick={onOpenSyncPresentation}
+                aria-label="Sync edit"
+                title="Sync edit"
+              >
+                Sync Edit
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center gap-2 font-bold px-4 py-3 text-sm ${
+                  isSyncPanelVisible
+                    ? "neuphormism-b-btn-gold text-black"
+                    : "neuphormism-b-btn text-black"
+                } ${
+                  canToggleSyncPanel
+                    ? ""
+                    : "cursor-not-allowed text-gray-400 opacity-60"
+                }`}
+                onClick={onToggleSyncPanel}
+                disabled={!canToggleSyncPanel}
+                aria-label="Toggle sync controls"
+                title={
+                  canToggleSyncPanel
+                    ? "Show or hide sync controls"
+                    : "No sync timestamps available"
+                }
+                aria-pressed={isSyncPanelVisible ? "true" : "false"}
+              >
+                Sync
               </button>
               <button
                 type="button"

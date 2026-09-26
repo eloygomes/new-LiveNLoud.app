@@ -4,6 +4,7 @@ import { inferDisplayKey, transposeCifra } from "../transposeCifra";
 import { shouldDropBlankLinesForPresentationFlow } from "../presentationLayoutHelpers";
 import { buildProgressionBlocks } from "../helpers/presentationUtils";
 import { buildProgressionRenderModel } from "../helpers/progressionRenderModel";
+import { stripImportedCifraPayload } from "../sync/stripImportedCifraPayload";
 
 export function usePresentationRenderModel({
   contentSelected,
@@ -21,7 +22,7 @@ export function usePresentationRenderModel({
   const shouldUseExpandedVerticalFlow = isExpandedCifra && !shouldUseTwoColumns;
 
   const transposedContent = useMemo(
-    () => transposeCifra(contentSelected, transposeSteps),
+    () => transposeCifra(stripImportedCifraPayload(contentSelected), transposeSteps),
     [contentSelected, transposeSteps],
   );
   const displayKey = useMemo(

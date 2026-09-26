@@ -63,6 +63,7 @@ export default function RootLayouts() {
   const isEditSongRoute = location.pathname.startsWith("/editsong/");
   const isPresentationRoute =
     location.pathname.startsWith("/presentation/") ||
+    location.pathname.startsWith("/sync-presentation/") ||
     location.pathname.startsWith("/blankpresentation/");
   const isUserProfileRoute = location.pathname.startsWith("/userprofile/");
   const isTouchDashboardLayout = isCompactLayout;

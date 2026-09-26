@@ -1,4 +1,5 @@
 import { PRESENTATION_COLUMN_BREAK_MARKER } from "./helpers/presentationConstants";
+import { ensureSyncBlockIdOnHtml } from "./sync/syncBlockModel";
 
 // fallback seguro + modo estrito opcional
 export const processSongCifra = (songCifra, { strict = false } = {}) => {
@@ -310,6 +311,11 @@ ${linesGroup.join("\n")}
     return { blockHtml, nextIndex: j - 1 };
   }
 
+  function pushSyncBlock(blockHtml, seed) {
+    const normalized = ensureSyncBlockIdOnHtml(blockHtml, { seed });
+    htmlBlocks.push(normalized.html);
+  }
+
   // Loop principal
   while (i < totalLines) {
     const trimmed = lines[i].trim();
@@ -362,17 +368,17 @@ ${linesGroup.join("\n")}
 ${groupHTML.join("\n")}
 ${subsection.join("\n")}
 </div>`;
-      htmlBlocks.push(containerHTML);
+      pushSyncBlock(containerHTML, `${sectionName}-${i}`);
 
       i = j;
     } else {
       if (isBlankLine(trimmed)) {
         const { html, nextIndex } = processSingleLine(i);
-        htmlBlocks.push(html);
+        pushSyncBlock(html, `blank-${i}`);
         i = nextIndex + 1;
       } else {
         const { blockHtml, nextIndex } = processVerseBlock(i);
-        htmlBlocks.push(blockHtml);
+        pushSyncBlock(blockHtml, `verse-${i}`);
         i = nextIndex + 1;
       }
     }

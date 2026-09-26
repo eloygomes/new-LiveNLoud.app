@@ -851,13 +851,12 @@ function moveTrailingContentToBlockEnd({
   return true;
 }
 
-export function moveToAdjacentEditableBlock(event) {
+export function moveToAdjacentEditableBlock(event, { createNextBlock } = {}) {
   const shouldMoveRight =
     event.key === "Enter" &&
-    event.shiftKey &&
     !event.altKey &&
-    !event.metaKey &&
-    !event.ctrlKey;
+    ((event.shiftKey && !event.metaKey && !event.ctrlKey) ||
+      (event.metaKey && !event.shiftKey && !event.ctrlKey));
   const isBackward =
     event.key === "Backspace" &&
     event.shiftKey &&
@@ -865,7 +864,11 @@ export function moveToAdjacentEditableBlock(event) {
     !event.metaKey &&
     !event.ctrlKey;
 
-  if ((!shouldMoveRight && !isBackward) || event.isComposing) return false;
+  if (
+    (!shouldMoveRight && !isBackward) ||
+    event.isComposing ||
+    event.nativeEvent?.isComposing
+  ) return false;
 
   const selection = window.getSelection?.();
   if (!selection || selection.rangeCount === 0) return false;
@@ -886,6 +889,10 @@ export function moveToAdjacentEditableBlock(event) {
   const currentIndex = contentBlocks.indexOf(currentContentBlock);
   const targetIndex = shouldMoveRight ? currentIndex + 1 : currentIndex - 1;
   let targetContentBlock = contentBlocks[targetIndex];
+
+  if (!targetContentBlock && shouldMoveRight && createNextBlock) {
+    targetContentBlock = createNextBlock(targetBlock);
+  }
 
   if (!targetContentBlock) return false;
 
