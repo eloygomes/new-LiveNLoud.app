@@ -173,6 +173,9 @@ function normalizeScrapeDoc(scraped, instrumentName) {
       inst: null,
       link: pythonSongData?.source_url || "",
       songCifra: pythonSongData?.song_cifra || "",
+      songTabs: pythonSongData?.songTabs || "",
+      songChords: pythonSongData?.songChords || "",
+      songLyrics: pythonSongData?.songLyrics || "",
       capo: pythonSongData?.capo || "",
       tuning: pythonSongData?.tuning || "",
       artist: pythonSongData.artist_name,
@@ -211,11 +214,47 @@ function normalizeScrapeDoc(scraped, instrumentName) {
     inst,
     link: inst?.link ?? doc?.link ?? "",
     songCifra: inst?.songCifra ?? doc?.songCifra ?? "",
+    songTabs: inst?.songTabs ?? doc?.songTabs ?? "",
+    songChords: inst?.songChords ?? doc?.songChords ?? "",
+    songLyrics: inst?.songLyrics ?? doc?.songLyrics ?? "",
     capo: inst?.capo ?? doc?.capo ?? "",
     tuning: inst?.tuning ?? doc?.tuning ?? "",
     tom: doc?.tom ?? doc?.tone ?? doc?.key ?? "",
     artist: doc.artist,
     song: doc.song,
+  };
+}
+
+function buildStoredDocFromParsed(parsed, instrumentName) {
+  if (!parsed?.artist || !parsed?.song) return null;
+
+  const instrumentBlock = {
+    active: true,
+    capo: parsed.capo || "",
+    link: parsed.link || "",
+    progress: 0,
+    songCifra: parsed.songCifra || "",
+    songTabs: parsed.songTabs || "",
+    songChords: parsed.songChords || "",
+    songLyrics: parsed.songLyrics || "",
+    tuning: parsed.tuning || "",
+  };
+
+  return {
+    artist: parsed.artist,
+    song: parsed.song,
+    capo: parsed.capo || "",
+    tom: parsed.tom || "",
+    tuning: parsed.tuning || "",
+    instruments: {
+      guitar01: instrumentName === "guitar01",
+      guitar02: instrumentName === "guitar02",
+      bass: instrumentName === "bass",
+      keys: instrumentName === "keys",
+      drums: instrumentName === "drums",
+      voice: instrumentName === "voice",
+    },
+    [instrumentName]: instrumentBlock,
   };
 }
 
@@ -716,6 +755,12 @@ function NewSongInputLinkBox({
           }
           if (parsed.link && parsed.link !== link) setInstrument?.(parsed.link);
         } else if (parsed) {
+          const parsedDoc = buildStoredDocFromParsed(parsed, scrapeInstrumentName);
+          if (parsedDoc) {
+            setCifraFROMDB?.(parsedDoc);
+            setLocalStorageJsonSafe("cifraFROMDB", parsedDoc);
+            setLocalStorageItemSafe("fromWHERE", "DB");
+          }
           if (parsed.artist) {
             setLocalStorageItemSafe("artist", parsed.artist);
             setArtistName?.(parsed.artist);

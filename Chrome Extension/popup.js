@@ -1823,6 +1823,17 @@ async function saveSong(payload, session) {
   return data;
 }
 
+function getAutomaticVideoMessage(saveResult) {
+  const status = saveResult?.autoYoutubeVideo?.status;
+  if (status === "found" || status === "duplicate") {
+    return " Vídeo encontrado automaticamente.";
+  }
+  if (status === "pending") {
+    return " Resolução automática de vídeo pendente.";
+  }
+  return " Nenhum vídeo encontrado automaticamente.";
+}
+
 async function notifySongListsUpdated(payload) {
   const tabs = await extensionApi.tabs.query({});
   const supportedDashboardHosts = new Set([
@@ -2132,7 +2143,7 @@ elements.saveButton.addEventListener("click", async () => {
       ),
     );
     setNotice("Salvando cifra...");
-    await saveSong(payload, session);
+    const saveResult = await saveSong(payload, session);
     await notifySongListsUpdated(payload);
     const selectedGuitarPro = getSelectedGuitarProFile();
     if (selectedGuitarPro) {
@@ -2147,9 +2158,9 @@ elements.saveButton.addEventListener("click", async () => {
         );
       }
     }
-    const successMessage = selectedGuitarPro
+    const successMessage = (selectedGuitarPro
       ? "Cifra e Guitar Pro adicionados com sucesso"
-      : "Cifra adicionada com sucesso";
+      : "Cifra adicionada com sucesso") + getAutomaticVideoMessage(saveResult);
     setNotice(successMessage);
     setNoticeState("success");
     showFinalOnly(successMessage, "success");

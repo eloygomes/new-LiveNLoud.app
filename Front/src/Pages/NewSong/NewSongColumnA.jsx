@@ -530,16 +530,25 @@ function NewSongColumnA({
   const [touchMediaOpen, setTouchMediaOpen] = useState(false);
   const [touchVideosOpen, setTouchVideosOpen] = useState(false);
   const [touchSetlistsOpen, setTouchSetlistsOpen] = useState(false);
-  const hasInstrumentLinks = [
-    guitar01,
-    guitar02,
-    bass,
-    keyboard,
-    drums,
-    voice,
-  ].some((link) => Boolean(link && link.trim()));
+  const hasImportedInstrumentContent = [
+    ["guitar01", guitar01],
+    ["guitar02", guitar02],
+    ["bass", bass],
+    ["keys", keyboard],
+    ["drums", drums],
+    ["voice", voice],
+  ].some(([key, link]) => {
+    if (!link || !link.trim()) return false;
+    const sourceInstrument = pickInstrumentSource({
+      songData,
+      storedCifraDoc: readStoredCifraDoc(),
+      instrumentKey: key,
+      link,
+    });
+    return hasPresentationContent(sourceInstrument);
+  });
   const canSaveSong =
-    Object.values(scrapeStatus || {}).some(Boolean) || hasInstrumentLinks;
+    Object.values(scrapeStatus || {}).some(Boolean) || hasImportedInstrumentContent;
 
   useEffect(() => {
     let isMounted = true;
@@ -856,10 +865,11 @@ function NewSongColumnA({
         return;
       }
 
+      const automaticVideoStatuses = [];
       for (let index = 0; index < instrumentsToSave.length; index += 1) {
         const { key, instrumentPayload, sourceInstrument } =
           instrumentsToSave[index];
-        await createNewSongOnServer({
+        const saveResult = await createNewSongOnServer({
           songName: resolvedSongName,
           artistName: resolvedArtistName,
           instrumentName: key,
@@ -875,12 +885,27 @@ function NewSongColumnA({
           embedLink,
           instrumentFields: instrumentPayload,
         });
+        if (saveResult?.autoYoutubeVideo) {
+          automaticVideoStatuses.push(saveResult.autoYoutubeVideo);
+        }
       }
+
+      const foundAutomaticVideo = automaticVideoStatuses.some(
+        (status) => status?.status === "found" || status?.status === "duplicate",
+      );
+      const pendingAutomaticVideo = automaticVideoStatuses.some(
+        (status) => status?.status === "pending",
+      );
+      const automaticVideoMessage = foundAutomaticVideo
+        ? " Vídeo encontrado automaticamente."
+        : pendingAutomaticVideo
+          ? " Resolução automática de vídeo pendente."
+          : " Nenhum vídeo encontrado automaticamente.";
 
       setShowSnackBar?.(true);
       setSnackbarMessage?.({
         title: "Success",
-        message: `Song "${savedSongName}" by ${savedArtistName} saved successfully!`,
+        message: `Song "${savedSongName}" by ${savedArtistName} saved successfully!${automaticVideoMessage}`,
       });
 
       hasSaved.current = true;

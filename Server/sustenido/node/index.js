@@ -9,6 +9,10 @@ const fs = require("fs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const youtubeRoutes = require("./youtube/youtube.routes");
+const {
+  resolveAutomaticYouTubeVideo,
+  normalizeVideoList,
+} = require("./youtube/youtubeVideoResolver");
 const cookieParser = require("cookie-parser");
 const { createRuntime } = require("./server/runtime");
 
@@ -80,6 +84,47 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Servir arquivos públicos para download, como o pacote da extensão.
 app.use("/downloads", express.static(path.join(__dirname, "downloads")));
+
+async function applyAutomaticYouTubeResolution(userdata = {}) {
+  const existingVideos = normalizeVideoList(userdata.embedVideos);
+  const baseUserdata = {
+    ...userdata,
+    embedVideos: existingVideos,
+  };
+
+  try {
+    const resolved = await resolveAutomaticYouTubeVideo(baseUserdata);
+    return {
+      userdata: {
+        ...baseUserdata,
+        embedVideos: resolved.videos,
+        autoYoutubeVideo: resolved.meta,
+      },
+      meta: resolved.meta,
+    };
+  } catch (error) {
+    console.warn("[AUTO_YOUTUBE] non-blocking resolution error", {
+      artist: userdata?.artist,
+      song: userdata?.song,
+      error: error?.message,
+    });
+    return {
+      userdata: {
+        ...baseUserdata,
+        autoYoutubeVideo: {
+          status: "pending",
+          reason: "resolver_failed",
+          message: "Resolucao automatica de video pendente.",
+        },
+      },
+      meta: {
+        status: "pending",
+        reason: "resolver_failed",
+        message: "Resolucao automatica de video pendente.",
+      },
+    };
+  }
+}
 
 // Configuração do Multer para armazenamento local com extensão '.jpeg'
 const storage = multer.diskStorage({
@@ -598,6 +643,8 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
 
     userdata.email = ownerEmail;
     userdata = await hydrateUserdataFromGeneralCifra(userdata);
+    const youtubeResolution = await applyAutomaticYouTubeResolution(userdata);
+    userdata = youtubeResolution.userdata;
 
     const query = { email: userdata.email };
     const existingUser = await collection.findOne(query);
@@ -651,6 +698,8 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
           return res.status(200).json({
             message: "Dados atualizados com sucesso!",
             updatedUser: updateResult,
+            song: updatedSongData,
+            autoYoutubeVideo: youtubeResolution.meta,
           });
         } else {
           // Se não encontrar o registro correspondente, adicionar como novo
@@ -673,6 +722,8 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
           return res.status(200).json({
             message: "Novo registro adicionado com sucesso!",
             updatedUser: updateResult,
+            song: newSongData,
+            autoYoutubeVideo: youtubeResolution.meta,
           });
         }
       } else {
@@ -703,6 +754,8 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
         return res.status(200).json({
           message: "Dados atualizados com sucesso!",
           updatedUser: updateResult,
+          song: initialSongData,
+          autoYoutubeVideo: youtubeResolution.meta,
         });
       }
     } else {
@@ -729,6 +782,8 @@ app.post("/api/v1/newsong", authenticateJWT, async (req, res) => {
         message: "Usuário criado com sucesso!",
         userId: result.insertedId,
         user: initialSongData,
+        song: initialSongData,
+        autoYoutubeVideo: youtubeResolution.meta,
       });
     }
   } catch (error) {
@@ -1243,7 +1298,7 @@ app.post("/api/v1/createMusic", async (req, res) => {
     };
 
     // ---------- prepara payload limpo -----------------------------
-    const incoming = {
+    let incoming = {
       song,
       artist,
       progressBar,
@@ -1259,6 +1314,8 @@ app.post("/api/v1/createMusic", async (req, res) => {
       setlist,
       updateIn: new Date().toISOString().split("T")[0],
     };
+    const youtubeResolution = await applyAutomaticYouTubeResolution(incoming);
+    incoming = youtubeResolution.userdata;
 
     const database = client.db("generalCifras");
     const collection = database.collection("Documents");
@@ -1320,6 +1377,7 @@ app.post("/api/v1/createMusic", async (req, res) => {
 
       return res.status(200).json({
         message: "Música existente atualizada com sucesso.",
+        autoYoutubeVideo: youtubeResolution.meta,
       });
     }
 
@@ -1337,6 +1395,7 @@ app.post("/api/v1/createMusic", async (req, res) => {
     return res.status(201).json({
       message: "Música adicionada com sucesso.",
       insertedId: result.insertedId,
+      autoYoutubeVideo: youtubeResolution.meta,
     });
   } catch (error) {
     if (error.code === 11000) {
