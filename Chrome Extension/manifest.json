@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "#Sustenido Quick Add",
-  "version": "0.65.3.0",
+  "version": "0.66.0.0",
   "description": "Add the current song page to #Sustenido from the browser toolbar.",
   "permissions": [
     "storage",

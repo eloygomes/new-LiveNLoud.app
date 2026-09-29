@@ -1,0 +1,8 @@
+{
+  "name": "sustenido-scraper-runtime",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ulixee/hero": "2.0.0-alpha.34"
+  }
+}
