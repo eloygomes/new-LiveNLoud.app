@@ -425,8 +425,12 @@ app.post("/api/v1/scrape", async (req, res) => {
       sourceContentFormat,
     } = req.body;
     const cleanLink = sanitizeScrapeLink(link);
+    const trustedSourceContentFormats = new Set([
+      "ultimate_guitar_wiki_tab",
+      "cifraclub_html",
+    ]);
     const trustedSourceContent =
-      sourceContentFormat === "ultimate_guitar_wiki_tab" &&
+      trustedSourceContentFormats.has(sourceContentFormat) &&
       typeof sourceContent === "string" &&
       sourceContent.length <= 2_000_000
         ? sourceContent

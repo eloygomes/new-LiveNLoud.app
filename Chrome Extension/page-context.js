@@ -429,6 +429,40 @@ function getCifraClubCifraText(root) {
   return "";
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getCifraClubHtmlSnapshot(root) {
+  const contentRoot =
+    document.querySelector("main#chordPage") ||
+    root ||
+    document.querySelector("#song-sheet-root");
+  if (!contentRoot) return "";
+
+  // Send only the musical page subtree plus stable metadata. This avoids
+  // shipping ads, scripts, cookies or the complete browser document while
+  // letting the backend reuse its canonical provider parser.
+  const title = document.title || "";
+  const ogTitle = getMetaContent('meta[property="og:title"]');
+  const snapshot = [
+    "<!doctype html><html><head>",
+    `<title>${escapeHtml(title)}</title>`,
+    ogTitle
+      ? `<meta property="og:title" content="${escapeHtml(ogTitle)}">`
+      : "",
+    "</head><body>",
+    contentRoot.outerHTML,
+    "</body></html>",
+  ].join("");
+
+  return snapshot.length <= 1_900_000 ? snapshot : "";
+}
+
 function getCifraClubGuitarProFiles() {
   const links = Array.from(
     document.querySelectorAll(
@@ -501,6 +535,8 @@ function buildPageContext() {
     capo = getFieldValue(cifraRoot, "#cifra_capo");
     lyrics = getCifraClubLyrics(cifraRoot);
     cifraText = getCifraClubCifraText(cifraRoot);
+    cifraRawContent = cifraText ? getCifraClubHtmlSnapshot(cifraRoot) : "";
+    cifraTextSource = cifraRawContent ? "cifraclub_html" : "";
     guitarProFiles = getCifraClubGuitarProFiles();
   } else if (supportedSite?.id === "ultimate_guitar") {
     song = getUltimateGuitarSong();
@@ -544,7 +580,15 @@ function buildPageContext() {
     },
   };
 
-  debugLog("Built page context", context);
+  debugLog("Built page context", {
+    ...context,
+    cifraText: context.cifraText
+      ? `[content: ${context.cifraText.length} chars]`
+      : "",
+    cifraRawContent: context.cifraRawContent
+      ? `[snapshot: ${context.cifraRawContent.length} chars]`
+      : "",
+  });
   return context;
 }
 

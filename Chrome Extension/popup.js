@@ -1,6 +1,6 @@
 const extensionApi = globalThis.browser || globalThis.chrome;
 
-const EXTENSION_VERSION = "0.65.3.0";
+const EXTENSION_VERSION = "0.66.0.0";
 const SUSTENIDO_API_BASE = "https://api.sustenido.eloygomes.com";
 const SUSTENIDO_DATABASE = "sustenido";
 const NOT_AVAILABLE = "N/A";
@@ -1417,12 +1417,17 @@ async function scrapeSong(session, pageContext, options = {}) {
         instrument_progressbar: progress,
         link,
         linkNorm: normalizeLinkForApi(link),
-        ...(pageContext?.source === "ultimate_guitar" &&
+        ...(["ultimate_guitar", "cifraclub"].includes(pageContext?.source) &&
         normalizeLinkForApi(pageContext?.link) === normalizeLinkForApi(link) &&
         hasText(pageContext?.cifraRawContent)
           ? {
               sourceContent: pageContext.cifraRawContent,
-              sourceContentFormat: "ultimate_guitar_wiki_tab",
+              sourceContentFormat:
+                pageContext.cifraTextSource === "ultimate_guitar_store"
+                  ? "ultimate_guitar_wiki_tab"
+                  : pageContext.cifraTextSource === "cifraclub_html"
+                    ? "cifraclub_html"
+                    : "",
             }
           : {}),
       }),
