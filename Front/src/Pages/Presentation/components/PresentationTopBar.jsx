@@ -2,6 +2,7 @@ import {
   FaArrowsLeftRight,
   FaArrowsUpDown,
   FaEllipsisVertical,
+  FaEyeSlash,
   FaFilePen,
   FaGear,
   FaWandMagicSparkles,
@@ -29,6 +30,8 @@ function PresentationTopBar({
   isEditing,
   isVideoModalOpen,
   onStartEditing,
+  tabsHidden = false,
+  onToggleTabsHidden,
   onToggleToolBox,
   isExpandedCifra,
   isLayoutModeManual = false,
@@ -244,6 +247,21 @@ function PresentationTopBar({
               >
                 <FaFilePen className="h-5 w-5" />
                 <span className="sr-only">Editor</span>
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-black ${
+                  tabsHidden
+                    ? "neuphormism-b-btn-gold bg-[goldenrod] shadow-[0_10px_24px_rgba(218,165,32,0.35)]"
+                    : "neuphormism-b-btn"
+                }`}
+                onClick={onToggleTabsHidden}
+                aria-label="Hide tabs"
+                title="Hide tabs"
+                aria-pressed={tabsHidden ? "true" : "false"}
+              >
+                <FaEyeSlash className="h-5 w-5" aria-hidden="true" />
+                <span className="sr-only">Hide tabs</span>
               </button>
               <button
                 type="button"

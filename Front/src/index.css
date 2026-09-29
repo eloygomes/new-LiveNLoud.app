@@ -1757,6 +1757,10 @@ main{
   display: none !important;
 }
 
+.presentation-tabs-hidden .presentation-editor-tab-block {
+  display: none !important;
+}
+
 .presentation-live-step-control {
   display: inline-grid;
   grid-template-columns: auto 2.5rem minmax(4.5rem, auto) 2.5rem;

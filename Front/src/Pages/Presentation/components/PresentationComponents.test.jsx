@@ -304,6 +304,7 @@ describe("Presentation extracted components", () => {
 
   it("renders top bar actions", () => {
     const onStartEditing = vi.fn();
+    const onToggleTabsHidden = vi.fn();
     const onToggleToolBox = vi.fn();
     const onToggleExpanded = vi.fn();
     const onGoToSetlistSong = vi.fn();
@@ -322,6 +323,8 @@ describe("Presentation extracted components", () => {
         isEditing={false}
         isVideoModalOpen={false}
         onStartEditing={onStartEditing}
+        tabsHidden={false}
+        onToggleTabsHidden={onToggleTabsHidden}
         onToggleToolBox={onToggleToolBox}
         isExpandedCifra={false}
         isLayoutModeManual={false}
@@ -336,6 +339,8 @@ describe("Presentation extracted components", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Edit cifra" }));
+    const hideTabsButton = screen.getByRole("button", { name: "Hide tabs" });
+    fireEvent.click(hideTabsButton);
     fireEvent.click(screen.getByRole("button", { name: "Automatic layout" }));
     fireEvent.click(
       screen.getAllByRole("button", {
@@ -344,6 +349,8 @@ describe("Presentation extracted components", () => {
     );
 
     expect(onStartEditing).toHaveBeenCalled();
+    expect(onToggleTabsHidden).toHaveBeenCalledOnce();
+    expect(hideTabsButton).toHaveAttribute("aria-pressed", "false");
     expect(onToggleExpanded).toHaveBeenCalled();
     expect(screen.getByLabelText("Automatic layout status")).toHaveTextContent("AUTO");
     expect(onGoToSetlistSong).toHaveBeenCalledWith({
@@ -366,6 +373,8 @@ describe("Presentation extracted components", () => {
         isEditing={false}
         isVideoModalOpen={false}
         onStartEditing={vi.fn()}
+        tabsHidden
+        onToggleTabsHidden={vi.fn()}
         onToggleToolBox={vi.fn()}
         isExpandedCifra={false}
         onToggleExpanded={vi.fn()}
@@ -381,6 +390,7 @@ describe("Presentation extracted components", () => {
     const topBar = container.querySelector("[data-presentation-top-bar='true']");
     const songTitle = screen.getByText("Tablet Song");
     const firstAction = screen.getByRole("button", { name: "Edit cifra" });
+    const hideTabsButton = screen.getByRole("button", { name: "Hide tabs" });
 
     expect(topBar).toHaveAttribute("data-tablet-layout", "true");
     expect(
@@ -389,6 +399,8 @@ describe("Presentation extracted components", () => {
     expect(
       songTitle.compareDocumentPosition(firstAction) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(hideTabsButton).toHaveAttribute("aria-pressed", "true");
+    expect(hideTabsButton).toHaveClass("bg-[goldenrod]");
   });
 
   it("replaces presentation actions with a symmetric two-row edit toolbar", () => {

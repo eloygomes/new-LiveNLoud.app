@@ -159,4 +159,95 @@ describe("usePresentationLiveMode", () => {
       behavior: "auto",
     });
   });
+
+  it("turns one mouse-wheel gesture into one horizontal block step", () => {
+    vi.useFakeTimers();
+    const props = makeProps({ shouldUseHorizontalColumnFlow: true });
+    const viewport = props.presentationContentRef.current;
+    const surface = document.createElement("div");
+    surface.className =
+      "presentation-tiptap-surface presentation-horizontal-columns";
+
+    [40, 500, 960].forEach((offsetLeft) => {
+      const block = document.createElement("div");
+      block.className = "presentation-editor-block";
+      Object.defineProperty(block, "offsetLeft", { value: offsetLeft });
+      Object.defineProperty(block, "clientWidth", { value: 400 });
+      surface.appendChild(block);
+    });
+    viewport.appendChild(surface);
+    Object.defineProperty(viewport, "clientWidth", { value: 900 });
+    Object.defineProperty(viewport, "scrollLeft", {
+      configurable: true,
+      value: 0,
+      writable: true,
+    });
+
+    renderHook(() => usePresentationLiveMode(props));
+
+    act(() => {
+      viewport.dispatchEvent(
+        new WheelEvent("wheel", { deltaY: 100, cancelable: true }),
+      );
+      viewport.dispatchEvent(
+        new WheelEvent("wheel", { deltaY: 80, cancelable: true }),
+      );
+    });
+    expect(viewport.scrollTo).toHaveBeenCalledTimes(1);
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 460,
+      behavior: "auto",
+    });
+
+    viewport.scrollLeft = 460;
+    act(() => vi.advanceTimersByTime(180));
+    act(() => {
+      viewport.dispatchEvent(
+        new WheelEvent("wheel", { deltaY: 100, cancelable: true }),
+      );
+    });
+    expect(viewport.scrollTo).toHaveBeenCalledTimes(2);
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 920,
+      behavior: "auto",
+    });
+    vi.useRealTimers();
+  });
+
+  it("skips hidden tablature blocks during horizontal navigation", () => {
+    const props = makeProps();
+    const viewport = props.presentationContentRef.current;
+    const surface = document.createElement("div");
+    surface.className =
+      "presentation-tiptap-surface presentation-horizontal-columns presentation-tabs-hidden";
+
+    [
+      { offsetLeft: 40, tablature: false },
+      { offsetLeft: 500, tablature: true },
+      { offsetLeft: 960, tablature: false },
+    ].forEach(({ offsetLeft, tablature }) => {
+      const block = document.createElement("div");
+      block.className = `presentation-editor-block${
+        tablature ? " presentation-editor-tab-block" : ""
+      }`;
+      Object.defineProperty(block, "offsetLeft", { value: offsetLeft });
+      Object.defineProperty(block, "clientWidth", { value: 400 });
+      surface.appendChild(block);
+    });
+    viewport.appendChild(surface);
+    Object.defineProperty(viewport, "clientWidth", { value: 900 });
+    Object.defineProperty(viewport, "scrollLeft", {
+      configurable: true,
+      value: 0,
+      writable: true,
+    });
+
+    const { result } = renderHook(() => usePresentationLiveMode(props));
+
+    act(() => result.current.scrollExpandedLayout(1));
+    expect(viewport.scrollTo).toHaveBeenLastCalledWith({
+      left: 920,
+      behavior: "auto",
+    });
+  });
 });

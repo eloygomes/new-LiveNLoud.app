@@ -4355,10 +4355,8 @@ function normalizeInstrumentFlags(entry = {}) {
     }
 
     flags[key] = Boolean(
-      isExplicitTrue(currentFlag) ||
-      isExplicitTrue(currentFlag?.active) ||
-      isExplicitTrue(block?.active) ||
-      (typeof block?.link === "string" && block.link.trim()),
+      (isPlainObject(currentFlag) && instrumentBlockHasContent(currentFlag)) ||
+      (isPlainObject(block) && instrumentBlockHasContent(block)),
     );
     return flags;
   }, {});

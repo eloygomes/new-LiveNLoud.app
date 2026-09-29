@@ -18,6 +18,12 @@ const getExpandedNavigationItems = (viewport) => {
     viewport.querySelectorAll(
       ".presentation-tiptap-surface.presentation-horizontal-columns .presentation-editor-block",
     ),
+  ).filter(
+    (block) =>
+      !(
+        block.classList.contains("presentation-editor-tab-block") &&
+        block.closest(".presentation-tabs-hidden")
+      ),
   );
   if (editorBlocks.length) return editorBlocks;
 
@@ -90,8 +96,11 @@ export function usePresentationLiveMode({
       const viewport = presentationContentRef.current;
       if (!viewport) return;
 
-      const paginatedEditorMetrics = getPaginatedEditorMetrics(viewport);
-      if (paginatedEditorMetrics) {
+      const navigationItems = getExpandedNavigationItems(viewport);
+      if (!navigationItems.length) {
+        const paginatedEditorMetrics = getPaginatedEditorMetrics(viewport);
+        if (!paginatedEditorMetrics) return;
+
         const { columnStep, lastColumnIndex, maxScrollLeft } =
           paginatedEditorMetrics;
         const activeColumnIndex = Math.max(
@@ -112,9 +121,6 @@ export function usePresentationLiveMode({
         });
         return;
       }
-
-      const navigationItems = getExpandedNavigationItems(viewport);
-      if (!navigationItems.length) return;
 
       const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
       const leadingInset = navigationItems[0]?.offsetLeft || 0;
@@ -260,6 +266,8 @@ export function usePresentationLiveMode({
       return undefined;
     }
 
+    let wheelLocked = false;
+    let wheelUnlockTimeoutId = 0;
     const handleWheel = (event) => {
       const delta =
         Math.abs(event.deltaX) > Math.abs(event.deltaY)
@@ -268,12 +276,19 @@ export function usePresentationLiveMode({
 
       if (!delta) return;
       event.preventDefault();
+      if (wheelLocked) return;
+
+      wheelLocked = true;
       scrollExpandedLayout(delta > 0 ? 1 : -1);
+      wheelUnlockTimeoutId = window.setTimeout(() => {
+        wheelLocked = false;
+      }, 180);
     };
 
     viewport.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       viewport.removeEventListener("wheel", handleWheel);
+      window.clearTimeout(wheelUnlockTimeoutId);
     };
   }, [
     effectiveLiveMode,

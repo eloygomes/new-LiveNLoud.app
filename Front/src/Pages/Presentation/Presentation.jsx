@@ -274,6 +274,7 @@ function Presentation() {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [tabsHidden, setTabsHidden] = useState(false);
   const [hasEditedCifraContent, setHasEditedCifraContent] = useState(false);
   const [hasEditedLayoutContent, setHasEditedLayoutContent] = useState(false);
   const [activeToolBoxPanel, setActiveToolBoxPanel] = useState(null);
@@ -1008,6 +1009,8 @@ function Presentation() {
             isEditing={isEditing}
             isVideoModalOpen={isVideoModalOpen}
             onStartEditing={startEditingCifra}
+            tabsHidden={tabsHidden}
+            onToggleTabsHidden={() => setTabsHidden((current) => !current)}
             onToggleToolBox={() => toggleToolBoxPanel(null)}
             isExpandedCifra={isExpandedCifra}
             isLayoutModeManual={isLayoutModeManual}
@@ -1136,7 +1139,7 @@ function Presentation() {
                   shouldUseHorizontalColumnFlow
                     ? "presentation-horizontal-columns"
                     : "presentation-vertical-blocks"
-                }`}
+                } ${tabsHidden ? "presentation-tabs-hidden" : ""}`}
                 key={`${presentationLayoutIdentity}-${activeLayoutVariant}`}
                 style={{
                   "--presentation-block-gap": `${blockSpacingPx}px`,

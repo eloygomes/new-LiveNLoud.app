@@ -64,11 +64,7 @@ const isInstrumentActive = (block) => {
     return false;
   }
 
-  return Boolean(
-    block?.active === true ||
-      block?.active === "true" ||
-      instrumentBlockHasContent(block),
-  );
+  return instrumentBlockHasContent(block);
 };
 
 const INSTRUMENT_SETLIST_TAG_ALIASES = {
@@ -412,15 +408,96 @@ function EditSongColumnA({
   const markDirty = useCallback(() => {
     setIsDirty?.(true);
   }, [setIsDirty]);
+
+  const deactivateInstrument = useCallback((instrument) => {
+    const settersByInstrument = {
+      guitar01: {
+        setActive: setInstrActiveStatusguitar01,
+        setLink: setInstLinkguitar01,
+        setProgress: setInstProgressBarguitar01,
+        setSongCifra: setSongCifraguitar01,
+        setNotes: setInstNotesguitar01,
+      },
+      guitar02: {
+        setActive: setInstrActiveStatusguitar02,
+        setLink: setInstLinkguitar02,
+        setProgress: setInstProgressBarguitar02,
+        setSongCifra: setSongCifraguitar02,
+        setNotes: setInstNotesguitar02,
+      },
+      bass: {
+        setActive: setInstrActiveStatusbass,
+        setLink: setInstLinkbass,
+        setProgress: setInstProgressBarbass,
+        setSongCifra: setSongCifrabass,
+        setNotes: setInstNotesbass,
+      },
+      keys: {
+        setActive: setInstrActiveStatuskeyboard,
+        setLink: setInstLinkkeyboard,
+        setProgress: setInstProgressBarkeyboard,
+        setSongCifra: setSongCifrakeyboard,
+        setNotes: setInstNoteskeyboard,
+      },
+      drums: {
+        setActive: setInstrActiveStatusdrums,
+        setLink: setInstLinkdrums,
+        setProgress: setInstProgressBardrums,
+        setSongCifra: setSongCifradrums,
+        setNotes: setInstNotesdrums,
+      },
+      voice: {
+        setActive: setInstrActiveStatusvoice,
+        setLink: setInstLinkvoice,
+        setProgress: setInstProgressBarvoice,
+        setSongCifra: setSongCifravoice,
+        setNotes: setInstNotesvoice,
+      },
+    };
+    const setters = settersByInstrument[instrument];
+    if (!setters) return;
+
+    setters.setActive(false);
+    setters.setLink("");
+    setters.setProgress(0);
+    setters.setSongCifra("");
+    setters.setNotes("");
+  }, []);
+
   const setSetlistAndMarkDirty = useCallback(
     (updater) => {
       markDirty();
-      setSetlist((current) => {
-        const next = typeof updater === "function" ? updater(current) : updater;
-        return next;
-      });
+      const next = typeof updater === "function" ? updater(setlist) : updater;
+      const currentTags = new Set(
+        (Array.isArray(setlist) ? setlist : []).map(normalizeSetlistTag),
+      );
+      const nextTags = new Set(
+        (Array.isArray(next) ? next : []).map(normalizeSetlistTag),
+      );
+
+      Object.entries(INSTRUMENT_SETLIST_TAG_ALIASES).forEach(
+        ([instrument, aliases]) => {
+          const normalizedAliases = [
+            ...aliases,
+            INSTRUMENT_SETLIST_GROUP_TAG[instrument],
+          ]
+            .filter(Boolean)
+            .map(normalizeSetlistTag);
+          const wasSelected = normalizedAliases.some((tag) =>
+            currentTags.has(tag),
+          );
+          const isSelected = normalizedAliases.some((tag) =>
+            nextTags.has(tag),
+          );
+          if (wasSelected && !isSelected) {
+            deactivateInstrument(instrument);
+          }
+        },
+      );
+
+      setSetlist(Array.isArray(next) ? next : []);
     },
-    [markDirty],
+    [deactivateInstrument, markDirty, setlist],
   );
   // Calcula a média de progress das instruments
   useEffect(() => {
@@ -749,6 +826,7 @@ function EditSongColumnA({
       }
       const userEmail = localStorage.getItem("userEmail");
       const buildInstrumentPayload = ({
+        active,
         capo,
         lastPlay,
         link,
@@ -757,7 +835,7 @@ function EditSongColumnA({
         tuning,
         notes,
       }) => {
-        if (!String(link || "").trim()) {
+        if (!active) {
           return false;
         }
 
