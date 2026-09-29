@@ -477,20 +477,23 @@ main{
 }
 
 .presentation-tiptap-surface.presentation-horizontal-columns .presentation-cifra-editor {
-  display: flex;
-  flex-flow: row nowrap;
-  align-items: flex-start;
+  /*
+   * REGRA DE LAYOUT (nao remover): nenhuma cifra da visualizacao horizontal
+   * pode ultrapassar a altura da area de Presentation. O editor precisa ser
+   * uma caixa de altura fixa com colunas CSS; assim, o conteudo excedente
+   * continua na proxima coluna, sempre dentro do retangulo visivel.
+   */
+  display: block;
   box-sizing: border-box;
-  gap: var(--presentation-block-gap, 2rem);
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
-  height: auto;
+  width: min(42vw, 42rem);
+  min-width: min(42vw, 42rem);
+  max-width: min(42vw, 42rem);
+  height: 100%;
   min-height: 100%;
-  column-count: auto;
-  column-fill: balance;
-  column-gap: normal;
-  column-width: auto;
+  column-count: 1;
+  column-fill: auto;
+  column-gap: var(--presentation-block-gap, 2rem);
+  column-width: min(42vw, 42rem);
   overflow: visible;
   padding-bottom: 0;
 }
@@ -544,12 +547,11 @@ main{
 .presentation-tiptap-surface.presentation-horizontal-columns
   .presentation-editor-block {
   box-sizing: border-box;
-  flex: 0 0 min(42vw, 42rem);
-  width: min(42vw, 42rem);
+  width: auto;
   height: auto;
-  min-height: min(68vh, 760px);
+  min-height: 0;
   max-height: none;
-  break-after: auto;
+  break-after: column;
   break-inside: auto;
   overflow: visible;
   orphans: 1;
